@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    {% block head %}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% if current_user.is_authenticated %}{{ current_user.name }}'s
+      Reading List{% else %}Reading List{% endif %}
+    </title>
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="{{ url_for('static', filename='images/icon.png') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+      type="text/css"
+    />
+    {% endblock %}
+  </head>
+  <body>
+    <!-- 插入到页面标题上方 -->
+    {% for message in get_flashed_messages() %}
+    <div class="alert">{{ message }}</div>
+    {% endfor %}
+
+    <h2>
+      <img
+        alt="Avatar"
+        class="avatar"
+        src="{{ url_for('static', filename='images/avatar.png') }}"
+      />
+      {% if current_user.is_authenticated %}{{ current_user.name }}'s
+      Reading List{% else %}Reading List{% endif %}
+    </h2>
+    <nav>
+      <ul>
+        <li><a href="{{ url_for('main.index') }}">Home</a></li>
+        {% if current_user.is_authenticated %}
+        <li><a href="{{ url_for('main.settings') }}">Settings</a></li>
+        <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+        {% else %}
+        <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% block content %}{% endblock %}
+    <footer>
+      <small
+        >&copy; 2025
+        <a href="http://helloflask.com/book/3">HelloFlask</a></small
+      >
+    </footer>
+  </body>
+</html>

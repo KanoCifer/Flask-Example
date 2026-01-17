@@ -1,0 +1,19 @@
+{% extends 'base.html' %} {% block content %}
+<h3>Edit book</h3>
+<form method="POST">
+  {{ form.hidden_tag() }}
+  <div class="form-group">
+    {{ form.title.label }} {{ form.title(class="form-control", autocomplete="off") }}
+    {% for error in form.title.errors %}
+    <span class="error-message">{{ error }}</span>
+    {% endfor %}
+  </div>
+  <div class="form-group">
+    {{ form.author.label }} {{ form.author(class="form-control", autocomplete="off") }}
+    {% for error in form.author.errors %}
+    <span class="error-message">{{ error }}</span>
+    {% endfor %}
+  </div>
+  {{ form.submit(class="btn-primary", value="Save") }}
+</form>
+{% endblock %}
