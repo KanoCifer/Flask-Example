@@ -102,7 +102,7 @@ nav ul {
   padding: 0;
   overflow: hidden;
   background-color: #333;
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 nav li {
@@ -122,6 +122,8 @@ nav li a:hover {
 }
 .float-right {
   float: right;
+  color: #666;
+  font-size: 14px;
 }
 
 .douban {
@@ -182,4 +184,76 @@ input[type="submit"] {
 
 .inline-form {
   display: inline;
+}
+
+/* ========== 手机响应式布局 ========== */
+@media (max-width: 480px) {
+  body {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  /* 书单项：改用 flex 布局，自动换行 */
+  .book-list li {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 15px;
+    gap: 8px;
+  }
+
+  /* 书名 */
+  .book-list li {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  /* 右侧内容：作者、按钮放到底部 */
+  .float-right {
+    float: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .book-list li .float-right {
+    font-size: 13px;
+    color: #666;
+  }
+
+  /* 按钮：放大点击区域 */
+  .btn {
+    font-size: 14px;
+    padding: 6px 12px;
+    min-height: 36px;
+    min-width: 44px; /* 移动端最小点击区域 */
+  }
+
+  .douban {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  /* 表单：更大输入框 */
+  .form-control {
+    font-size: 16px; /* 防止 iOS 自动缩放 */
+    padding: 10px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    margin-top: 5px;
+  }
+
+  .book-count {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .totoro {
+    height: 80px;
+  }
 }

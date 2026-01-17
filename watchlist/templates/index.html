@@ -20,40 +20,42 @@ current_user.is_authenticated %}
 </form>
 {% endif %}
 <p class="book-count">{{ books|length }} Books</p>
-<ul class="book-list">
-  {% for book in books %}
-  <li>
-    {{ book['title'] }}
-    <span class="float-right">
-      ({{ book['author'] }}) {% if current_user.is_authenticated %}
-      <a class="btn" href="{{ url_for('main.edit', book_id=book.id) }}"
-        >Edit</a
-      >
-      <form
-        class="inline-form"
-        method="post"
-        action="{{ url_for('main.delete', book_id=book.id) }}"
-      >
-        <input
-          class="btn"
-          type="submit"
-          name="delete"
-          value="Delete"
-          onclick="return confirm('Are you sure?');"
-        />
-      </form>
-      {% endif %}
-      <a
-        class="douban"
-        href="https://book.douban.com/subject_search?search_text={{ book['title'] }}"
-        target="_blank"
-        title="Find this book on douban"
-        >豆瓣</a
-      >
-    </span>
-  </li>
-  {% endfor %}
-</ul>
+<div>
+  <ul class="book-list">
+    {% for book in books %}
+    <li>
+      {{ book['title'] }}
+      <span class="float-right">
+        {{ book['author'] }} {% if current_user.is_authenticated %}
+        <a class="btn" href="{{ url_for('main.edit', book_id=book.id) }}"
+          >Edit</a
+        >
+        <form
+          class="inline-form"
+          method="post"
+          action="{{ url_for('main.delete', book_id=book.id) }}"
+        >
+          <input
+            class="btn"
+            type="submit"
+            name="delete"
+            value="Delete"
+            onclick="return confirm('Are you sure?');"
+          />
+        </form>
+        {% endif %}
+        <a
+          class="douban"
+          href="https://book.douban.com/subject_search?search_text={{ book['title'] }}"
+          target="_blank"
+          title="Find this book on douban"
+          >豆瓣</a
+        >
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
 <img
   class="totoro"
   alt="Walking Totoro"
