@@ -9,12 +9,15 @@ from watchlist.extensions import db, login_manager
 from watchlist.models import User
 from watchlist.views import main_bp
 
+BASE_DIR = Path(__file__).resolve().parent
+SQLITE_PREFIX = "sqlite:///"
+
 
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////" + str(
-        Path(app.root_path).parent / "data.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL", SQLITE_PREFIX + str(BASE_DIR / "data.db")
     )
 
     if test_config:
