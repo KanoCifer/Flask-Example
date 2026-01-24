@@ -11,9 +11,9 @@ from watchlist.extensions import db
 class User(db.Model, UserMixin):
     __tablename__ = "user"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(20))
-    username: Mapped[str] = mapped_column(String(20))
-    password_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    name: Mapped[str] = mapped_column(String(50))
+    username: Mapped[str] = mapped_column(String(50), unique=True)
+    password_hash: Mapped[Optional[str]] = mapped_column(String(200))
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -27,5 +27,5 @@ class User(db.Model, UserMixin):
 class Book(db.Model):
     __tablename__ = "book"
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(100))
+    title: Mapped[str] = mapped_column(String(100), unique=True)
     author: Mapped[str] = mapped_column(String(60))
