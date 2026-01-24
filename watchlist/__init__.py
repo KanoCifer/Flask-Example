@@ -1,24 +1,15 @@
-import os
-from pathlib import Path
-
 from flask import Flask
 
 from watchlist.auth import auth_bp
 from watchlist.commands import admin, forge
-from watchlist.extensions import db, login_manager
+from watchlist.extensions import db, login_manager, migrate
 from watchlist.models import User
 from watchlist.views import main_bp
-
-BASE_DIR = Path(__file__).resolve().parent
-SQLITE_PREFIX = "sqlite:///"
 
 
 def create_app(test_config=None):
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL", SQLITE_PREFIX + str(BASE_DIR / "data.db")
-    )
+    app.config.from_object("watchlist.config")
 
     if test_config:
         app.config.update(test_config)
@@ -34,6 +25,7 @@ def create_app(test_config=None):
 def register_extensions(app):
     db.init_app(app)
     login_manager.init_app(app)
+    migrate.init_app(app, db)
 
 
 def register_blueprints(app):

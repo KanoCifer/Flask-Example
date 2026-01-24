@@ -9,7 +9,7 @@ from watchlist.models import Book, User
 def forge():
     db.drop_all()
     db.create_all()
-    name = "Grey Li"
+    name = "Kuroome"
     books = [
         {
             "title": "Flask Web开发实战：入门、进阶与原理解析",

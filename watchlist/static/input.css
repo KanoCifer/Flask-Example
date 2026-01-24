@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@layer theme {
+  :root {
+    --font-sans:
+      ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+      "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+  }
+}
+
+@layer components {
+  .book-list {
+    @apply divide-y divide-gray-200 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-6;
+  }
+
+  .book-list li {
+    @apply p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2;
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-control {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all;
+  }
+
+  .btn {
+    @apply inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors no-underline cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer;
+  }
+
+  .douban {
+    @apply inline-flex items-center px-2 py-1 text-xs font-bold text-gray-900 bg-[#f5c518] rounded hover:bg-[#e4b715] transition-colors no-underline ml-2;
+  }
+
+  .avatar {
+    @apply w-10 h-10 rounded-full inline-block mr-2 ring-2 ring-white;
+  }
+
+  .book-count {
+    @apply inline-block px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-full mb-4 border border-gray-200;
+  }
+
+  .alert {
+    @apply mb-4 p-4 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg;
+  }
+
+  .error-message {
+    @apply text-sm text-red-600 mt-1 block;
+  }
+
+  .cat {
+    @apply block mx-auto h-36 object-contain mt-8;
+  }
+
+  .totoro {
+    @apply block mx-auto h-36 object-contain mt-8;
+  }
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 font-sans p-4 sm:p-8 max-w-3xl mx-auto;
+}
+
+h2 {
+  @apply text-2xl font-bold text-gray-900 mb-6 flex items-center;
+}
+
+h3 {
+  @apply text-xl font-semibold text-gray-900 mb-4;
+}
+
+footer {
+  @apply text-center text-gray-500 text-sm mt-8 border-t border-gray-200 pt-4;
+}
+
+nav ul {
+  @apply flex items-center gap-1 bg-white p-1 rounded-xl shadow-sm border border-gray-200 mb-8 overflow-hidden;
+}
+
+nav li a {
+  @apply block px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors no-underline;
+}
+
+.float-right {
+  @apply flex items-center gap-2 mt-2 sm:mt-0 sm:ml-auto;
+}
+
+.inline-form {
+  @apply inline-block;
+}

@@ -4,10 +4,7 @@
     {% block head %}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      {% if current_user.is_authenticated %}{{ current_user.name }}'s
-      Reading List{% else %}Reading List{% endif %}
-    </title>
+    <title>{{ user }}'s ReadingList</title>
     <link
       rel="icon"
       type="image/png"
@@ -16,8 +13,7 @@
     />
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-      type="text/css"
+      href="{{ url_for('static', filename='main.css') }}"
     />
     {% endblock %}
   </head>
@@ -27,14 +23,13 @@
     <div class="alert">{{ message }}</div>
     {% endfor %}
 
-    <h2>
+    <h2 class="text-3xl font-bold">
       <img
         alt="Avatar"
         class="avatar"
         src="{{ url_for('static', filename='images/avatar.png') }}"
       />
-      {% if current_user.is_authenticated %}{{ current_user.name }}'s
-      Reading List{% else %}Reading List{% endif %}
+      {{ user }}'s ReadingList
     </h2>
     <nav>
       <ul>

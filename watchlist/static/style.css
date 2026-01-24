@@ -1,3 +1,4 @@
+@import "tailwindcss";
 /* 页面整体 */
 body {
   margin: auto;
@@ -89,11 +90,10 @@ footer {
   background-color: #f8f9fa;
 }
 
-/* 龙猫图片 */
-.totoro {
+.cat {
   display: block;
   margin: 0 auto;
-  height: 100px;
+  height: 150px;
 }
 
 nav ul {

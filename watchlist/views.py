@@ -1,10 +1,10 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from watchlist.extensions import db
 from watchlist.forms import BookForm, SettingsForm
-from watchlist.models import Book
+from watchlist.models import Book, User
 
 main_bp = Blueprint("main", __name__)
 
@@ -27,8 +27,13 @@ def index():
         flash("Item created.")
         return redirect(url_for("main.index"))
 
+    user = (
+        current_user.name
+        if current_user.is_authenticated
+        else db.session.execute(select(User.name).filter_by(id=1)).scalar()
+    )
     books = db.session.execute(text("SELECT * FROM book")).mappings().all()
-    return render_template("index.html", books=books, form=form)
+    return render_template("index.html", user=user, books=books, form=form)
 
 
 @main_bp.route("/book/edit/<int:book_id>", methods=["GET", "POST"])
