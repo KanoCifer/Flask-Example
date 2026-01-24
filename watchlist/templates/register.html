@@ -1,0 +1,49 @@
+{% extends "base.html" %} {% block title %}Register{% endblock %} {% block
+content %} {% block scripts %}
+<script src="{{ url_for('static', filename='register.js') }}"></script>
+{% endblock %}
+<h3>Register</h3>
+<form method="post">
+  {{ form.hidden_tag() }}
+
+  <div class="form-group">
+    {{ form.username.label }} {{ form.username(autocomplete="off",
+    class="form-control", placeholder=form.username.description) }} {% for error
+    in form.username.errors %}
+    <span class="error-message">{{ error }}</span>
+    {% endfor %}
+  </div>
+
+  <div class="form-group">
+    {{ form.email.label }} {{ form.email(id="email", autocomplete="off",
+    class="form-control", placeholder=form.email.description) }} {% for error in
+    form.email.errors %}
+    <span class="error-message">{{ error }}</span>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="form-group">
+      {{ form.password.label }} {{ form.password(type="password",
+      autocomplete="off", class="form-control",
+      placeholder=form.password.description) }} {% for error in
+      form.password.errors %}
+      <span class="error-message">{{ error }}</span>
+      {% endfor %}
+    </div>
+
+    <div class="form-group">
+      {{ form.email_code.label }} {{ form.email_code(autocomplete="off",
+      class="form-control", placeholder=form.email_code.description) }} {% for
+      error in form.email_code.errors %}
+      <span class="error-message">{{ error }}</span>
+      {% endfor %}
+    </div>
+    <button id="send-code" type="button" class="btn float-right">
+      Send Code
+    </button>
+  </div>
+
+  {{ form.submit(class="btn-primary") }}
+</form>
+{% endblock %}

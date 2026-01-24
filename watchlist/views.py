@@ -9,6 +9,7 @@ from watchlist.models import Book, User
 main_bp = Blueprint("main", __name__)
 
 
+# 首页视图，显示书籍列表并处理添加书籍的表单提交
 @main_bp.route("/", methods=["GET", "POST"])
 @main_bp.route("/index", methods=["GET", "POST"])
 def index():
@@ -55,6 +56,7 @@ def edit(book_id):
     return render_template("edit.html", book=book, form=form)
 
 
+# 删除书籍的路由
 @main_bp.route("/book/delete/<int:book_id>", methods=["POST"])
 @login_required
 def delete(book_id):
@@ -65,6 +67,7 @@ def delete(book_id):
     return redirect(url_for("main.index"))
 
 
+# 用户设置视图，允许用户更新个人信息
 @main_bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():

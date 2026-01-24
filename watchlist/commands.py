@@ -21,10 +21,13 @@ def forge():
     user.username = "admin"
     user.set_password("helloflask")
     db.session.add(user)
+    db.session.flush()  # 获取 user.id
+
     for item in books:
         book = Book()
         book.title = item["title"]
         book.author = item["author"]
+        book.user_id = user.id  # 设置外键
         db.session.add(book)
 
     db.session.commit()

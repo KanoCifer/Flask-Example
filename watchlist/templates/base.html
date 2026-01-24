@@ -4,7 +4,7 @@
     {% block head %}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ user }}'s ReadingList</title>
+    <title>{% block title %}{% endblock %} | {{ user }}'s ReadingList</title>
     <link
       rel="icon"
       type="image/png"
@@ -16,7 +16,9 @@
       href="{{ url_for('static', filename='style.css') }}"
     />
     {% endblock %}
+    <script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
+    {% block scripts %}{% endblock %}
   </head>
   <body>
     <!-- 插入到页面标题上方 -->
@@ -78,6 +80,7 @@
         <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
         {% else %}
         <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+        <li><a href="{{ url_for('auth.register') }}">Register</a></li>
         {% endif %}
       </ul>
     </nav>

@@ -59,3 +59,28 @@ class SettingsForm(FlaskForm):
     password = StringField("Password", description="留空表示不修改密码")
 
     submit = SubmitField("Save")
+
+
+# 注册表单
+class SignUpForm(FlaskForm):
+    username = StringField(
+        "Username",
+        description="请输入用户名",
+        validators=[DataRequired(message="用户名不能为空")],
+    )
+    email = StringField(
+        "Email",
+        description="请输入邮箱",
+        validators=[DataRequired(message="邮箱不能为空")],
+    )
+    email_code = StringField(
+        "Email Code",
+        description="请输入邮箱验证码",
+        validators=[DataRequired(message="邮箱验证码不能为空")],
+    )
+    password = StringField(
+        "Password",
+        description="请输入密码",
+        validators=[DataRequired(message="密码不能为空")],
+    )
+    submit = SubmitField("Sign Up")

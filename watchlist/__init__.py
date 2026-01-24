@@ -2,7 +2,7 @@ from flask import Flask
 
 from watchlist.auth import auth_bp
 from watchlist.commands import admin, forge
-from watchlist.extensions import db, login_manager, migrate
+from watchlist.extensions import db, login_manager, mail, migrate
 from watchlist.models import User
 from watchlist.views import main_bp
 
@@ -22,10 +22,12 @@ def create_app(test_config=None):
     return app
 
 
+# 注册扩展
 def register_extensions(app):
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    mail.init_app(app)
 
 
 def register_blueprints(app):
