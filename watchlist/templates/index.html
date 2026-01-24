@@ -19,7 +19,11 @@
   {{ form.submit(class="btn-primary", value="Add") }}
 </form>
 {% endif %}
-<p class="book-count">{{ books|length }} Books</p>
+<div class="flex w-auto">
+  <h2 class="book-count text-3xl font-bold text-center">
+    {{ books|length }} Books
+  </h2>
+</div>
 <div>
   <ul class="book-list">
     {% for book in books %}

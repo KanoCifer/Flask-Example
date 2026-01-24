@@ -4,7 +4,10 @@
     {% block head %}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}{% endblock %} | {{ user }}'s ReadingList</title>
+    <title>
+      {% block title %}{% endblock %} | {% if current_user.is_authenticated %}
+      {{ current_user.name }} {% else %} {{ "Guest" }}{% endif %}'s ReadingList
+    </title>
     <link
       rel="icon"
       type="image/png"
@@ -32,7 +35,8 @@
           class="avatar size-15"
           src="{{ url_for('static', filename='images/avatar.png') }}"
         />
-        {{ user }}'s ReadingList
+        {% if current_user.is_authenticated %} {{ current_user.name }} {% else
+        %} {{ "Guest" }}'s ReadingList {% endif %}
       </span>
       <span
         id="light-dark-mode"

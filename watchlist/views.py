@@ -23,17 +23,36 @@ def index():
         book = Book()
         book.title = title
         book.author = author
+        book.user_id = current_user.id
         db.session.add(book)
         db.session.commit()
         flash("Item created.")
         return redirect(url_for("main.index"))
-
-    user = (
-        current_user.name
-        if current_user.is_authenticated
-        else db.session.execute(select(User.name).filter_by(id=1)).scalar()
-    )
-    books = db.session.execute(text("SELECT * FROM book")).mappings().all()
+    if current_user.is_authenticated:
+        user = current_user
+    else:
+        user = db.session.execute(select(User).filter_by(id=1)).scalar()
+    books = []
+    if user and user.id:
+        books = (
+            db.session.execute(
+                select(Book)
+                .filter_by(user_id=user.id)
+                .order_by(text("iscompleted, add_date DESC"))
+            )
+            .scalars()
+            .all()
+        )
+    else:
+        books = (
+            db.session.execute(
+                select(Book)
+                .filter_by(user_id=1)
+                .order_by(text("iscompleted, add_date DESC"))
+            )
+            .scalars()
+            .all()
+        )
     return render_template("index.html", user=user, books=books, form=form)
 
 

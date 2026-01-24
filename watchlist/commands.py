@@ -16,9 +16,8 @@ def forge():
             "author": "李辉",
         }
     ]
-    user = User()
+    user = User(username="admin")
     user.name = name
-    user.username = "admin"
     user.set_password("helloflask")
     db.session.add(user)
     db.session.flush()  # 获取 user.id
@@ -53,8 +52,7 @@ def admin(username, password):
         user.set_password(password)
     else:
         click.echo("Creating user...")
-        user = User()
-        user.username = username
+        user = User(username=username)
         user.name = "Admin"
         user.set_password(password)
         db.session.add(user)
