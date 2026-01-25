@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
+from wtforms import BooleanField, StringField, SubmitField
 from wtforms.validators import DataRequired, Length
 
 
@@ -34,6 +34,7 @@ class QLoginForm(FlaskForm):
         description="请输入密码",
         validators=[DataRequired(message="密码不能为空")],
     )
+    remember_me = BooleanField("Remember Me")
     submit = SubmitField("Login")
 
 

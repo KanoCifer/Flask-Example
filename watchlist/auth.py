@@ -26,6 +26,11 @@ def login():
         if user and user.validate_password(password):
             login_user(user)
             flash("Login success.")
+            if form.remember_me.data:
+                # 设置记住我功能
+                login_user(user, remember=True)
+            else:
+                login_user(user, remember=False)
             return redirect(url_for("main.index"))
 
         flash("Invalid username or password.")
@@ -64,7 +69,7 @@ def send_test_email():
         mail.send(message)
     except Exception as e:
         return jsonify(
-            {"status": "fail", "message": f"Failed to send email: {str(e)}"}
+            {"status": "fail", "message": f"Failed to send email: {e!s}"}
         ), 500
     # 将验证码存储到数据库中（假设有一个 SignUpCode 模型）
     sign_up_code = SignUpCode(email=email, code=verification_code)

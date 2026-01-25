@@ -1,24 +1,36 @@
 {% extends 'base.html' %} {% block title %}Login{% endblock %} {% block content
 %}
-<h3>Login</h3>
-<form method="post">
-  {{ form.hidden_tag() }}
+<div class="text-center p-4 rounded-lg shadow-lg max-w-md mx-auto mb-4">
+  <span class="text-2xl font-bold">Login</span>
+</div>
+<div class="shadow-xl p-8 m-4 rounded-xl max-w-md mx-auto">
+  <form method="post">
+    {{ form.hidden_tag() }}
 
-  <div class="form-group">
-    {{ form.username.label }} {{ form.username(autocomplete="off",
-    class="form-control") }} {% for error in form.username.errors %}
-    <span class="error-message">{{ error }}</span>
-    {% endfor %}
-  </div>
+    <div class="form-group">
+      {{ form.username.label }} {{ form.username(autocomplete="off",
+      class="form-control") }} {% for error in form.username.errors %}
+      <span class="error-message">{{ error }}</span>
+      {% endfor %}
+    </div>
 
-  <div class="form-group">
-    {{ form.password.label }} {{ form.password(autocomplete="off",
-    type="password", class="form-control") }} {% for error in
-    form.password.errors %}
-    <span class="error-message">{{ error }}</span>
-    {% endfor %}
-  </div>
+    <div class="form-group">
+      {{ form.password.label }} {{ form.password(autocomplete="off",
+      type="password", class="form-control") }} {% for error in
+      form.password.errors %}
+      <span class="error-message">{{ error }}</span>
+      {% endfor %}
+    </div>
+    <div class="flex items-center my-4">
+      {{ form.remember_me(class="w-4 h-4 text-blue-600 bg-gray-100
+      border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600
+      dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700
+      dark:border-gray-600") }} {{ form.remember_me.label(class="ml-2 text-sm
+      font-medium text-gray-900 dark:text-gray-300") }}
+    </div>
 
-  {{ form.submit(class="btn-primary", value="Login") }}
-</form>
+    {{ form.submit(class="btn-primary px-6 py-2 rounded-xl font-semibold
+    transition-colors duration-200 shadow-lg", value="Login") }}
+  </form>
+</div>
 {% endblock %}

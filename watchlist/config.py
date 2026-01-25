@@ -4,6 +4,7 @@ from pathlib import Path
 # Configuration settings
 BASE_DIR = Path(__file__).resolve().parent
 SQLITE_PREFIX = "sqlite:///"
+MEDIA_PATH = BASE_DIR / "media"
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev")
 SQLALCHEMY_DATABASE_URI = os.getenv(

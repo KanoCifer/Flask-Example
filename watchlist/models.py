@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 import faker
 from flask_login import UserMixin
@@ -17,13 +16,11 @@ class User(db.Model, UserMixin):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50), default=fake.name())
     username: Mapped[str] = mapped_column(String(50), unique=True)
-    password_hash: Mapped[Optional[str]] = mapped_column(String(200))
+    password_hash: Mapped[str | None] = mapped_column(String(200))
     # One-to-One relationship with Profile
-    profile: Mapped[Optional["Profile"]] = relationship(
-        back_populates="user", uselist=False
-    )
+    profile: Mapped[Profile | None] = relationship(back_populates="user", uselist=False)
     # One-to-Many relationship with Book
-    books: Mapped[list["Book"]] = relationship(back_populates="user")
+    books: Mapped[list[Book]] = relationship(back_populates="user")
 
     def __init__(self, username: str):
         self.username = username
@@ -46,7 +43,7 @@ class Profile(db.Model):
     # Foreign Key to User
     user_id: Mapped[int] = mapped_column(db.ForeignKey("user.id"))
     # One-to-One relationship with User
-    user: Mapped["User"] = relationship(back_populates="profile")
+    user: Mapped[User] = relationship(back_populates="profile")
 
 
 class Book(db.Model):
@@ -59,7 +56,7 @@ class Book(db.Model):
 
     # Foreign Key to User
     user_id: Mapped[int] = mapped_column(db.ForeignKey("user.id"))
-    user: Mapped["User"] = relationship(
+    user: Mapped[User] = relationship(
         back_populates="books"
     )  # Establish relationship with User
 

@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import select, text
 
@@ -13,11 +13,11 @@ main_bp = Blueprint("main", __name__)
 @main_bp.route("/", methods=["GET", "POST"])
 @main_bp.route("/index", methods=["GET", "POST"])
 def index():
-    if request.method == "POST":
-        if not current_user.is_authenticated:
-            return redirect(url_for("main.index"))
     form = BookForm()
     if form.validate_on_submit():
+        if not current_user.is_authenticated:
+            flash("You must log in first.")
+            return redirect(url_for("main.index"))
         title = (form.title.data or "").strip().title()
         author = (form.author.data or "").strip()
         book = Book()
@@ -32,27 +32,16 @@ def index():
         user = current_user
     else:
         user = db.session.execute(select(User).filter_by(id=1)).scalar()
-    books = []
-    if user and user.id:
-        books = (
-            db.session.execute(
-                select(Book)
-                .filter_by(user_id=user.id)
-                .order_by(text("iscompleted, add_date DESC"))
-            )
-            .scalars()
-            .all()
+    user_id = user.id if user else 1
+    books = (
+        db.session.execute(
+            select(Book)
+            .filter_by(user_id=user_id)
+            .order_by(text("iscompleted, add_date DESC"))
         )
-    else:
-        books = (
-            db.session.execute(
-                select(Book)
-                .filter_by(user_id=1)
-                .order_by(text("iscompleted, add_date DESC"))
-            )
-            .scalars()
-            .all()
-        )
+        .scalars()
+        .all()
+    )
     return render_template("index.html", user=user, books=books, form=form)
 
 
@@ -118,3 +107,9 @@ def settings():
     form.username.data = current_user.username
 
     return render_template("settings.html", form=form)
+
+
+@main_bp.route("/upload_pic", methods=["POST"])
+@login_required
+def upload_pic():
+    return jsonify({"status": "success", "message": "Picture uploaded."})
