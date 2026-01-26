@@ -38,7 +38,7 @@
   }
 
   .douban {
-    @apply ml-2 inline-flex items-center rounded bg-[#f5c518] px-2 py-1 text-xs font-bold text-gray-900 no-underline transition-colors hover:bg-[#e4b715];
+    @apply ml-2 inline-flex items-center rounded bg-green-300 px-2 py-1 text-xs font-bold text-gray-900 no-underline transition-colors hover:bg-green-500;
   }
 
   .avatar {
@@ -87,7 +87,7 @@ nav ul {
 }
 
 nav li a {
-  @apply block rounded-lg px-2 py-1 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white;
+  @apply rounded-lg px-2 py-2 font-medium text-gray-600 no-underline transition-colors text-shadow-xs hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white;
 }
 
 .float-right {

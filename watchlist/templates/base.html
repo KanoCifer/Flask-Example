@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
       {% block title %}{% endblock %} | {% if current_user.is_authenticated %}
-      {{ current_user.name }}'s ReadingList {% else %} {{ "Guest" }}{% endif
+      {{ current_user.name }}'s ReadingList {% else %} {{ "Owner" }}{% endif
       %}'s ReadingList
     </title>
     <link
@@ -41,7 +41,7 @@
             />
             <span>
               {% if current_user.is_authenticated %} {{ current_user.name }}'s
-              ReadingList {% else %} {{ "Guest" }}'s ReadingList {% endif %}
+              ReadingList {% else %} {{ "Owner" }}'s ReadingList {% endif %}
             </span>
           </a>
 
@@ -76,15 +76,15 @@
 
         <div class="relative mt-2">
           <img
-            class="pointer-events-none absolute right-8 bottom-4 z-10 -mb-1 w-20 object-contain select-none"
+            class="pointer-events-none absolute right-8 bottom-6 z-10 -mb-1 w-20 object-contain select-none"
             src="{{url_for('static', filename='images/cat.png')}}"
             alt="Cat"
           />
           <nav class="w-full">
-            <ul class="flex items-center gap-6 text-lg font-medium">
+            <ul class="flex items-center gap-6 font-medium">
               <li>
                 <a
-                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  class="block py-2 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
                   href="{{ url_for('main.index') }}"
                   >Home</a
                 >
@@ -92,14 +92,14 @@
               {% if current_user.is_authenticated %}
               <li>
                 <a
-                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  class="block py-2 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
                   href="{{ url_for('main.settings') }}"
                   >Settings</a
                 >
               </li>
               <li>
                 <a
-                  class="block py-1 text-gray-600 transition-colors hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400"
+                  class="block py-2 text-gray-600 transition-colors hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400"
                   href="{{ url_for('auth.logout') }}"
                   >Logout</a
                 >
@@ -107,14 +107,14 @@
               {% else %}
               <li>
                 <a
-                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  class="block py-2 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
                   href="{{ url_for('auth.login') }}"
                   >Login</a
                 >
               </li>
               <li>
                 <a
-                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  class="block py-2 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
                   href="{{ url_for('auth.register') }}"
                   >Register</a
                 >

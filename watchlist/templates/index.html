@@ -25,52 +25,71 @@
   </form>
 </div>
 {% endif %}
-<div class="flex w-auto">
-  <h2 class="book-count text-center text-3xl font-bold">
+<div
+  class="my-4 flex items-center justify-between border-b pb-2 dark:border-gray-700"
+>
+  <h2
+    class="rounded-2xl border-2 border-blue-200 bg-blue-50 px-4 py-2 text-2xl font-bold text-gray-800 dark:text-gray-100"
+  >
     {{ books|length }} Books
   </h2>
 </div>
-<div>
-  <ul class="book-list h-auto rounded-xl bg-gray-50 shadow-lg dark:bg-gray-800">
+
+<div
+  class="overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10"
+>
+  <ul class="divide-y divide-gray-100 dark:divide-gray-700">
     {% for book in books %}
     <li
-      class="transition-colors duration-200 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
+      class="group flex items-center justify-between p-4 transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
     >
-      <span class="text-gray-800 dark:text-gray-200"
-        >📖《{{ book['title'] }}》</span
-      >
-      <span class="float-right flex items-center gap-2">
-        <span class="mr-2 text-gray-600 dark:text-gray-400"
-          >🖋️{{ book['author'] }}</span
+      <div class="min-w-0 flex-1 pr-4">
+        <p
+          class="text-md truncate font-medium text-gray-900 dark:text-gray-100"
+          title="{{ book['title'] }}"
         >
-        {% if current_user.is_authenticated %}
-        <a
-          class="btn rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md"
-          href="{{ url_for('main.edit', book_id=book.id) }}"
-          >Edit</a
+          📖 《{{ book['title'] }}》
+        </p>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-4">
+        <div
+          class="flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
         >
-        <form
-          class="inline-form"
-          method="post"
-          action="{{ url_for('main.delete', book_id=book.id) }}"
+          {% if current_user.is_authenticated %}
+          <a
+            class="btn rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+            href="{{ url_for('main.edit', book_id=book.id) }}"
+            >Edit</a
+          >
+          <form
+            class="inline-flex"
+            method="post"
+            action="{{ url_for('main.delete', book_id=book.id) }}"
+          >
+            <input
+              class="btn cursor-pointer rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+              type="submit"
+              name="delete"
+              value="Delete"
+              onclick="return confirm('Are you sure?');"
+            />
+          </form>
+          {% endif %}
+          <a
+            class="douban rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+            href="https://book.douban.com/subject_search?search_text={{ book['title'] }}"
+            target="_blank"
+            title="Find this book on douban"
+            >豆瓣</a
+          >
+        </div>
+        <span
+          class="hidden text-sm font-medium text-gray-500 sm:block dark:text-gray-400"
         >
-          <input
-            class="btn cursor-pointer rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md"
-            type="submit"
-            name="delete"
-            value="Delete"
-            onclick="return confirm('Are you sure?');"
-          />
-        </form>
-        {% endif %}
-        <a
-          class="douban rounded-xl p-2 shadow-md"
-          href="https://book.douban.com/subject_search?search_text={{ book['title'] }}"
-          target="_blank"
-          title="Find this book on douban"
-          >豆瓣</a
-        >
-      </span>
+          🖋️ {{ book['author'] }}
+        </span>
+      </div>
     </li>
     {% endfor %}
   </ul>
