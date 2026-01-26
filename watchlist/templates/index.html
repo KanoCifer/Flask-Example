@@ -1,7 +1,8 @@
 {% extends 'base.html' %} {% block title %}Home{% endblock %} {% block content
-%} {% if current_user.is_authenticated %}
+%} {# --- Add Book Form (Only for logged-in users) --- #} {% if
+current_user.is_authenticated %}
 <div class="mb-6 rounded-xl bg-gray-50 p-6 shadow-xl dark:bg-gray-800">
-  <h2 class="mb-4 text-2xl font-bold">Add a New Book</h2>
+  <p class="mb-4 text-2xl font-medium">Add a New Book to your ReadingList</p>
   <form method="post">
     {{ form.hidden_tag() }}
     <div class="form-group">
@@ -24,31 +25,35 @@
     font-semibold shadow-md", value="Add") }}
   </form>
 </div>
-{% endif %}
+{% endif %} {# --- User Books Section (Only if logged in) --- #} {% if
+current_user.is_authenticated %}
+
+<!-- 书籍数量 -->
 <div
-  class="my-4 flex items-center justify-between border-b pb-2 dark:border-gray-700"
+  class="my-4 flex items-center justify-between border-b border-gray-400 pb-2"
 >
   <h2
-    class="rounded-2xl border-2 border-blue-200 bg-blue-50 px-4 py-2 text-2xl font-bold text-gray-800 dark:text-gray-100"
+    class="rounded-2xl border-2 border-blue-200 bg-blue-50 px-4 py-2 text-2xl font-bold text-gray-800 shadow-md dark:border-blue-500 dark:bg-blue-400"
   >
-    {{ books|length }} Books
+    My Books ({{ user_books|length }})
   </h2>
 </div>
 
 <div
-  class="overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10"
+  class="mb-8 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10"
 >
+  {% if user_books %}
   <ul class="divide-y divide-gray-100 dark:divide-gray-700">
-    {% for book in books %}
+    {% for book in user_books %}
     <li
       class="group flex items-center justify-between p-4 transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
     >
       <div class="min-w-0 flex-1 pr-4">
         <p
-          class="text-md truncate font-medium text-gray-900 dark:text-gray-100"
-          title="{{ book['title'] }}"
+          class="text-md truncate font-medium text-gray-900 hover:underline dark:text-gray-100"
+          title="{{ book.title }}"
         >
-          📖 《{{ book['title'] }}》
+          📖 《{{ book.title }}》
         </p>
       </div>
 
@@ -56,9 +61,8 @@
         <div
           class="flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
         >
-          {% if current_user.is_authenticated %}
           <a
-            class="btn rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+            class="btn rounded-xl px-3 py-1 text-sm shadow-md transition-transform hover:scale-105"
             href="{{ url_for('main.edit', book_id=book.id) }}"
             >Edit</a
           >
@@ -68,35 +72,99 @@
             action="{{ url_for('main.delete', book_id=book.id) }}"
           >
             <input
-              class="btn cursor-pointer rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+              class="btn cursor-pointer rounded-xl px-3 py-1 text-sm shadow-md transition-transform hover:scale-105"
               type="submit"
               name="delete"
               value="Delete"
               onclick="return confirm('Are you sure?');"
             />
           </form>
-          {% endif %}
           <a
             class="douban rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
-            href="https://book.douban.com/subject_search?search_text={{ book['title'] }}"
+            href="https://book.douban.com/subject_search?search_text={{ book.title }}"
             target="_blank"
             title="Find this book on douban"
             >豆瓣</a
           >
         </div>
         <span
-          class="hidden text-sm font-medium text-gray-500 sm:block dark:text-gray-400"
+          class="hidden text-sm font-medium text-gray-500 italic hover:underline sm:block dark:text-gray-400"
         >
-          🖋️ {{ book['author'] }}
+          {{ book.author }}
         </span>
       </div>
     </li>
     {% endfor %}
   </ul>
+  {% else %}
+  <div class="p-6 text-center text-gray-500 italic dark:text-gray-400">
+    No books added yet. Use the form above to add one!
+  </div>
+  {% endif %}
 </div>
+{% endif %} {# --- Owner Books Section (Always visible) --- #}
+
+<!-- 作者书籍数量 -->
+<div
+  class="my-4 flex items-center justify-between border-b border-gray-400 pb-2"
+>
+  <h2
+    class="rounded-2xl border-2 border-green-200 bg-green-50 px-4 py-2 text-2xl font-bold text-gray-800 shadow-md dark:border-teal-700 dark:bg-teal-600"
+  >
+    Owner's Books ({{ owner_books|length }})
+  </h2>
+</div>
+
+<div
+  class="overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10"
+>
+  {% if owner_books %}
+  <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+    {% for book in owner_books %}
+    <li
+      class="group flex items-center justify-between p-4 transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+    >
+      <div class="min-w-0 flex-1 pr-4">
+        <p
+          class="text-md truncate font-medium text-gray-900 hover:underline dark:text-gray-100"
+          title="{{ book.title }}"
+        >
+          📖 《{{ book.title }}》
+        </p>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-4">
+        <div
+          class="flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+        >
+          <a
+            class="douban rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+            href="https://book.douban.com/subject_search?search_text={{ book.title }}"
+            target="_blank"
+            title="Find this book on douban"
+            >豆瓣</a
+          >
+        </div>
+        <span
+          class="hidden text-sm font-medium text-gray-500 italic hover:underline sm:block dark:text-gray-400"
+        >
+          {{ book.author }}
+        </span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+    The owner hasn't added any books yet.
+  </div>
+  {% endif %}
+</div>
+
 <img
-  class="cat"
+  class="cat mt-8"
   alt="Cute Cat"
   src="{{ url_for('static', filename='images/cat.gif') }}"
 />
+
 {% endblock %}

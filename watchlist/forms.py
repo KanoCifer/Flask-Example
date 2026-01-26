@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, RadioField, StringField, SubmitField
-from wtforms.validators import DataRequired, Length
+from wtforms.validators import DataRequired, Length, Optional
 
 
 class BookForm(FlaskForm):
@@ -44,7 +44,6 @@ class SettingsForm(FlaskForm):
         "Name",
         description="请输入你的名称/昵称",
         validators=[
-            DataRequired(message="名称不能为空"),
             Length(min=1, max=20, message="名称长度必须在1-20之间"),
         ],
     )
@@ -53,7 +52,6 @@ class SettingsForm(FlaskForm):
         "Username",
         description="请输入你的用户名/登陆名",
         validators=[
-            DataRequired(message="用户名不能为空"),
             Length(min=1, max=20, message="用户名长度必须在1-20之间"),
         ],
     )
@@ -61,7 +59,7 @@ class SettingsForm(FlaskForm):
         "Email",
         description="请输入你的邮箱",
         validators=[
-            DataRequired(message="邮箱不能为空"),
+            Optional(),
             Length(min=1, max=50, message="邮箱长度必须在1-50之间"),
         ],
     )
@@ -69,14 +67,18 @@ class SettingsForm(FlaskForm):
         "Mobile",
         description="请输入你的手机号",
         validators=[
+            Optional(),
             Length(min=1, max=15, message="手机号长度必须在1-15之间"),
         ],
     )
     gender = RadioField(
         "Gender",
         choices=[("Male", "Male"), ("Female", "Female")],
+        validators=[Optional()],
     )
-    password = StringField("Password", description="留空表示不修改密码")
+    password = StringField(
+        "Password", description="留空表示不修改密码", validators=[Optional()]
+    )
 
     submit = SubmitField("Save")
 

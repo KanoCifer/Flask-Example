@@ -3,7 +3,10 @@ content %}
 <div
   class="mx-auto max-w-md rounded-lg bg-white p-4 text-center shadow-lg dark:bg-gray-800"
 >
-  <h1 class="text-2xl font-bold dark:text-white">Settings</h1>
+  <p class="text-2xl font-bold dark:text-white">Settings</p>
+  <p class="text-gray-500 italic dark:text-gray-400">
+    Manage your profile and preferences here.
+  </p>
 </div>
 <div
   class="m-4 mx-auto max-w-md rounded-xl bg-white p-8 shadow-xl dark:bg-gray-800"
@@ -25,8 +28,11 @@ content %}
     <div class="form-group">
       <label
         class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >{{ form.username.label }}</label
+        >{{ form.username.label }}<span class="text-xs text-red-400 italic">
+          * Login-in name</span
+        ></label
       >
+
       {{ form.username(autocomplete="off", class="form-control",
       placeholder=form.username.description) }} {% for error in
       form.username.errors %}
@@ -56,6 +62,8 @@ content %}
         {% endfor %}
       </div>
     </div>
+
+    <script src="{{ url_for('static', filename='settings.js') }}"></script>
 
     <div class="form-group">
       <label

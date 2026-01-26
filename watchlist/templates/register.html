@@ -5,7 +5,7 @@ content %} {% block scripts %}
 <div
   class="mx-auto mb-4 max-w-md rounded-lg bg-white p-4 text-center shadow-lg dark:bg-gray-800"
 >
-  <span class="text-2xl font-bold dark:text-white">Register?</span>
+  <p class="text-2xl font-bold dark:text-white">Register?</p>
   <p class="text-gray-500 italic dark:text-gray-400">
     Create an account to start managing your reading list!
   </p>
@@ -57,11 +57,7 @@ content %} {% block scripts %}
         {% endfor %}
       </div>
       <div class="flex">
-        <button
-          id="send-code"
-          type="button"
-          class="btn h-full rounded-xl p-2 font-semibold text-indigo-50"
-        >
+        <button id="send-code" type="button" class="btn h-full rounded-xl p-2">
           SendCode
         </button>
       </div>
@@ -73,10 +69,12 @@ content %} {% block scripts %}
     {% endfor %}
   </form>
 </div>
-<div class="mb-4 text-center">
+<div class="mb-4 text-center text-gray-700">
   Already have an account?
-  <a class="underline hover:font-extrabold" href="{{ url_for('auth.login') }}"
-    >Login here</a
-  >.
+  <a
+    class="underline transition duration-100 hover:font-bold"
+    href="{{ url_for('auth.login') }}"
+    >Login here.</a
+  >
 </div>
 {% endblock %}

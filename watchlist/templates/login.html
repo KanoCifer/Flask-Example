@@ -3,7 +3,10 @@
 <div
   class="mx-auto mb-4 max-w-md rounded-lg bg-white p-4 text-center shadow-lg dark:bg-gray-800"
 >
-  <span class="text-2xl font-bold dark:text-white">Login</span>
+  <p class="text-2xl font-bold dark:text-white">Login</p>
+  <p class="text-gray-500 italic dark:text-gray-400">
+    Welcome back! Please enter your credentials to log in.
+  </p>
 </div>
 <div
   class="m-4 mx-auto max-w-md rounded-xl bg-white p-8 shadow-xl dark:bg-gray-800"
@@ -16,8 +19,9 @@
         class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300"
         >{{ form.username.label }}</label
       >
-      {{ form.username(autocomplete="off", class="form-control") }} {% for error
-      in form.username.errors %}
+      {{ form.username(autocomplete="off", class="form-control italic",
+      placeholder="Enter your username") }} {% for error in form.username.errors
+      %}
       <span class="error-message">{{ error }}</span>
       {% endfor %}
     </div>
@@ -27,25 +31,29 @@
         class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300"
         >{{ form.password.label }}</label
       >
-      {{ form.password(autocomplete="off", type="password",
-      class="form-control") }} {% for error in form.password.errors %}
+      {{ form.password(autocomplete="off", type="password", class="form-control
+      italic", placeholder="Enter your password") }} {% for error in
+      form.password.errors %}
       <span class="error-message">{{ error }}</span>
       {% endfor %}
     </div>
-    <label class="group relative mt-4 block cursor-pointer">
-      {{ form.remember_me(class="sr-only peer") }}
-      <div
-        class="rounded-xl border-2 border-gray-100 bg-white px-3 py-2 shadow-sm transition-all duration-200 select-none group-active:scale-95 peer-checked:border-blue-500 peer-checked:bg-blue-50/50 peer-checked:shadow-blue-100/50 hover:border-blue-200 dark:border-gray-600 dark:bg-gray-700 dark:peer-checked:border-blue-500 dark:peer-checked:bg-blue-500/10 dark:peer-checked:shadow-none dark:hover:border-blue-500/50"
-      >
-        <span
-          class="text-sm font-medium text-gray-600 transition-colors peer-checked:text-blue-600 dark:text-gray-300 dark:peer-checked:text-blue-400"
-          >{{ form.remember_me.label.text }}</span
-        >
-      </div>
-    </label>
+    <div class="mt-6 flex items-center justify-between">
+      {{ form.submit(class="btn-primary rounded-xl px-6 py-2 font-semibold
+      text-white shadow-md transition-transform active:scale-95", value="Login")
+      }}
 
-    {{ form.submit(class="btn-primary text-white mt-4 px-6 py-2 rounded-xl
-    font-semibold shadow-md", value="Login") }}
+      <label class="group relative flex cursor-pointer">
+        {{ form.remember_me(class="sr-only peer") }}
+        <div
+          class="rounded-xl border-2 border-gray-100 bg-white px-3 py-2 shadow-sm transition-all duration-200 select-none group-active:scale-95 peer-checked:border-blue-500 peer-checked:bg-blue-50/50 peer-checked:shadow-blue-100/50 hover:border-blue-200 dark:border-gray-600 dark:bg-gray-700 dark:peer-checked:border-blue-500 dark:peer-checked:bg-blue-500/10 dark:peer-checked:shadow-none dark:hover:border-blue-500/50"
+        >
+          <span
+            class="text-sm font-medium text-gray-600 transition-colors peer-checked:text-blue-600 dark:text-gray-300 dark:peer-checked:text-blue-400"
+            >{{ form.remember_me.label.text }}</span
+          >
+        </div>
+      </label>
+    </div>
   </form>
 </div>
 {% endblock %}

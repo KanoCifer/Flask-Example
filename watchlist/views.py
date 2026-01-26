@@ -4,7 +4,7 @@ from sqlalchemy import select, text
 
 from watchlist.extensions import db
 from watchlist.forms import BookForm, SettingsForm
-from watchlist.models import Book, Profile, User
+from watchlist.models import Book, Profile
 
 main_bp = Blueprint("main", __name__)
 
@@ -29,20 +29,31 @@ def index():
         flash("Item created.")
         return redirect(url_for("main.index"))
     if current_user.is_authenticated:
-        user = current_user
+        user_books = (
+            db.session.execute(
+                select(Book)
+                .filter_by(user_id=current_user.id)
+                .order_by(text("iscompleted, add_date DESC"))
+            )
+            .scalars()
+            .all()
+        )
     else:
-        user = db.session.execute(select(User).filter_by(id=1)).scalar()
-    user_id = user.id if user else 1
-    books = (
+        user_books = []
+
+    owner_books = (
         db.session.execute(
             select(Book)
-            .filter_by(user_id=user_id)
+            .filter_by(user_id=1)
             .order_by(text("iscompleted, add_date DESC"))
         )
         .scalars()
         .all()
     )
-    return render_template("index.html", user=user, books=books, form=form)
+
+    return render_template(
+        "index.html", user_books=user_books, owner_books=owner_books, form=form
+    )
 
 
 @main_bp.route("/book/edit/<int:book_id>", methods=["GET", "POST"])
@@ -90,7 +101,7 @@ def settings():
 
         current_user.name = name
         current_user.username = username
-
+        # Ensure the user has a profile
         if current_user.profile is None:
             current_user.profile = Profile(user_id=current_user.id)
 

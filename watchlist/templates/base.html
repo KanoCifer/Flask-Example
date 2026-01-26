@@ -27,7 +27,9 @@
   <body
     class="grid min-h-screen grid-rows-[auto_1fr_auto] bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100"
   >
-    <header class="w-full bg-gray-50 p-4 dark:bg-gray-900">
+    <header
+      class="sticky top-0 z-50 w-full border-b border-gray-200 bg-gray-50/30 p-4 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/50"
+    >
       <div class="mx-auto max-w-4xl">
         <div class="flex items-center justify-between pt-2 pb-2">
           <a
@@ -39,7 +41,7 @@
               class="size-12 rounded-full ring-2 ring-gray-200 dark:ring-gray-700"
               src="{{ url_for('static', filename='images/avatar.png') }}"
             />
-            <span>
+            <span class="text-shadow-lg dark:text-shadow-lg">
               {% if current_user.is_authenticated %} {{ current_user.name }}'s
               ReadingList {% else %} {{ "Owner" }}'s ReadingList {% endif %}
             </span>
@@ -126,27 +128,26 @@
       </div>
     </header>
 
-    <main class="mx-auto w-full max-w-4xl p-4">
-      <!-- 插入到页面标题上方 -->
+    <!-- Flash Messages (Floating) -->
+    <div
+      id="flash-messages"
+      class="fixed top-24 left-1/2 z-60 w-full max-w-md -translate-x-1/2 space-y-2 px-4"
+    >
       {% for message in get_flashed_messages() %}
-      <div class="alert mb-4 rounded-xl bg-blue-100 p-4 text-blue-700">
+      <div
+        class="alert rounded-xl bg-blue-100/20 p-4 text-blue-700 shadow-2xl backdrop-blur-sm transition-opacity duration-500 ease-in-out select-none dark:bg-blue-900/50 dark:text-blue-200"
+      >
         {{ message }}
       </div>
-      {% endfor %} {% block content %}{% endblock %}
+      {% endfor %}
+    </div>
+
+    <main class="mx-auto w-full max-w-4xl p-4">
+      {% block content %}{% endblock %}
     </main>
 
     <footer class="p-4 text-center text-gray-500">
-      <medium>
-        Copyright&copy; 2026
-        <a
-          class="text-blue-500 hover:underline"
-          href="http://helloflask.com/book/3"
-          >HelloFlask</a
-        >
-      </medium>
-      <br />
-      2026 Released under the MIT License.
-      <br />
+      <p>Copyright &copy; 2026 All rights reserved.</p>
       <div class="flex items-center justify-center">
         <img
           alt="Powered by Flask"
@@ -155,7 +156,7 @@
           height="24"
         />
         <a
-          class="text-blue-500 hover:underline"
+          class="text-gray-500 hover:underline"
           href="https://github.com/KanoCifer/Flask-Example"
           >Github: Kuroome</a
         >

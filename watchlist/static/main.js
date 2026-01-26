@@ -31,4 +31,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const isDark = htmlElement.classList.contains("dark");
     setTheme(!isDark);
   });
+
+  const flashMessages = document.querySelectorAll(".alert");
+  if (flashMessages.length > 0) {
+    setTimeout(() => {
+      flashMessages.forEach((msg) => {
+        msg.style.opacity = "0";
+        setTimeout(() => {
+          msg.remove();
+        }, 500);
+      });
+    }, 3000);
+  }
 });
