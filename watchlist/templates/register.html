@@ -2,18 +2,23 @@
 content %} {% block scripts %}
 <script src="{{ url_for('static', filename='register.js') }}"></script>
 {% endblock %}
-<div class="text-center p-4 rounded-lg shadow-lg max-w-md mx-auto">
-  <span class="text-2xl font-bold">Register?</span>
-  <p class="text-gray-500">
+<div
+  class="mx-auto mb-4 max-w-md rounded-lg bg-white p-4 text-center shadow-lg dark:bg-gray-800"
+>
+  <span class="text-2xl font-bold dark:text-white">Register?</span>
+  <p class="text-gray-500 dark:text-gray-400">
     Create an account to start managing your reading list!
   </p>
 </div>
-<div class="shadow-xl p-8 m-4 rounded-xl max-w-md mx-auto">
+<div
+  class="m-4 mx-auto max-w-md rounded-xl bg-white p-8 shadow-xl dark:bg-gray-800"
+>
   <form method="post">
     {{ form.hidden_tag() }}
 
     <div class="form-group">
-      {{ form.username.label }} {{ form.username(autofocus=True,
+      {{ form.username.label(class="block text-sm font-medium text-gray-700
+      dark:text-gray-300 mb-3") }} {{ form.username(autofocus=True,
       autocomplete="off", class="form-control",
       placeholder=form.username.description, required=True) }} {% for error in
       form.username.errors %}
@@ -22,7 +27,8 @@ content %} {% block scripts %}
     </div>
 
     <div class="form-group">
-      {{ form.email.label }} {{ form.email(id="email", type="email",
+      {{ form.email.label(class="block text-sm font-medium text-gray-700
+      dark:text-gray-300 mb-3") }} {{ form.email(id="email", type="email",
       autocomplete="off", class="form-control",
       placeholder=form.email.description, required=True) }} {% for error in
       form.email.errors %}
@@ -31,16 +37,18 @@ content %} {% block scripts %}
     </div>
 
     <div class="form-group">
-      {{ form.password.label }} {{ form.password(type="password",
+      {{ form.password.label(class="block text-sm font-medium text-gray-700
+      dark:text-gray-300 mb-3") }} {{ form.password(type="password",
       autocomplete="off", class="form-control",
       placeholder=form.password.description, required=True) }} {% for error in
       form.password.errors %}
       <span class="error-message">{{ error }}</span>
       {% endfor %}
     </div>
-    <div class="flex gap-2 items-end">
+    <div class="flex items-end gap-2">
       <div class="form-group mb-0 w-full">
-        {{ form.email_code.label }} {{ form.email_code(autocomplete="off",
+        {{ form.email_code.label(class="block text-sm font-medium text-gray-700
+        dark:text-gray-300 mb-3") }} {{ form.email_code(autocomplete="off",
         class="form-control",type="text" ,
         placeholder=form.email_code.description, required=True) }} {% for error
         in form.email_code.errors %}
@@ -51,23 +59,22 @@ content %} {% block scripts %}
         <button
           id="send-code"
           type="button"
-          class="btn p-2 rounded-xl font-semibold transition-colors duration-200 shadow-lg h-full"
+          class="btn h-full rounded-xl p-2 font-semibold text-indigo-50"
         >
           SendCode
         </button>
       </div>
     </div>
 
-    {{ form.submit(class="btn-primary mt-4 px-6 py-2 rounded-xl font-semibold
-    transition-colors duration-200 shadow-lg") }} {% for error in
-    form.submit.errors %}
+    {{ form.submit(class="btn-primary text-white mt-4 px-6 py-2 rounded-xl
+    font-semibold shadow-md") }} {% for error in form.submit.errors %}
     <span class="error-message">{{ error }}</span>
     {% endfor %}
   </form>
 </div>
-<div class="text-center mb-4">
+<div class="mb-4 text-center">
   Already have an account?
-  <a class="hover:font-extrabold underline" href="{{ url_for('auth.login') }}"
+  <a class="underline hover:font-extrabold" href="{{ url_for('auth.login') }}"
     >Login here</a
   >.
 </div>

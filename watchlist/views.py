@@ -4,7 +4,7 @@ from sqlalchemy import select, text
 
 from watchlist.extensions import db
 from watchlist.forms import BookForm, SettingsForm
-from watchlist.models import Book, User
+from watchlist.models import Book, Profile, User
 
 main_bp = Blueprint("main", __name__)
 
@@ -84,17 +84,19 @@ def settings():
         name = form.name.data
         username = form.username.data
         password = form.password.data
-
-        if not name or len(name) > 20:
-            flash("Invalid name input.")
-            return redirect(url_for("main.settings"))
-
-        if not username or len(username) > 20:
-            flash("Invalid username input.")
-            return redirect(url_for("main.settings"))
+        gender = form.gender.data
+        email = form.email.data
+        mobile = form.mobile.data
 
         current_user.name = name
         current_user.username = username
+
+        if current_user.profile is None:
+            current_user.profile = Profile(user_id=current_user.id)
+
+        current_user.profile.gender = gender
+        current_user.profile.email = email
+        current_user.profile.mobile = mobile
 
         if password:
             current_user.set_password(password)
@@ -105,6 +107,13 @@ def settings():
 
     form.name.data = current_user.name
     form.username.data = current_user.username
+    if current_user.profile:
+        if current_user.profile.email is not None:
+            form.email.data = current_user.profile.email
+        if current_user.profile.mobile is not None:
+            form.mobile.data = current_user.profile.mobile
+        if current_user.profile.gender is not None:
+            form.gender.data = current_user.profile.gender
 
     return render_template("settings.html", form=form)
 

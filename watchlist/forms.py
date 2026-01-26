@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, StringField, SubmitField
+from wtforms import BooleanField, RadioField, StringField, SubmitField
 from wtforms.validators import DataRequired, Length
 
 
@@ -38,6 +38,7 @@ class QLoginForm(FlaskForm):
     submit = SubmitField("Login")
 
 
+# 用户设置表单
 class SettingsForm(FlaskForm):
     name = StringField(
         "Name",
@@ -56,7 +57,25 @@ class SettingsForm(FlaskForm):
             Length(min=1, max=20, message="用户名长度必须在1-20之间"),
         ],
     )
-
+    email = StringField(
+        "Email",
+        description="请输入你的邮箱",
+        validators=[
+            DataRequired(message="邮箱不能为空"),
+            Length(min=1, max=50, message="邮箱长度必须在1-50之间"),
+        ],
+    )
+    mobile = StringField(
+        "Mobile",
+        description="请输入你的手机号",
+        validators=[
+            Length(min=1, max=15, message="手机号长度必须在1-15之间"),
+        ],
+    )
+    gender = RadioField(
+        "Gender",
+        choices=[("Male", "Male"), ("Female", "Female")],
+    )
     password = StringField("Password", description="留空表示不修改密码")
 
     submit = SubmitField("Save")

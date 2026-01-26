@@ -19,6 +19,7 @@ class User(db.Model, UserMixin):
     name: Mapped[str] = mapped_column(String(50), default=fake.name())
     username: Mapped[str] = mapped_column(String(50), unique=True)
     password_hash: Mapped[str | None] = mapped_column(String(200))
+
     # One-to-One relationship with Profile
     profile: Mapped[Profile | None] = relationship(back_populates="user", uselist=False)
     # One-to-Many relationship with Book
@@ -39,13 +40,16 @@ class User(db.Model, UserMixin):
 class Profile(db.Model):
     __tablename__ = "profile"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=True)
-    gender: Mapped[str] = mapped_column(String(10), nullable=True)
-    mobile: Mapped[str] = mapped_column(String(15), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    mobile: Mapped[str | None] = mapped_column(String(15), nullable=True)
     # Foreign Key to User
     user_id: Mapped[int] = mapped_column(db.ForeignKey("user.id"))
     # One-to-One relationship with User
     user: Mapped[User] = relationship(back_populates="profile")
+
+    def __init__(self, user_id: int):
+        self.user_id = user_id
 
 
 class Book(db.Model):

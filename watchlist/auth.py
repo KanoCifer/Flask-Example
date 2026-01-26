@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from watchlist.extensions import db, mail
 from watchlist.forms import QLoginForm, SignUpForm
-from watchlist.models import SignUpCode, User
+from watchlist.models import Profile, SignUpCode, User
 
 # 蓝图对象【auth_bp】，用于认证相关的路由
 auth_bp = Blueprint("auth", __name__)
@@ -83,36 +83,37 @@ def send_test_email():
 # 注册新用户的路由
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == "GET":
-        return render_template("register.html", form=SignUpForm())
-    if request.method == "POST":
-        form = SignUpForm()
-        if form.validate_on_submit():
-            username = form.username.data
-            password = form.password.data
-            email = form.email.data
-            email_code = form.email_code.data
-            # 检查用户名是否已存在
-            existing_user = db.session.execute(
-                select(User).filter_by(username=username)
-            ).scalar()
-            if existing_user:
-                flash("Username already exists.")
-                return redirect(url_for("auth.register"))
-            # 检查邮箱验证码是否正确
-            code_model = db.session.execute(
-                select(SignUpCode).filter_by(email=email, code=email_code)
-            ).scalar()
-            if not code_model:
-                flash("Invalid email or verification code.")
-                return redirect(url_for("auth.register"))
-            # 创建新用户
-            if username:
-                new_user = User(username=username)
-                new_user.set_password(password)
-                db.session.add(new_user)
-                db.session.commit()
-                flash("Registration successful. Please log in.")
-                return redirect(url_for("auth.login"))
+    form = SignUpForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        email = form.email.data
+        email_code = form.email_code.data
+        # 检查用户名是否已存在
+        existing_user = db.session.execute(
+            select(User).filter_by(username=username)
+        ).scalar()
+        if existing_user:
+            flash("Username already exists.")
+            return redirect(url_for("auth.register"))
+        # 检查邮箱验证码是否正确
+        code_model = db.session.execute(
+            select(SignUpCode).filter_by(email=email, code=email_code)
+        ).scalar()
+        if not code_model:
+            flash("Invalid email or verification code.")
+            return redirect(url_for("auth.register"))
+        # 创建新用户
+        if username:
+            new_user = User(username=username)
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.flush()
+            new_profile = Profile(user_id=new_user.id)
+            new_profile.email = email
+            new_user.profile = new_profile
+            db.session.commit()
+            flash("Registration successful. Please log in.")
+            return redirect(url_for("auth.login"))
 
     return render_template("register.html", form=form)

@@ -1,41 +1,52 @@
 {% extends 'base.html' %} {% block title %}Home{% endblock %} {% block content
 %} {% if current_user.is_authenticated %}
-<div class="mb-6 rounded-xl shadow-xl p-6 bg-gray-50 dark:bg-gray-800">
-  <h2 class="text-2xl font-bold mb-4">Add a New Book</h2>
+<div class="mb-6 rounded-xl bg-gray-50 p-6 shadow-xl dark:bg-gray-800">
+  <h2 class="mb-4 text-2xl font-bold">Add a New Book</h2>
   <form method="post">
     {{ form.hidden_tag() }}
     <div class="form-group">
-      {{ form.title.label }} {{ form.title(class="form-control",
+      {{ form.title.label(class="block text-sm font-medium text-gray-700
+      dark:text-gray-300 mb-3") }} {{ form.title(class="form-control",
       autocomplete="off", placeholder=form.title.description) }} {% for error in
       form.title.errors %}
       <span class="error-message">{{ error }}</span>
       {% endfor %}
     </div>
     <div class="form-group">
-      {{ form.author.label }} {{ form.author(class="form-control",
+      {{ form.author.label(class="block text-sm font-medium text-gray-700
+      dark:text-gray-300 mb-3") }} {{ form.author(class="form-control",
       autocomplete="off", placeholder=form.author.description) }} {% for error
       in form.author.errors %}
       <span class="error-message">{{ error }}</span>
       {% endfor %}
     </div>
-    {{ form.submit(class="btn-primary px-6 py-2 rounded-xl font-semibold
-    transition-colors duration-200 shadow-lg", value="Add") }}
+    {{ form.submit(class="btn-primary px-6 py-2 rounded-xl text-white
+    font-semibold shadow-md", value="Add") }}
   </form>
 </div>
 {% endif %}
 <div class="flex w-auto">
-  <h2 class="book-count text-3xl font-bold text-center">
+  <h2 class="book-count text-center text-3xl font-bold">
     {{ books|length }} Books
   </h2>
 </div>
 <div>
-  <ul class="book-list">
+  <ul class="book-list h-auto rounded-xl bg-gray-50 shadow-lg dark:bg-gray-800">
     {% for book in books %}
-    <li>
-      《{{ book['title'] }}》
-      <span class="float-right">
-        {{ book['author'] }} {% if current_user.is_authenticated %}
-        <a class="btn" href="{{ url_for('main.edit', book_id=book.id) }}"
+    <li
+      class="transition-colors duration-200 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
+    >
+      <span class="text-gray-800 dark:text-gray-200"
+        >📖《{{ book['title'] }}》</span
+      >
+      <span class="float-right flex items-center gap-2">
+        <span class="mr-2 text-gray-600 dark:text-gray-400"
+          >🖋️{{ book['author'] }}</span
+        >
+        {% if current_user.is_authenticated %}
+        <a
+          class="btn rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md"
+          href="{{ url_for('main.edit', book_id=book.id) }}"
           >Edit</a
         >
         <form
@@ -44,7 +55,7 @@
           action="{{ url_for('main.delete', book_id=book.id) }}"
         >
           <input
-            class="btn"
+            class="btn cursor-pointer rounded-xl px-3 py-1 text-sm font-semibold text-white shadow-md"
             type="submit"
             name="delete"
             value="Delete"
@@ -53,7 +64,7 @@
         </form>
         {% endif %}
         <a
-          class="douban"
+          class="douban rounded-xl p-2 shadow-md"
           href="https://book.douban.com/subject_search?search_text={{ book['title'] }}"
           target="_blank"
           title="Find this book on douban"
