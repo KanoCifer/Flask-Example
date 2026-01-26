@@ -62,7 +62,7 @@ content %}
         class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300"
         >{{ form.email.label }}</label
       >
-      {{ form.email(autocomplete="off", class="form-control",
+      {{ form.email(type="email", autocomplete="off", class="form-control",
       placeholder=form.email.description) }} {% for error in form.email.errors
       %}
       <span class="error-message">{{ error }}</span>
@@ -74,7 +74,7 @@ content %}
         class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300"
         >{{ form.mobile.label }}</label
       >
-      {{ form.mobile(autocomplete="off", class="form-control",
+      {{ form.mobile(type="tel", autocomplete="off", class="form-control",
       placeholder=form.mobile.description) }} {% for error in form.mobile.errors
       %}
       <span class="error-message">{{ error }}</span>

@@ -1,6 +1,14 @@
 import random
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import login_required, login_user, logout_user
 from flask_mail import Message
 from sqlalchemy import select
@@ -21,7 +29,9 @@ def login():
         username = form.username.data
         password = form.password.data
 
-        user = db.session.execute(select(User).filter_by(username=username)).scalar()
+        user = db.session.execute(
+            select(User).filter_by(username=username)
+        ).scalar()
 
         if user and user.validate_password(password):
             login_user(user)
@@ -54,7 +64,9 @@ def send_test_email():
     # 获取请求参数中的邮箱地址
     email = request.args.get("email")
     if not email:
-        return jsonify({"status": "fail", "message": "Email is required."}), 400
+        return jsonify(
+            {"status": "fail", "message": "Email is required."}
+        ), 400
     # 这里可以添加发送邮箱验证码的逻辑
     # 例如，使用 Flask-Mail 发送邮件
     # 生成验证码

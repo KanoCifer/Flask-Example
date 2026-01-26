@@ -83,11 +83,11 @@ footer {
 }
 
 nav ul {
-  @apply mb-8 flex gap-1 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-sm dark:border-gray-700 dark:bg-gray-800;
+  @apply mb-2 flex gap-4 overflow-hidden rounded-xl border-2 border-gray-200 bg-white p-2 shadow-md dark:border-gray-700 dark:bg-gray-800;
 }
 
 nav li a {
-  @apply block rounded-lg px-4 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white;
+  @apply block rounded-lg px-2 py-1 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white;
 }
 
 .float-right {

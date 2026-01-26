@@ -21,7 +21,9 @@ class User(db.Model, UserMixin):
     password_hash: Mapped[str | None] = mapped_column(String(200))
 
     # One-to-One relationship with Profile
-    profile: Mapped[Profile | None] = relationship(back_populates="user", uselist=False)
+    profile: Mapped[Profile | None] = relationship(
+        back_populates="user", uselist=False
+    )
     # One-to-Many relationship with Book
     books: Mapped[list[Book]] = relationship(back_populates="user")
 
@@ -40,7 +42,9 @@ class User(db.Model, UserMixin):
 class Profile(db.Model):
     __tablename__ = "profile"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    email: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    email: Mapped[str | None] = mapped_column(
+        String(100), unique=True, nullable=True
+    )
     gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
     mobile: Mapped[str | None] = mapped_column(String(15), nullable=True)
     # Foreign Key to User
@@ -72,7 +76,9 @@ class SignUpCode(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(100), unique=True)
     code: Mapped[str] = mapped_column(String(10))
-    created_at: Mapped[datetime] = mapped_column(db.DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(
+        db.DateTime, default=datetime.now
+    )
 
     def __init__(self, email: str, code: str):
         self.email = email

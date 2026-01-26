@@ -24,108 +24,138 @@
     <script src="{{ url_for('static', filename='main.js') }}"></script>
     {% block scripts %}{% endblock %}
   </head>
-  <body>
-    <!-- 插入到页面标题上方 -->
-    {% for message in get_flashed_messages() %}
-    <div class="alert">{{ message }}</div>
-    {% endfor %}
-    <div>
-      <span class="text-3xl font-bold">
-        <img
-          alt="Avatar"
-          class="avatar size-15"
-          src="{{ url_for('static', filename='images/avatar.png') }}"
-        />
-        {% if current_user.is_authenticated %} {{ current_user.name }}'s
-        ReadingList {% else %} {{ "Guest" }}'s ReadingList {% endif %}
-      </span>
-      <span
-        id="light-dark-mode"
-        class="float-right cursor-pointer rounded p-2 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
-      >
-        <svg
-          id="icon-sun"
-          t="1769240311518"
-          class="icon hidden"
-          viewBox="0 0 1024 1024"
-          version="1.1"
-          xmlns="http://www.w3.org/2000/svg"
-          p-id="10541"
-          width="16"
-          height="16"
-        >
-          <path
-            d="M676.032 142.72l-60.928 33.28 60.928 33.28 33.28 60.992 33.28-60.928 60.992-33.344-60.928-33.28-33.28-60.992-33.344 60.928z m-231.808 34.688A341.44 341.44 0 0 0 512 853.312a341.248 341.248 0 0 0 295.68-170.688 384 384 0 0 1-380.992-384c0-41.728 5.568-82.56 17.536-121.216zM85.312 512A426.688 426.688 0 0 1 512 85.312h73.984l-37.056 64C524.224 192.128 512 242.816 512 298.752a298.688 298.688 0 0 0 356.16 293.12l71.808-13.952-23.168 69.376A426.688 426.688 0 0 1 85.376 512z m789.376-238.272l38.976 71.296L984.896 384l-71.232 39.04-39.04 71.232-38.976-71.296L764.416 384l71.232-38.976 39.04-71.296z"
-            p-id="10542"
-          ></path>
-        </svg>
-        <svg
-          id="icon-moon"
-          t="1769240522647"
-          class="icon hidden"
-          viewBox="0 0 1024 1024"
-          version="1.1"
-          xmlns="http://www.w3.org/2000/svg"
-          p-id="11526"
-          width="16"
-          height="16"
-        >
-          <path
-            d="M512 864.711111q-96.711111 0-178.631111-48.924444-80.782222-46.648889-127.431111-127.431111-48.924444-81.92-48.924445-178.631112t48.924445-178.631111q46.648889-80.782222 127.431111-127.431111 81.92-48.924444 178.631111-48.924444t178.631111 48.924444q80.782222 46.648889 127.431111 127.431111 48.924444 81.92 48.924445 178.631111t-48.924445 178.631112q-46.648889 80.782222-127.431111 127.431111-81.92 48.924444-178.631111 48.924444z m0-72.817778q76.231111 0 141.084444-38.115555t102.968889-102.968889Q794.168889 585.955556 794.168889 509.724444t-38.115556-141.084444Q717.937778 303.786667 653.084444 265.671111T512 227.555556q-76.231111 0-141.084444 38.115555T267.946667 368.64Q229.831111 433.493333 229.831111 509.724444t38.115556 141.084445q38.115556 64.853333 102.968889 102.968889T512 791.893333z m0-791.893333q14.791111 0 25.6 10.808889T548.408889 36.408889v58.026667q0 14.791111-10.808889 25.6T512 130.844444q-14.791111 0-25.6-10.808888T475.591111 94.435556v-58.026667q0-14.791111 10.808889-25.6T512 0z m0 893.155556q14.791111 0 25.6 10.808888T548.408889 929.564444v58.026667q0 14.791111-10.808889 25.6T512 1024q-14.791111 0-25.6-10.808889T475.591111 987.591111v-58.026667q0-14.791111 10.808889-25.6T512 893.155556z m370.915556-12.515556q-10.24 10.24-25.6 10.24t-25.6-10.24l-40.96-40.96q-11.377778-10.24-11.377778-25.6t10.808889-26.168889q10.808889-10.808889 26.168889-10.808889t25.6 11.377778l40.96 40.96q10.24 10.24 10.24 25.6t-10.24 25.6zM236.657778 237.795556q-10.24 10.24-25.6 10.24t-25.6-10.24l-40.96-40.96q-11.377778-10.24-11.377778-25.6t10.808889-26.168889q10.808889-10.808889 26.168889-10.808889T195.697778 145.635556l40.96 40.96q10.24 10.24 10.24 25.6t-10.24 25.6z m638.293333-92.16q10.24 10.24 10.24 25.6t-10.24 25.6l-40.96 40.96q-10.24 10.24-25.6 10.24t-26.168889-10.24q-10.808889-10.24-10.808889-25.6T782.791111 186.595556l40.96-40.96q10.24-11.377778 25.6-11.377778T874.951111 145.635556zM233.244444 788.48q11.377778 10.24 11.377778 25.6T233.244444 839.68l-40.96 40.96q-10.24 10.24-25.6 10.24t-25.6-10.24q-10.24-10.24-10.24-25.6t10.24-25.6l40.96-40.96q10.24-11.377778 25.6-11.377778t25.6 11.377778z m788.48-278.755556q0 14.791111-10.808888 25.6T985.315556 546.133333h-58.026667q-14.791111 0-25.6-10.808889T890.88 509.724444q0-14.791111 10.808889-25.6T927.288889 473.315556h58.026667q14.791111 0 25.6 10.808888T1021.724444 509.724444z m-888.604444 0q0 14.791111-10.808889 25.6T96.711111 546.133333H38.684444q-14.791111 0-25.6-10.808889T2.275556 509.724444q0-14.791111 10.808888-25.6T38.684444 473.315556h58.026667q14.791111 0 25.6 10.808888T133.12 509.724444z"
-            p-id="11527"
-          ></path>
-        </svg>
-      </span>
-    </div>
-    <div class="relative m-4 flex justify-items-start">
-      <img
-        class="pointer-events-none absolute -top-12 right-4 z-10 h-24 w-24 object-contain"
-        src="{{url_for('static', filename='images/cat.png')}}"
-        alt="Cat"
-      />
-      <nav class="w-full rounded-xl text-2xl inset-shadow-2xs">
-        <ul>
-          <li>
-            <a href="{{ url_for('main.index') }}">Home</a>
-          </li>
-          {% if current_user.is_authenticated %}
-          <li>
-            <a href="{{ url_for('main.settings') }}">Settings</a>
-          </li>
-          <li>
-            <a href="{{ url_for('auth.logout') }}">Logout</a>
-          </li>
-          {% else %}
-          <li>
-            <a href="{{ url_for('auth.login') }}">Login</a>
-          </li>
-          <li>
-            <a href="{{ url_for('auth.register') }}">Register</a>
-          </li>
-          {% endif %}
-        </ul>
-      </nav>
-    </div>
-    {% block content %}{% endblock %}
-    <footer>
-      <medium
-        >Copyright&copy; 2026
-        <a class="hover:underline" href="http://helloflask.com/book/3"
+  <body
+    class="grid min-h-screen grid-rows-[auto_1fr_auto] bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+  >
+    <header class="w-full bg-gray-50 p-4 dark:bg-gray-900">
+      <div class="mx-auto max-w-4xl">
+        <div class="flex items-center justify-between pt-2 pb-2">
+          <a
+            href="{{ url_for('main.index') }}"
+            class="flex items-center gap-3 text-3xl font-bold text-gray-800 transition-opacity hover:opacity-80 dark:text-gray-100"
+          >
+            <img
+              alt="Avatar"
+              class="size-12 rounded-full ring-2 ring-gray-200 dark:ring-gray-700"
+              src="{{ url_for('static', filename='images/avatar.png') }}"
+            />
+            <span>
+              {% if current_user.is_authenticated %} {{ current_user.name }}'s
+              ReadingList {% else %} {{ "Guest" }}'s ReadingList {% endif %}
+            </span>
+          </a>
+
+          <span
+            id="light-dark-mode"
+            class="cursor-pointer rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+          >
+            <svg
+              id="icon-sun"
+              class="icon hidden h-6 w-6"
+              viewBox="0 0 1024 1024"
+              version="1.1"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M676.032 142.72l-60.928 33.28 60.928 33.28 33.28 60.992 33.28-60.928 60.992-33.344-60.928-33.28-33.28-60.992-33.344 60.928z m-231.808 34.688A341.44 341.44 0 0 0 512 853.312a341.248 341.248 0 0 0 295.68-170.688 384 384 0 0 1-380.992-384c0-41.728 5.568-82.56 17.536-121.216zM85.312 512A426.688 426.688 0 0 1 512 85.312h73.984l-37.056 64C524.224 192.128 512 242.816 512 298.752a298.688 298.688 0 0 0 356.16 293.12l71.808-13.952-23.168 69.376A426.688 426.688 0 0 1 85.376 512z m789.376-238.272l38.976 71.296L984.896 384l-71.232 39.04-39.04 71.232-38.976-71.296L764.416 384l71.232-38.976 39.04-71.296z"
+              ></path>
+            </svg>
+            <svg
+              id="icon-moon"
+              class="icon hidden h-6 w-6"
+              viewBox="0 0 1024 1024"
+              version="1.1"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M512 864.711111q-96.711111 0-178.631111-48.924444-80.782222-46.648889-127.431111-127.431111-48.924444-81.92-48.924445-178.631112t48.924445-178.631111q46.648889-80.782222 127.431111-127.431111 81.92-48.924444 178.631111-48.924444t178.631111 48.924444q80.782222 46.648889 127.431111 127.431111 48.924444 81.92 48.924445 178.631111t-48.924445 178.631112q-46.648889 80.782222-127.431111 127.431111-81.92 48.924444-178.631111 48.924444z m0-72.817778q76.231111 0 141.084444-38.115555t102.968889-102.968889Q794.168889 585.955556 794.168889 509.724444t-38.115556-141.084444Q717.937778 303.786667 653.084444 265.671111T512 227.555556q-76.231111 0-141.084444 38.115555T267.946667 368.64Q229.831111 433.493333 229.831111 509.724444t38.115556 141.084445q38.115556 64.853333 102.968889 102.968889T512 791.893333z m0-791.893333q14.791111 0 25.6 10.808889T548.408889 36.408889v58.026667q0 14.791111-10.808889 25.6T512 130.844444q-14.791111 0-25.6-10.808888T475.591111 94.435556v-58.026667q0-14.791111 10.808889-25.6T512 0z m0 893.155556q14.791111 0 25.6 10.808888T548.408889 929.564444v58.026667q0 14.791111-10.808889 25.6T512 1024q-14.791111 0-25.6-10.808889T475.591111 987.591111v-58.026667q0-14.791111 10.808889-25.6T512 893.155556z m370.915556-12.515556q-10.24 10.24-25.6 10.24t-25.6-10.24l-40.96-40.96q-11.377778-10.24-11.377778-25.6t10.808889-26.168889q10.808889-10.808889 26.168889-10.808889t25.6 11.377778l40.96 40.96q10.24 10.24 10.24 25.6t-10.24 25.6zM236.657778 237.795556q-10.24 10.24-25.6 10.24t-25.6-10.24l-40.96-40.96q-11.377778-10.24-11.377778-25.6t10.808889-26.168889q10.808889-10.808889 26.168889-10.808889T195.697778 145.635556l40.96 40.96q10.24 10.24 10.24 25.6t-10.24 25.6z m638.293333-92.16q10.24 10.24 10.24 25.6t-10.24 25.6l-40.96 40.96q-10.24 10.24-25.6 10.24t-26.168889-10.24q-10.808889-10.24-10.808889-25.6T782.791111 186.595556l40.96-40.96q10.24-11.377778 25.6-11.377778T874.951111 145.635556zM233.244444 788.48q11.377778 10.24 11.377778 25.6T233.244444 839.68l-40.96 40.96q-11.377778 10.24-11.377778 25.6t10.808889 26.168889q10.808889 10.808889 26.168889 10.808889t25.6-11.377778l40.96-40.96q10.24-10.24 10.24-25.6t-10.24-25.6z"
+              ></path>
+            </svg>
+          </span>
+        </div>
+
+        <div class="relative mt-2">
+          <img
+            class="pointer-events-none absolute right-8 bottom-4 z-10 -mb-1 w-20 select-none"
+            src="{{url_for('static', filename='images/cat.png')}}"
+            alt="Cat"
+          />
+          <nav class="w-full">
+            <ul class="flex items-center gap-6 text-lg font-medium">
+              <li>
+                <a
+                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  href="{{ url_for('main.index') }}"
+                  >Home</a
+                >
+              </li>
+              {% if current_user.is_authenticated %}
+              <li>
+                <a
+                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  href="{{ url_for('main.settings') }}"
+                  >Settings</a
+                >
+              </li>
+              <li>
+                <a
+                  class="block py-1 text-gray-600 transition-colors hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400"
+                  href="{{ url_for('auth.logout') }}"
+                  >Logout</a
+                >
+              </li>
+              {% else %}
+              <li>
+                <a
+                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  href="{{ url_for('auth.login') }}"
+                  >Login</a
+                >
+              </li>
+              <li>
+                <a
+                  class="block py-1 text-gray-600 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                  href="{{ url_for('auth.register') }}"
+                  >Register</a
+                >
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-4xl p-4">
+      <!-- 插入到页面标题上方 -->
+      {% for message in get_flashed_messages() %}
+      <div class="alert mb-4 rounded-xl bg-blue-100 p-4 text-blue-700">
+        {{ message }}
+      </div>
+      {% endfor %} {% block content %}{% endblock %}
+    </main>
+
+    <footer class="p-4 text-center text-gray-500">
+      <medium>
+        Copyright&copy; 2026
+        <a
+          class="text-blue-500 hover:underline"
+          href="http://helloflask.com/book/3"
           >HelloFlask</a
-        ></medium
-      >
+        >
+      </medium>
       <br />
       2026 Released under the MIT License.
       <br />
-      <div class="flex items-center justify-center gap-2">
+      <div class="flex items-center justify-center">
         <img
           alt="Powered by Flask"
           src="{{ url_for('static', filename='images/github.png') }}"
-          width="32"
-          height="32"
+          width="24"
+          height="24"
         />
         <a
-          class="hover:underline"
+          class="text-blue-500 hover:underline"
           href="https://github.com/KanoCifer/Flask-Example"
           >Github: Kuroome</a
         >
