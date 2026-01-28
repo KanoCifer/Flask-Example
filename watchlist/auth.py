@@ -35,7 +35,7 @@ def login():
 
         if user and user.validate_password(password):
             login_user(user)
-            flash("Login success.")
+            flash("Login success. Welcome back!")
             if form.remember_me.data:
                 # 设置记住我功能
                 login_user(user, remember=True)
@@ -54,7 +54,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash("You have been logged out.")
+    flash("You have been logged out.See you again!")
     return redirect(url_for("main.index"))
 
 

@@ -10,9 +10,12 @@
     --color-red-400: oklch(70.4% 0.191 22.216);
     --color-red-600: oklch(57.7% 0.245 27.325);
     --color-green-50: oklch(98.2% 0.018 155.826);
+    --color-green-100: oklch(96.2% 0.044 156.743);
     --color-green-200: oklch(92.5% 0.084 155.995);
     --color-green-300: oklch(87.1% 0.15 154.449);
     --color-green-500: oklch(72.3% 0.219 149.579);
+    --color-green-800: oklch(44.8% 0.119 151.328);
+    --color-green-900: oklch(39.3% 0.095 152.535);
     --color-teal-600: oklch(60% 0.118 184.704);
     --color-teal-700: oklch(51.1% 0.096 186.391);
     --color-blue-50: oklch(97% 0.014 254.604);
@@ -45,6 +48,8 @@
     --text-xs--line-height: calc(1 / 0.75);
     --text-sm: 0.875rem;
     --text-sm--line-height: calc(1.25 / 0.875);
+    --text-lg: 1.125rem;
+    --text-lg--line-height: calc(1.75 / 1.125);
     --text-xl: 1.25rem;
     --text-xl--line-height: calc(1.75 / 1.25);
     --text-2xl: 1.5rem;
@@ -442,6 +447,9 @@
   .overflow-hidden {
     overflow: hidden;
   }
+  .rounded {
+    border-radius: 0.25rem;
+  }
   .rounded-2xl {
     border-radius: var(--radius-2xl);
   }
@@ -502,6 +510,9 @@
   .bg-green-50 {
     background-color: var(--color-green-50);
   }
+  .bg-green-100 {
+    background-color: var(--color-green-100);
+  }
   .bg-white {
     background-color: var(--color-white);
   }
@@ -558,6 +569,10 @@
     font-size: var(--text-3xl);
     line-height: var(--tw-leading, var(--text-3xl--line-height));
   }
+  .text-lg {
+    font-size: var(--text-lg);
+    line-height: var(--tw-leading, var(--text-lg--line-height));
+  }
   .text-sm {
     font-size: var(--text-sm);
     line-height: var(--tw-leading, var(--text-sm--line-height));
@@ -598,6 +613,9 @@
   }
   .text-gray-900 {
     color: var(--color-gray-900);
+  }
+  .text-green-800 {
+    color: var(--color-green-800);
   }
   .text-red-400 {
     color: var(--color-red-400);
@@ -914,6 +932,11 @@
       }
     }
   }
+  .dark\:bg-green-900 {
+    &:where(.dark, .dark *) {
+      background-color: var(--color-green-900);
+    }
+  }
   .dark\:bg-teal-600 {
     &:where(.dark, .dark *) {
       background-color: var(--color-teal-600);
@@ -942,6 +965,11 @@
   .dark\:text-gray-400 {
     &:where(.dark, .dark *) {
       color: var(--color-gray-400);
+    }
+  }
+  .dark\:text-green-100 {
+    &:where(.dark, .dark *) {
+      color: var(--color-green-100);
     }
   }
   .dark\:text-white {
