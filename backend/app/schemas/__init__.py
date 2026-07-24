@@ -5,10 +5,9 @@ Use ``from app.schemas import <SchemaName>`` or import from sub-modules directly
 """
 
 from app.schemas.aiagent import (
-    ArticleSummaryRequest,
-    ChatRequest,
     HistoryRequest,
     SummaryInput,
+    ThreadRequest,
 )
 from app.schemas.auth import (
     EmailCodeIn,
@@ -78,14 +77,12 @@ from app.schemas.weather import (
 )
 
 __all__ = [
-    "ArticleSummaryRequest",
     "BlogIn",
     "BlogPostDelete",
     "BlogPostGet",
     "BlogPostIn",
     "BlogPostUpdate",
     "BootstrapEmailContent",
-    "ChatRequest",
     "CurrentWeather",
     "DailyForecast",
     "DailyWeather",
@@ -133,6 +130,7 @@ __all__ = [
     "TideData",
     "TideHourly",
     "TideItem",
+    "ThreadRequest",
     "UserOut",
     "UserProfileOut",
     "UserSettingsIn",
