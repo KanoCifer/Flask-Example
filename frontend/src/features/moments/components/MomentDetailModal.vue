@@ -10,7 +10,7 @@
         </span>
         <span class="text-muted/60">·</span>
         <span class="text-muted font-mono text-[11px] tracking-wide">
-          {{ formattedDateTime }}
+          {{ formatDate(moment?.published_at) }}
         </span>
         <span
           v-if="moment?.is_pinned"
@@ -32,7 +32,7 @@
             variant="ghost"
             size="icon"
             :disabled="!hasPrev"
-            class="!h-7 !w-7 border /40 disabled:!opacity-30"
+            class="/40 !h-7 !w-7 border disabled:!opacity-30"
             :aria-label="'上一条'"
             @click="emit('navigate', 'prev')"
           >
@@ -42,7 +42,7 @@
             variant="ghost"
             size="icon"
             :disabled="!hasNext"
-            class="!h-7 !w-7 border /40 disabled:!opacity-30"
+            class="/40 !h-7 !w-7 border disabled:!opacity-30"
             :aria-label="'下一条'"
             @click="emit('navigate', 'next')"
           >
@@ -54,7 +54,7 @@
         <template v-if="isAdmin">
           <Button
             variant="default"
-            class="!h-7 !rounded-full gap-1 !px-3 !py-1.5 !text-[12px] shadow-sm"
+            class="!h-7 gap-1 !rounded-full !px-3 !py-1.5 !text-[12px] shadow-sm"
             @click="emit('edit', moment)"
           >
             <Pencil class="h-3.5 w-3.5" />
@@ -63,7 +63,7 @@
           <Button
             variant="ghost"
             size="icon"
-            class="!h-7 !w-7 border /40 hover:!text-destructive hover:!border-destructive/40"
+            class="/40 hover:!text-destructive hover:!border-destructive/40 !h-7 !w-7 border"
             aria-label="删除"
             @click="emit('delete', moment)"
           >
@@ -74,7 +74,7 @@
         <Button
           variant="ghost"
           size="icon"
-          class="!h-7 !w-7 border /40"
+          class="/40 !h-7 !w-7 border"
           aria-label="关闭"
           @click="emit('update:open', false)"
         >
@@ -209,7 +209,7 @@
           <Button
             variant="ghost"
             size="icon"
-            class="!h-9 !w-9 !text-page hover:!bg-page/20"
+            class="!text-page hover:!bg-page/20 !h-9 !w-9"
             aria-label="关闭"
             @click="closeLightbox"
           >
@@ -222,7 +222,7 @@
           v-if="imageAttachments.length > 1"
           variant="ghost"
           size="icon"
-          class="!h-11 !w-11 !text-page hover:!bg-page/20"
+          class="!text-page hover:!bg-page/20 !h-11 !w-11"
           aria-label="上一张"
           @click="lightboxPrev"
         >
@@ -241,7 +241,7 @@
           v-if="imageAttachments.length > 1"
           variant="ghost"
           size="icon"
-          class="!h-11 !w-11 !text-page hover:!bg-page/20"
+          class="!text-page hover:!bg-page/20 !h-11 !w-11"
           aria-label="下一张"
           @click="lightboxNext"
         >
@@ -254,7 +254,14 @@
 
 <script setup lang="ts">
 import { Button } from '@/components';
-import { ChevronLeft, ChevronRight, Pencil, Star, Trash2, X } from '@lucide/vue';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Star,
+  Trash2,
+  X,
+} from '@lucide/vue';
 import { Modal } from '@/components';
 import { renderMarkdown } from '@/composables';
 import type {
