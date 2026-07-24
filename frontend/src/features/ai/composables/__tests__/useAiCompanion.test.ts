@@ -4,8 +4,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 
 vi.mock('@/features/ai/api/aiGateway', () => ({
   aiGateway: {
-    streamSummary: vi.fn(),
-    streamChat: vi.fn(),
+    streamThread: vi.fn(),
     weatherAnalysis: vi.fn(),
   },
 }));
@@ -42,8 +41,7 @@ import { aiGateway } from '@/features/ai/api/aiGateway';
 describe('useAiCompanion', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(aiGateway.streamSummary).mockResolvedValue(undefined);
-    vi.mocked(aiGateway.streamChat).mockResolvedValue(undefined);
+    vi.mocked(aiGateway.streamThread).mockResolvedValue(undefined);
   });
 
   describe('thread creation', () => {
@@ -79,16 +77,17 @@ describe('useAiCompanion', () => {
   });
 
   describe('generateBriefing', () => {
-    it('calls aiGateway.streamSummary with stripped content and current model', async () => {
+    it('calls aiGateway.streamThread with stripped content and current model', async () => {
       const c = useAiCompanion({ title: 'T', content: '<p>body</p>' });
       const notify = vi.fn();
 
       await c.generateBriefing(notify);
 
-      expect(aiGateway.streamSummary).toHaveBeenCalledWith(
+      expect(aiGateway.streamThread).toHaveBeenCalledWith(
         {
-          title: 'T',
-          content: 'body',
+          mode: 'summary',
+          article_content: 'body',
+          article_title: 'T',
           model: MODEL_OPTIONS[0].value,
         },
         expect.objectContaining({
@@ -105,8 +104,8 @@ describe('useAiCompanion', () => {
 
       await c.generateBriefing(notify);
 
-      expect(aiGateway.streamSummary).toHaveBeenCalledWith(
-        expect.objectContaining({ title: '' }),
+      expect(aiGateway.streamThread).toHaveBeenCalledWith(
+        expect.objectContaining({ article_title: '' }),
         expect.any(Object),
         expect.any(AbortSignal),
       );
@@ -118,7 +117,7 @@ describe('useAiCompanion', () => {
 
       let captured: { onData: (d: { content?: string }) => void; onDone: () => void } | null =
         null;
-      vi.mocked(aiGateway.streamSummary).mockImplementation(
+      vi.mocked(aiGateway.streamThread).mockImplementation(
         async (_body, handlers) => {
           captured = handlers as typeof captured;
         },
@@ -157,7 +156,7 @@ describe('useAiCompanion', () => {
       await c.generateBriefing(notify);
 
       expect(notify).toHaveBeenCalledWith('文章内容为空，无法总结');
-      expect(aiGateway.streamSummary).not.toHaveBeenCalled();
+      expect(aiGateway.streamThread).not.toHaveBeenCalled();
     });
   });
 
@@ -189,7 +188,7 @@ describe('useAiCompanion', () => {
 
       await c.send(notify);
 
-      expect(aiGateway.streamChat).not.toHaveBeenCalled();
+      expect(aiGateway.streamThread).not.toHaveBeenCalled();
       expect(c.messages.value).toEqual([]);
     });
 
@@ -201,7 +200,7 @@ describe('useAiCompanion', () => {
 
       await c.send(notify);
 
-      expect(aiGateway.streamChat).not.toHaveBeenCalled();
+      expect(aiGateway.streamThread).not.toHaveBeenCalled();
     });
 
     it('passes article fields on first turn only', async () => {
@@ -215,8 +214,9 @@ describe('useAiCompanion', () => {
       c.input.value = 'first';
       await c.send(notify);
 
-      expect(aiGateway.streamChat).toHaveBeenLastCalledWith(
+      expect(aiGateway.streamThread).toHaveBeenLastCalledWith(
         expect.objectContaining({
+          mode: 'chat',
           message: 'first',
           article_content: '<p>x</p>',
           article_title: 'Hello',
@@ -229,7 +229,7 @@ describe('useAiCompanion', () => {
       c.input.value = 'second';
       await c.send(notify);
 
-      const lastCall = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)![0];
+      const lastCall = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)![0];
       expect(lastCall).not.toHaveProperty('article_content');
       expect(lastCall).not.toHaveProperty('article_title');
       expect(lastCall).toMatchObject({ message: 'second' });
@@ -241,7 +241,7 @@ describe('useAiCompanion', () => {
       c.input.value = 'q';
 
       let captured: { onData: (d: { content?: string }) => void } | null = null;
-      vi.mocked(aiGateway.streamChat).mockImplementation(
+      vi.mocked(aiGateway.streamThread).mockImplementation(
         async (_body, handlers) => {
           captured = handlers as typeof captured;
         },
@@ -261,10 +261,10 @@ describe('useAiCompanion', () => {
   });
 
   describe('error path', () => {
-    it('sets error and removes briefing when streamSummary throws', async () => {
+    it('sets error and removes briefing when streamThread (summary) throws', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
-      vi.mocked(aiGateway.streamSummary).mockRejectedValue(
+      vi.mocked(aiGateway.streamThread).mockRejectedValue(
         new Error('网络连接失败，请重试'),
       );
 
@@ -278,10 +278,10 @@ describe('useAiCompanion', () => {
       expect(c.messages.value.length).toBe(0);
     });
 
-    it('uses default message when streamSummary throws a non-Error', async () => {
+    it('uses default message when streamThread (summary) throws a non-Error', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
-      vi.mocked(aiGateway.streamSummary).mockRejectedValue('boom');
+      vi.mocked(aiGateway.streamThread).mockRejectedValue('boom');
 
       await c.generateBriefing(notify);
 
@@ -289,11 +289,11 @@ describe('useAiCompanion', () => {
       expect(notify).toHaveBeenCalledWith('AI总结失败，请稍后重试');
     });
 
-    it('marks assistant message with [ERROR] when streamChat throws', async () => {
+    it('marks assistant message with [ERROR] when streamThread (chat) throws', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
       c.input.value = 'q';
-      vi.mocked(aiGateway.streamChat).mockRejectedValue(new Error('对话失败'));
+      vi.mocked(aiGateway.streamThread).mockRejectedValue(new Error('对话失败'));
 
       await c.send(notify);
 
@@ -338,7 +338,7 @@ describe('useAiCompanion', () => {
       c.input.value = 'q2';
       await c.send(notify);
 
-      const lastBody = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)![0];
+      const lastBody = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)![0];
       expect(lastBody).toMatchObject({ article_content: '<p>x</p>' });
     });
   });
@@ -356,14 +356,14 @@ describe('useAiCompanion', () => {
       expect(c.modelOptions).toEqual(MODEL_OPTIONS);
     });
 
-    it('passes the current model to streamSummary', async () => {
+    it('passes the current model to streamThread (summary)', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
       c.model.value = 'Ling 2.6';
 
       await c.generateBriefing(notify);
 
-      expect(aiGateway.streamSummary).toHaveBeenCalledWith(
+      expect(aiGateway.streamThread).toHaveBeenCalledWith(
         expect.objectContaining({ model: 'Ling 2.6' }),
         expect.any(Object),
         expect.any(AbortSignal),
@@ -400,7 +400,7 @@ describe('useAiCompanion', () => {
       c.input.value = 'first';
       await c.send(vi.fn());
 
-      const lastBody = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)![0];
+      const lastBody = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)![0];
       expect(lastBody).toMatchObject({ article_content: '<p>x</p>' });
     });
   });
@@ -432,24 +432,24 @@ describe('useAiCompanion', () => {
       };
     }
 
-    it('passes an AbortSignal to streamSummary', async () => {
+    it('passes an AbortSignal to streamThread (summary)', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
 
       await c.generateBriefing(notify);
 
-      const call = vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+      const call = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
       expect(call[2]).toBeInstanceOf(AbortSignal);
     });
 
-    it('passes an AbortSignal to streamChat', async () => {
+    it('passes an AbortSignal to streamThread (chat)', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
       c.input.value = 'hi';
 
       await c.send(notify);
 
-      const call = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)!;
+      const call = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
       expect(call[2]).toBeInstanceOf(AbortSignal);
     });
 
@@ -458,7 +458,7 @@ describe('useAiCompanion', () => {
       const notify = vi.fn();
 
       let firstSignal: AbortSignal | null = null;
-      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+      vi.mocked(aiGateway.streamThread).mockImplementationOnce(
         async (_body, handlers, signal) => {
           firstSignal = signal ?? null;
         },
@@ -470,7 +470,7 @@ describe('useAiCompanion', () => {
       await c.generateBriefing(notify);
 
       // restore default resolver, then start a second briefing
-      vi.mocked(aiGateway.streamSummary).mockResolvedValue(undefined);
+      vi.mocked(aiGateway.streamThread).mockResolvedValue(undefined);
       const p2 = c.generateBriefing(notify);
 
       expect(firstSignal).not.toBeNull();
@@ -478,7 +478,7 @@ describe('useAiCompanion', () => {
 
       await p2;
       const secondCall =
-        vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+        vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
       const secondSignal = secondCall[2] as AbortSignal;
       expect(secondSignal.aborted).toBe(false);
     });
@@ -488,7 +488,7 @@ describe('useAiCompanion', () => {
       const notify = vi.fn();
 
       let firstSignal: AbortSignal | null = null;
-      vi.mocked(aiGateway.streamChat).mockImplementationOnce(
+      vi.mocked(aiGateway.streamThread).mockImplementationOnce(
         async (_body, handlers, signal) => {
           firstSignal = signal ?? null;
         },
@@ -497,7 +497,7 @@ describe('useAiCompanion', () => {
       c.input.value = 'first';
       await c.send(notify);
 
-      vi.mocked(aiGateway.streamChat).mockResolvedValue(undefined);
+      vi.mocked(aiGateway.streamThread).mockResolvedValue(undefined);
       c.input.value = 'second';
       const p2 = c.send(notify);
 
@@ -512,7 +512,7 @@ describe('useAiCompanion', () => {
       const notify = vi.fn();
 
       let captured: AbortSignal | null = null;
-      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+      vi.mocked(aiGateway.streamThread).mockImplementationOnce(
         async (_body, _handlers, signal) => {
           captured = signal ?? null;
         },
@@ -523,7 +523,7 @@ describe('useAiCompanion', () => {
 
       // second call: keep it pending so we can observe clearThread's abort
       let pending: (() => void) | null = null;
-      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+      vi.mocked(aiGateway.streamThread).mockImplementationOnce(
         () =>
           new Promise<void>((resolve) => {
             pending = () => resolve();
@@ -535,7 +535,7 @@ describe('useAiCompanion', () => {
       // aborted by re-entry; what we care about is the *current* in-flight
       // signal being aborted by clearThread.
       const currentCall =
-        vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+        vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
       const currentSignal = currentCall[2] as AbortSignal;
       expect(currentSignal.aborted).toBe(false);
 
@@ -550,7 +550,7 @@ describe('useAiCompanion', () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
       const abortErr = new DOMException('aborted', 'AbortError');
-      vi.mocked(aiGateway.streamSummary).mockRejectedValueOnce(abortErr);
+      vi.mocked(aiGateway.streamThread).mockRejectedValueOnce(abortErr);
 
       await c.generateBriefing(notify);
 
@@ -565,7 +565,7 @@ describe('useAiCompanion', () => {
       const notify = vi.fn();
       c.input.value = 'q';
       const abortErr = new DOMException('aborted', 'AbortError');
-      vi.mocked(aiGateway.streamChat).mockRejectedValueOnce(abortErr);
+      vi.mocked(aiGateway.streamThread).mockRejectedValueOnce(abortErr);
 
       await c.send(notify);
 
@@ -581,7 +581,7 @@ describe('useAiCompanion', () => {
       const notify = vi.fn();
 
       let pending: (() => void) | null = null;
-      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+      vi.mocked(aiGateway.streamThread).mockImplementationOnce(
         () =>
           new Promise<void>((resolve) => {
             pending = () => resolve();
@@ -591,7 +591,7 @@ describe('useAiCompanion', () => {
       const { hook, unmount } = makeWrapper();
       const p = hook.generateBriefing(notify);
 
-      const call = vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+      const call = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
       const signal = call[2] as AbortSignal;
       expect(signal.aborted).toBe(false);
 
