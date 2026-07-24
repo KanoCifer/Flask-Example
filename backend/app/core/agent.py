@@ -68,7 +68,9 @@ class AiAgent:
 
     # ── System Prompts ─────────────────────────────────────────────── #
 
-    _SUMMARY_SYSTEM_PROMPT = (
+    _UNIFIED_SYSTEM_PROMPT = (
+        "你是一名智能阅读助手，根据 mode 执行不同任务。\n\n"
+        "[mode=summary]\n"
         "你是一名专业的中文内容分析师。你的任务是提炼文章的核心信息，"
         "让读者用最少时间获得最大价值。\n\n"
         "## 分析步骤\n"
@@ -88,10 +90,8 @@ class AiAgent:
         "- 长度控制在原文的 10-15%\n\n"
         "## 约束\n"
         "- 禁止编造原文没有的信息\n"
-        "- 只输出总结本身，不要输出分析过程"
-    )
-
-    _CHAT_SYSTEM_PROMPT = (
+        "- 只输出总结本身，不要输出分析过程\n\n"
+        "[mode=chat]\n"
         "你是一名中文知识助手，和用户一起深入探讨他刚读过的文章。\n\n"
         "## 回答原则\n"
         "- 优先从文章内容中找依据，引用原文关键句\n"
@@ -196,42 +196,9 @@ class AiAgent:
 
     # ── 公开接口 ───────────────────────────────────────────────────── #
 
-    async def summarize(
+    async def generate(
         self,
-        content: str,
-        user_id: str,
-        title: str | None = None,
-        model_name: str | None = None,
-    ) -> AsyncIterator[str]:
-        """流式生成文章总结。"""
-        if not get_settings().API_KEY:
-            logger.error("AI 服务未配置 API_KEY")
-            raise RuntimeError("AI 服务未配置 API_KEY")
-
-        normalized = self._normalize_content(content)
-        if not normalized:
-            raise ValueError("文章内容不能为空")
-
-        user_prompt = self._build_summary_prompt(normalized, title=title)
-        model = self._resolve_summary_model(model_name)
-
-        agent = create_agent(
-            model=model,
-            instructions=self._SUMMARY_SYSTEM_PROMPT,
-            db=self._db,
-        )
-
-        article_hash = self._hash_article(title, content)
-        session_id = self._article_session_id(user_id, article_hash, "summary")
-
-        async for event in agent.arun(
-            user_prompt, stream=True, user_id=user_id, session_id=session_id
-        ):
-            if isinstance(event, RunOutputEvent) and event.content:
-                yield str(event.content)
-
-    async def chat(
-        self,
+        mode: Literal["summary", "chat"],
         message: str,
         user_id: str,
         session_id: str,
@@ -239,40 +206,62 @@ class AiAgent:
         article_title: str | None = None,
         model_name: str | None = None,
     ) -> AsyncIterator[str]:
-        """流式对话。"""
+        """统一的流式生成入口，通过 mode 切换总结 / 对话行为。
+
+        mode=summary:
+            对 article_content 生成结构化总结。
+            session_id 由 article_hash 自动生成（无状态，相同文章复用会话）。
+        mode=chat:
+            基于 message 进行对话，首轮可附带 article_content grounding。
+            使用调用方传入的 session_id（有状态，Agno 存历史）。
+        """
         if not get_settings().API_KEY:
             logger.error("AI 服务未配置 API_KEY")
             raise RuntimeError("AI 服务未配置 API_KEY")
 
-        if not message.strip():
-            raise ValueError("消息不能为空")
-
-        context_prefix = ""
-        if article_content:
-            normalized = self._normalize_content(article_content)
-            if normalized:
-                context_prefix = (
-                    f"[文章上下文]\n标题: {article_title or '无标题'}\n"
-                    f"内容摘要: {normalized[:2000]}...\n\n"
-                )
-
-        full_message = f"{context_prefix}用户问题: {message}"
         model = self._resolve_summary_model(model_name)
-
         agent = create_agent(
             model=model,
-            instructions=self._CHAT_SYSTEM_PROMPT,
+            instructions=self._UNIFIED_SYSTEM_PROMPT,
             db=self._db,
         )
 
-        async for event in agent.arun(
-            full_message,
-            session_id=session_id,
-            user_id=user_id,
-            stream=True,
-        ):
-            if isinstance(event, RunOutputEvent) and event.content:
-                yield str(event.content)
+        if mode == "summary":
+            normalized = self._normalize_content(article_content or "")
+            if not normalized:
+                raise ValueError("文章内容不能为空")
+            user_prompt = self._build_summary_prompt(normalized, title=article_title)
+            article_hash = self._hash_article(article_title, article_content or "")
+            session_id = self._article_session_id(user_id, article_hash, "summary")
+            async for event in agent.arun(
+                user_prompt, stream=True, user_id=user_id, session_id=session_id
+            ):
+                if isinstance(event, RunOutputEvent) and event.content:
+                    yield str(event.content)
+
+        elif mode == "chat":
+            if not message.strip():
+                raise ValueError("消息不能为空")
+            context_prefix = ""
+            if article_content:
+                normalized = self._normalize_content(article_content)
+                if normalized:
+                    context_prefix = (
+                        f"[文章上下文]\n标题: {article_title or '无标题'}\n"
+                        f"内容摘要: {normalized[:2000]}...\n\n"
+                    )
+            full_message = f"{context_prefix}用户问题: {message}"
+            async for event in agent.arun(
+                full_message,
+                session_id=session_id,
+                user_id=user_id,
+                stream=True,
+            ):
+                if isinstance(event, RunOutputEvent) and event.content:
+                    yield str(event.content)
+
+        else:
+            raise ValueError(f"Unsupported mode: {mode}")
 
     async def analyze_weather_stream(
         self,

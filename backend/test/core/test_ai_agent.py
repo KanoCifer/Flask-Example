@@ -93,16 +93,21 @@ class TestInit:
         assert "w1_temp=0.1000" in agent._weather_system_prompt
 
 
-# ── summarize ───────────────────────────────────────────────────────── #
+# ── generate (summary mode) ────────────────────────────────────────── #
 
 
-class TestSummarize:
+class TestGenerateSummary:
     @pytest.mark.asyncio
     async def test_normal_flow(self, mock_factory, api_key_set):
         agent = AiAgent(db=_make_db())
         chunks = []
-        async for chunk in agent.summarize(
-            content="这是一篇测试文章", user_id="user-1", title="标题"
+        async for chunk in agent.generate(
+            mode="summary",
+            message="",
+            user_id="user-1",
+            session_id="",
+            article_content="这是一篇测试文章",
+            article_title="标题",
         ):
             chunks.append(chunk)
         assert chunks == ["chunk1", "chunk2", "最终钓鱼指数：75"]
@@ -112,8 +117,13 @@ class TestSummarize:
     @pytest.mark.asyncio
     async def test_resolves_model_by_name(self, mock_factory, api_key_set):
         agent = AiAgent(db=_make_db())
-        async for _ in agent.summarize(
-            content="test", user_id="u", model_name="Ling 2.6"
+        async for _ in agent.generate(
+            mode="summary",
+            message="",
+            user_id="u",
+            session_id="",
+            article_content="test",
+            model_name="Ling 2.6",
         ):
             pass
         mock_factory["create_llm_model"].assert_called_once_with(
@@ -126,7 +136,13 @@ class TestSummarize:
     ):
         agent = AiAgent(db=_make_db())
         with pytest.raises(ValueError, match="文章内容不能为空"):
-            async for _ in agent.summarize(content="   ", user_id="u"):
+            async for _ in agent.generate(
+                mode="summary",
+                message="",
+                user_id="u",
+                session_id="",
+                article_content="   ",
+            ):
                 pass
 
     @pytest.mark.asyncio
@@ -137,29 +153,43 @@ class TestSummarize:
         )
         agent = AiAgent(db=_make_db())
         with pytest.raises(RuntimeError, match="API_KEY"):
-            async for _ in agent.summarize(content="test", user_id="u"):
+            async for _ in agent.generate(
+                mode="summary",
+                message="",
+                user_id="u",
+                session_id="",
+                article_content="test",
+            ):
                 pass
 
     @pytest.mark.asyncio
     async def test_raises_on_unknown_model(self, mock_factory, api_key_set):
         agent = AiAgent(db=_make_db())
         with pytest.raises(ValueError, match="Unsupported model"):
-            async for _ in agent.summarize(
-                content="test", user_id="u", model_name="Unknown"
+            async for _ in agent.generate(
+                mode="summary",
+                message="",
+                user_id="u",
+                session_id="",
+                article_content="test",
+                model_name="Unknown",
             ):
                 pass
 
 
-# ── chat ───────────────────────────────────────────────────────────── #
+# ── generate (chat mode) ───────────────────────────────────────────── #
 
 
-class TestChat:
+class TestGenerateChat:
     @pytest.mark.asyncio
     async def test_normal_flow(self, mock_factory, api_key_set):
         agent = AiAgent(db=_make_db())
         chunks = []
-        async for chunk in agent.chat(
-            message="什么是 async？", user_id="u", session_id="sess-1"
+        async for chunk in agent.generate(
+            mode="chat",
+            message="什么是 async？",
+            user_id="u",
+            session_id="sess-1",
         ):
             chunks.append(chunk)
         assert len(chunks) == 3
@@ -171,14 +201,19 @@ class TestChat:
     ):
         agent = AiAgent(db=_make_db())
         with pytest.raises(ValueError, match="消息不能为空"):
-            async for _ in agent.chat(message="  ", user_id="u", session_id="s"):
+            async for _ in agent.generate(
+                mode="chat",
+                message="  ",
+                user_id="u",
+                session_id="s",
+            ):
                 pass
 
     @pytest.mark.asyncio
     async def test_includes_article_context_when_provided(
         self, mock_factory, api_key_set
     ):
-        """验证 chat 在传入文章上下文时，arun 收到包含上下文的输入。"""
+        """验证 chat 模式在传入文章上下文时，arun 收到包含上下文的输入。"""
         from agno.run.agent import RunContentEvent
 
         captured = {}
@@ -189,7 +224,8 @@ class TestChat:
 
         mock_factory["create_agent"].return_value.arun = _capturing_arun
         agent = AiAgent(db=_make_db())
-        async for _ in agent.chat(
+        async for _ in agent.generate(
+            mode="chat",
             message="test",
             user_id="u",
             session_id="s",
@@ -199,6 +235,18 @@ class TestChat:
             pass
         assert "文章上下文" in captured["input"]
         assert "正文" in captured["input"]
+
+    @pytest.mark.asyncio
+    async def test_raises_on_unsupported_mode(self, mock_factory, api_key_set):
+        agent = AiAgent(db=_make_db())
+        with pytest.raises(ValueError, match="Unsupported mode"):
+            async for _ in agent.generate(
+                mode="bogus",
+                message="test",
+                user_id="u",
+                session_id="s",
+            ):
+                pass
 
 
 # ── analyze_weather_stream ─────────────────────────────────────────── #
