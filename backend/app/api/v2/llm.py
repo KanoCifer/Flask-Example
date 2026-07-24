@@ -7,13 +7,9 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from app.api.des.appstate import get_app_state
 from app.api.des.auth import optional_user
-from app.api.des.limiter import client_key, limiter
+from app.api.des.limiter import check_mode_rate_limit, client_key, limiter
 from app.appstate import AppState
-from app.schemas.aiagent import (
-    ArticleSummaryRequest,
-    ChatRequest,
-    WeatherAnalysisInput,
-)
+from app.schemas.aiagent import ThreadRequest, WeatherAnalysisInput
 
 router = APIRouter(prefix="/llm", tags=["llm"])
 
@@ -30,38 +26,29 @@ def _resolve_user_id(user_id: int | None, request: Request) -> str:
     return f"anon:{client_key(request)}"
 
 
-# ── 文章摘要 ──────────────────────────────────────────────
+# ── Thread（总结 / 对话共用）──────────────────────────────
 
 
-@router.post("/summary/stream", response_class=EventSourceResponse)
-@limiter.limit("5/minute")
-async def summary_article_stream(
+@router.post("/thread/stream")
+async def thread_stream(
     request: Request,
-    payload: ArticleSummaryRequest,
+    payload: ThreadRequest,
     user: int | None = Depends(optional_user),
     state: AppState = Depends(get_app_state),
-) -> AsyncIterable[ServerSentEvent]:
-    async for chunk in state.ai_svc.summary_stream(
-        payload, _resolve_user_id(user, request), model=payload.model
-    ):
-        yield ServerSentEvent(data={"content": chunk})
+) -> EventSourceResponse:
+    # 按 mode 分别限流：summary 5/min、chat 20/min。
+    # 注意：限流检查必须在返回 EventSourceResponse 之前完成 —— Starlette 会先
+    # 发 ``http.response.start``（200）再迭代 body，若把检查放生成器内部，超限
+    # 时状态码已无法改为 429。
+    check_mode_rate_limit(payload.mode, client_key(request))
 
+    async def _generator() -> AsyncIterable[ServerSentEvent]:
+        async for chunk in state.ai_svc.thread_stream(
+            payload, _resolve_user_id(user, request), model=payload.model
+        ):
+            yield ServerSentEvent(data=chunk)
 
-# ── 对话 ──────────────────────────────────────────────────
-
-
-@router.post("/chat/stream", response_class=EventSourceResponse)
-@limiter.limit("20/minute")
-async def chat_stream(
-    request: Request,
-    payload: ChatRequest,
-    user: int | None = Depends(optional_user),
-    state: AppState = Depends(get_app_state),
-) -> AsyncIterable[ServerSentEvent]:
-    async for chunk in state.ai_svc.chat_stream(
-        payload, _resolve_user_id(user, request), model=payload.model
-    ):
-        yield ServerSentEvent(data=chunk)
+    return EventSourceResponse(_generator())
 
 
 # ── 天气分析 ──────────────────────────────────────────────
