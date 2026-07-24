@@ -5,8 +5,7 @@ export type {
   CachedSummaryResponse,
   CachedChatResponse,
   ChatMessage,
-  StreamSummaryPayload,
-  StreamChatPayload,
+  StreamThreadPayload,
   StreamFrame,
   SseHandlers,
 } from './llm';

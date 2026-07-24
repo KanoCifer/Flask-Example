@@ -1,7 +1,6 @@
-import { ArticleSummaryCard } from '@/components';
 import type { BlogDetail } from '@/features/blog/api/blogService';
 import { blogService } from '@/features/blog/api/blogService';
-import { TwikooComments } from '@/components';
+import { TwikooComments, AiThread } from '@/components';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores/notificationState';
 import { formatDate } from '@/lib/formatdate';
@@ -433,10 +432,7 @@ export default function BlogPostView() {
 
           {/* 正文 */}
           <div className="prose prose-lg max-w-none">
-            <ArticleSummaryCard
-              title={post?.title}
-              content={post?.body || ''}
-            />
+            <AiThread title={post?.title} content={post?.body || ''} />
             <div ref={contentRef} className="prose-body whitespace-pre-wrap">
               {renderedBodyWithOrigin ? (
                 <div
