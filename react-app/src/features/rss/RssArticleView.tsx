@@ -1,4 +1,4 @@
-import { ArticleSummaryCard } from '@/components';
+import { AiThread } from '@/components';
 import { rssService } from '@/features/rss/api/rssService';
 import { useNotificationStore } from '@/stores/notificationState';
 import type { RssArticle } from '@/types';
@@ -108,7 +108,7 @@ export default function RssArticleView() {
               </p>
 
               {/* AI总结卡片 */}
-              <ArticleSummaryCard title={article.title} content={pureContent} />
+              <AiThread title={article.title} content={pureContent} />
 
               <div
                 className="prose prose-sm bg-page ring-border mt-4 max-w-none rounded-2xl p-4 ring-1"

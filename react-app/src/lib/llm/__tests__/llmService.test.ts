@@ -46,38 +46,6 @@ describe('llmService', () => {
     vi.unstubAllGlobals();
   });
 
-  describe('getCachedSummary', () => {
-    it('POSTs to v2/llm/history/summary with article payload', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({
-        data: { data: { cached: true, summary: 'cached text' } },
-      });
-
-      const result = await service.getCachedSummary({
-        article_content: '<p>Hello</p>',
-        article_title: 'Title',
-      });
-
-      expect(apiClient.post).toHaveBeenCalledWith('v2/llm/history/summary', {
-        article_content: '<p>Hello</p>',
-        article_title: 'Title',
-      });
-      expect(result).toEqual({ cached: true, summary: 'cached text' });
-    });
-
-    it('returns cached=false when backend omits summary', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({
-        data: { data: { cached: false } },
-      });
-
-      const result = await service.getCachedSummary({
-        article_content: 'no cache',
-      });
-
-      expect(result.cached).toBe(false);
-      expect(result.summary).toBeUndefined();
-    });
-  });
-
   describe('getCachedChat', () => {
     it('POSTs to v2/llm/history/chat and unwraps messages', async () => {
       vi.mocked(apiClient.post).mockResolvedValue({
@@ -104,8 +72,8 @@ describe('llmService', () => {
     });
   });
 
-  describe('streamSummary', () => {
-    it('consumes SSE frames from /v2/llm/summary/stream with full payload', async () => {
+  describe('streamThread', () => {
+    it('POSTs to /v2/llm/thread/stream with mode=summary and streams frames', async () => {
       mockSseFetch([
         'data: {"content":"Hello"}\n\n',
         'data: {"content":" world"}\n\n',
@@ -113,41 +81,53 @@ describe('llmService', () => {
       ]);
 
       const onData = vi.fn();
-      await service.streamSummary(
-        { title: 't', content: 'c', model: 'Ring 2.6' },
+      await service.streamThread(
+        {
+          mode: 'summary',
+          article_title: 't',
+          article_content: 'c',
+          model: 'Ring 2.6',
+        },
         { onData },
       );
 
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+      const body = JSON.parse(init?.body as string);
+      expect(body).toEqual({
+        mode: 'summary',
+        article_title: 't',
+        article_content: 'c',
+        model: 'Ring 2.6',
+      });
       expect(onData).toHaveBeenCalledTimes(2);
       expect(onData).toHaveBeenNthCalledWith(1, { content: 'Hello' });
       expect(onData).toHaveBeenNthCalledWith(2, { content: ' world' });
     });
-  });
 
-  describe('streamChat', () => {
-    it('omits article fields when not provided', async () => {
+    it('omits article fields for chat mode when not provided', async () => {
       mockSseFetch(['data: {"content":"reply"}\n\n', 'data: [DONE]\n\n']);
 
       const onData = vi.fn();
-      await service.streamChat(
-        { message: 'hi', session_id: 'sid' },
+      await service.streamThread(
+        { mode: 'chat', message: 'hi', session_id: 'sid' },
         { onData },
       );
 
-      // body sent through fetch should not include article_content/title
       const fetchMock = vi.mocked(globalThis.fetch);
       const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
       const body = JSON.parse(init?.body as string);
-      expect(body).toEqual({ message: 'hi', session_id: 'sid' });
+      expect(body).toEqual({ mode: 'chat', message: 'hi', session_id: 'sid' });
       expect(onData).toHaveBeenCalledWith({ content: 'reply' });
     });
 
-    it('includes article fields on first message', async () => {
+    it('includes article grounding on first chat message', async () => {
       mockSseFetch(['data: {"content":"reply"}\n\n', 'data: [DONE]\n\n']);
 
       const onData = vi.fn();
-      await service.streamChat(
+      await service.streamThread(
         {
+          mode: 'chat',
           message: 'hi',
           session_id: 'sid',
           article_content: 'full text',
@@ -160,11 +140,27 @@ describe('llmService', () => {
       const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
       const body = JSON.parse(init?.body as string);
       expect(body).toEqual({
+        mode: 'chat',
         message: 'hi',
         session_id: 'sid',
         article_content: 'full text',
         article_title: 'Title',
       });
+    });
+
+    it('forwards AbortSignal to fetch', async () => {
+      mockSseFetch(['data: {"content":"x"}\n\n', 'data: [DONE]\n\n']);
+
+      const controller = new AbortController();
+      await service.streamThread(
+        { mode: 'summary', article_content: 'c' },
+        { onData: vi.fn() },
+        controller.signal,
+      );
+
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+      expect(init?.signal).toBe(controller.signal);
     });
   });
 

@@ -1,4 +1,3 @@
-export { ArticleSummaryCard } from './ArticleSummary';
 export { AiThread } from './AiThread';
 export { BentoCard } from './bento/BentoCard';
 export { BentoSocial } from './bento/BentoSocial';

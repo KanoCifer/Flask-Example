@@ -120,10 +120,11 @@ export function useAiThread(ctx: AiContext) {
     abortControllerRef.current = ac;
 
     try {
-      await llmService().streamSummary(
+      await llmService().streamThread(
         {
-          title: ctx.title || '',
-          content: pureContent,
+          mode: 'summary',
+          article_title: ctx.title || '',
+          article_content: pureContent,
           model,
         },
         {
@@ -138,6 +139,7 @@ export function useAiThread(ctx: AiContext) {
             }
           },
         },
+        ac.signal,
       );
     } catch (e: unknown) {
       if (isAbortError(e)) return;
@@ -192,8 +194,9 @@ export function useAiThread(ctx: AiContext) {
     abortControllerRef.current = ac;
 
     try {
-      await llmService().streamChat(
+      await llmService().streamThread(
         {
+          mode: 'chat',
           message: text,
           session_id: currentSessionId,
           ...(attachGrounding
@@ -218,6 +221,7 @@ export function useAiThread(ctx: AiContext) {
             }
           },
         },
+        ac.signal,
       );
     } catch (e: unknown) {
       if (isAbortError(e)) return;
