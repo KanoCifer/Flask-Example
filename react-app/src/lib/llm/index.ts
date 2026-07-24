@@ -6,5 +6,6 @@ export type {
   ChatMessage,
   StreamThreadPayload,
   StreamFrame,
+  StreamFrameType,
   SseHandlers,
 } from './llmService';
