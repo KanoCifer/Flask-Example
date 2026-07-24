@@ -57,29 +57,34 @@ export async function consumeSseStream<T = { content?: string }>(
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    buffer += decoder.decode(value, { stream: true });
-    const { events, rest } = parseSseChunk(buffer);
-    buffer = rest;
+      buffer += decoder.decode(value, { stream: true });
+      const { events, rest } = parseSseChunk(buffer);
+      buffer = rest;
 
-    let finished = false;
-    for (const jsonStr of events) {
-      if (jsonStr === '[DONE]') {
-        finished = true;
-        break;
+      let finished = false;
+      for (const jsonStr of events) {
+        if (jsonStr === '[DONE]') {
+          finished = true;
+          break;
+        }
+        try {
+          const data = JSON.parse(jsonStr) as T;
+          handlers.onData(data);
+          continue;
+        } catch {
+          // 忽略单帧解析错误，继续消费后续帧
+        }
       }
-      try {
-        const data = JSON.parse(jsonStr) as T;
-        handlers.onData(data);
-        continue;
-      } catch {
-        // 忽略单帧解析错误，继续消费后续帧
-      }
+      if (finished) break;
     }
-    if (finished) break;
+  } finally {
+    // 显式释放 reader — fetch() reject 时底层 body stream 不会自动取消
+    reader.cancel().catch(() => {});
   }
 
   handlers.onDone?.();

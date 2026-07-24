@@ -1,9 +1,3 @@
-// Blog composables — SSE 流、Markdown 图片、文章摘要/聊天、评论.
-//
-// 注意：ArticleContext 在 useArticleChat 与 useArticleSummary 中各自定义；
-// 消费者按需从对应文件导入，此处仅导出无冲突符号，避免 TS2308 二义性。
-export { useArticleChat, type ChatMessage } from './useArticleChat';
-export { useArticleSummary, MODEL_OPTIONS } from './useArticleSummary';
-export { consumeSseStream, parseSseChunk } from './useSseStream';
+// Blog composables — 文章点赞摘要 / 评论.
 export { useTwikoo } from '@/composables';
 export { useLikeSummary, type UseLikeSummaryReturn } from './useLikeSummary';

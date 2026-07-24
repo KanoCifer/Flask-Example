@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { rssGateway } from '@/features/rss/api';
 import { BasicDetail } from '@/components';
-import { AISummary } from '@/features/blog';
+import { AiCompanion } from '@/features/ai';
 import { useNotificationStore } from '@/stores';
 import type { RssArticle } from '@/features/rss/types';
 import { formatDate } from '@/lib/dayjs';
@@ -345,7 +345,7 @@ watch(
           </div>
 
           <div class="p-8">
-            <AISummary
+            <AiCompanion
               :title="article.title"
               :content="article.content || article.summary || ''"
             />

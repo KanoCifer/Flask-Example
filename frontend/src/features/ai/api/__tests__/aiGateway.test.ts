@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { llmGateway } from '@/features/blog/api/llmGateway';
+import { aiGateway } from '@/features/ai/api/aiGateway';
 
 vi.mock('@/api/request', () => ({
   apiClient: {
@@ -10,14 +10,14 @@ vi.mock('@/api/request', () => ({
   },
 }));
 
-vi.mock('@/features/blog/composables/useSseStream', () => ({
+vi.mock('@/composables/useSseStream', () => ({
   consumeSseStream: vi.fn(),
 }));
 
 import { apiClient } from '@/api/request';
-import { consumeSseStream } from '@/features/blog/composables/useSseStream';
+import { consumeSseStream } from '@/composables/useSseStream';
 
-describe('llmGateway', () => {
+describe('aiGateway', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
@@ -33,7 +33,7 @@ describe('llmGateway', () => {
         data: { data: { cached: true, summary: 'cached text' } },
       });
 
-      const result = await llmGateway.getCachedSummary({
+      const result = await aiGateway.getCachedSummary({
         article_content: 'pure content',
       });
 
@@ -48,7 +48,7 @@ describe('llmGateway', () => {
         data: { data: { cached: false } },
       });
 
-      await llmGateway.getCachedSummary({
+      await aiGateway.getCachedSummary({
         article_content: 'x',
         article_title: 'Hello',
       });
@@ -72,7 +72,7 @@ describe('llmGateway', () => {
         },
       });
 
-      const result = await llmGateway.getCachedChat({
+      const result = await aiGateway.getCachedChat({
         article_content: 'pure',
       });
 
@@ -97,7 +97,7 @@ describe('llmGateway', () => {
       };
       const signal = new AbortController().signal;
 
-      await llmGateway.streamSummary(
+      await aiGateway.streamSummary(
         { title: 'T', content: 'C', model: 'M' },
         handlers,
         signal,
@@ -116,7 +116,7 @@ describe('llmGateway', () => {
     it('omits signal key when not provided', async () => {
       vi.mocked(consumeSseStream).mockResolvedValue(undefined);
 
-      await llmGateway.streamSummary(
+      await aiGateway.streamSummary(
         { title: 'T', content: 'C', model: 'M' },
         { onData: vi.fn() },
       );
@@ -132,7 +132,7 @@ describe('llmGateway', () => {
 
       const handlers = { onData: vi.fn(), onDone: vi.fn() };
 
-      await llmGateway.streamChat(
+      await aiGateway.streamChat(
         {
           message: 'hi',
           session_id: 'sess-1',
@@ -163,7 +163,7 @@ describe('llmGateway', () => {
 
       const handlers = { onData: vi.fn(), onDone: vi.fn() };
 
-      await llmGateway.weatherAnalysis(
+      await aiGateway.weatherAnalysis(
         {
           weather_data: { temp: 25 },
           model_id: 'Ling-2.6',
@@ -188,7 +188,7 @@ describe('llmGateway', () => {
 
       const signal = new AbortController().signal;
 
-      await llmGateway.weatherAnalysis(
+      await aiGateway.weatherAnalysis(
         { weather_data: {}, model_id: 'M' },
         { onData: vi.fn() },
         signal,

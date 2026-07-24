@@ -15,7 +15,7 @@
  */
 import { useNotificationStore } from '@/stores';
 import { formatDate } from '@/lib/dayjs';
-import { llmGateway } from '@/features/blog';
+import { aiGateway } from '@/features/ai';
 import { HoverDropdown, Button as UiButton } from '@/components';
 import { renderMarkdown } from '@/composables';
 import { Check, ChevronDown } from '@lucide/vue';
@@ -69,6 +69,7 @@ const AI_MODELS = [
   { id: 'Ling-2.6-1T', name: 'Ling 2.6' },
   { id: 'Ling-2.6-flash', name: 'Ling 2.6 Flash' },
   { id: 'Ring-2.5-1T', name: 'Ring 2.5' },
+  { id: 'Ling-3.0-flash', name: 'Ling 3.0 Flash' },
 ];
 
 const textShimmer = ref<string[]>([
@@ -191,7 +192,7 @@ const _doFetch = async () => {
   hasGenerated.value = false;
 
   try {
-    await llmGateway.weatherAnalysis(
+    await aiGateway.weatherAnalysis(
       {
         weather_data: payload.value,
         model_id: selectedModel.value,

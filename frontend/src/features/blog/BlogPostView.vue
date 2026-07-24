@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AISummary } from '@/features/blog/components/ai-summary';
+import { AiCompanion } from '@/features/ai';
 import { TwikooComments } from '@/components';
 import {
   AlertDialog,
@@ -532,7 +532,7 @@ onUnmounted(() => {
 
       <!-- 正文 -->
       <div class="prose prose-lg max-w-none">
-        <AISummary :title="post.title" :content="post.body || ''" />
+        <AiCompanion :title="post.title" :content="post.body || ''" />
         <div
           class="prose-body whitespace-pre-wrap"
           v-if="post.body"

@@ -14,6 +14,3 @@ export { TwikooComments } from '@/components';
 // 编辑器
 export { default as ImageEditorModal } from './ImageEditorModal.vue';
 export { default as MarkdownEditor } from './MarkdownEditor.vue';
-
-// AI 摘要
-export { default as AISummary } from './ai-summary/AISummary.vue';
