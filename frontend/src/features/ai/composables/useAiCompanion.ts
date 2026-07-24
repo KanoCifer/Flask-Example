@@ -138,10 +138,11 @@ export function useAiCompanion(ctx: AiContext) {
     abortController = new AbortController();
 
     try {
-      await aiGateway.streamSummary(
+      await aiGateway.streamThread(
         {
-          title: ctx.title || '',
-          content: pureContent,
+          mode: 'summary',
+          article_content: pureContent,
+          article_title: ctx.title || '',
           model: model.value,
         },
         {
@@ -193,8 +194,9 @@ export function useAiCompanion(ctx: AiContext) {
     abortController = new AbortController();
 
     try {
-      await aiGateway.streamChat(
+      await aiGateway.streamThread(
         {
+          mode: 'chat',
           message: text,
           session_id: sessionId.value,
           ...(attachGrounding
