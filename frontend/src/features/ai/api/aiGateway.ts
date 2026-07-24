@@ -4,8 +4,7 @@ import {
 } from '@/composables/useSseStream';
 import type {
   AiStreamFrame,
-  StreamChatBody,
-  StreamSummaryBody,
+  StreamThreadBody,
   WeatherAnalysisBody,
 } from '@/features/ai/types';
 
@@ -28,15 +27,9 @@ function buildWsUrl(): string {
  * 不再直接持有 fetch。
  */
 export interface AiGateway {
-  /** 流式生成 AI 文章总结。 */
-  streamSummary(
-    body: StreamSummaryBody,
-    handlers: SseHandlers<AiStreamFrame>,
-    signal?: AbortSignal,
-  ): Promise<void>;
-  /** 流式 AI 对话。 */
-  streamChat(
-    body: StreamChatBody,
+  /** 流式生成 AI 总结 / 对话（mode 字段区分）。 */
+  streamThread(
+    body: StreamThreadBody,
     handlers: SseHandlers<AiStreamFrame>,
     signal?: AbortSignal,
   ): Promise<void>;
@@ -60,10 +53,8 @@ const stream = (
   );
 
 export const aiGateway: AiGateway = {
-  streamSummary: (body, handlers, signal) =>
-    stream('/v2/llm/summary/stream', body, handlers, signal),
-  streamChat: (body, handlers, signal) =>
-    stream('/v2/llm/chat/stream', body, handlers, signal),
+  streamThread: (body, handlers, signal) =>
+    stream('/v2/llm/thread/stream', body, handlers, signal),
   weatherAnalysis: (body, handlers, signal) =>
     stream('/v2/llm/weather-analysis', body, handlers, signal),
 };

@@ -27,8 +27,8 @@ describe('aiGateway', () => {
     vi.restoreAllMocks();
   });
 
-  describe('streamSummary', () => {
-    it('forwards body, handlers, and signal to consumeSseStream', async () => {
+  describe('streamThread', () => {
+    it('forwards summary-mode body, handlers, and signal to consumeSseStream', async () => {
       vi.mocked(consumeSseStream).mockResolvedValue(undefined);
 
       const handlers = {
@@ -37,43 +37,30 @@ describe('aiGateway', () => {
       };
       const signal = new AbortController().signal;
 
-      await aiGateway.streamSummary(
-        { title: 'T', content: 'C', model: 'M' },
+      await aiGateway.streamThread(
+        { mode: 'summary', article_title: 'T', article_content: 'C', model: 'M' },
         handlers,
         signal,
       );
 
       expect(consumeSseStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          url: expect.stringContaining('/v2/llm/summary/stream'),
-          body: { title: 'T', content: 'C', model: 'M' },
+          url: expect.stringContaining('/v2/llm/thread/stream'),
+          body: { mode: 'summary', article_title: 'T', article_content: 'C', model: 'M' },
           signal,
         }),
         handlers,
       );
     });
 
-    it('omits signal key when not provided', async () => {
-      vi.mocked(consumeSseStream).mockResolvedValue(undefined);
-
-      await aiGateway.streamSummary(
-        { title: 'T', content: 'C', model: 'M' },
-        { onData: vi.fn() },
-      );
-
-      const call = vi.mocked(consumeSseStream).mock.calls[0];
-      expect(call?.[0]).not.toHaveProperty('signal');
-    });
-  });
-
-  describe('streamChat', () => {
-    it('forwards first-turn article fields in body', async () => {
+    it('forwards chat-mode body with session fields', async () => {
       vi.mocked(consumeSseStream).mockResolvedValue(undefined);
 
       const handlers = { onData: vi.fn(), onDone: vi.fn() };
 
-      await aiGateway.streamChat(
+      await aiGateway.streamThread(
         {
+          mode: 'chat',
           message: 'hi',
           session_id: 'sess-1',
           article_content: 'article body',
@@ -84,8 +71,9 @@ describe('aiGateway', () => {
 
       expect(consumeSseStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          url: expect.stringContaining('/v2/llm/chat/stream'),
+          url: expect.stringContaining('/v2/llm/thread/stream'),
           body: {
+            mode: 'chat',
             message: 'hi',
             session_id: 'sess-1',
             article_content: 'article body',
@@ -94,6 +82,18 @@ describe('aiGateway', () => {
         }),
         handlers,
       );
+    });
+
+    it('omits signal key when not provided', async () => {
+      vi.mocked(consumeSseStream).mockResolvedValue(undefined);
+
+      await aiGateway.streamThread(
+        { mode: 'summary', article_content: 'C' },
+        { onData: vi.fn() },
+      );
+
+      const call = vi.mocked(consumeSseStream).mock.calls[0];
+      expect(call?.[0]).not.toHaveProperty('signal');
     });
   });
 
