@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Any
 
 from app.core import logger
-from app.core.agent import ArticleSummarizer
+from app.core.agent import AiAgent
 from app.schemas.aiagent import (
     ArticleSummaryRequest,
     ChatRequest,
-    HistoryRequest,
 )
 
 
 class AiService:
     """AiService — 薄封装层，仅负责 try/except + SSE 包装。"""
 
-    def __init__(self, summarizer: ArticleSummarizer) -> None:
-        self.summarizer = summarizer
+    def __init__(self, agent: AiAgent) -> None:
+        self.agent = agent
 
     async def summary_stream(
         self,
@@ -25,7 +23,7 @@ class AiService:
         model: str | None = None,
     ) -> AsyncIterator[str]:
         try:
-            async for chunk in self.summarizer.summarize(
+            async for chunk in self.agent.summarize(
                 content=payload.content,
                 title=payload.title,
                 user_id=user_id,
@@ -43,7 +41,7 @@ class AiService:
         model: str | None = None,
     ) -> AsyncIterator[dict]:
         try:
-            async for chunk in self.summarizer.chat(
+            async for chunk in self.agent.chat(
                 message=payload.message,
                 session_id=payload.session_id,
                 user_id=user_id,
@@ -60,52 +58,3 @@ class AiService:
         except Exception as exc:
             logger.error(f"❌ 对话失败: {exc!r}")
             yield {"content": "[ERROR] 对话失败,请稍后重试", "is_end": True}
-
-    async def get_user_history(self, user_id: str) -> dict[str, list[dict]]:
-        sessions = await self.summarizer.get_history(user_id=user_id)
-        return {"sessions": sessions}
-
-    def get_cached_summary(
-        self,
-        payload: HistoryRequest,
-        user_id: str,
-    ) -> dict[str, Any]:
-        result = self.summarizer.get_cached_summary(
-            user_id=user_id,
-            title=payload.article_title,
-            content=payload.article_content,
-        )
-        if result:
-            return {"cached": True, **result}
-        return {"cached": False}
-
-    def get_cached_chat(
-        self,
-        payload: HistoryRequest,
-        user_id: str,
-    ) -> dict[str, Any]:
-        result = self.summarizer.get_cached_chat(
-            user_id=user_id,
-            title=payload.article_title,
-            content=payload.article_content,
-        )
-        if result:
-            return {"cached": True, **result}
-        return {"cached": False}
-
-    def get_debug_sessions(self) -> dict[str, Any]:
-        sessions = self.summarizer.get_agent_sessions()
-        result = []
-        for session in sessions[:5]:
-            if isinstance(session, dict):
-                result.append(session)
-            else:
-                result.append(
-                    {
-                        "session_id": getattr(session, "session_id", None),
-                        "user_id": getattr(session, "user_id", None),
-                        "run_count": len(getattr(session, "runs", []) or []),
-                        "created_at": getattr(session, "created_at", None),
-                    }
-                )
-        return {"total": len(sessions), "sessions": result}

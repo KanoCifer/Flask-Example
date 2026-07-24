@@ -27,66 +27,6 @@ describe('aiGateway', () => {
     vi.restoreAllMocks();
   });
 
-  describe('getCachedSummary', () => {
-    it('POSTs to v2/llm/history/summary and unwraps data', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({
-        data: { data: { cached: true, summary: 'cached text' } },
-      });
-
-      const result = await aiGateway.getCachedSummary({
-        article_content: 'pure content',
-      });
-
-      expect(apiClient.post).toHaveBeenCalledWith('v2/llm/history/summary', {
-        article_content: 'pure content',
-      });
-      expect(result).toEqual({ cached: true, summary: 'cached text' });
-    });
-
-    it('passes article_title only when provided', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({
-        data: { data: { cached: false } },
-      });
-
-      await aiGateway.getCachedSummary({
-        article_content: 'x',
-        article_title: 'Hello',
-      });
-
-      expect(apiClient.post).toHaveBeenCalledWith('v2/llm/history/summary', {
-        article_content: 'x',
-        article_title: 'Hello',
-      });
-    });
-  });
-
-  describe('getCachedChat', () => {
-    it('POSTs to v2/llm/history/chat and unwraps data', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({
-        data: {
-          data: {
-            cached: true,
-            messages: [{ role: 'user', content: 'hi' }],
-            session_id: 'sess-1',
-          },
-        },
-      });
-
-      const result = await aiGateway.getCachedChat({
-        article_content: 'pure',
-      });
-
-      expect(apiClient.post).toHaveBeenCalledWith('v2/llm/history/chat', {
-        article_content: 'pure',
-      });
-      expect(result).toEqual({
-        cached: true,
-        messages: [{ role: 'user', content: 'hi' }],
-        session_id: 'sess-1',
-      });
-    });
-  });
-
   describe('streamSummary', () => {
     it('forwards body, handlers, and signal to consumeSseStream', async () => {
       vi.mocked(consumeSseStream).mockResolvedValue(undefined);

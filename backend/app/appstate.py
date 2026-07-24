@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from redis.asyncio import Redis as AsyncRedis
 
-from app.core.agent import ArticleSummarizer
+from app.core.agent import AiAgent
 from app.plugins.cache import redis_cache
 from app.plugins.notification import NotificationPlugin
 from app.repositories import (
@@ -109,7 +109,13 @@ def new_app_state(redis: AsyncRedis) -> AppState:
     moment_svc = MomentService(repo=moment_repo)
     monitor_svc = MonitorService(repo=monitor_repo)
     system_svc = SystemService(repo=event_repo)
-    public_svc = PublicService(repo=public_repo, gallery_repo=gallery_repo)
+    from app.services.fishing.fishing_expert import FishingExpertScorer
+
+    ai_agent = AiAgent(expert_weights=FishingExpertScorer.WEIGHTS)
+    ai_svc = AiService(agent=ai_agent)
+    public_svc = PublicService(
+        repo=public_repo, gallery_repo=gallery_repo, ai_agent=ai_agent
+    )
     rss_svc = RssService(repo=rss_repo, redis=redis)
     devtask_svc = DevTaskService(repo=devtask_repo)
     weread_svc = WereadService(repo=weread_repo)
@@ -120,7 +126,6 @@ def new_app_state(redis: AsyncRedis) -> AppState:
     device_svc = DeviceService(repo=device_repo)
     fishing_svc = FishingService(repo=fishing_repo)
     friendlink_svc = FriendLinkService(repo=friendlink_repo)
-    ai_svc = AiService(summarizer=ArticleSummarizer())
 
     return AppState(
         user_svc=user_svc,

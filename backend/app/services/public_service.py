@@ -8,6 +8,7 @@ from redis.asyncio import Redis as AsyncRedis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import logger
+from app.core.agent import AiAgent
 from app.core.config import get_settings
 from app.models.models import GalleryImage
 from app.repositories.gallery_repo import GalleryRepo
@@ -20,10 +21,14 @@ _FRONTEND_URL = get_settings().FRONTEND_URL.rstrip("/")
 
 class PublicService:
     def __init__(
-        self, repo: PublicRepo, gallery_repo: GalleryRepo | None = None
+        self,
+        repo: PublicRepo,
+        gallery_repo: GalleryRepo | None = None,
+        ai_agent: AiAgent | None = None,
     ) -> None:
         self.repo: PublicRepo = repo
         self.gallery_repo: GalleryRepo | None = gallery_repo
+        self._ai_agent: AiAgent = ai_agent or AiAgent()
 
     @staticmethod
     def get_api_status() -> dict[str, str]:
@@ -179,7 +184,6 @@ Sitemap: {sitemap_url}
         self, weather_data: WeatherAnalysisInput, model_id: str | None = None
     ):
         """根据天气数据进行分析并生成报告"""
-        from app.core.weather_analyzer import weather_analyzer
         from app.services.fishing.fishing_index import parse_tide_info
 
         async def _on_index_calculated(data: dict, ai_score: int) -> None:
@@ -195,7 +199,7 @@ Sitemap: {sitemap_url}
             )
 
         try:
-            async for chunk in weather_analyzer.analyze_weather_stream(
+            async for chunk in self._ai_agent.analyze_weather_stream(
                 weather_data=weather_data,
                 model_id=model_id,
                 on_index_calculated=_on_index_calculated,

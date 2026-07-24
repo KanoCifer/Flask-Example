@@ -140,7 +140,7 @@ class FishingService:
         """
         保存 AI 分析产生的反馈记录并触发自动训练
 
-        从 WeatherAnalyzer 提取的训练逻辑，消除 core→services 层级反转。
+        训练逻辑原属 WeatherAnalyzer，已提取到 services 层，消除 core→services 层级反转。
         """
         now = weather_data.get("liveWeather") or {}
         tide = weather_data.get("tideData") or {}

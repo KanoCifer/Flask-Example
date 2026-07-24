@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import AsyncIterator
-from typing import Any, ClassVar
+from collections.abc import AsyncIterator, Callable
+from typing import Any, ClassVar, Literal
 
 from agno.agent import RunOutputEvent
-from agno.db.base import SessionType
 from agno.db.redis import RedisDb
 
 from app.core.config import get_settings
@@ -16,21 +15,60 @@ from app.core.llm_factory import (
     create_redis_db,
 )
 from app.core.logger import logger
+from app.schemas.aiagent import (
+    DayForecastInput,
+    FishingContextInput,
+    LiveWeatherInput,
+    TideDataInput,
+    TideEventInput,
+    TideHourlyInput,
+    WeatherAnalysisInput,
+    WeatherAnalysisInputSchema,
+)
+
+# ── 统一 AiAgent ───────────────────────────────────────────────────── #
 
 
-class ArticleSummarizer:
-    """文章总结 + 对话 Agent。
+class AiAgent:
+    """统一的 LLM Agent，聚合文章总结、对话、天气分析三类能力。
 
-    公开接口仅 3 个方法：summarize / chat / get_history。
-    内部通过 _find_session / _get_cached_* 处理 session 缓存逻辑。
+    所有 model / agent / db 创建统一走 ``llm_factory``，不再直接 import agno。
+    通过 ``AppState`` 注入，取代模块级全局单例。
     """
 
-    _MODEL_MAP: ClassVar[dict[str, str]] = {
+    # ── 模型映射 ───────────────────────────────────────────────────── #
+
+    _SUMMARY_MODEL_MAP: ClassVar[dict[str, str]] = {
         "Ring 2.6": "Ring-2.6-1T",
         "Ling 2.6": "Ling-2.6-1T",
+        "Ling 3.0 Flash": "Ling-3.0-flash",
     }
 
-    _SYSTEM_PROMPT = (
+    _WEATHER_MODELS: ClassVar[dict[str, dict[str, str]]] = {
+        "Ling-2.6-1T": {
+            "id": "Ling-2.6-1T",
+            "base_url": "https://api.tbox.cn/api/llm/v1",
+        },
+        "Ling-2.6-flash": {
+            "id": "Ling-2.6-flash",
+            "base_url": "https://api.tbox.cn/api/llm/v1",
+        },
+        "Ring-2.5-1T": {
+            "id": "Ring-2.5-1T",
+            "base_url": "https://api.tbox.cn/api/llm/v1",
+        },
+        "Ling-3.0-flash": {
+            "id": "Ling-3.0-flash",
+            "base_url": "https://api.tbox.cn/api/llm/v1",
+        },
+    }
+    _WEATHER_DEFAULT_MODEL = "Ling-2.6-1T"
+
+    _MAX_INPUT_CHARS = 128_000
+
+    # ── System Prompts ─────────────────────────────────────────────── #
+
+    _SUMMARY_SYSTEM_PROMPT = (
         "你是一名专业的中文内容分析师。你的任务是提炼文章的核心信息，"
         "让读者用最少时间获得最大价值。\n\n"
         "## 分析步骤\n"
@@ -52,6 +90,7 @@ class ArticleSummarizer:
         "- 禁止编造原文没有的信息\n"
         "- 只输出总结本身，不要输出分析过程"
     )
+
     _CHAT_SYSTEM_PROMPT = (
         "你是一名中文知识助手，和用户一起深入探讨他刚读过的文章。\n\n"
         "## 回答原则\n"
@@ -65,12 +104,97 @@ class ArticleSummarizer:
         "- 简洁直接，不重复用户问题\n"
         "- 回答后可以在适当时机追问「你想深入了解哪个方面？」引导进一步讨论"
     )
-    _MAX_INPUT_CHARS = 128_000
 
-    def __init__(self, db: RedisDb | None = None) -> None:
+    _WEATHER_PROMPT_TEMPLATE = """
+        你是一名专业的垂钓气象与潮汐分析师，擅长综合天气和潮汐数据判断钓鱼条件。
+        ## 分析维度
+        依次评估以下因素对钓鱼的影响：
+        - **温度**：鱼类活跃度随水温变化，15-25°C 通常最佳
+        - **风速风向**：微风（3-15 km/h）有利于钓鱼；强风（>30 km/h）危险
+        - **气压**：高气压稳定（>1013 hPa）适合钓鱼；气压骤降时鱼口差
+        - **降水**：小雨可提升鱼口；暴雨/雷暴禁止出钓
+        - **潮汐**：涨潮前后 1-2 小时（尤其高潮前）通常是最佳钓鱼窗口；
+          大潮差（高低潮落差 >2m）水流湍急，鱼不易开口；
+          平潮期（高/低潮后 30 分钟内）水流缓，适合底钓
+        - **云量/光照**：阴天或多云通常优于正午烈日
+
+
+
+        ## 输出Markdown格式（严格遵守）
+        ## 钓鱼指数：XX / 100
+        **出钓建议**：一句话概括（极佳 / 良好 / 一般 / 不宜 / 禁止）
+        ### 逐项分析
+        | 维度 | 当前状况 | 影响评估 |
+        |------|----------|----------|
+        | 温度 | ... | ... |
+        | 风况 | ... | ... |
+        | 气压 | ... | ... |
+        | 降水 | ... | ... |
+        | 潮汐 | ... | ... |
+        ### 最佳出钓窗口
+        根据潮汐表，今日推荐时段：HH:MM - HH:MM（说明原因）
+        ### 建议
+        - 出钓建议（时段/钓点/装备）
+        - 注意事项或安全提示
+
+
+        ## 评分规则
+        - 先按专家权重计算基准分（归一化权重，总和=1）：
+          {weights_line}
+        - Expert_score = Σ(weight_i * feature_score_i) * 100，feature_score_i 范围 [0,1]，但 pressure 特征可达 [0,2]
+        - 再给出 AI 自主修正分（-20~20），并说明修正依据（短时天气波动、天气现象、潮汐时序）
+        - 最终钓鱼指数 = clip(专家基准分 + AI 自主修正分, 0, 100)
+        - 90-100：极佳，强烈推荐
+        - 70-89：良好，适合出钓
+        - 50-69：一般，可以尝试但体验有限
+        - 30-49：不宜，不建议出钓
+        - 0-29：禁止，存在安全风险
+        输出时必须显式给出：专家基准分、AI 自主修正分、最终钓鱼指数。
+        若遇雷暴、台风或暴雨，评分直接置 0 并给出安全警告。
+        回答简洁清晰，避免重复原始数据，聚焦分析与建议"""
+
+    # ── 权重名称映射 ───────────────────────────────────────────────── #
+
+    _WEIGHT_NAMES: ClassVar[dict[str, str]] = {
+        "w1": "w1_temp",
+        "w2": "w2_humidity",
+        "w3": "w3_pressure",
+        "w4": "w4_wind",
+        "w5": "w5_rain",
+        "w6": "w6_tide_rising",
+        "w7": "w7_hours_to_tide",
+        "w8": "w8_tide_range",
+        "w9": "w9_indices",
+    }
+
+    _DEFAULT_WEIGHTS: ClassVar[dict[str, float]] = {
+        "w1": 4 / 23,
+        "w2": 2 / 23,
+        "w3": 2 / 23,
+        "w4": 2 / 23,
+        "w5": 1 / 23,
+        "w6": 4 / 23,
+        "w7": 4 / 23,
+        "w8": 2 / 23,
+        "w9": 2 / 23,
+    }
+
+    def __init__(
+        self,
+        db: RedisDb | None = None,
+        expert_weights: dict[str, float] | None = None,
+    ) -> None:
         self._db = db or create_redis_db()
+        weights = expert_weights or self._DEFAULT_WEIGHTS
+        weights_line = ", ".join(
+            f"{self._WEIGHT_NAMES.get(k, k)}={v:.4f}"
+            for k, v in weights.items()
+        )
+        self._weather_system_prompt = self._WEATHER_PROMPT_TEMPLATE.format(
+            weights_line=weights_line
+        )
 
-    # ── 公开接口（3 个方法）────────────────────────────────
+    # ── 公开接口 ───────────────────────────────────────────────────── #
 
     async def summarize(
         self,
@@ -88,15 +212,12 @@ class ArticleSummarizer:
         if not normalized:
             raise ValueError("文章内容不能为空")
 
-        user_prompt = self._build_user_prompt(
-            normalized_content=normalized,
-            title=title,
-        )
+        user_prompt = self._build_summary_prompt(normalized, title=title)
+        model = self._resolve_summary_model(model_name)
 
-        model = self._resolve_model(model_name)
         agent = create_agent(
             model=model,
-            instructions=self._SYSTEM_PROMPT,
+            instructions=self._SUMMARY_SYSTEM_PROMPT,
             db=self._db,
         )
 
@@ -136,15 +257,15 @@ class ArticleSummarizer:
                 )
 
         full_message = f"{context_prefix}用户问题: {message}"
+        model = self._resolve_summary_model(model_name)
 
-        model = self._resolve_model(model_name)
-        chat_agent = create_agent(
+        agent = create_agent(
             model=model,
             instructions=self._CHAT_SYSTEM_PROMPT,
             db=self._db,
         )
 
-        async for event in chat_agent.arun(
+        async for event in agent.arun(
             full_message,
             session_id=session_id,
             user_id=user_id,
@@ -153,118 +274,102 @@ class ArticleSummarizer:
             if isinstance(event, RunOutputEvent) and event.content:
                 yield str(event.content)
 
-    async def get_history(self, user_id: str) -> list[dict]:
-        """获取用户的所有 session 历史摘要。"""
+    async def analyze_weather_stream(
+        self,
+        weather_data: WeatherAnalysisInput,
+        model_id: str | None = None,
+        on_index_calculated: Callable | None = None,
+    ) -> AsyncIterator[str]:
+        """流式分析天气数据。
+
+        Args:
+            on_index_calculated: 可选回调（sync 或 async），当提取到 AI 评分时调用。
+                签名: (weather_data_dict: dict, ai_score: int) -> None
+        """
+        if not get_settings().API_KEY:
+            logger.error("AI 服务未配置 API_KEY")
+            raise RuntimeError("AI 服务未配置 API_KEY")
+
         try:
-            all_sessions = self._db.get_sessions(
-                session_type=SessionType.AGENT
+            input_schema = self._build_weather_input_schema(weather_data)
+        except Exception:
+            logger.exception("构建 input_schema 失败")
+            raise
+
+        model_key = model_id or self._WEATHER_DEFAULT_MODEL
+        model_config = self._WEATHER_MODELS.get(
+            model_key,
+            {
+                "id": "Ling-2.6-1T",
+                "base_url": "https://api.tbox.cn/api/llm/v1",
+            },
+        )
+
+        model = create_llm_model(
+            model_id=model_config["id"],
+            temperature=1,
+            timeout=30,
+        )
+
+        agent = create_agent(
+            model=model,
+            instructions=self._weather_system_prompt,
+            db=self._db,
+            input_schema=WeatherAnalysisInputSchema,
+        )
+
+        try:
+            response = agent.arun(input_schema, stream=True)
+        except Exception:
+            logger.exception("Agent 运行失败")
+            raise
+
+        buffer = ""
+        async for event in response:
+            if isinstance(event, RunOutputEvent) and event.content:
+                buffer += event.content
+                yield str(event.content)
+
+        # 提取最终钓鱼指数
+        index = None
+        buffer = buffer.strip()
+        logger.debug(f"Final agent output: {buffer!r}")
+        try:
+            match = re.search(
+                r"(?:\*\*)?最终钓鱼指数(?:\*\*)?[：:]\s*(\d+)", string=buffer
             )
-            user_sessions = []
-            for session in all_sessions:
-                if self._get_field(session, "user_id") != user_id:
-                    continue
-                runs = self._get_field(session, "runs", [])
-                if not runs:
-                    continue
-                last_run = runs[-1]
-                last_msg = self._get_field(last_run, "message")
-                last_resp = self._get_first_of(last_run, "response", "content")
-                user_sessions.append(
-                    {
-                        "session_id": self._get_field(session, "session_id"),
-                        "user_id": user_id,
-                        "last_message": last_msg[:100] if last_msg else None,
-                        "last_response_preview": (
-                            last_resp[:200] if last_resp else None
-                        ),
-                        "run_count": len(runs),
-                        "created_at": self._get_field(session, "created_at"),
-                        "updated_at": self._get_field(session, "updated_at"),
-                    }
-                )
-            user_sessions.sort(
-                key=lambda x: x.get("updated_at") or 0, reverse=True
-            )
-            return user_sessions
-        except Exception as e:
-            logger.error(f"获取用户 session 列表失败: {e}")
-            return []
+            if match:
+                index = int(match.group(1))
+                logger.debug(f"Extracted fishing index: {index}")
+            else:
+                logger.warning("未能提取到钓鱼指数")
+        except Exception:
+            logger.exception("提取钓鱼指数失败")
 
-    def get_cached_summary(
-        self, user_id: str, title: str | None, content: str
-    ) -> dict | None:
-        """获取缓存的总结 session。"""
-        article_hash = self._hash_article(title, content)
-        session_id = self._article_session_id(user_id, article_hash, "summary")
-        try:
-            session = self._find_session(session_id)
-            if not session:
-                logger.debug(f"无缓存 session: {session_id}")
-                return None
-            runs = self._get_field(session, "runs", [])
-            if not runs:
-                return None
-            response = self._get_first_of(runs[-1], "content", "response")
-            if response:
-                return {
-                    "session_id": session_id,
-                    "summary": response,
-                    "created_at": self._get_field(session, "created_at"),
-                    "updated_at": self._get_field(session, "updated_at"),
-                }
-        except Exception as e:
-            logger.warning(f"获取总结缓存失败: {e}")
-        return None
+        if index is not None and on_index_calculated is not None:
+            try:
+                result = on_index_calculated(weather_data.weather_data, index)
+                import asyncio
 
-    def get_cached_chat(
-        self, user_id: str, title: str | None, content: str
-    ) -> dict | None:
-        """获取缓存的对话 session。"""
-        article_hash = self._hash_article(title, content)
-        session_id = self._article_session_id(user_id, article_hash, "chat")
-        try:
-            session = self._find_session(session_id)
-            if not session:
-                logger.debug(f"无对话缓存: {session_id}")
-                return None
-            runs = self._get_field(session, "runs", [])
-            if not runs:
-                return None
-            messages = []
-            for run in runs:
-                msg = self._get_first_of(run, "message", "input")
-                resp = self._get_first_of(run, "content", "response")
-                if msg:
-                    messages.append({"role": "user", "content": msg})
-                if resp:
-                    messages.append({"role": "assistant", "content": resp})
-            return {
-                "session_id": session_id,
-                "messages": messages,
-                "created_at": self._get_field(session, "created_at"),
-                "updated_at": self._get_field(session, "updated_at"),
-            }
-        except Exception as e:
-            logger.warning(f"获取对话历史失败: {e}")
-        return None
+                if asyncio.iscoroutine(result):
+                    await result
+            except Exception:
+                logger.exception("on_index_calculated 回调失败")
 
-    def get_agent_sessions(self):
-        """获取所有 agent session（从 AiRepo 吸收，用于 debug 端点）。"""
-        result = self._db.get_sessions(session_type=SessionType.AGENT)
-        if isinstance(result, tuple):
-            return result[0]
-        return result
+    # ── 内部方法 ───────────────────────────────────────────────────── #
 
-    # ── 内部方法 ────────────────────────────────────────────
-
-    def _resolve_model(self, model_name: str | None = None):
-        """根据友好名解析并创建 model 实例。"""
-        if model_name and model_name not in self._MODEL_MAP:
+    def _resolve_summary_model(self, model_name: str | None = None):
+        """根据友好名解析并创建总结/对话用 model 实例。"""
+        if model_name and model_name not in self._SUMMARY_MODEL_MAP:
             raise ValueError(f"Unsupported model: {model_name}")
-        model_id = self._MODEL_MAP[model_name] if model_name else "Ling-2.6-1T"
-        return create_llm_model(model_id)
+        model_id = (
+            self._SUMMARY_MODEL_MAP[model_name]
+            if model_name
+            else "Ling-2.6-1T"
+        )
+        return create_llm_model(model_id=model_id)
 
-    def _build_user_prompt(
+    def _build_summary_prompt(
         self, normalized_content: str, title: str | None = None
     ) -> str:
         user_prompt = (
@@ -292,30 +397,78 @@ class ArticleSummarizer:
     ) -> str:
         return f"{prefix}:{user_id}:{article_hash}"
 
-    def _find_session(self, session_id: str):
-        """从 Redis 中查找指定 session_id 的 session 对象。"""
-        all_sessions = self._db.get_sessions(session_type=SessionType.AGENT)
-        for session in all_sessions:
-            if self._get_field(session, "session_id") == session_id:
-                return session
-        return None
+    def _build_weather_input_schema(
+        self, weather_data: WeatherAnalysisInput
+    ) -> WeatherAnalysisInputSchema:
+        """将 dict 格式的 weather_data 转换为类型化的 Pydantic 模型"""
+        data = weather_data.weather_data
 
-    @staticmethod
-    def _get_field(
-        obj: dict | object, key: str, default: object = None
-    ) -> Any:
-        """从 dict 或 attrs 对象统一取字段。"""
-        return (
-            obj.get(key, default)
-            if isinstance(obj, dict)
-            else getattr(obj, key, default)
+        fishing_ctx = data.get("fishingIndex")
+        fishing_index = None
+        if fishing_ctx:
+            fishing_index = FishingContextInput(
+                expert_score=fishing_ctx.get("expert_score"),
+                feature_breakdown=fishing_ctx.get("feature_breakdown"),
+            )
+
+        live = data.get("liveWeather")
+        live_weather = None
+        if live:
+            live_weather = LiveWeatherInput(
+                temp=live.get("temp"),
+                text=live.get("text"),
+                wind360=live.get("wind360"),
+                windSpeed=live.get("windSpeed"),
+                windDir=live.get("windDir"),
+                humidity=live.get("humidity"),
+                pressure=live.get("pressure"),
+                precip=live.get("precip"),
+            )
+
+        forecasts_raw = data.get("forecasts") or []
+        forecasts = [
+            DayForecastInput(
+                date=f.get("date") or "",
+                day_temp=f.get("daytemp") or "",
+                day_weather=f.get("dayweather") or "",
+                day_wind=f.get("daywind") or "",
+                day_power=f.get("daypower") or "",
+                night_temp=f.get("nighttemp") or "",
+                night_weather=f.get("nightweather") or "",
+            )
+            for f in forecasts_raw[:3]
+            if f and f.get("date")
+        ]
+
+        tide = data.get("tideData")
+        tide_data = None
+        if tide:
+            tide_table = [
+                TideEventInput(
+                    type=t["type"],
+                    fxTime=t.get("fxTime", ""),
+                    height=float(t["height"]),
+                )
+                for t in tide.get("tideTable", [])
+                if "height" in t
+            ]
+            tide_hourly = [
+                TideHourlyInput(
+                    fxTime=h.get("fxTime", ""), height=h.get("height", "")
+                )
+                for h in tide.get("tideHourly", [])
+            ]
+            tide_data = TideDataInput(
+                updateTime=tide.get("updateTime"),
+                tideTable=tide_table,
+                tideHourly=tide_hourly,
+            )
+
+        return WeatherAnalysisInputSchema(
+            fishing_index=fishing_index,
+            live_weather=live_weather,
+            forecasts=forecasts,
+            tide_data=tide_data,
+            location_name=data.get("locationName"),
+            tide_spot_name=data.get("tideSpotName"),
         )
-
-    @staticmethod
-    def _get_first_of(obj: dict | object, *keys: str, default=None) -> Any:
-        """从 dict 或 attrs 对象依次尝试多个 key，返回首个非 None 值。"""
-        for key in keys:
-            val = ArticleSummarizer._get_field(obj, key)
-            if val is not None:
-                return val
-        return default

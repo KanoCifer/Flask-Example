@@ -12,7 +12,6 @@ from app.appstate import AppState
 from app.schemas.aiagent import (
     ArticleSummaryRequest,
     ChatRequest,
-    HistoryRequest,
     WeatherAnalysisInput,
 )
 
@@ -63,54 +62,6 @@ async def chat_stream(
         payload, _resolve_user_id(user, request), model=payload.model
     ):
         yield ServerSentEvent(data=chunk)
-
-
-# ── 历史记录 ──────────────────────────────────────────────
-
-
-@router.get("/history")
-async def get_user_history(
-    request: Request,
-    user: int | None = Depends(optional_user),
-    state: AppState = Depends(get_app_state),
-):
-    return await state.ai_svc.get_user_history(
-        _resolve_user_id(user, request)
-    )
-
-
-@router.post("/history/summary")
-async def get_cached_summary(
-    request: Request,
-    payload: HistoryRequest,
-    user: int | None = Depends(optional_user),
-    state: AppState = Depends(get_app_state),
-):
-    return state.ai_svc.get_cached_summary(
-        payload, _resolve_user_id(user, request)
-    )
-
-
-@router.post("/history/chat")
-async def get_cached_chat(
-    request: Request,
-    payload: HistoryRequest,
-    user: int | None = Depends(optional_user),
-    state: AppState = Depends(get_app_state),
-):
-    return state.ai_svc.get_cached_chat(
-        payload, _resolve_user_id(user, request)
-    )
-
-
-# ── Debug ─────────────────────────────────────────────────
-
-
-@router.get("/debug/sessions")
-async def debug_sessions(
-    state: AppState = Depends(get_app_state),
-):
-    return state.ai_svc.get_debug_sessions()
 
 
 # ── 天气分析 ──────────────────────────────────────────────

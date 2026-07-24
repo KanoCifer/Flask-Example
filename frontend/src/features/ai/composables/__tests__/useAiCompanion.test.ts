@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { defineComponent, h, nextTick, onMounted } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 
 vi.mock('@/features/ai/api/aiGateway', () => ({
   aiGateway: {
-    getCachedSummary: vi.fn(),
-    getCachedChat: vi.fn(),
     streamSummary: vi.fn(),
     streamChat: vi.fn(),
     weatherAnalysis: vi.fn(),
@@ -44,8 +42,6 @@ import { aiGateway } from '@/features/ai/api/aiGateway';
 describe('useAiCompanion', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-    vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
     vi.mocked(aiGateway.streamSummary).mockResolvedValue(undefined);
     vi.mocked(aiGateway.streamChat).mockResolvedValue(undefined);
   });
@@ -330,9 +326,6 @@ describe('useAiCompanion', () => {
 
     // F5
     it('re-arms needsGrounding after clearThread', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
-
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
 
@@ -378,81 +371,10 @@ describe('useAiCompanion', () => {
     });
   });
 
-  describe('restore', () => {
-    it('appends cached summary as a briefing message', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({
-        cached: true,
-        summary: 'cached briefing',
-      });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
-
-      const c = useAiCompanion({ content: '<p>x</p>' });
-      await c.restore();
-
-      expect(c.messages.value.length).toBe(1);
-      expect(c.messages.value[0]).toMatchObject({
-        kind: 'briefing',
-        role: 'assistant',
-        content: 'cached briefing',
-      });
-    });
-
-    it('appends cached chat messages and session_id', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({
-        cached: true,
-        messages: [
-          { role: 'user', content: 'hi' },
-          { role: 'assistant', content: 'hello' },
-        ],
-        session_id: 'sess-1',
-      });
-
-      const c = useAiCompanion({ content: '<p>x</p>' });
-      await c.restore();
-
-      expect(c.messages.value.length).toBe(2);
-      expect(c.messages.value[0]).toMatchObject({
-        kind: 'chat',
-        role: 'user',
-        content: 'hi',
-      });
-      expect(c.messages.value[1]).toMatchObject({
-        kind: 'chat',
-        role: 'assistant',
-        content: 'hello',
-      });
-      expect(c.sessionId.value).toBe('sess-1');
-    });
-
-    it('silently ignores cache miss errors', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockRejectedValue(new Error('nope'));
-      vi.mocked(aiGateway.getCachedChat).mockRejectedValue(new Error('nope'));
-
-      const c = useAiCompanion({ content: '<p>x</p>' });
-      await c.restore();
-
-      expect(c.messages.value).toEqual([]);
-      expect(c.error.value).toBe('');
-    });
-
-    it('does nothing when neither cache hits', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
-
-      const c = useAiCompanion({ content: '<p>x</p>' });
-      await c.restore();
-
-      expect(c.messages.value).toEqual([]);
-      expect(c.hasContent.value).toBe(false);
-    });
-
-    // F6: 验证 sessionId 用 crypto.randomUUID() 生成 —— 无泄露意图的前缀
-    // (旧 summary_)、足够 entropy 且每次独立。
+  // F6: 验证 sessionId 用 crypto.randomUUID() 生成 —— 无泄露意图的前缀
+  // (旧 summary_)、足够 entropy 且每次独立。
+  describe('session id generation (F6)', () => {
     it('generates unique UUID-based session ids with no intent-leaking prefix', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
-
       const c1 = useAiCompanion({ content: '<p>x</p>' });
       c1.input.value = 'q';
       await c1.send(vi.fn());
@@ -467,41 +389,12 @@ describe('useAiCompanion', () => {
         /^chat-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
     });
+  });
 
-    // F5
-    it('clears needsGrounding after restoring an existing session_id', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({
-        cached: true,
-        messages: [
-          { role: 'user', content: 'previous q' },
-          { role: 'assistant', content: 'previous a' },
-        ],
-        session_id: 'sess-restored',
-      });
-
+  // F5
+  describe('needsGrounding (F5)', () => {
+    it('re-arms needsGrounding when no session exists', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
-      await c.restore();
-      expect(c.sessionId.value).toBe('sess-restored');
-
-      c.input.value = 'next question';
-      await c.send(vi.fn());
-
-      // post-restore first message must NOT re-attach grounding — that
-      // session already had its grounding turn.
-      const lastBody = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)![0];
-      expect(lastBody).not.toHaveProperty('article_content');
-      expect(lastBody).not.toHaveProperty('article_title');
-      expect(lastBody).toMatchObject({ message: 'next question' });
-    });
-
-    // F5
-    it('re-arms needsGrounding when restore finds no session_id', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
-
-      const c = useAiCompanion({ content: '<p>x</p>' });
-      await c.restore();
       expect(c.sessionId.value).toBe('');
 
       c.input.value = 'first';
@@ -538,59 +431,6 @@ describe('useAiCompanion', () => {
         unmount: () => wrapper.unmount(),
       };
     }
-
-    // F1: mirrors what AiCompanion.vue does at mount time.
-    it('onMounted triggers restore so cached content loads on first paint', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({
-        cached: true,
-        summary: 'cached briefing',
-      });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
-
-      let instance: ReturnType<typeof useAiCompanion>;
-      const Comp = defineComponent({
-        setup() {
-          instance = useAiCompanion({ content: '<p>x</p>' });
-          onMounted(() => {
-            void instance.restore();
-          });
-          return () => h('div');
-        },
-      });
-      const wrapper = mount(Comp);
-      await flushPromises();
-
-      expect(instance!.messages.value.length).toBe(1);
-      expect(instance!.messages.value[0]).toMatchObject({
-        kind: 'briefing',
-        content: 'cached briefing',
-      });
-      wrapper.unmount();
-    });
-
-    // F1 + empty content: restore() must not surface visible errors when
-    // there is nothing to summarize (avoids a 422 from the backend).
-    it('onMounted restore with empty content does not raise or set error', async () => {
-      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
-      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
-
-      let instance: ReturnType<typeof useAiCompanion>;
-      const Comp = defineComponent({
-        setup() {
-          instance = useAiCompanion({ content: '<p></p>' });
-          onMounted(() => {
-            void instance.restore();
-          });
-          return () => h('div');
-        },
-      });
-      const wrapper = mount(Comp);
-      await flushPromises();
-
-      expect(instance!.error.value).toBe('');
-      expect(instance!.messages.value).toEqual([]);
-      wrapper.unmount();
-    });
 
     it('passes an AbortSignal to streamSummary', async () => {
       const c = useAiCompanion({ content: '<p>x</p>' });

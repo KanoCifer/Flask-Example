@@ -1,4 +1,4 @@
-"""共享 LLM Agent 工厂 — 消除 ArticleSummarizer / WeatherAnalyzer 重复布线。"""
+"""共享 LLM Agent 工厂 — 为 AiAgent 提供统一的 model / agent / db 创建。"""
 
 from __future__ import annotations
 
