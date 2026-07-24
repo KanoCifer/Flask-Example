@@ -127,6 +127,36 @@ html::-webkit-scrollbar {
       opacity: 0;
     }
   }
+
+  /* Glow breathing (idle) — slow, low amplitude */
+  --animate-glow-breathe: glow-breathe 4s ease-in-out infinite;
+
+  @keyframes glow-breathe {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.95);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.05);
+    }
+  }
+
+  /* Glow pulse (generating) — faster, higher amplitude */
+  --animate-glow-pulse: glow-pulse 1.6s ease-in-out infinite;
+
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.95);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.15);
+    }
+  }
 }
 
 button {
