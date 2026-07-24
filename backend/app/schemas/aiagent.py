@@ -7,19 +7,12 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class ArticleSummaryRequest(BaseModel):
-    """文章总结请求体"""
+class ThreadRequest(BaseModel):
+    """统一的 Thread 请求体（总结 / 对话共用）"""
 
-    content: str = Field(min_length=1, description="文章正文")
-    title: str | None = Field(default=None, description="文章标题")
-    model: str | None = Field(default=None, description="模型名称")
-
-
-class ChatRequest(BaseModel):
-    """对话请求体"""
-
-    message: str = Field(min_length=1, description="用户消息")
-    session_id: str = Field(min_length=1, description="会话 ID")
+    mode: Literal["summary", "chat"] = Field(description="请求模式：summary=文章总结, chat=对话")
+    message: str | None = Field(default=None, description="用户消息（chat 模式必填）")
+    session_id: str | None = Field(default=None, description="会话 ID（首轮可为空，由后端生成）")
     article_content: str | None = Field(default=None, description="文章正文")
     article_title: str | None = Field(default=None, description="文章标题")
     model: str | None = Field(default=None, description="模型名称")
