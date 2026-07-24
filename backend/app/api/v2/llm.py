@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterable
 
 from fastapi import APIRouter, Body, Depends, Request
-from fastapi.sse import EventSourceResponse, ServerSentEvent
+from fastapi.sse import EventSourceResponse
 
 from app.api.des.appstate import get_app_state
 from app.api.des.auth import optional_user
@@ -29,26 +29,23 @@ def _resolve_user_id(user_id: int | None, request: Request) -> str:
 # ── Thread（总结 / 对话共用）──────────────────────────────
 
 
-@router.post("/thread/stream")
+@router.post("/thread/stream", response_class=EventSourceResponse)
 async def thread_stream(
     request: Request,
     payload: ThreadRequest,
     user: int | None = Depends(optional_user),
     state: AppState = Depends(get_app_state),
-) -> EventSourceResponse:
+):
     # 按 mode 分别限流：summary 5/min、chat 20/min。
     # 注意：限流检查必须在返回 EventSourceResponse 之前完成 —— Starlette 会先
     # 发 ``http.response.start``（200）再迭代 body，若把检查放生成器内部，超限
     # 时状态码已无法改为 429。
     check_mode_rate_limit(payload.mode, client_key(request))
 
-    async def _generator() -> AsyncIterable[ServerSentEvent]:
-        async for chunk in state.ai_svc.thread_stream(
-            payload, _resolve_user_id(user, request), model=payload.model
-        ):
-            yield ServerSentEvent(data=chunk)
-
-    return EventSourceResponse(_generator())
+    async for chunk in state.ai_svc.thread_stream(
+        payload, _resolve_user_id(user, request), model=payload.model
+    ):
+        yield chunk
 
 
 # ── 天气分析 ──────────────────────────────────────────────
@@ -62,9 +59,9 @@ async def analyze_weather(
         ..., description="Weather data to analyze"
     ),
     state: AppState = Depends(get_app_state),
-) -> AsyncIterable[ServerSentEvent]:
+):
     """根据天气数据进行分析并生成报告。"""
     async for chunk in state.public_svc.analyze_weather(
         weather_data, model_id=weather_data.model_id
     ):
-        yield ServerSentEvent(data=chunk)
+        yield chunk

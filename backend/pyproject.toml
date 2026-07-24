@@ -58,7 +58,7 @@ dependencies = [
 [tool.setuptools.packages.find]
 
 [tool.pytest.ini_options]
-testpaths = ["./test"]
+testpaths = ["./test", "./app/core/test"]
 pythonpath = [".", ".."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"

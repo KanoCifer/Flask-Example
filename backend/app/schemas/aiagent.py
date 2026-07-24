@@ -10,9 +10,15 @@ from pydantic import BaseModel, Field
 class ThreadRequest(BaseModel):
     """统一的 Thread 请求体（总结 / 对话共用）"""
 
-    mode: Literal["summary", "chat"] = Field(description="请求模式：summary=文章总结, chat=对话")
-    message: str | None = Field(default=None, description="用户消息（chat 模式必填）")
-    session_id: str | None = Field(default=None, description="会话 ID（首轮可为空，由后端生成）")
+    mode: Literal["summary", "chat"] = Field(
+        description="请求模式：summary=文章总结, chat=对话"
+    )
+    message: str | None = Field(
+        default=None, description="用户消息（chat 模式必填）"
+    )
+    session_id: str | None = Field(
+        default=None, description="会话 ID（首轮可为空，由后端生成）"
+    )
     article_content: str | None = Field(default=None, description="文章正文")
     article_title: str | None = Field(default=None, description="文章标题")
     model: str | None = Field(default=None, description="模型名称")
@@ -126,3 +132,10 @@ class WeatherAnalysisInputSchema(BaseModel):
     location_name: str | None = Field(
         default=None, description="用户位置，用于分析和输出建议"
     )
+
+
+class WeatherAnalysisOutputSchema(BaseModel):
+    """天气分析输出 Schema"""
+
+    content: str = Field(..., description="分析结果内容")
+    index: str = Field(..., description="分析的钓鱼指数结果")

@@ -1,4 +1,5 @@
 import { llmService } from '@/lib';
+import type { StreamFrameType } from '@/lib/llm';
 import { fishingMapGateway } from './gateway';
 import type {
   AnalysisPayload,
@@ -16,9 +17,15 @@ import type {
 
 export interface FishingMapService {
   getSecurityJsCode(): Promise<string>;
+  /**
+   * 流式 AI 天气分析。第二参数 `kind` 透传自后端双通道信封:
+   *   - 'reasoning' → 调用方写到推理缓冲区
+   *   - 'content'   → 调用方写到正文缓冲区
+   * 旧调用方仅传 `(content)` 时按 content 行为兼容。
+   */
   generateAnalysis(
     payload: AnalysisPayload,
-    onChunk: (content: string) => void,
+    onChunk: (content: string, kind?: StreamFrameType) => void,
     signal?: AbortSignal,
   ): Promise<void>;
 
@@ -65,12 +72,12 @@ export const fishingMapService = (): FishingMapService => {
 
     async generateAnalysis(
       payload: AnalysisPayload,
-      onChunk: (content: string) => void,
+      onChunk: (content: string, kind?: StreamFrameType) => void,
       signal?: AbortSignal,
     ): Promise<void> {
       await llmService().weatherAnalysis(
         { weather_data: payload },
-        onChunk,
+        (content, kind) => onChunk(content, kind),
         signal,
       );
     },

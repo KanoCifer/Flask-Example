@@ -1,4 +1,9 @@
-"""AiAgent 单元测试 — 验证外部契约，mock 掉 llm_factory 与 RedisDb。"""
+"""AiAgent 单元测试 — 验证外部契约，mock 掉 llm_factory 与 RedisDb。
+
+统一 SSE 信封（task-185 / task-186）：
+    - agent 层 yield ``{"type": "reasoning"|"content", "content": str}``
+    - service 层透传为 ``{"type", "content", "is_end"}``
+"""
 
 from __future__ import annotations
 
@@ -46,6 +51,11 @@ def _make_db(sessions: list | None = None) -> MagicMock:
     db = MagicMock()
     db.get_sessions = MagicMock(return_value=sessions or [])
     return db
+
+
+def _content_frames(texts: list[str]) -> list[dict]:
+    """把裸字符串列表转成新信封的 content 帧(便于断言)。"""
+    return [{"type": "content", "content": t} for t in texts]  # type: ignore[list-item]  # noqa: E501
 
 
 @pytest.fixture
@@ -110,7 +120,10 @@ class TestGenerateSummary:
             article_title="标题",
         ):
             chunks.append(chunk)
-        assert chunks == ["chunk1", "chunk2", "最终钓鱼指数：75"]
+        # 新信封:content 通道的统一 dict 形态
+        assert chunks == _content_frames(
+            ["chunk1", "chunk2", "最终钓鱼指数：75"]
+        )
         mock_factory["create_agent"].assert_called_once()
         mock_factory["create_llm_model"].assert_called_once()
 
@@ -192,7 +205,10 @@ class TestGenerateChat:
             session_id="sess-1",
         ):
             chunks.append(chunk)
+        # chat 分支现在也 yield dict(不再裸字符串),3 帧均为 content 通道
         assert len(chunks) == 3
+        assert all(c["type"] == "content" for c in chunks)
+        assert all(isinstance(c["content"], str) for c in chunks)
         mock_factory["create_agent"].assert_called_once()
 
     @pytest.mark.asyncio
@@ -265,7 +281,12 @@ class TestAnalyzeWeather:
         ):
             chunks.append(chunk)
 
-        assert any("最终钓鱼指数" in c for c in chunks)
+        # 抽取 content 通道的拼接串,验证钓鱼指数正则能匹配
+        concat = "".join(
+            c["content"] for c in chunks if c["type"] == "content"
+        )
+        assert "最终钓鱼指数" in concat
+        assert "75" in concat
         callback.assert_called_once()
         # 回调参数: (weather_data_dict, ai_score)
         call_args = callback.call_args[0]
@@ -294,7 +315,10 @@ class TestAnalyzeWeather:
         ):
             chunks.append(chunk)
 
-        assert chunks == ["今天天气不错，适合钓鱼。"]
+        # 信封化:content 通道,正文累加进 buffer,但因无指数不会触发回调
+        assert chunks == _content_frames(
+            ["今天天气不错，适合钓鱼。"]
+        )
         callback.assert_not_called()
 
     @pytest.mark.asyncio

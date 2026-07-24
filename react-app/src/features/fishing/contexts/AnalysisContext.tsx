@@ -18,11 +18,14 @@ interface AnalysisContextValue {
   analysisLoading: boolean;
   analysisError: string;
   analysisResult: string;
+  /** 推理通道累积（与正文分开），用于渲染可折叠「思考过程」区。 */
+  analysisReasoning: string;
   analysisHasData: boolean;
   setAnalysisOpen: (open: boolean) => void;
   setAnalysisLoading: (loading: boolean) => void;
   setAnalysisError: (error: string) => void;
   setAnalysisResult: (result: string) => void;
+  setAnalysisReasoning: (reasoning: string) => void;
   toggleAnalysis: () => void;
   closeAnalysis: () => void;
   abortAnalysis: () => void;
@@ -44,6 +47,7 @@ export function AnalysisContextProvider({ children }: AnalysisProviderProps) {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
   const [analysisResult, setAnalysisResult] = useState('');
+  const [analysisReasoning, setAnalysisReasoning] = useState('');
   const analysisAbortRef = useRef<AbortController | null>(null);
 
   const { liveWeather, forecasts, tideData } = useFishingMapStore(
@@ -79,11 +83,13 @@ export function AnalysisContextProvider({ children }: AnalysisProviderProps) {
       analysisLoading,
       analysisError,
       analysisResult,
+      analysisReasoning,
       analysisHasData,
       setAnalysisOpen,
       setAnalysisLoading,
       setAnalysisError,
       setAnalysisResult,
+      setAnalysisReasoning,
       toggleAnalysis,
       closeAnalysis,
       abortAnalysis,
@@ -94,8 +100,13 @@ export function AnalysisContextProvider({ children }: AnalysisProviderProps) {
       analysisLoading,
       analysisError,
       analysisResult,
+      analysisReasoning,
       analysisHasData,
+      setAnalysisOpen,
       setAnalysisLoading,
+      setAnalysisError,
+      setAnalysisResult,
+      setAnalysisReasoning,
       toggleAnalysis,
       closeAnalysis,
       abortAnalysis,

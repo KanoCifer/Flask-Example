@@ -158,6 +158,57 @@ describe('useAiCompanion', () => {
       expect(notify).toHaveBeenCalledWith('文章内容为空，无法总结');
       expect(aiGateway.streamThread).not.toHaveBeenCalled();
     });
+
+    it('splits briefing reasoning into reasoning field and content via typewriter', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+
+      let captured:
+        | {
+            onData: (d: {
+              content?: string;
+              type?: 'reasoning' | 'content';
+            }) => void;
+            onDone: () => void;
+          }
+        | null = null;
+      vi.mocked(aiGateway.streamThread).mockImplementation(
+        async (_body, handlers) => {
+          captured = handlers as typeof captured;
+        },
+      );
+
+      const promise = c.generateBriefing(notify);
+
+      const briefingIdx = c.messages.value.findIndex(
+        (m) => m.kind === 'briefing',
+      );
+      expect(briefingIdx).toBeGreaterThanOrEqual(0);
+      const bIdx = briefingIdx;
+
+      // reasoning 流到 reasoning 字段，content 才走 typewriter
+      captured!.onData({ type: 'reasoning', content: 'plan ' });
+      await nextTick();
+      await flushPromises();
+      expect(c.messages.value[bIdx].reasoning).toBe('plan ');
+      expect(c.messages.value[bIdx].content).toBe('');
+
+      captured!.onData({ type: 'content', content: 'hi ' });
+      await nextTick();
+      // 打字机立即（mock 同步追加）
+      await flushPromises();
+      expect(c.messages.value[bIdx].content).toBe('hi ');
+
+      captured!.onData({ type: 'reasoning', content: 'more' });
+      captured!.onData({ type: 'content', content: 'world' });
+      await nextTick();
+      await flushPromises();
+      expect(c.messages.value[bIdx].reasoning).toBe('plan more');
+      expect(c.messages.value[bIdx].content).toBe('hi world');
+
+      captured!.onDone();
+      await promise;
+    });
   });
 
   describe('send', () => {
@@ -257,6 +308,39 @@ describe('useAiCompanion', () => {
       captured!.onData({ content: 'b' });
       await nextTick();
       expect(c.messages.value[assistantIdx].content).toBe('ab');
+    });
+
+    it('splits reasoning and content into separate fields per assistant message', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+      c.input.value = 'q';
+
+      let captured: { onData: (d: { content?: string; type?: 'reasoning' | 'content' }) => void } | null =
+        null;
+      vi.mocked(aiGateway.streamThread).mockImplementation(
+        async (_body, handlers) => {
+          captured = handlers as typeof captured;
+        },
+      );
+
+      await c.send(notify);
+      const assistantIdx = c.messages.value.length - 1;
+
+      captured!.onData({ type: 'reasoning', content: 'think ' });
+      await nextTick();
+      expect(c.messages.value[assistantIdx].reasoning).toBe('think ');
+      expect(c.messages.value[assistantIdx].content).toBe('');
+
+      captured!.onData({ type: 'content', content: 'answer' });
+      await nextTick();
+      expect(c.messages.value[assistantIdx].reasoning).toBe('think ');
+      expect(c.messages.value[assistantIdx].content).toBe('answer');
+
+      captured!.onData({ type: 'reasoning', content: 'more ' });
+      captured!.onData({ type: 'content', content: ' again' });
+      await nextTick();
+      expect(c.messages.value[assistantIdx].reasoning).toBe('think more ');
+      expect(c.messages.value[assistantIdx].content).toBe('answer again');
     });
   });
 

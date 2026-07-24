@@ -179,8 +179,44 @@ describe('llmService', () => {
       );
 
       expect(onChunk).toHaveBeenCalledTimes(2);
-      expect(onChunk).toHaveBeenNthCalledWith(1, 'rainy');
-      expect(onChunk).toHaveBeenNthCalledWith(2, ' and windy');
+      expect(onChunk).toHaveBeenNthCalledWith(1, 'rainy', 'content');
+      expect(onChunk).toHaveBeenNthCalledWith(2, ' and windy', 'content');
+    });
+
+    it('splits reasoning and content kinds via onChunk callback', async () => {
+      mockSseFetch([
+        'data: {"type":"reasoning","content":"thinking..."}\n\n',
+        'data: {"type":"content","content":"rainy"}\n\n',
+        'data: {"type":"reasoning","content":" more thinking"}\n\n',
+        'data: {"type":"content","content":" and windy"}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+
+      const onChunk = vi.fn();
+      await service.weatherAnalysis(
+        { weather_data: { location: [121, 31] } },
+        onChunk,
+      );
+
+      expect(onChunk).toHaveBeenCalledTimes(4);
+      expect(onChunk).toHaveBeenNthCalledWith(1, 'thinking...', 'reasoning');
+      expect(onChunk).toHaveBeenNthCalledWith(2, 'rainy', 'content');
+      expect(onChunk).toHaveBeenNthCalledWith(3, ' more thinking', 'reasoning');
+      expect(onChunk).toHaveBeenNthCalledWith(4, ' and windy', 'content');
+    });
+
+    it('defaults missing type to content', async () => {
+      mockSseFetch([
+        'data: {"content":"no-type"}\n\n',
+        'data: {"type":"content","content":"typed"}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+
+      const onChunk = vi.fn();
+      await service.weatherAnalysis({ weather_data: {} }, onChunk);
+
+      expect(onChunk).toHaveBeenNthCalledWith(1, 'no-type', 'content');
+      expect(onChunk).toHaveBeenNthCalledWith(2, 'typed', 'content');
     });
 
     it('forwards AbortSignal to fetch', async () => {
@@ -196,6 +232,37 @@ describe('llmService', () => {
       const fetchMock = vi.mocked(globalThis.fetch);
       const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
       expect(init?.signal).toBe(controller.signal);
+    });
+  });
+
+  describe('streamThread dual-channel', () => {
+    it('forwards StreamFrame.type through onData unchanged', async () => {
+      mockSseFetch([
+        'data: {"type":"reasoning","content":"think1"}\n\n',
+        'data: {"type":"content","content":"out1"}\n\n',
+        'data: {"type":"reasoning","content":"think2"}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+
+      const onData = vi.fn();
+      await service.streamThread(
+        { mode: 'summary', article_content: 'c' },
+        { onData },
+      );
+
+      expect(onData).toHaveBeenCalledTimes(3);
+      expect(onData).toHaveBeenNthCalledWith(
+        1,
+        { type: 'reasoning', content: 'think1' },
+      );
+      expect(onData).toHaveBeenNthCalledWith(
+        2,
+        { type: 'content', content: 'out1' },
+      );
+      expect(onData).toHaveBeenNthCalledWith(
+        3,
+        { type: 'reasoning', content: 'think2' },
+      );
     });
   });
 });

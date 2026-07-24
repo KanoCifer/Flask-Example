@@ -28,9 +28,13 @@ export interface StreamThreadPayload {
   model?: string;
 }
 
+/** 单包流通道标识 —— 'reasoning' 为 AI 思考过程，'content' 为正文 delta。缺省视为 'content'（向后兼容）。 */
+export type StreamFrameType = 'reasoning' | 'content';
+
 export interface StreamFrame {
   content?: string;
   is_end?: boolean;
+  type?: StreamFrameType;
 }
 
 export interface SseHandlers {
@@ -52,10 +56,13 @@ export interface LlmService {
     signal?: AbortSignal,
   ): Promise<void>;
 
-  /** AI 天气分析（流式） */
+  /**
+   * AI 天气分析（流式） —— 第二参数 `kind` 区分推理 / 正文通道。
+   * 旧调用方不传 `kind` 时仍按 content 行为兼容。
+   */
   weatherAnalysis(
     payload: { weather_data: unknown },
-    onChunk: (content: string) => void,
+    onChunk: (content: string, kind?: StreamFrameType) => void,
     signal?: AbortSignal,
   ): Promise<void>;
 }
@@ -95,7 +102,11 @@ export const llmService = (): LlmService => ({
       },
       {
         onData: (data) => {
-          if (data.content) onChunk(data.content);
+          if (!data.content) return;
+          // type 缺省按 content 处理 —— 兼容无 type 字段的旧帧与错误帧
+          // （错误帧后端也 type='content'，保持视觉上仍能看到错误标记）
+          const kind: StreamFrameType = data.type === 'reasoning' ? 'reasoning' : 'content';
+          onChunk(data.content, kind);
         },
       },
     );

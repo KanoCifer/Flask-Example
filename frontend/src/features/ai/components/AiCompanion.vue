@@ -28,7 +28,10 @@ import { FADE, SPRING_BOUNCE } from '@/constants';
 import { renderMarkdown } from '@/composables';
 import { HoverDropdown } from '@/components';
 import { useNotificationStore } from '@/stores';
-import { useAiCompanion, type AiMessage } from '@/features/ai/composables/useAiCompanion';
+import {
+  useAiCompanion,
+  type AiMessage,
+} from '@/features/ai/composables/useAiCompanion';
 
 defineOptions({ name: 'AiCompanion' });
 
@@ -66,8 +69,7 @@ const renderedBriefing = computed(() =>
 const lastMsg = computed(() => messages.value[messages.value.length - 1]);
 
 const modelLabel = computed(
-  () =>
-    modelOptions.find((o) => o.value === model.value)?.label ?? model.value,
+  () => modelOptions.find((o) => o.value === model.value)?.label ?? model.value,
 );
 
 function pickModel(value: string, close?: () => void) {
@@ -84,16 +86,42 @@ function rendered(msg: AiMessage) {
   return renderMarkdown(msg.content);
 }
 
+/**
+ * Reasoning 折叠区状态。
+ *
+ * 行为契约：
+ * - 自动态：content 为空时展开；content 一旦有 delta 自动收起。
+ * - 手动态：用户点击 toggle 后按用户选择固定，直到该消息被清掉。
+ * - reasoning 走普通流式累加，不进 typewriter（仅 content 走打字机效果）。
+ *
+ * key=msg.id 而非 Array index；消息可能被 unshift / splice，保持稳定引用。
+ *
+ * Per-message override map: undefined = 跟随自动态；boolean = 用户手动锁定。
+ */
+const reasoningOverrides = ref<Map<string, boolean>>(new Map());
+
+function isReasoningOpen(msg: AiMessage): boolean {
+  const override = reasoningOverrides.value.get(msg.id);
+  if (override !== undefined) return override;
+  return !msg.content;
+}
+
+function toggleReasoning(msg: AiMessage) {
+  const cur = isReasoningOpen(msg);
+  const next = new Map(reasoningOverrides.value);
+  next.set(msg.id, !cur);
+  reasoningOverrides.value = next;
+}
 </script>
 
 <template>
   <section
-    class="mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-card/70 via-card/50 to-accent/[0.04] shadow-sm shadow-accent/[0.06] ring-1 ring-accent/[0.08] backdrop-blur-md motion-reduce:backdrop-blur-none"
+    class="from-card/70 via-card/50 to-accent/[0.04] shadow-accent/[0.06] ring-accent/[0.08] mb-6 overflow-hidden rounded-2xl bg-gradient-to-br shadow-sm ring-1 backdrop-blur-md motion-reduce:backdrop-blur-none"
   >
     <!-- 辉光层：icon 背后的呼吸光晕，生成时脉冲加速 -->
     <div class="relative">
       <div
-        class="pointer-events-none absolute top-0 left-6 h-16 w-16 rounded-full bg-accent/30 blur-2xl"
+        class="bg-accent/30 pointer-events-none absolute top-0 left-6 h-16 w-16 rounded-full blur-2xl"
         :class="loading ? 'animate-glow-pulse' : 'animate-glow-breathe'"
         aria-hidden="true"
       />
@@ -104,7 +132,7 @@ function rendered(msg: AiMessage) {
       >
         <div class="flex items-center gap-2.5">
           <div
-            class="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 shadow-sm shadow-accent/10"
+            class="border-accent/20 bg-accent/10 shadow-accent/10 relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border shadow-sm"
             aria-hidden="true"
           >
             <svg
@@ -127,9 +155,7 @@ function rendered(msg: AiMessage) {
               <path d="M9 13v2" />
             </svg>
           </div>
-          <h3
-            class="font-serif text-ink text-sm font-semibold tracking-tight"
-          >
+          <h3 class="text-ink font-serif text-sm font-semibold tracking-tight">
             AI 阅读伴侣
           </h3>
           <AnimatePresence mode="wait">
@@ -155,7 +181,7 @@ function rendered(msg: AiMessage) {
             <template #trigger="{ isOpen }">
               <motion.button
                 type="button"
-                class="border bg-surface/30 text-ink inline-flex max-w-[12rem] items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-surface/60 focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                class="bg-surface/30 text-ink hover:bg-surface/60 focus-visible:ring-ring/40 inline-flex max-w-[12rem] items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-expanded="isOpen"
                 :aria-label="`当前模型 ${modelLabel}，点击切换`"
                 :disabled="loading"
@@ -192,9 +218,11 @@ function rendered(msg: AiMessage) {
                   v-for="opt in modelOptions"
                   :key="opt.value"
                   type="button"
-                  class="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-surface/60"
+                  class="hover:bg-surface/60 flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors"
                   :class="
-                    opt.value === model ? 'bg-surface/40 text-ink' : 'text-muted'
+                    opt.value === model
+                      ? 'bg-surface/40 text-ink'
+                      : 'text-muted'
                   "
                   :aria-pressed="opt.value === model"
                   @click="pickModel(opt.value, close)"
@@ -223,7 +251,7 @@ function rendered(msg: AiMessage) {
           <motion.button
             v-if="hasContent"
             type="button"
-            class="text-muted hover:text-ink dark:text-muted dark:hover:text-ink cursor-pointer rounded-lg px-2 py-1 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none"
+            class="text-muted hover:text-ink dark:text-muted dark:hover:text-ink focus-visible:ring-ring/40 cursor-pointer rounded-lg px-2 py-1 text-sm transition-colors focus:outline-none focus-visible:ring-2"
             aria-label="清空对话"
             :disabled="loading"
             :whilePress="{ scale: 0.96 }"
@@ -243,7 +271,7 @@ function rendered(msg: AiMessage) {
     <!-- Thread -->
     <div
       :ref="bindContainer"
-      class="max-h-80 space-y-3 overflow-y-auto px-5 py-4"
+      class="max-h-[50vh] space-y-3 overflow-y-auto px-5 py-4"
     >
       <!-- Empty state: the invitation -->
       <AnimatePresence>
@@ -254,16 +282,16 @@ function rendered(msg: AiMessage) {
           :animate="{ opacity: 1, y: 0 }"
           :exit="{ opacity: 0, y: -8 }"
           :transition="{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }"
-          class="flex flex-col items-center gap-4 rounded-xl border border-dashed border-ink/10 bg-surface/20 px-6 py-8 text-center"
+          class="border-ink/10 bg-surface/20 flex flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-8 text-center"
         >
           <div class="relative flex items-center justify-center">
             <div
-              class="absolute h-16 w-16 rounded-full bg-accent/20 blur-2xl"
+              class="bg-accent/20 absolute h-16 w-16 rounded-full blur-2xl"
               :class="loading ? 'animate-glow-pulse' : 'animate-glow-breathe'"
               aria-hidden="true"
             />
             <div
-              class="relative flex h-12 w-12 items-center justify-center rounded-xl border border-accent/20 bg-accent/10"
+              class="border-accent/20 bg-accent/10 relative flex h-12 w-12 items-center justify-center rounded-xl border"
               aria-hidden="true"
             >
               <svg
@@ -292,7 +320,7 @@ function rendered(msg: AiMessage) {
           </p>
           <button
             type="button"
-            class="bg-accent text-contrast hover:bg-accent/90 disabled:bg-accent/40 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none disabled:cursor-not-allowed active:scale-[0.96]"
+            class="bg-accent text-contrast hover:bg-accent/90 disabled:bg-accent/40 focus-visible:ring-ring/40 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 active:scale-[0.96] disabled:cursor-not-allowed"
             :disabled="!canGenerate"
             @click="generateBriefing(notifier.error)"
           >
@@ -331,7 +359,7 @@ function rendered(msg: AiMessage) {
           :initial="{ opacity: 0, scale: 0.96, y: 8 }"
           :animate="{ opacity: 1, scale: 1, y: 0 }"
           :transition="SPRING_BOUNCE"
-          class="rounded-xl border-t-2 border-accent/20 bg-surface/30 px-5 py-4"
+          class="border-accent/20 bg-surface/30 rounded-xl border-t-2 px-5 py-4"
         >
           <div class="mb-3 flex items-center gap-2">
             <span
@@ -341,20 +369,53 @@ function rendered(msg: AiMessage) {
             <span class="text-muted text-xs">· {{ modelLabel }}</span>
             <button
               type="button"
-              class="text-muted hover:text-ink ml-auto cursor-pointer text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none"
+              class="text-muted hover:text-ink focus-visible:ring-ring/40 ml-auto cursor-pointer text-xs transition-colors focus:outline-none focus-visible:ring-2"
               :disabled="loading"
               @click="generateBriefing(notifier.error)"
             >
               重新生成
             </button>
           </div>
+          <!-- 思考过程（仅在 msg.reasoning 非空时渲染） -->
+          <div v-if="msg.reasoning" class="border-ink/10 mb-2 border-b pb-2">
+            <button
+              type="button"
+              class="text-muted hover:text-ink focus-visible:ring-ring/40 inline-flex cursor-pointer items-center gap-1 text-xs transition-colors focus:outline-none focus-visible:ring-2"
+              :aria-expanded="isReasoningOpen(msg)"
+              @click="toggleReasoning(msg)"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-3 w-3 shrink-0 transition-transform duration-200 motion-reduce:transition-none"
+                :class="isReasoningOpen(msg) && 'rotate-90'"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 6l6 6-6 6"
+                />
+              </svg>
+              <span>思考过程</span>
+            </button>
+            <div
+              v-if="isReasoningOpen(msg)"
+              class="text-muted mt-1.5 text-xs leading-relaxed whitespace-pre-wrap"
+            >
+              {{ msg.reasoning }}
+            </div>
+          </div>
           <div
-            class="prose prose-sm max-w-none animate-result-in"
+            class="prose prose-sm animate-result-in max-w-none"
             v-html="renderedBriefing"
           />
           <span
             v-if="lastMsg === msg && loading"
-            class="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-accent align-text-bottom"
+            class="bg-accent ml-0.5 inline-block h-4 w-1.5 animate-pulse align-text-bottom"
             aria-hidden="true"
           />
         </motion.div>
@@ -381,6 +442,43 @@ function rendered(msg: AiMessage) {
                 : 'bg-surface/40 text-ink'
             "
           >
+            <!-- 思考过程（仅助理消息 + reasoning 非空） -->
+            <div
+              v-if="msg.role === 'assistant' && msg.reasoning"
+              class="border-ink/10 mb-2 border-b pb-2"
+            >
+              <button
+                type="button"
+                class="text-muted hover:text-ink focus-visible:ring-ring/40 inline-flex cursor-pointer items-center gap-1 text-xs transition-colors focus:outline-none focus-visible:ring-2"
+                :aria-expanded="isReasoningOpen(msg)"
+                @click="toggleReasoning(msg)"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-3 w-3 shrink-0 transition-transform duration-200 motion-reduce:transition-none"
+                  :class="isReasoningOpen(msg) && 'rotate-90'"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 6l6 6-6 6"
+                  />
+                </svg>
+                <span>思考过程</span>
+              </button>
+              <div
+                v-if="isReasoningOpen(msg)"
+                class="text-muted mt-1.5 text-xs leading-relaxed whitespace-pre-wrap"
+              >
+                {{ msg.reasoning }}
+              </div>
+            </div>
+
             <div
               v-if="msg.role === 'assistant'"
               class="prose prose-sm max-w-none"
@@ -391,7 +489,7 @@ function rendered(msg: AiMessage) {
             <!-- streaming cursor -->
             <span
               v-if="msg.role === 'assistant' && lastMsg === msg && loading"
-              class="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-accent align-text-bottom"
+              class="bg-accent ml-0.5 inline-block h-4 w-1.5 animate-pulse align-text-bottom"
               aria-hidden="true"
             />
           </div>
@@ -400,20 +498,18 @@ function rendered(msg: AiMessage) {
     </div>
 
     <!-- Input bar -->
-    <div
-      class="flex items-center gap-2 border-t border-ink/10 px-4 py-3"
-    >
-      <input
+    <div class="border-border flex items-center gap-2 border-t px-4 py-3">
+      <textarea
         v-model="input"
         type="text"
         :placeholder="hasContent ? '继续提问…' : '向 AI 提问这篇文章…'"
-        class="border bg-surface/30 text-ink placeholder-muted flex-1 rounded-lg px-3.5 py-2.5 text-sm transition-colors focus:ring-2 focus:ring-ring/40 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-surface/30 text-ink placeholder-muted focus:ring-ring/40 h-20 flex-1 rounded-lg border px-3.5 py-2.5 text-sm transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="loading"
         @keydown="(e) => onKeydown(e, () => send(notifier.error))"
       />
       <motion.button
         type="button"
-        class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none"
+        class="focus-visible:ring-ring/40 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2"
         :class="
           canSend
             ? 'bg-accent text-contrast hover:bg-accent/90'

@@ -18,6 +18,7 @@ import { useFishingMapStore } from '@/features/fishing/stores/fishingMapStore';
 import { fishingMapService } from '../api/service';
 import type { WeatherAnalysisPayload } from '../types';
 import { useAnalysisContext } from '../contexts/AnalysisContext';
+import type { StreamFrameType } from '@/lib/llm';
 
 export interface UseFishingAnalysisResult {
   open: boolean;
@@ -43,15 +44,18 @@ export function useFishingAnalysis(): UseFishingAnalysisResult {
   const {
     setAnalysisError,
     setAnalysisResult,
+    setAnalysisReasoning,
     setAnalysisLoading,
     analysisAbortRef,
   } = useAnalysisContext();
 
   const setAnalysisResultRef = useRef(setAnalysisResult);
+  const setAnalysisReasoningRef = useRef(setAnalysisReasoning);
   const setAnalysisErrorRef = useRef(setAnalysisError);
 
   const [open, setOpen] = useState(false);
   const resultBufferRef = useRef('');
+  const reasoningBufferRef = useRef('');
   const serviceRef = useRef(fishingMapService());
 
   useEffect(() => {
@@ -60,6 +64,7 @@ export function useFishingAnalysis(): UseFishingAnalysisResult {
 
   useEffect(() => {
     setAnalysisResultRef.current = setAnalysisResult;
+    setAnalysisReasoningRef.current = setAnalysisReasoning;
     setAnalysisErrorRef.current = setAnalysisError;
   });
 
@@ -106,15 +111,23 @@ export function useFishingAnalysis(): UseFishingAnalysisResult {
       const controller = new AbortController();
       analysisAbortRef.current = controller;
       resultBufferRef.current = '';
+      reasoningBufferRef.current = '';
       setAnalysisResultRef.current('');
+      setAnalysisReasoningRef.current('');
       setAnalysisErrorRef.current('');
 
       try {
         await serviceRef.current.generateAnalysis(
           { ...payload, modelId },
-          (content) => {
-            resultBufferRef.current += content;
-            setAnalysisResultRef.current(resultBufferRef.current);
+          (content, kind: StreamFrameType = 'content') => {
+            // 双通道分流：reasoning → 推理缓冲；content → 正文缓冲（向后兼容旧调用）。
+            if (kind === 'reasoning') {
+              reasoningBufferRef.current += content;
+              setAnalysisReasoningRef.current(reasoningBufferRef.current);
+            } else {
+              resultBufferRef.current += content;
+              setAnalysisResultRef.current(resultBufferRef.current);
+            }
           },
           controller.signal,
         );

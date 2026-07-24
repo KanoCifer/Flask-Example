@@ -108,8 +108,19 @@ const props = withDefaults(
 const notifier = useNotificationStore();
 const loading = ref(false);
 const summary = ref('');
+const reasoning = ref('');
 const hasGenerated = ref(false);
 const errorMessage = ref('');
+
+// 推理区折叠状态：true=展开 / false=收起 / null=跟随自动态（summary 为空时展开）
+const reasoningOverride = ref<boolean | null>(null);
+const isReasoningOpen = computed(() => {
+  if (reasoningOverride.value !== null) return reasoningOverride.value;
+  return !summary.value;
+});
+function toggleReasoning() {
+  reasoningOverride.value = !isReasoningOpen.value;
+}
 
 const renderedSummary = computed(() => {
   if (!summary.value) return '';
@@ -170,6 +181,8 @@ const statusClass = computed(() => {
 
 const resetState = () => {
   summary.value = '';
+  reasoning.value = '';
+  reasoningOverride.value = null;
   hasGenerated.value = false;
   errorMessage.value = '';
 };
@@ -189,6 +202,8 @@ const _doFetch = async () => {
   loading.value = true;
   errorMessage.value = '';
   summary.value = '';
+  reasoning.value = '';
+  reasoningOverride.value = null;
   hasGenerated.value = false;
 
   try {
@@ -199,7 +214,14 @@ const _doFetch = async () => {
       },
       {
         onData: (data) => {
-          if (data.content) summary.value += data.content;
+          if (!data.content) return;
+          // type 缺省按 content 处理；reasoning 流到独立 ref，
+          // 正文流到 summary。二者互不影响渲染。
+          if (data.type === 'reasoning') {
+            reasoning.value += data.content;
+          } else {
+            summary.value += data.content;
+          }
           if (data.is_end) hasGenerated.value = true;
         },
         onDone: () => {
@@ -372,6 +394,43 @@ onUnmounted(() => {
             aria-hidden="true"
           ></span>
           AI 分析输出
+        </div>
+
+        <!-- 思考过程（仅 reasoning 非空时显示） -->
+        <div
+          v-if="reasoning"
+          class="mb-3 border-b border-ink/10 pb-3"
+        >
+          <button
+            type="button"
+            class="text-muted hover:text-ink inline-flex cursor-pointer items-center gap-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none"
+            :aria-expanded="isReasoningOpen"
+            @click="toggleReasoning"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-3 w-3 shrink-0 transition-transform duration-200 motion-reduce:transition-none"
+              :class="isReasoningOpen && 'rotate-90'"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 6l6 6-6 6"
+              />
+            </svg>
+            <span>思考过程</span>
+          </button>
+          <div
+            v-if="isReasoningOpen"
+            class="text-muted mt-1.5 whitespace-pre-wrap text-xs leading-relaxed"
+          >
+            {{ reasoning }}
+          </div>
         </div>
         <AnimatePresence mode="wait">
           <motion.div

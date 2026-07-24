@@ -5,4 +5,5 @@ export { default as BasicDetail } from './BasicDetail';
 export { BottomSheet } from './BottomSheet';
 export { IconGitHub } from './icon/IconGitHub';
 export { PinIcon } from './icon/PinIcon';
+export { ReasoningRegion } from './ReasoningRegion';
 export { TwikooComments } from './TwikooComments';

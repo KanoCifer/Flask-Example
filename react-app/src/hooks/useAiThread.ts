@@ -13,6 +13,11 @@ export interface AiMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /**
+   * AI 思考过程（reasoning channel）—— 与 content 分通道展示，可折叠。
+   * 仅在助理消息上累积；用户消息保持空。
+   */
+  reasoning?: string;
   /** briefing = the opening summary; chat = a normal follow-up turn */
   kind: MessageKind;
 }
@@ -130,13 +135,19 @@ export function useAiThread(ctx: AiContext) {
         {
           onData: (d) => {
             if (epoch !== epochRef.current) return;
-            if (d.content) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === msg.id ? { ...m, content: m.content + d.content } : m,
-                ),
-              );
-            }
+            if (!d.content) return;
+            // type 缺省按 content 处理（向后兼容 + 错误帧走 content 通道）
+            const isReasoning = d.type === 'reasoning';
+            const delta = d.content;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === msg.id
+                  ? isReasoning
+                    ? { ...m, reasoning: (m.reasoning ?? '') + delta }
+                    : { ...m, content: m.content + delta }
+                  : m,
+              ),
+            );
           },
         },
         ac.signal,
@@ -209,16 +220,22 @@ export function useAiThread(ctx: AiContext) {
         {
           onData: (d) => {
             if (epoch !== epochRef.current) return;
-            if (d.content) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMsg.id
-                    ? { ...m, content: m.content + d.content }
-                    : m,
-                ),
-              );
-              scrollToBottom();
-            }
+            if (!d.content) return;
+            // type 缺省按 content 处理（向后兼容 + 错误帧走 content 通道）
+            const isReasoning = d.type === 'reasoning';
+            const delta = d.content;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsg.id
+                  ? isReasoning
+                    ? { ...m, reasoning: (m.reasoning ?? '') + delta }
+                    : { ...m, content: m.content + delta }
+                  : m,
+              ),
+            );
+            // scrolling only matters for visible (content) deltas; reasoning
+            // streams into a hidden region and the user will re-open manually.
+            if (!isReasoning) scrollToBottom();
           },
         },
         ac.signal,

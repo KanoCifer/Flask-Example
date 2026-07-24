@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { useEffect, useRef, useState } from 'react';
 
 import { createPortal } from 'react-dom';
+import { ReasoningRegion } from '@/components/ReasoningRegion';
 import { useAnalysisContext } from '../contexts/AnalysisContext';
 
 const AI_MODELS = [
@@ -17,6 +18,13 @@ marked.setOptions({
   gfm: true,
   breaks: true,
 });
+
+// 可折叠推理区在本 widget 内的样式微调 (与 @/components/ReasoningRegion 默认值略不同):
+// - 缺少 mb-2: 父级使用 space-y-3 控间距, 避免视觉叠加。
+// - body 上限 max-h-32 + overflow-y-auto: 长时间推理不撑开弹层。
+const REASONING_WRAPPER = 'border-border/60 border-b pb-2';
+const REASONING_BODY =
+  'text-muted mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed';
 
 interface AIAnalysisWidgetProps {
   onGenerate: (modelId: string) => void;
@@ -65,6 +73,7 @@ export function AIAnalysisWidget({
     analysisLoading,
     analysisError,
     analysisResult,
+    analysisReasoning,
     analysisHasData,
     toggleAnalysis,
     closeAnalysis,
@@ -131,6 +140,12 @@ export function AIAnalysisWidget({
         </div>
 
         <div className="space-y-3">
+          <ReasoningRegion
+            reasoning={analysisReasoning}
+            contentEmpty={!analysisResult}
+            wrapperClassName={REASONING_WRAPPER}
+            bodyClassName={REASONING_BODY}
+          />
           {!analysisHasData ? (
             <EmptyState
               icon={<CloudOff className="h-6 w-6" />}
@@ -249,6 +264,12 @@ export function AIAnalysisWidget({
                 </div>
 
                 <div className="space-y-3 px-4 py-3">
+                  <ReasoningRegion
+                    reasoning={analysisReasoning}
+                    contentEmpty={!analysisResult}
+                    wrapperClassName={REASONING_WRAPPER}
+                    bodyClassName={REASONING_BODY}
+                  />
                   {!analysisHasData ? (
                     <EmptyState
                       icon={<CloudOff className="h-6 w-6" />}

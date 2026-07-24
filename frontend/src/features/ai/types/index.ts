@@ -14,7 +14,11 @@ export interface WeatherAnalysisBody {
   model_id: string;
 }
 
+/** 单包流通道标识 —— 'reasoning' 为 AI 思考过程，'content' 为正文 delta。缺省视为 'content'（向后兼容）。 */
+export type AiStreamFrameType = 'reasoning' | 'content';
+
 export interface AiStreamFrame {
   content?: string;
   is_end?: boolean;
+  type?: AiStreamFrameType;
 }

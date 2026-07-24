@@ -204,14 +204,31 @@ Sitemap: {sitemap_url}
                 model_id=model_id,
                 on_index_calculated=_on_index_calculated,
             ):
-                yield {"content": chunk, "is_end": False}
-            yield {"content": "", "is_end": True}
+                # chunk 是 agent 层归一化后的 {type, content} dict,直接透传
+                yield {
+                    "type": chunk["type"],
+                    "content": chunk["content"],
+                    "is_end": False,
+                }
+            yield {"type": "content", "content": "", "is_end": True}
         except ValueError as exc:
-            yield {"content": f"[ERROR] {exc!r}", "is_end": True}
+            yield {
+                "type": "content",
+                "content": f"[ERROR] {exc!r}",
+                "is_end": True,
+            }
         except RuntimeError as exc:
-            yield {"content": f"[ERROR] {exc!r}", "is_end": True}
+            yield {
+                "type": "content",
+                "content": f"[ERROR] {exc!r}",
+                "is_end": True,
+            }
         except Exception as exc:
-            yield {"content": f"[ERROR] 天气分析失败: {exc!r}", "is_end": True}
+            yield {
+                "type": "content",
+                "content": f"[ERROR] 天气分析失败: {exc!r}",
+                "is_end": True,
+            }
 
     async def set_pic_gallery(
         self, session: AsyncSession, images: GalleryInput

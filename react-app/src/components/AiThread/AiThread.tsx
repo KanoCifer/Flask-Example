@@ -4,6 +4,7 @@ import { SPRING, EASE } from '@/constants/springs';
 import { renderMarkdown } from '@/lib/markdown';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { ReasoningRegion } from '@/components/ReasoningRegion';
 import {
   useAiThread,
   type AiMessage,
@@ -265,6 +266,7 @@ function BriefingMessage({
           重新生成
         </button>
       </div>
+      <ReasoningRegion reasoning={msg.reasoning} contentEmpty={!msg.content} />
       <div
         className="prose prose-sm max-w-none"
         dangerouslySetInnerHTML={{ __html: rendered }}
@@ -303,6 +305,12 @@ function ChatTurn({
             : 'bg-surface/40 text-ink'
         }`}
       >
+        {!isUser && (
+          <ReasoningRegion
+            reasoning={msg.reasoning}
+            contentEmpty={!msg.content}
+          />
+        )}
         {isUser ? (
           <span>{msg.content}</span>
         ) : (
@@ -316,6 +324,14 @@ function ChatTurn({
     </motion.div>
   );
 }
+
+/**
+ * Collapsible "思考过程" region. See `@/components/ReasoningRegion`.
+ *
+ * Per-message override semantics come free from React keys (`msg.id`),
+ * so the local `useState<boolean|null>` lifecycle aligns with one
+ * briefing/chat turn each.
+ */
 
 export function AiThread({ title, content }: AiThreadProps) {
   const reduce = usePrefersReducedMotion();

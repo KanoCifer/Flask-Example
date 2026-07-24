@@ -14,6 +14,11 @@ export interface AiMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /**
+   * AI 思考过程（reasoning channel）—— 与 content 分通道展示，可折叠。
+   * 仅在助理消息上累积；用户消息保持空。
+   */
+  reasoning?: string;
   /** briefing = the opening summary; chat = a normal follow-up turn */
   kind: MessageKind;
 }
@@ -21,6 +26,7 @@ export interface AiMessage {
 export const MODEL_OPTIONS = [
   { label: 'Ring 2.6', value: 'Ring 2.6' },
   { label: 'Ling 2.6', value: 'Ling 2.6' },
+  { label: 'Ling 3.0 Flash', value: 'Ling 3.0 Flash' },
 ] as const;
 
 let msgSeq = 0;
@@ -104,9 +110,7 @@ export function useAiCompanion(ctx: AiContext) {
   const canSend = computed(
     () => input.value.trim().length > 0 && !loading.value,
   );
-  const canGenerate = computed(
-    () => pureContent.length > 0 && !loading.value,
-  );
+  const canGenerate = computed(() => pureContent.length > 0 && !loading.value);
   const isStreamingBriefing = computed(() => streamingBriefing.value);
 
   /** Generate the opening summary — the briefing. */
@@ -129,6 +133,7 @@ export function useAiCompanion(ctx: AiContext) {
       id: nextMsgId(),
       role: 'assistant',
       content: '',
+      reasoning: '',
       kind: 'briefing',
     };
     messages.value.unshift(msg);
@@ -147,7 +152,15 @@ export function useAiCompanion(ctx: AiContext) {
         },
         {
           onData: (d) => {
-            if (d.content) tw.push(d.content);
+            if (!d.content) return;
+            // type 缺省按 content 处理（向后兼容 + 错误帧走 content 通道）。
+            // Reasoning 不走 typewriter，直接累加到消息的 reasoning 字段。
+            if (d.type === 'reasoning') {
+              const m = messages.value.find((x) => x.id === msg.id);
+              if (m) m.reasoning = (m.reasoning ?? '') + d.content;
+            } else {
+              tw.push(d.content);
+            }
           },
           onDone: () => tw.done(),
         },
@@ -172,11 +185,17 @@ export function useAiCompanion(ctx: AiContext) {
     const text = input.value.trim();
     input.value = '';
 
-    messages.value.push({ id: nextMsgId(), role: 'user', content: text, kind: 'chat' });
+    messages.value.push({
+      id: nextMsgId(),
+      role: 'user',
+      content: text,
+      kind: 'chat',
+    });
     const assistant: AiMessage = {
       id: nextMsgId(),
       role: 'assistant',
       content: '',
+      reasoning: '',
       kind: 'chat',
     };
     messages.value.push(assistant);
@@ -208,8 +227,14 @@ export function useAiCompanion(ctx: AiContext) {
         },
         {
           onData: (d) => {
-            if (d.content) {
-              messages.value[idx].content += d.content;
+            if (!d.content) return;
+            const target = messages.value[idx];
+            if (!target) return;
+            // type 缺省按 content 处理（向后兼容 + 错误帧走 content 通道）
+            if (d.type === 'reasoning') {
+              target.reasoning = (target.reasoning ?? '') + d.content;
+            } else {
+              target.content += d.content;
               void scrollToBottom();
             }
           },

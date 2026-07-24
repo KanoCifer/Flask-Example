@@ -3,10 +3,12 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import AsyncIterator, Callable
-from typing import Any, ClassVar, Literal
+from pickletools import read_stringnl_noescape
+from typing import ClassVar, Literal
 
-from agno.agent import RunOutputEvent
+from agno.agent import RunEvent, RunOutputEvent
 from agno.db.redis import RedisDb
+from agno.run.agent import ReasoningContentDeltaEvent
 
 from app.core.config import get_settings
 from app.core.llm_factory import (
@@ -24,6 +26,7 @@ from app.schemas.aiagent import (
     TideHourlyInput,
     WeatherAnalysisInput,
     WeatherAnalysisInputSchema,
+    WeatherAnalysisOutputSchema,
 )
 
 # ── 统一 AiAgent ───────────────────────────────────────────────────── #
@@ -47,22 +50,18 @@ class AiAgent:
     _WEATHER_MODELS: ClassVar[dict[str, dict[str, str]]] = {
         "Ling-2.6-1T": {
             "id": "Ling-2.6-1T",
-            "base_url": "https://api.tbox.cn/api/llm/v1",
+            "base_url": "https://api.ant-ling.com/v1",
         },
-        "Ling-2.6-flash": {
-            "id": "Ling-2.6-flash",
-            "base_url": "https://api.tbox.cn/api/llm/v1",
-        },
-        "Ring-2.5-1T": {
-            "id": "Ring-2.5-1T",
-            "base_url": "https://api.tbox.cn/api/llm/v1",
+        "Ring-2.6-1T": {
+            "id": "Ring-2.6-1T",
+            "base_url": "https://api.ant-ling.com/v1",
         },
         "Ling-3.0-flash": {
             "id": "Ling-3.0-flash",
-            "base_url": "https://api.tbox.cn/api/llm/v1",
+            "base_url": "https://api.ant-ling.com/v1",
         },
     }
-    _WEATHER_DEFAULT_MODEL = "Ling-2.6-1T"
+    _WEATHER_DEFAULT_MODEL = "Ling-3.0-flash"
 
     _MAX_INPUT_CHARS = 128_000
 
@@ -205,7 +204,7 @@ class AiAgent:
         article_content: str | None = None,
         article_title: str | None = None,
         model_name: str | None = None,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[dict]:
         """统一的流式生成入口，通过 mode 切换总结 / 对话行为。
 
         mode=summary:
@@ -230,14 +229,35 @@ class AiAgent:
             normalized = self._normalize_content(article_content or "")
             if not normalized:
                 raise ValueError("文章内容不能为空")
-            user_prompt = self._build_summary_prompt(normalized, title=article_title)
-            article_hash = self._hash_article(article_title, article_content or "")
-            session_id = self._article_session_id(user_id, article_hash, "summary")
+            user_prompt = self._build_summary_prompt(
+                normalized, title=article_title
+            )
+            article_hash = self._hash_article(
+                article_title, article_content or ""
+            )
+            session_id = self._article_session_id(
+                user_id, article_hash, "summary"
+            )
             async for event in agent.arun(
-                user_prompt, stream=True, user_id=user_id, session_id=session_id
+                user_prompt,
+                stream=True,
+                stream_events=True,
+                user_id=user_id,
+                session_id=session_id,
             ):
-                if isinstance(event, RunOutputEvent) and event.content:
-                    yield str(event.content)
+                if (
+                    isinstance(event, ReasoningContentDeltaEvent)
+                    and event.reasoning_content
+                ):
+                    yield {
+                        "type": "reasoning",
+                        "content": str(event.reasoning_content),
+                    }
+                elif isinstance(event, RunOutputEvent) and event.content:
+                    yield {
+                        "type": "content",
+                        "content": str(event.content),
+                    }
 
         elif mode == "chat":
             if not message.strip():
@@ -254,21 +274,30 @@ class AiAgent:
             async for event in agent.arun(
                 full_message,
                 session_id=session_id,
+                stream_events=True,
                 user_id=user_id,
                 stream=True,
             ):
-                if isinstance(event, RunOutputEvent) and event.content:
-                    yield str(event.content)
-
-        else:
-            raise ValueError(f"Unsupported mode: {mode}")
+                if (
+                    isinstance(event, ReasoningContentDeltaEvent)
+                    and event.reasoning_content
+                ):
+                    yield {
+                        "type": "reasoning",
+                        "content": str(event.reasoning_content),
+                    }
+                elif isinstance(event, RunOutputEvent) and event.content:
+                    yield {
+                        "type": "content",
+                        "content": str(event.content),
+                    }
 
     async def analyze_weather_stream(
         self,
         weather_data: WeatherAnalysisInput,
         model_id: str | None = None,
         on_index_calculated: Callable | None = None,
-    ) -> AsyncIterator[str]:
+    ):
         """流式分析天气数据。
 
         Args:
@@ -289,35 +318,47 @@ class AiAgent:
         model_config = self._WEATHER_MODELS.get(
             model_key,
             {
-                "id": "Ling-2.6-1T",
-                "base_url": "https://api.tbox.cn/api/llm/v1",
+                "id": "Ling-3.0-flash",
+                "base_url": "https://api.ant-ling.com/v1",
             },
         )
 
         model = create_llm_model(
             model_id=model_config["id"],
-            temperature=1,
-            timeout=30,
         )
 
         agent = create_agent(
             model=model,
             instructions=self._weather_system_prompt,
             db=self._db,
-            input_schema=WeatherAnalysisInputSchema,
         )
 
         try:
-            response = agent.arun(input_schema, stream=True)
+            event = agent.arun(
+                input_schema, stream=True, stream_events=True, reasoning=True
+            )
         except Exception:
             logger.exception("Agent 运行失败")
             raise
 
         buffer = ""
-        async for event in response:
-            if isinstance(event, RunOutputEvent) and event.content:
-                buffer += event.content
-                yield str(event.content)
+        async for chunk in event:
+            if (
+                isinstance(chunk, ReasoningContentDeltaEvent)
+                and chunk.reasoning_content
+            ):
+                yield {
+                    "type": "reasoning",
+                    "content": str(chunk.reasoning_content),
+                }
+            elif isinstance(chunk, RunOutputEvent) and chunk.content:
+                # 仅 content 通道的 delta 累加进 buffer，用于末尾的钓鱼指数正则提取
+                text = str(chunk.content)
+                buffer += text
+                yield {
+                    "type": "content",
+                    "content": text,
+                }
 
         # 提取最终钓鱼指数
         index = None
