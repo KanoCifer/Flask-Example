@@ -341,20 +341,6 @@ onUnmounted(() => {
       ></div>
     </div>
 
-    <!-- 极简返回条：替代旧 Scroll 指示器，回随笔录 -->
-    <div class="mx-auto max-w-[42rem] px-6 pt-10 sm:pt-14">
-      <router-link
-        to="/blog"
-        class="text-muted hover:text-ink group inline-flex items-center gap-1.5 text-[13px] font-medium tracking-wide transition-colors"
-      >
-        <span
-          class="transition-transform duration-200 group-hover:-translate-x-0.5"
-          >←</span
-        >
-        随笔录
-      </router-link>
-    </div>
-
     <!-- Loading -->
     <div v-if="isLoading" class="mx-auto max-w-[42rem] px-6 py-16">
       <div class="bg-surface/70 skeleton-pulse mb-8 h-5 w-20 rounded" />
@@ -407,7 +393,7 @@ onUnmounted(() => {
     <!-- Article -->
     <article
       v-else-if="post"
-      class="mx-auto max-w-[42rem] px-6 pt-8 pb-20 sm:pt-10"
+      class="mx-auto max-w-4xl px-6 pt-8 pb-20 sm:pt-10"
     >
       <!-- 管理员操作 -->
       <div
@@ -449,7 +435,7 @@ onUnmounted(() => {
       </figure>
 
       <!-- 文章头：刊号带 → 眉标 → 大标题 → deck → byline -->
-      <header class="mb-12">
+      <header class="my-12">
         <!-- 刊号式元信息带：出版物气质，mono 大字距 -->
         <div
           class="text-muted mb-6 flex items-center justify-between border-b pb-3 font-mono text-[10px] tracking-[0.18em] uppercase"
@@ -542,7 +528,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 文章脚：作者署名块 + 复制链接 -->
-      <footer class="mt-14 border-t pt-8">
+      <footer class="mt-14 pt-8">
         <div class="flex flex-wrap items-start justify-between gap-5">
           <div class="flex items-center gap-3.5">
             <span
@@ -592,7 +578,7 @@ onUnmounted(() => {
     <TwikooComments
       v-if="post"
       :path="`/blog/${postId}`"
-      class="mx-auto max-w-[42rem] px-6 pb-24"
+      class="mx-auto max-w-4xl px-6 pb-24"
     />
 
     <Teleport to="body">

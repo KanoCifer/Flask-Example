@@ -23,7 +23,7 @@ watch(
 
 <template>
   <div class="">
-    <div class="flex gap-2 border-b px-1 py-5">
+    <div class="flex gap-2 px-1 py-5">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"

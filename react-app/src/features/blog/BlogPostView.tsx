@@ -288,19 +288,6 @@ export default function BlogPostView() {
     <div className="bg-page min-h-dvh">
       <ReadingProgress />
 
-      {/* 极简返回条：替代旧 Scroll 指示器，回随笔录 */}
-      <div className="mx-auto max-w-[42rem] px-6 pt-10 sm:pt-14">
-        <a
-          onClick={() => navigate('/blog')}
-          className="text-muted hover:text-ink group inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-medium tracking-wide transition-colors"
-        >
-          <span className="transition-transform duration-200 group-hover:-translate-x-0.5">
-            ←
-          </span>
-          随笔录
-        </a>
-      </div>
-
       {isLoading ? (
         <LoadingSkeleton />
       ) : error ? (
@@ -308,7 +295,7 @@ export default function BlogPostView() {
           <ErrorState message={error} onRetry={fetchPost} />
         </div>
       ) : post ? (
-        <article className="mx-auto max-w-[42rem] px-6 pt-8 pb-20 sm:pt-10">
+        <article className="mx-auto max-w-4xl px-6 pt-8 pb-20 sm:pt-10">
           {/* Admin actions — delete only; editor has been removed */}
           {showEditButton && (
             <div className="mb-8 flex items-center justify-end gap-2">
@@ -447,7 +434,7 @@ export default function BlogPostView() {
           </div>
 
           {/* 文章脚：作者署名块 + 复制链接 */}
-          <footer className="mt-14 border-t pt-8">
+          <footer className="mt-14 pt-8">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div className="flex items-center gap-3.5">
                 <span className="text-ink ring-border bg-surface flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-serif text-sm font-semibold ring-1">

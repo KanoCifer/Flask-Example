@@ -101,12 +101,7 @@
                 />
               </svg>
               <p class="text-muted text-sm">请登录后使用</p>
-              <button
-                class="bg-accent text-ink hover:bg-accent/90 focus-visible:ring-ring mt-1 cursor-pointer rounded-lg px-4 py-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                @click="handleLogin"
-              >
-                去登录
-              </button>
+              <Button size="sm" @click="handleLogin"> 去登录 </Button>
             </div>
 
             <!-- 已登录后的可交互内容 -->
@@ -269,6 +264,7 @@ import type {
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/features/auth';
+import { Button } from '@/components';
 
 const TASK_TYPES: DevTaskType[] = ['功能需求', '问题', '优化', '技术债'];
 

@@ -280,6 +280,16 @@ export function useAiThread(ctx: AiContext) {
     setStreamingBriefing(false);
   }
 
+  /**
+   * User-initiated cancel of the in-flight stream. Aborts the signal, which
+   * rejects the fetch with AbortError — caught and swallowed in the stream
+   * handlers' catch, so any partial content already streamed is preserved.
+   * `loading` is cleared by that call's `finally`.
+   */
+  function cancel() {
+    abortControllerRef.current?.abort();
+  }
+
   // Tear-down safety for a stream that outlives the component.
   useEffect(() => {
     return () => {
@@ -308,5 +318,6 @@ export function useAiThread(ctx: AiContext) {
     send,
     onKeydown,
     clearThread,
+    cancel,
   };
 }

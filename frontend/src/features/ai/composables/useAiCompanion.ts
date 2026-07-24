@@ -272,6 +272,16 @@ export function useAiCompanion(ctx: AiContext) {
     needsGrounding.value = true;
   }
 
+  /**
+   * User-initiated cancel of the in-flight stream. Aborts the signal, which
+   * rejects the fetch with AbortError — caught and swallowed in the stream
+   * handlers' catch, so any partial content already streamed is preserved.
+   * `loading` is cleared by that call's `finally`.
+   */
+  function cancel() {
+    abortController?.abort();
+  }
+
   // tear-down safety: a stream that outlives the component would write to
   // a disposed reactive ref and surface a Vue warning.
   onUnmounted(() => {
@@ -297,5 +307,6 @@ export function useAiCompanion(ctx: AiContext) {
     send,
     onKeydown,
     clearThread,
+    cancel,
   };
 }
