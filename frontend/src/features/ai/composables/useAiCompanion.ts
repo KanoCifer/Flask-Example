@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { aiGateway } from '@/features/ai/api/aiGateway';
 import { useTypewriter } from '@/composables/useTypewriter';
 import { stripHtml } from '@/features/ai/lib/stripHtml';
@@ -26,8 +26,27 @@ export const MODEL_OPTIONS = [
 let msgSeq = 0;
 const nextMsgId = () => `ai_${++msgSeq}`;
 
-function generateSessionId() {
-  return `summary_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+/**
+ * Module-scoped, single-slot controller for the in-flight SSE stream.
+ * We hold at most one because the composable models a single thread:
+ * re-entry (re-generate / new question) aborts the previous stream,
+ * which prevents concurrent writes to the same message and write-after-
+ * unmount races when the component is torn down mid-flight.
+ */
+let abortController: AbortController | null = null;
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof DOMException && e.name === 'AbortError';
+}
+
+function generateSessionId(): string {
+  // F6: 旧实现是 `summary_${Date.now()}_${8char base36}` —— 既可预测
+  // (~41-bit entropy) 又泄露"这是 summary session"的意图。已读
+  // backend/app/core/agent.py:269-274 + 360-395 确认 Agno session
+  // 在 agent.arun(..., user_id=..., session_id=...) 中由 user_id 命名
+  // 空间隔离，get_history 在 line 367 显式按 user_id 过滤。可猜的
+  // session_id 只能命中攻击者自己的桶，无跨用户劫持。本改动纯 hygiene。
+  return `chat-${crypto.randomUUID()}`;
 }
 
 /**
@@ -46,6 +65,11 @@ export function useAiCompanion(ctx: AiContext) {
   const error = ref('');
   const model = ref<string>(MODEL_OPTIONS[0].value);
   const sessionId = ref('');
+  // Whether the next (first-in-session) chat turn still needs to attach
+  // article grounding. Cleared after the first send. Re-armed by clearThread
+  // and on a fresh session (no session_id loaded from cache). The old
+  // `user_msgs.length === 1` heuristic broke once restore() populated history.
+  const needsGrounding = ref(true);
 
   // typewriter drives the hero briefing stream; mirrored into the message
   const tw = useTypewriter();
@@ -85,48 +109,6 @@ export function useAiCompanion(ctx: AiContext) {
   );
   const isStreamingBriefing = computed(() => streamingBriefing.value);
 
-  /** Restore cached briefing + cached chat history on mount. */
-  async function restore() {
-    // 两次缓存读取无依赖关系，并行发起
-    const [summaryResult, chatResult] = await Promise.allSettled([
-      aiGateway.getCachedSummary({
-        article_content: pureContent,
-        ...(ctx.title ? { article_title: ctx.title } : {}),
-      }),
-      aiGateway.getCachedChat({
-        article_content: pureContent,
-        ...(ctx.title ? { article_title: ctx.title } : {}),
-      }),
-    ]);
-
-    if (summaryResult.status === 'fulfilled') {
-      const summary = summaryResult.value;
-      if (summary.cached && summary.summary) {
-        messages.value.push({
-          id: nextMsgId(),
-          role: 'assistant',
-          content: summary.summary,
-          kind: 'briefing',
-        });
-      }
-    }
-
-    if (chatResult.status === 'fulfilled') {
-      const chat = chatResult.value;
-      if (chat.cached && chat.messages?.length) {
-        for (const m of chat.messages) {
-          messages.value.push({
-            id: nextMsgId(),
-            role: m.role,
-            content: m.content,
-            kind: 'chat',
-          });
-        }
-        if (chat.session_id) sessionId.value = chat.session_id;
-      }
-    }
-  }
-
   /** Generate the opening summary — the briefing. */
   async function generateBriefing(notifyError: (msg: string) => void) {
     if (!canGenerate.value) {
@@ -151,6 +133,10 @@ export function useAiCompanion(ctx: AiContext) {
     };
     messages.value.unshift(msg);
 
+    // cancel any in-flight stream (re-generate, double-click) before starting
+    abortController?.abort();
+    abortController = new AbortController();
+
     try {
       await aiGateway.streamSummary(
         {
@@ -164,8 +150,10 @@ export function useAiCompanion(ctx: AiContext) {
           },
           onDone: () => tw.done(),
         },
+        abortController.signal,
       );
     } catch (e: unknown) {
+      if (isAbortError(e)) return;
       error.value = e instanceof Error ? e.message : 'AI总结失败，请稍后重试';
       notifyError(error.value);
       const idx = briefingIdx.value;
@@ -198,15 +186,18 @@ export function useAiCompanion(ctx: AiContext) {
     loading.value = true;
     error.value = '';
     const idx = messages.value.length - 1;
-    const isFirstTurn =
-      messages.value.filter((m) => m.role === 'user').length === 1;
+    const attachGrounding = needsGrounding.value;
+
+    // cancel any in-flight stream (double-click send, re-entry) before starting
+    abortController?.abort();
+    abortController = new AbortController();
 
     try {
       await aiGateway.streamChat(
         {
           message: text,
           session_id: sessionId.value,
-          ...(isFirstTurn
+          ...(attachGrounding
             ? {
                 article_content: ctx.content,
                 article_title: ctx.title || '',
@@ -221,14 +212,18 @@ export function useAiCompanion(ctx: AiContext) {
             }
           },
         },
+        abortController.signal,
       );
     } catch (e: unknown) {
+      if (isAbortError(e)) return;
       const msg = e instanceof Error ? e.message : '对话失败，请稍后重试';
       messages.value[idx].content = `[ERROR] ${msg}`;
       error.value = msg;
       notifyError(msg);
     } finally {
       loading.value = false;
+      // first send of this session done; future turns skip grounding.
+      needsGrounding.value = false;
     }
   }
 
@@ -240,11 +235,21 @@ export function useAiCompanion(ctx: AiContext) {
   }
 
   function clearThread() {
+    abortController?.abort();
     messages.value = [];
     sessionId.value = '';
     error.value = '';
     tw.reset();
+    // cleared thread = fresh session; the next chat turn must re-attach
+    // article grounding.
+    needsGrounding.value = true;
   }
+
+  // tear-down safety: a stream that outlives the component would write to
+  // a disposed reactive ref and surface a Vue warning.
+  onUnmounted(() => {
+    abortController?.abort();
+  });
 
   return {
     messages,
@@ -261,7 +266,6 @@ export function useAiCompanion(ctx: AiContext) {
     briefingIdx,
     bindContainer,
     scrollToBottom,
-    restore,
     generateBriefing,
     send,
     onKeydown,

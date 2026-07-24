@@ -23,10 +23,11 @@
 -->
 <script setup lang="ts">
 import { AnimatePresence, motion } from 'motion-v';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { FADE, SPRING_BOUNCE } from '@/constants';
 import { renderMarkdown } from '@/composables';
 import { HoverDropdown } from '@/components';
+import { useNotificationStore } from '@/stores';
 import { useAiCompanion, type AiMessage } from '@/features/ai/composables/useAiCompanion';
 
 defineOptions({ name: 'AiCompanion' });
@@ -35,6 +36,8 @@ const props = defineProps<{
   title?: string;
   content: string;
 }>();
+
+const notifier = useNotificationStore();
 
 const {
   messages,
@@ -48,7 +51,6 @@ const {
   canGenerate,
   isStreamingBriefing,
   bindContainer,
-  restore,
   generateBriefing,
   send,
   onKeydown,
@@ -292,7 +294,7 @@ function rendered(msg: AiMessage) {
             type="button"
             class="bg-accent text-contrast hover:bg-accent/90 disabled:bg-accent/40 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none disabled:cursor-not-allowed active:scale-[0.96]"
             :disabled="!canGenerate"
-            @click="generateBriefing((msg) => {})"
+            @click="generateBriefing(notifier.error)"
           >
             <svg
               v-if="loading"
@@ -341,7 +343,7 @@ function rendered(msg: AiMessage) {
               type="button"
               class="text-muted hover:text-ink ml-auto cursor-pointer text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none"
               :disabled="loading"
-              @click="generateBriefing((msg) => {})"
+              @click="generateBriefing(notifier.error)"
             >
               重新生成
             </button>
@@ -407,7 +409,7 @@ function rendered(msg: AiMessage) {
         :placeholder="hasContent ? '继续提问…' : '向 AI 提问这篇文章…'"
         class="border bg-surface/30 text-ink placeholder-muted flex-1 rounded-lg px-3.5 py-2.5 text-sm transition-colors focus:ring-2 focus:ring-ring/40 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="loading"
-        @keydown="(e) => onKeydown(e, () => send((msg) => {}))"
+        @keydown="(e) => onKeydown(e, () => send(notifier.error))"
       />
       <motion.button
         type="button"
@@ -420,7 +422,7 @@ function rendered(msg: AiMessage) {
         :disabled="!canSend"
         aria-label="发送"
         :whilePress="{ scale: 0.9 }"
-        @click="send((msg) => {})"
+        @click="send(notifier.error)"
       >
         <svg
           v-if="loading"

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { nextTick } from 'vue';
+import { defineComponent, h, nextTick, onMounted } from 'vue';
+import { mount, flushPromises } from '@vue/test-utils';
 
 vi.mock('@/features/ai/api/aiGateway', () => ({
   aiGateway: {
@@ -98,6 +99,7 @@ describe('useAiCompanion', () => {
           onData: expect.any(Function),
           onDone: expect.any(Function),
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -110,6 +112,7 @@ describe('useAiCompanion', () => {
       expect(aiGateway.streamSummary).toHaveBeenCalledWith(
         expect.objectContaining({ title: '' }),
         expect.any(Object),
+        expect.any(AbortSignal),
       );
     });
 
@@ -181,7 +184,7 @@ describe('useAiCompanion', () => {
         kind: 'chat',
       });
       expect(c.input.value).toBe('');
-      expect(c.sessionId.value).toMatch(/^summary_/);
+      expect(c.sessionId.value).toMatch(/^chat-[0-9a-f-]{36}$/);
     });
 
     it('does not send when input is empty', async () => {
@@ -223,6 +226,7 @@ describe('useAiCompanion', () => {
           article_title: 'Hello',
         }),
         expect.any(Object),
+        expect.any(AbortSignal),
       );
 
       // second turn
@@ -323,6 +327,27 @@ describe('useAiCompanion', () => {
       expect(c.sessionId.value).toBe('');
       expect(c.error.value).toBe('');
     });
+
+    // F5
+    it('re-arms needsGrounding after clearThread', async () => {
+      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
+      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
+
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+
+      // first send consumes the initial grounding
+      c.input.value = 'q1';
+      await c.send(notify);
+
+      c.clearThread();
+
+      c.input.value = 'q2';
+      await c.send(notify);
+
+      const lastBody = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)![0];
+      expect(lastBody).toMatchObject({ article_content: '<p>x</p>' });
+    });
   });
 
   describe('model switching', () => {
@@ -348,6 +373,7 @@ describe('useAiCompanion', () => {
       expect(aiGateway.streamSummary).toHaveBeenCalledWith(
         expect.objectContaining({ model: 'Ling 2.6' }),
         expect.any(Object),
+        expect.any(AbortSignal),
       );
     });
   });
@@ -420,6 +446,70 @@ describe('useAiCompanion', () => {
       expect(c.messages.value).toEqual([]);
       expect(c.hasContent.value).toBe(false);
     });
+
+    // F6: 验证 sessionId 用 crypto.randomUUID() 生成 —— 无泄露意图的前缀
+    // (旧 summary_)、足够 entropy 且每次独立。
+    it('generates unique UUID-based session ids with no intent-leaking prefix', async () => {
+      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
+      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
+
+      const c1 = useAiCompanion({ content: '<p>x</p>' });
+      c1.input.value = 'q';
+      await c1.send(vi.fn());
+
+      const c2 = useAiCompanion({ content: '<p>x</p>' });
+      c2.input.value = 'q';
+      await c2.send(vi.fn());
+
+      expect(c1.sessionId.value).not.toBe(c2.sessionId.value);
+      // UUID v4: 8-4-4-4-12 hex 字符，4 位置上是 version digit (4)
+      expect(c1.sessionId.value).toMatch(
+        /^chat-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+    });
+
+    // F5
+    it('clears needsGrounding after restoring an existing session_id', async () => {
+      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
+      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({
+        cached: true,
+        messages: [
+          { role: 'user', content: 'previous q' },
+          { role: 'assistant', content: 'previous a' },
+        ],
+        session_id: 'sess-restored',
+      });
+
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      await c.restore();
+      expect(c.sessionId.value).toBe('sess-restored');
+
+      c.input.value = 'next question';
+      await c.send(vi.fn());
+
+      // post-restore first message must NOT re-attach grounding — that
+      // session already had its grounding turn.
+      const lastBody = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)![0];
+      expect(lastBody).not.toHaveProperty('article_content');
+      expect(lastBody).not.toHaveProperty('article_title');
+      expect(lastBody).toMatchObject({ message: 'next question' });
+    });
+
+    // F5
+    it('re-arms needsGrounding when restore finds no session_id', async () => {
+      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
+      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
+
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      await c.restore();
+      expect(c.sessionId.value).toBe('');
+
+      c.input.value = 'first';
+      await c.send(vi.fn());
+
+      const lastBody = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)![0];
+      expect(lastBody).toMatchObject({ article_content: '<p>x</p>' });
+    });
   });
 
   describe('exports', () => {
@@ -428,6 +518,248 @@ describe('useAiCompanion', () => {
       const ctx: AiContext = { content: 'x' };
       expect(ctx.content).toBe('x');
       expect(MODEL_OPTIONS.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('abort & lifecycle (F2)', () => {
+    function makeWrapper() {
+      let instance: ReturnType<typeof useAiCompanion>;
+      const Comp = defineComponent({
+        setup() {
+          instance = useAiCompanion({ content: '<p>x</p>' });
+          return () => h('div');
+        },
+      });
+      const wrapper = mount(Comp);
+      return {
+        get hook() {
+          return instance!;
+        },
+        unmount: () => wrapper.unmount(),
+      };
+    }
+
+    // F1: mirrors what AiCompanion.vue does at mount time.
+    it('onMounted triggers restore so cached content loads on first paint', async () => {
+      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({
+        cached: true,
+        summary: 'cached briefing',
+      });
+      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
+
+      let instance: ReturnType<typeof useAiCompanion>;
+      const Comp = defineComponent({
+        setup() {
+          instance = useAiCompanion({ content: '<p>x</p>' });
+          onMounted(() => {
+            void instance.restore();
+          });
+          return () => h('div');
+        },
+      });
+      const wrapper = mount(Comp);
+      await flushPromises();
+
+      expect(instance!.messages.value.length).toBe(1);
+      expect(instance!.messages.value[0]).toMatchObject({
+        kind: 'briefing',
+        content: 'cached briefing',
+      });
+      wrapper.unmount();
+    });
+
+    // F1 + empty content: restore() must not surface visible errors when
+    // there is nothing to summarize (avoids a 422 from the backend).
+    it('onMounted restore with empty content does not raise or set error', async () => {
+      vi.mocked(aiGateway.getCachedSummary).mockResolvedValue({ cached: false });
+      vi.mocked(aiGateway.getCachedChat).mockResolvedValue({ cached: false });
+
+      let instance: ReturnType<typeof useAiCompanion>;
+      const Comp = defineComponent({
+        setup() {
+          instance = useAiCompanion({ content: '<p></p>' });
+          onMounted(() => {
+            void instance.restore();
+          });
+          return () => h('div');
+        },
+      });
+      const wrapper = mount(Comp);
+      await flushPromises();
+
+      expect(instance!.error.value).toBe('');
+      expect(instance!.messages.value).toEqual([]);
+      wrapper.unmount();
+    });
+
+    it('passes an AbortSignal to streamSummary', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+
+      await c.generateBriefing(notify);
+
+      const call = vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+      expect(call[2]).toBeInstanceOf(AbortSignal);
+    });
+
+    it('passes an AbortSignal to streamChat', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+      c.input.value = 'hi';
+
+      await c.send(notify);
+
+      const call = vi.mocked(aiGateway.streamChat).mock.calls.at(-1)!;
+      expect(call[2]).toBeInstanceOf(AbortSignal);
+    });
+
+    it('aborts the previous stream on re-entry (re-generate briefing)', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+
+      let firstSignal: AbortSignal | null = null;
+      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+        async (_body, handlers, signal) => {
+          firstSignal = signal ?? null;
+        },
+      );
+
+      // kick off the first briefing; the mockImplementationOnlyOnce resolves
+      // immediately, so loading settles back to false — but the captured
+      // signal still belongs to the first call.
+      await c.generateBriefing(notify);
+
+      // restore default resolver, then start a second briefing
+      vi.mocked(aiGateway.streamSummary).mockResolvedValue(undefined);
+      const p2 = c.generateBriefing(notify);
+
+      expect(firstSignal).not.toBeNull();
+      expect(firstSignal!.aborted).toBe(true);
+
+      await p2;
+      const secondCall =
+        vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+      const secondSignal = secondCall[2] as AbortSignal;
+      expect(secondSignal.aborted).toBe(false);
+    });
+
+    it('aborts the previous stream when send is re-entered', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+
+      let firstSignal: AbortSignal | null = null;
+      vi.mocked(aiGateway.streamChat).mockImplementationOnce(
+        async (_body, handlers, signal) => {
+          firstSignal = signal ?? null;
+        },
+      );
+
+      c.input.value = 'first';
+      await c.send(notify);
+
+      vi.mocked(aiGateway.streamChat).mockResolvedValue(undefined);
+      c.input.value = 'second';
+      const p2 = c.send(notify);
+
+      expect(firstSignal).not.toBeNull();
+      expect(firstSignal!.aborted).toBe(true);
+
+      await p2;
+    });
+
+    it('clearThread aborts the in-flight stream', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+
+      let captured: AbortSignal | null = null;
+      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+        async (_body, _handlers, signal) => {
+          captured = signal ?? null;
+        },
+      );
+
+      // capture the first call (default impl resolves, so this is fine)
+      await c.generateBriefing(notify);
+
+      // second call: keep it pending so we can observe clearThread's abort
+      let pending: (() => void) | null = null;
+      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            pending = () => resolve();
+          }),
+      );
+      const p2 = c.generateBriefing(notify);
+
+      // the *previous* signal (from the resolved first call) is already
+      // aborted by re-entry; what we care about is the *current* in-flight
+      // signal being aborted by clearThread.
+      const currentCall =
+        vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+      const currentSignal = currentCall[2] as AbortSignal;
+      expect(currentSignal.aborted).toBe(false);
+
+      c.clearThread();
+      expect(currentSignal.aborted).toBe(true);
+
+      pending!();
+      await p2;
+    });
+
+    it('swallows AbortError silently (no error, no notify, no stuck loading)', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+      const abortErr = new DOMException('aborted', 'AbortError');
+      vi.mocked(aiGateway.streamSummary).mockRejectedValueOnce(abortErr);
+
+      await c.generateBriefing(notify);
+
+      expect(c.error.value).toBe('');
+      expect(notify).not.toHaveBeenCalled();
+      expect(c.loading.value).toBe(false);
+      expect(c.isStreamingBriefing.value).toBe(false);
+    });
+
+    it('swallows AbortError silently in send (no [ERROR] marker)', async () => {
+      const c = useAiCompanion({ content: '<p>x</p>' });
+      const notify = vi.fn();
+      c.input.value = 'q';
+      const abortErr = new DOMException('aborted', 'AbortError');
+      vi.mocked(aiGateway.streamChat).mockRejectedValueOnce(abortErr);
+
+      await c.send(notify);
+
+      expect(c.error.value).toBe('');
+      expect(notify).not.toHaveBeenCalled();
+      const assistant = c.messages.value.at(-1)!;
+      expect(assistant.role).toBe('assistant');
+      expect(assistant.content).toBe('');
+      expect(c.loading.value).toBe(false);
+    });
+
+    it('component unmount aborts the in-flight stream', async () => {
+      const notify = vi.fn();
+
+      let pending: (() => void) | null = null;
+      vi.mocked(aiGateway.streamSummary).mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            pending = () => resolve();
+          }),
+      );
+
+      const { hook, unmount } = makeWrapper();
+      const p = hook.generateBriefing(notify);
+
+      const call = vi.mocked(aiGateway.streamSummary).mock.calls.at(-1)!;
+      const signal = call[2] as AbortSignal;
+      expect(signal.aborted).toBe(false);
+
+      unmount();
+      expect(signal.aborted).toBe(true);
+
+      pending!();
+      await p;
     });
   });
 });

@@ -24,6 +24,11 @@ function parseSseChunk(buffer: string): { events: string[]; rest: string } {
 /**
  * POST JSON body 并以 SSE 流消费响应。
  * 收到每个 data 帧调用 onData，遇到 [DONE] 调用 onDone。
+ *
+ * 凭证默认 `same-origin` —— 不向跨域发送 cookie / 凭据。旧默认
+ * `'include'` 在不需要跨域 cookie 的端点上属于过度权限；调用方可显式
+ * 覆盖。循环结束后执行 terminal decoder flush，避免末帧多字节 UTF-8
+ * 字符跨 chunk 切分时丢尾字节。
  */
 export async function consumeSseStream<T = { content?: string }>(
   options: SseRequestOptions,
@@ -32,7 +37,7 @@ export async function consumeSseStream<T = { content?: string }>(
   const response = await fetch(options.url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: options.credentials ?? 'include',
+    credentials: options.credentials ?? 'same-origin',
     body: JSON.stringify(options.body),
     signal: options.signal,
   });
@@ -47,28 +52,31 @@ export async function consumeSseStream<T = { content?: string }>(
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
+  const flushEvents = (): boolean => {
     const { events, rest } = parseSseChunk(buffer);
     buffer = rest;
-
-    let finished = false;
     for (const jsonStr of events) {
-      if (jsonStr === '[DONE]') {
-        finished = true;
-        break;
-      }
+      if (jsonStr === '[DONE]') return false;
       try {
         handlers.onData(JSON.parse(jsonStr) as T);
       } catch {
         // 忽略单帧解析错误
       }
     }
-    if (finished) break;
+    return true;
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const keepGoing = flushEvents();
+    if (!keepGoing) break;
   }
+  // terminal flush: stream=true 模式保留尾字节；残余 buffer 也要再消费一次
+  buffer += decoder.decode();
+  flushEvents();
 
   handlers.onDone?.();
 }
