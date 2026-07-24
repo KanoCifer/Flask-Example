@@ -6,10 +6,9 @@ This module re-exports everything so that
 """
 
 from app.schemas.aiagent import (
-    ArticleSummaryRequest,
-    ChatRequest,
     HistoryRequest,
     SummaryInput,
+    ThreadRequest,
 )
 from app.schemas.auth import (
     EmailCodeIn,
@@ -61,14 +60,12 @@ from app.schemas.user import (
 )
 
 __all__ = [
-    "ArticleSummaryRequest",
     "BlogIn",
     "BlogPostDelete",
     "BlogPostGet",
     "BlogPostIn",
     "BlogPostUpdate",
     "BootstrapEmailContent",
-    "ChatRequest",
     "DevTaskCreate",
     "DevTaskOut",
     "DevTaskUpdate",
@@ -103,6 +100,7 @@ __all__ = [
     "SummaryInput",
     "TagItem",
     "TagsOut",
+    "ThreadRequest",
     "UserOut",
     "UserProfileOut",
     "UserSettingsIn",
