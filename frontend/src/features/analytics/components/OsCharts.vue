@@ -4,26 +4,30 @@
       <icon-analytics class="size-4" /> 操作系统分布
     </h3>
     <p class="text-muted mb-3 text-xs">按操作系统分类的访问占比</p>
-    <div
-      v-if="loading && !hasOsData"
-      class="bg-surface h-56 animate-pulse rounded-xl"
-    ></div>
-    <div
-      v-else-if="!hasOsData"
-      class="text-muted flex h-56 flex-col items-center justify-center gap-2 px-4 text-center"
-    >
-      <icon-analytics class="text-muted/50 size-7" />
-      <p class="text-sm font-medium">暂无系统数据</p>
-      <p class="text-xs">操作系统分布会在访客到达后显示在这里。</p>
-    </div>
-    <div v-else class="h-56 w-full overflow-hidden">
-      <v-chart :option="osChartOption" autoresize class="h-full w-full" />
-    </div>
+    <SkeletonCrossfadeTransition>
+      <div
+        v-if="loading && !hasOsData"
+        key="loading"
+        class="bg-surface h-56 animate-pulse rounded-xl"
+      ></div>
+      <div
+        v-else-if="!hasOsData"
+        key="empty"
+        class="text-muted flex h-56 flex-col items-center justify-center gap-2 px-4 text-center"
+      >
+        <icon-analytics class="text-muted/50 size-7" />
+        <p class="text-sm font-medium">暂无系统数据</p>
+        <p class="text-xs">操作系统分布会在访客到达后显示在这里。</p>
+      </div>
+      <div v-else key="data" class="h-56 w-full overflow-hidden">
+        <v-chart :option="osChartOption" autoresize class="h-full w-full" />
+      </div>
+    </SkeletonCrossfadeTransition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IconAnalytics } from '@/components';
+import { IconAnalytics, SkeletonCrossfadeTransition } from '@/components';
 import { useChartColors, withAlpha } from '@/composables';
 import { computed } from 'vue';
 import VChart from 'vue-echarts';

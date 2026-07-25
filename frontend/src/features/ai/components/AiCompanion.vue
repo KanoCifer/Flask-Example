@@ -237,12 +237,21 @@ function toggleReasoning(msg: AiMessage) {
               />
               <span>思考过程</span>
             </button>
-            <div
-              v-if="isReasoningOpen(msg)"
-              class="text-muted mt-1.5 text-xs leading-relaxed whitespace-pre-wrap"
+            <Transition
+              enter-active-class="transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none motion-reduce:duration-0"
+              enter-from-class="opacity-0 -translate-y-1"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none motion-reduce:duration-0"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-1"
             >
-              {{ msg.reasoning }}
-            </div>
+              <div
+                v-if="isReasoningOpen(msg)"
+                class="text-muted mt-1.5 origin-top text-xs leading-relaxed whitespace-pre-wrap"
+              >
+                {{ msg.reasoning }}
+              </div>
+            </Transition>
           </div>
           <div
             class="prose prose-sm animate-result-in max-w-none"
@@ -295,12 +304,21 @@ function toggleReasoning(msg: AiMessage) {
                 />
                 <span>思考过程</span>
               </button>
-              <div
-                v-if="isReasoningOpen(msg)"
-                class="text-muted mt-1.5 text-xs leading-relaxed whitespace-pre-wrap"
+              <Transition
+                enter-active-class="transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none motion-reduce:duration-0"
+                enter-from-class="opacity-0 -translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none motion-reduce:duration-0"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-1"
               >
-                {{ msg.reasoning }}
-              </div>
+                <div
+                  v-if="isReasoningOpen(msg)"
+                  class="text-muted mt-1.5 origin-top text-xs leading-relaxed whitespace-pre-wrap"
+                >
+                  {{ msg.reasoning }}
+                </div>
+              </Transition>
             </div>
 
             <div

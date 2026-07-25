@@ -4,29 +4,33 @@
       <icon-trend class="size-5" />
       访问趋势 · 最近 {{ selectedDays }} 天
     </h2>
-    <div
-      v-if="loading && !overviewData"
-      class="bg-surface h-72 animate-pulse rounded-xl"
-    ></div>
-    <!-- Empty state -->
-    <div
-      v-else-if="!hasTrendData"
-      class="flex h-72 flex-col items-center justify-center gap-2 px-6 text-center"
-    >
-      <icon-trend class="text-muted/50 size-8" />
-      <p class="text-ink text-sm font-medium">暂无访问记录</p>
-      <p class="text-muted max-w-xs text-xs">
-        网站开始接收流量后，近 {{ selectedDays }} 天的访问趋势将显示在这里。
-      </p>
-    </div>
-    <div v-else class="h-72 w-full overflow-hidden">
-      <v-chart :option="trendChartOption" autoresize class="h-full w-full" />
-    </div>
+    <SkeletonCrossfadeTransition>
+      <div
+        v-if="loading && !overviewData"
+        key="loading"
+        class="bg-surface h-72 animate-pulse rounded-xl"
+      ></div>
+      <!-- Empty state -->
+      <div
+        v-else-if="!hasTrendData"
+        key="empty"
+        class="flex h-72 flex-col items-center justify-center gap-2 px-6 text-center"
+      >
+        <icon-trend class="text-muted/50 size-8" />
+        <p class="text-ink text-sm font-medium">暂无访问记录</p>
+        <p class="text-muted max-w-xs text-xs">
+          网站开始接收流量后，近 {{ selectedDays }} 天的访问趋势将显示在这里。
+        </p>
+      </div>
+      <div v-else key="data" class="h-72 w-full overflow-hidden">
+        <v-chart :option="trendChartOption" autoresize class="h-full w-full" />
+      </div>
+    </SkeletonCrossfadeTransition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IconTrend } from '@/components';
+import { IconTrend, SkeletonCrossfadeTransition } from '@/components';
 import { useChartColors, withAlpha } from '@/composables';
 import dayjs from 'dayjs';
 import { computed } from 'vue';

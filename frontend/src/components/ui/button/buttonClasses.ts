@@ -18,9 +18,9 @@ export interface ButtonVariants {
 // 所有变体共享这套"骨架"，变体只负责配色和边框，尺寸只负责高/宽/间距。
 const BASE = [
   'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium',
-  'transition-[color,transform,background-color] duration-280',
+  'transition-[color,transform,background-color] duration-150 ease-out motion-reduce:transition-none',
   'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-  'active:scale-[0.96]',
+  'active:scale-[0.96] motion-reduce:active:scale-100',
   'disabled:cursor-not-allowed disabled:opacity-50',
   'rounded-xl',
 ];

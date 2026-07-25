@@ -4,33 +4,37 @@
       <icon-popular class="size-5" /> 热门页面
     </h2>
     <p class="text-muted mb-4 text-xs">所选时段内浏览量前 8 的页面</p>
-    <div
-      v-if="loading && !overviewData"
-      class="bg-surface h-full min-h-[14rem] animate-pulse rounded-xl"
-    ></div>
-    <!-- Empty state -->
-    <div
-      v-else-if="!hasPagesData"
-      class="flex min-h-[14rem] flex-col items-center justify-center gap-2 px-6 text-center"
-    >
-      <icon-popular class="text-muted/50 size-8" />
-      <p class="text-ink text-sm font-medium">暂无页面浏览数据</p>
-      <p class="text-muted max-w-xs text-xs">
-        开始接收流量后，热门页面将显示在这里。
-      </p>
-    </div>
-    <div v-else class="h-72 w-full overflow-hidden">
-      <v-chart
-        :option="popularPagesChartOption"
-        autoresize
-        class="h-full w-full"
-      />
-    </div>
+    <SkeletonCrossfadeTransition>
+      <div
+        v-if="loading && !overviewData"
+        key="loading"
+        class="bg-surface h-full min-h-[14rem] animate-pulse rounded-xl"
+      ></div>
+      <!-- Empty state -->
+      <div
+        v-else-if="!hasPagesData"
+        key="empty"
+        class="flex min-h-[14rem] flex-col items-center justify-center gap-2 px-6 text-center"
+      >
+        <icon-popular class="text-muted/50 size-8" />
+        <p class="text-ink text-sm font-medium">暂无页面浏览数据</p>
+        <p class="text-muted max-w-xs text-xs">
+          开始接收流量后，热门页面将显示在这里。
+        </p>
+      </div>
+      <div v-else key="data" class="h-72 w-full overflow-hidden">
+        <v-chart
+          :option="popularPagesChartOption"
+          autoresize
+          class="h-full w-full"
+        />
+      </div>
+    </SkeletonCrossfadeTransition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IconPopular } from '@/components';
+import { IconPopular, SkeletonCrossfadeTransition } from '@/components';
 import { useChartColors, withAlpha } from '@/composables';
 import { computed } from 'vue';
 import VChart from 'vue-echarts';

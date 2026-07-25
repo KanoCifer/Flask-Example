@@ -103,7 +103,8 @@ function onImgError(e: Event) {
     <!-- ─── List variant: 横向单行 ────────────────────────────── -->
     <div
       v-if="isList"
-      class="/60 bg-page hover:bg-surface/40 hover:shadow-accent/5 flex items-center gap-3 rounded-xl border p-3 transition-all duration-300 sm:gap-4 sm:p-4"
+      class="book-card /60 bg-page hover:bg-surface/40 hover:shadow-accent/5 flex items-center gap-3 rounded-xl border p-3 transition-all duration-300 sm:gap-4 sm:p-4"
+      :style="gridAnimStyle"
     >
       <div
         class="bg-surface relative h-16 w-12 flex-shrink-0 overflow-hidden rounded-md shadow-sm sm:h-20 sm:w-14"
@@ -240,7 +241,8 @@ function onImgError(e: Event) {
 </template>
 
 <style scoped>
-/* 网格 stagger 入场:配合 :style="animationDelay" 使用 */
+/* 网格 + 列表 stagger 入场:配合 :style="gridAnimStyle" (animationDelay) 使用。
+   30ms × index 错峰,>8 项的长尾在 240ms 后几乎同时出现(在视觉上不会察觉)。 */
 .book-card {
   animation: book-card-fade 380ms ease-out backwards;
 }
@@ -253,6 +255,12 @@ function onImgError(e: Event) {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-card {
+    animation: none;
   }
 }
 </style>

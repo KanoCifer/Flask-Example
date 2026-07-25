@@ -110,14 +110,23 @@
 
         <!-- 3 stat tiles: align-baseline with matching heights -->
         <div class="col-span-1 lg:col-span-3">
-          <div v-if="loading && !overviewData" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <SkeletonCrossfadeTransition>
             <div
-              v-for="i in 3"
-              :key="i"
-              class="bg-surface/50 h-24 animate-pulse rounded-2xl"
-            ></div>
-          </div>
-          <div v-else-if="overviewData" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              v-if="loading && !overviewData"
+              key="loading"
+              class="grid grid-cols-1 gap-4 sm:grid-cols-3"
+            >
+              <div
+                v-for="i in 3"
+                :key="i"
+                class="bg-surface/50 h-24 animate-pulse rounded-2xl"
+              ></div>
+            </div>
+            <div
+              v-else-if="overviewData"
+              key="data"
+              class="grid grid-cols-1 gap-4 sm:grid-cols-3"
+            >
             <StatTile
               label="总访问量"
               :value="overviewData.total_visits"
@@ -202,6 +211,7 @@
               </template>
             </StatTile>
           </div>
+          </SkeletonCrossfadeTransition>
         </div>
 
         <!-- Trend chart: full row -->
@@ -296,24 +306,26 @@
               用户登录记录
             </h2>
 
-            <!-- Loading -->
-            <div v-if="loading && !loginLogsData" class="py-8">
-              <div class="space-y-3">
-                <div
-                  v-for="i in 5"
-                  :key="i"
-                  class="bg-surface h-12 animate-pulse rounded-lg"
-                ></div>
+            <SkeletonCrossfadeTransition>
+              <!-- Loading -->
+              <div v-if="loading && !loginLogsData" key="loading" class="py-8">
+                <div class="space-y-3">
+                  <div
+                    v-for="i in 5"
+                    :key="i"
+                    class="bg-surface h-12 animate-pulse rounded-lg"
+                  ></div>
+                </div>
               </div>
-            </div>
 
-            <!-- Empty -->
-            <div
-              v-else-if="loginLogsData?.list.length === 0"
-              class="text-muted py-12 text-center text-sm"
-            >
-              <p>暂无登录记录</p>
-            </div>
+              <!-- Empty -->
+              <div
+                v-else-if="loginLogsData?.list.length === 0"
+                key="empty"
+                class="text-muted py-12 text-center text-sm"
+              >
+                <p>暂无登录记录</p>
+              </div>
 
             <!-- Table -->
             <div v-else>
@@ -425,6 +437,7 @@
                 </div>
               </div>
             </div>
+            </SkeletonCrossfadeTransition>
           </div>
         </div>
       </div>
@@ -433,7 +446,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconUser, IconAnalytics } from '@/components';
+import { IconUser, IconAnalytics, SkeletonCrossfadeTransition } from '@/components';
 import { analyticsGateway } from '@/features/analytics/api/analyticsGateway';
 import type { PostViewData } from '@/features/analytics/types';
 import { useAuthStore } from '@/features/auth';
