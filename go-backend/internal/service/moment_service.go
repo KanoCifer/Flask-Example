@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 	"github.com/KanoCifer/kuroome-blog/internal/repository/mongodb"
 )
@@ -17,7 +17,7 @@ import (
 // 错误策略：
 //   - repo 抛底层错误（mongo.ErrNoDocuments / bson.ObjectIDFromHex 错误）
 //   - service 把底层错误**翻译**成 errs 包的领域 sentinel
-//   - handler 用 errors.Is(err, errs.ErrMomentNotFound) 判 404、errs.ErrInvalidObjectID 判 400
+//   - handler 用 errors.Is(err, momenterrs.ErrMomentNotFound) 判 404、momenterrs.ErrInvalidObjectID 判 400
 //   - handler 不直接 import mongo 包 —— 保持 transport ↔ storage 分层隔离
 //
 // momentVisibilityValues 校验 dto → document 枚举的合法值集合。
@@ -163,8 +163,8 @@ func toDocLocation(src *dto.MomentLocation) *document.MomentLocation {
 }
 
 // GetByID 按 ID 查单条 moment。
-//   - ID 格式非法 → 翻译为 errs.ErrInvalidObjectID
-//   - 文档不存在 → 翻译为 errs.ErrMomentNotFound
+//   - ID 格式非法 → 翻译为 momenterrs.ErrInvalidObjectID
+//   - 文档不存在 → 翻译为 momenterrs.ErrMomentNotFound
 func (s *MomentService) GetByID(ctx context.Context, id string) (*dto.MomentResponse, error) {
 	m, err := s.repo.GetByID(ctx, id)
 	if err != nil {
@@ -297,7 +297,7 @@ func (s *MomentService) Update(
 	return translateRepoErr(s.repo.Update(ctx, id, fields))
 }
 
-// SoftDelete 软删；底层 repo 已检测 MatchedCount=0 并翻译成 errs.ErrMomentNotFound。
+// SoftDelete 软删；底层 repo 已检测 MatchedCount=0 并翻译成 momenterrs.ErrMomentNotFound。
 func (s *MomentService) SoftDelete(ctx context.Context, id string) error {
 	return translateRepoErr(s.repo.SoftDelete(ctx, id))
 }
@@ -314,12 +314,12 @@ func translateRepoErr(err error) error {
 		return nil
 	}
 	// 非法 ObjectID：bson.ObjectIDFromHex 返回的错误是 bson 的 InvalidObjectIDError
-	if errors.Is(err, errs.ErrInvalidObjectID) {
+	if errors.Is(err, momenterrs.ErrInvalidObjectID) {
 		return err
 	}
 	// 文档不存在
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return errs.ErrMomentNotFound
+		return momenterrs.ErrMomentNotFound
 	}
 	return err
 }

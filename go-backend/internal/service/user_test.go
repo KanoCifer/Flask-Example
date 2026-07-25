@@ -8,7 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -251,7 +251,7 @@ func TestGetByID_NotFound(t *testing.T) {
 	svc := NewUserService(repo, nil, nil)
 
 	_, _, err := svc.GetByID(context.Background(), 999)
-	if !errors.Is(err, errs.ErrUserNotFound) {
+	if !errors.Is(err, usererrs.ErrUserNotFound) {
 		t.Errorf("err = %v, want ErrUserNotFound", err)
 	}
 }
@@ -301,7 +301,7 @@ func TestAuthenticate_UserNotFound(t *testing.T) {
 	svc := NewUserService(repo, nil, nil)
 
 	_, err := svc.Authenticate(context.Background(), "ghost", "pass")
-	if !errors.Is(err, errs.ErrInvalidCredentials) {
+	if !errors.Is(err, usererrs.ErrInvalidCredentials) {
 		t.Errorf("err = %v, want ErrInvalidCredentials", err)
 	}
 }
@@ -316,7 +316,7 @@ func TestAuthenticate_WrongPassword(t *testing.T) {
 	svc := NewUserService(repo, nil, nil)
 
 	_, err := svc.Authenticate(context.Background(), "alice", "wrong")
-	if !errors.Is(err, errs.ErrInvalidCredentials) {
+	if !errors.Is(err, usererrs.ErrInvalidCredentials) {
 		t.Errorf("err = %v, want ErrInvalidCredentials", err)
 	}
 }

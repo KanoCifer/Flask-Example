@@ -9,7 +9,7 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/util"
@@ -45,7 +45,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	user, err := h.userSvc.Authenticate(c.Request.Context(), req.Username, req.Password)
 	if err != nil {
-		if errors.Is(err, errs.ErrInvalidCredentials) {
+		if errors.Is(err, usererrs.ErrInvalidCredentials) {
 			slog.WarnContext(c.Request.Context(), "login failed", "reason", "invalid_credentials", "username", req.Username)
 			response.APIError(c, err.Error(), 401)
 			return
@@ -85,13 +85,13 @@ func (h *UserHandler) Register(c *gin.Context) {
 	u, _, err := h.userSvc.CreateUser(c.Request.Context(), req.Username, req.Password, req.Email, req.EmailCode, "")
 	if err != nil {
 		switch {
-		case errors.Is(err, errs.ErrUserExists):
+		case errors.Is(err, usererrs.ErrUserExists):
 			slog.WarnContext(c.Request.Context(), "register failed", "reason", "user_exists", "username", req.Username)
 			response.APIError(c, err.Error(), 409)
-		case errors.Is(err, errs.ErrEmailExists):
+		case errors.Is(err, usererrs.ErrEmailExists):
 			slog.WarnContext(c.Request.Context(), "register failed", "reason", "email_exists", "email", req.Email)
 			response.APIError(c, err.Error(), 409)
-		case errors.Is(err, errs.ErrInvalidEmailCode):
+		case errors.Is(err, usererrs.ErrInvalidEmailCode):
 			slog.WarnContext(c.Request.Context(), "register failed", "reason", "invalid_email_code", "email", req.Email)
 			response.APIError(c, err.Error(), 400)
 		default:
@@ -115,7 +115,7 @@ func (h *UserHandler) Me(c *gin.Context) {
 
 	u, p, err := h.userSvc.GetByID(c.Request.Context(), uint(c.GetInt("user_id")))
 	if err != nil {
-		if errors.Is(err, errs.ErrUserNotFound) {
+		if errors.Is(err, usererrs.ErrUserNotFound) {
 			slog.WarnContext(c.Request.Context(), "get user failed", "reason", "user_not_found", "user_id", c.GetInt("user_id"))
 			response.APIError(c, "用户不存在", 404)
 			return

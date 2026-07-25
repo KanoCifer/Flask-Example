@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/upload/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -88,7 +88,7 @@ func TestUploadAvatar_UnsupportedType(t *testing.T) {
 	svc := newUploadSvc(t, st)
 
 	_, err := svc.UploadAvatar(context.Background(), 1, "a.txt", "text/plain", reader([]byte("hi")))
-	if !errEqual(err, errs.ErrUnsupportedImageType) {
+	if !errEqual(err, uploaderrs.ErrUnsupportedImageType) {
 		t.Fatalf("expected ErrUnsupportedImageType, got %v", err)
 	}
 }
@@ -98,7 +98,7 @@ func TestUploadAvatar_InvalidImageData(t *testing.T) {
 	svc := newUploadSvc(t, st)
 
 	_, err := svc.UploadAvatar(context.Background(), 1, "a.png", "image/png", reader([]byte("not an image")))
-	if !errEqual(err, errs.ErrInvalidImageData) {
+	if !errEqual(err, uploaderrs.ErrInvalidImageData) {
 		t.Fatalf("expected ErrInvalidImageData, got %v", err)
 	}
 }
@@ -109,7 +109,7 @@ func TestUploadAvatar_TooLarge(t *testing.T) {
 	// 构造略大于 10MB 的数据（Content-Type 合法、数据超限，在 util.DecodeImage 被截断检测）。
 	big := make([]byte, svc.maxBytes()+1)
 	_, err := svc.UploadAvatar(context.Background(), 1, "a.png", "image/png", reader(big))
-	if !errEqual(err, errs.ErrImageTooLarge) {
+	if !errEqual(err, uploaderrs.ErrImageTooLarge) {
 		t.Fatalf("expected ErrImageTooLarge, got %v", err)
 	}
 }

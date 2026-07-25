@@ -18,7 +18,7 @@ import (
 
 	"golang.org/x/image/draw"
 
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/upload/errs"
 )
 
 // ThumbSize 缩略图目标边长（与 Python compress_avatar (256,256) 一致）。
@@ -33,12 +33,12 @@ func DecodeImage(src io.Reader, maxBytes int64) (image.Image, string, error) {
 		return nil, "", fmt.Errorf("读取上传文件失败: %w", err)
 	}
 	if int64(len(data)) > maxBytes {
-		return nil, "", errs.ErrImageTooLarge
+		return nil, "", uploaderrs.ErrImageTooLarge
 	}
 
 	img, format, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, "", fmt.Errorf("%w: %v", errs.ErrInvalidImageData, err)
+		return nil, "", fmt.Errorf("%w: %v", uploaderrs.ErrInvalidImageData, err)
 	}
 	return img, format, nil
 }
@@ -105,7 +105,7 @@ func WriteFile(path string, src io.Reader, maxBytes int64) error {
 		return fmt.Errorf("写入文件失败: %w", err)
 	}
 	if written > maxBytes {
-		return errs.ErrImageTooLarge
+		return uploaderrs.ErrImageTooLarge
 	}
 	return nil
 }

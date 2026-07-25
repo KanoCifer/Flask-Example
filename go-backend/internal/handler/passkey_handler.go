@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/passkey/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/util"
@@ -49,7 +49,7 @@ func (h *PasskeyHandler) RegistrationOptions(c *gin.Context) {
 
 	options, err := h.passkeySvc.BeginRegistration(c.Request.Context(), uint(userID))
 	if err != nil {
-		if errors.Is(err, errs.ErrPasskeyExists) {
+		if errors.Is(err, passkeyerrs.ErrPasskeyExists) {
 			slog.WarnContext(c.Request.Context(), "passkey registration begin failed", "reason", "passkey_exists", "user_id", userID)
 			response.APIError(c, err.Error(), 400)
 			return
@@ -72,7 +72,7 @@ func (h *PasskeyHandler) Register(c *gin.Context) {
 	}
 
 	if err := h.passkeySvc.FinishRegistration(c.Request.Context(), uint(userID), req.Response); err != nil {
-		if errors.Is(err, errs.ErrInvalidPasskey) {
+		if errors.Is(err, passkeyerrs.ErrInvalidPasskey) {
 			slog.WarnContext(c.Request.Context(), "passkey registration finish failed", "reason", "invalid_passkey", "user_id", userID)
 			response.APIError(c, err.Error(), 400)
 			return
@@ -105,7 +105,7 @@ func (h *PasskeyHandler) Authenticate(c *gin.Context) {
 
 	user, err := h.passkeySvc.FinishLogin(c.Request.Context(), req.Assertion)
 	if err != nil {
-		if errors.Is(err, errs.ErrInvalidPasskey) || errors.Is(err, errs.ErrPasskeyNotFound) {
+		if errors.Is(err, passkeyerrs.ErrInvalidPasskey) || errors.Is(err, passkeyerrs.ErrPasskeyNotFound) {
 			slog.WarnContext(c.Request.Context(), "passkey login failed", "reason", "invalid_passkey")
 			response.APIError(c, err.Error(), 400)
 			return
@@ -139,7 +139,7 @@ func (h *PasskeyHandler) DeletePasskey(c *gin.Context) {
 	userID := c.GetInt("user_id")
 
 	if err := h.passkeySvc.DeletePasskey(c.Request.Context(), uint(userID)); err != nil {
-		if errors.Is(err, errs.ErrPasskeyNotFound) {
+		if errors.Is(err, passkeyerrs.ErrPasskeyNotFound) {
 			slog.WarnContext(c.Request.Context(), "passkey delete failed", "reason", "passkey_not_found", "user_id", userID)
 			response.APIError(c, "您的账户尚未绑定Passkey", 400)
 			return

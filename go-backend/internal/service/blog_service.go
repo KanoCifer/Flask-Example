@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 )
 
@@ -139,16 +139,16 @@ func (s *blogService) ListPosts(ctx context.Context, page int, search string) (*
 // GetPost 按 ID 获取单篇博客 —— 与 Python get_blog_post 对齐。
 func (s *blogService) GetPost(ctx context.Context, id string) (*dto.PostResponse, error) {
 	if id == "" {
-		return nil, errs.ErrInvalidPostID
+		return nil, blogerrs.ErrInvalidPostID
 	}
 	if _, err := bson.ObjectIDFromHex(id); err != nil {
-		return nil, errs.ErrInvalidPostID
+		return nil, blogerrs.ErrInvalidPostID
 	}
 
 	post, err := s.repo.GetPostByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errs.ErrPostNotFound
+			return nil, blogerrs.ErrPostNotFound
 		}
 		slog.ErrorContext(ctx, "get post by id", "error", err, "id", id)
 		return nil, err
@@ -161,7 +161,7 @@ func (s *blogService) GetPost(ctx context.Context, id string) (*dto.PostResponse
 // 调用方以 fire-and-forget goroutine 触发，不阻塞读取路径。
 func (s *blogService) IncrementViews(ctx context.Context, id string) error {
 	if id == "" {
-		return errs.ErrInvalidPostID
+		return blogerrs.ErrInvalidPostID
 	}
 	return s.repo.IncrementViews(ctx, id)
 }
@@ -170,10 +170,10 @@ func (s *blogService) IncrementViews(ctx context.Context, id string) error {
 // 一次性表态：调用方（handler / 客户端）负责幂等，服务端不做重复判定。
 func (s *blogService) LikePost(ctx context.Context, id string) (int, error) {
 	if id == "" {
-		return 0, errs.ErrInvalidPostID
+		return 0, blogerrs.ErrInvalidPostID
 	}
 	if _, err := bson.ObjectIDFromHex(id); err != nil {
-		return 0, errs.ErrInvalidPostID
+		return 0, blogerrs.ErrInvalidPostID
 	}
 	return s.repo.IncrementLikes(ctx, id)
 }
@@ -196,7 +196,7 @@ func (s *blogService) ListTags(ctx context.Context) ([]dto.TagResponse, error) {
 func (s *blogService) ListPostsByTag(ctx context.Context, tag string, page, perPage int) (*dto.PostsByTagResponse, error) {
 	tag = strings.TrimSpace(tag)
 	if tag == "" {
-		return nil, errs.ErrInvalidPostID
+		return nil, blogerrs.ErrInvalidPostID
 	}
 	if page < 1 {
 		page = 1

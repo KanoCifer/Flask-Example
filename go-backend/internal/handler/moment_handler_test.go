@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
 
@@ -235,7 +235,7 @@ func TestMoment_GetPublicMoment_Success(t *testing.T) {
 func TestMoment_GetPublicMoment_NotFound(t *testing.T) {
 	svc := &mockMomentService{
 		getByIDFn: func(_ context.Context, _ string) (*dto.MomentResponse, error) {
-			return nil, errs.ErrMomentNotFound
+			return nil, momenterrs.ErrMomentNotFound
 		},
 	}
 	r := newMomentHandler(svc)
@@ -249,7 +249,7 @@ func TestMoment_GetPublicMoment_NotFound(t *testing.T) {
 func TestMoment_GetPublicMoment_InvalidID(t *testing.T) {
 	svc := &mockMomentService{
 		getByIDFn: func(_ context.Context, _ string) (*dto.MomentResponse, error) {
-			return nil, errs.ErrInvalidObjectID
+			return nil, momenterrs.ErrInvalidObjectID
 		},
 	}
 	r := newMomentHandler(svc)
@@ -363,7 +363,7 @@ func TestMoment_UpdateMoment_Success(t *testing.T) {
 func TestMoment_UpdateMoment_NotFound(t *testing.T) {
 	svc := &mockMomentService{
 		updateFn: func(_ context.Context, _ string, _ dto.MomentUpdate) error {
-			return errs.ErrMomentNotFound
+			return momenterrs.ErrMomentNotFound
 		},
 	}
 	r := newMomentHandler(svc)
@@ -378,7 +378,7 @@ func TestMoment_UpdateMoment_NotFound(t *testing.T) {
 func TestMoment_UpdateMoment_InvalidID(t *testing.T) {
 	svc := &mockMomentService{
 		updateFn: func(_ context.Context, _ string, _ dto.MomentUpdate) error {
-			return errs.ErrInvalidObjectID
+			return momenterrs.ErrInvalidObjectID
 		},
 	}
 	r := newMomentHandler(svc)
@@ -428,7 +428,7 @@ func TestMoment_DeleteMoment_Success(t *testing.T) {
 func TestMoment_DeleteMoment_NotFound(t *testing.T) {
 	svc := &mockMomentService{
 		softDelFn: func(_ context.Context, _ string) error {
-			return errs.ErrMomentNotFound
+			return momenterrs.ErrMomentNotFound
 		},
 	}
 	r := newMomentHandler(svc)
@@ -442,7 +442,7 @@ func TestMoment_DeleteMoment_NotFound(t *testing.T) {
 func TestMoment_DeleteMoment_InvalidID(t *testing.T) {
 	svc := &mockMomentService{
 		softDelFn: func(_ context.Context, _ string) error {
-			return errs.ErrInvalidObjectID
+			return momenterrs.ErrInvalidObjectID
 		},
 	}
 	r := newMomentHandler(svc)
@@ -509,7 +509,7 @@ func TestMoment_GetAdminMoment_Success(t *testing.T) {
 func TestMoment_GetAdminMoment_NotFound(t *testing.T) {
 	svc := &mockMomentService{
 		getByIDAdminFn: func(_ context.Context, _ string) (*dto.MomentResponse, error) {
-			return nil, errs.ErrMomentNotFound
+			return nil, momenterrs.ErrMomentNotFound
 		},
 	}
 	r := newMomentHandler(svc)
@@ -542,7 +542,7 @@ func TestMoment_HardDeleteMoment_Success(t *testing.T) {
 func TestMoment_HardDeleteMoment_InvalidID(t *testing.T) {
 	svc := &mockMomentService{
 		hardDelFn: func(_ context.Context, _ string) error {
-			return errs.ErrInvalidObjectID
+			return momenterrs.ErrInvalidObjectID
 		},
 	}
 	r := newMomentHandler(svc)

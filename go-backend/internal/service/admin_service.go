@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 )
@@ -92,12 +92,12 @@ func (s *adminService) AddPost(ctx context.Context, post dto.PostRequest) (strin
 // updated_at 由 service 层刷新（不再由 repo 负责），与项目其它 update 路径对齐。
 func (s *adminService) UpdatePost(ctx context.Context, id string, post dto.PostUpdate) error {
 	if _, err := bson.ObjectIDFromHex(id); err != nil {
-		return errs.ErrInvalidPostID
+		return blogerrs.ErrInvalidPostID
 	}
 	_, err := s.repo.GetPostByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return errs.ErrPostNotFound
+			return blogerrs.ErrPostNotFound
 		}
 		return err
 	}
@@ -135,12 +135,12 @@ func (s *adminService) UpdatePost(ctx context.Context, id string, post dto.PostU
 
 func (s *adminService) DeletePost(ctx context.Context, id string) error {
 	if _, err := bson.ObjectIDFromHex(id); err != nil {
-		return errs.ErrInvalidPostID
+		return blogerrs.ErrInvalidPostID
 	}
 	_, err := s.repo.GetPostByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return errs.ErrPostNotFound
+			return blogerrs.ErrPostNotFound
 		}
 		return err
 	}

@@ -12,7 +12,8 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/passkey/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -111,12 +112,12 @@ func (s *passkeyService) HasPasskey(ctx context.Context, userID uint) bool {
 // BeginRegistration 生成注册选项，challenge 存 Redis（以 userID 为 key）。
 func (s *passkeyService) BeginRegistration(ctx context.Context, userID uint) (map[string]any, error) {
 	if s.HasPasskey(ctx, userID) {
-		return nil, errs.ErrPasskeyExists
+		return nil, passkeyerrs.ErrPasskeyExists
 	}
 
 	dbUser, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil || dbUser == nil {
-		return nil, errs.ErrUserNotFound
+		return nil, usererrs.ErrUserNotFound
 	}
 
 	user := passkeyUser{userID: userID, username: dbUser.Username}
@@ -151,12 +152,12 @@ func (s *passkeyService) FinishRegistration(ctx context.Context, userID uint, re
 
 	parsed, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(string(body)))
 	if err != nil {
-		return fmt.Errorf("%w: %v", errs.ErrInvalidPasskey, err)
+		return fmt.Errorf("%w: %v", passkeyerrs.ErrInvalidPasskey, err)
 	}
 
 	credential, err := s.webauthn.CreateCredential(passkeyUser{userID: userID}, *session, parsed)
 	if err != nil {
-		return fmt.Errorf("%w: %v", errs.ErrInvalidPasskey, err)
+		return fmt.Errorf("%w: %v", passkeyerrs.ErrInvalidPasskey, err)
 	}
 
 	cred := &model.PasskeyCredential{
@@ -202,7 +203,7 @@ func (s *passkeyService) FinishLogin(ctx context.Context, response map[string]an
 
 	cred, err := s.passkeyRepo.GetByCredentialID(ctx, credentialID)
 	if err != nil || cred == nil {
-		return nil, errs.ErrPasskeyNotFound
+		return nil, passkeyerrs.ErrPasskeyNotFound
 	}
 
 	// 解析响应以获取 challenge（与 Python 从 clientDataJSON 解析 challenge 对齐）。
@@ -212,7 +213,7 @@ func (s *passkeyService) FinishLogin(ctx context.Context, response map[string]an
 	}
 	parsed, err := protocol.ParseCredentialRequestResponseBody(strings.NewReader(string(body)))
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errs.ErrInvalidPasskey, err)
+		return nil, fmt.Errorf("%w: %v", passkeyerrs.ErrInvalidPasskey, err)
 	}
 	challenge := parsed.Response.CollectedClientData.Challenge
 
@@ -226,7 +227,7 @@ func (s *passkeyService) FinishLogin(ctx context.Context, response map[string]an
 	// 将已查出的凭证传入 handler,避免 ValidatePasskeyLogin 回调内重复查询。
 	_, _, err = s.webauthn.ValidatePasskeyLogin(s.discoverableHandler(cred), *session, parsed)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errs.ErrInvalidPasskey, err)
+		return nil, fmt.Errorf("%w: %v", passkeyerrs.ErrInvalidPasskey, err)
 	}
 
 	// 更新 sign count
@@ -235,7 +236,7 @@ func (s *passkeyService) FinishLogin(ctx context.Context, response map[string]an
 	}
 
 	if cred.User == nil {
-		return nil, errs.ErrUserNotFound
+		return nil, usererrs.ErrUserNotFound
 	}
 	return cred.User, nil
 }
@@ -244,7 +245,7 @@ func (s *passkeyService) FinishLogin(ctx context.Context, response map[string]an
 func (s *passkeyService) DeletePasskey(ctx context.Context, userID uint) error {
 	cred, err := s.passkeyRepo.GetByUserID(ctx, userID)
 	if err != nil || cred == nil {
-		return errs.ErrPasskeyNotFound
+		return passkeyerrs.ErrPasskeyNotFound
 	}
 	return s.passkeyRepo.Delete(ctx, cred)
 }
@@ -278,11 +279,11 @@ func (s *passkeyService) storeRegistrationSession(ctx context.Context, userID ui
 
 func (s *passkeyService) getRegistrationSession(ctx context.Context, userID uint) (*webauthn.SessionData, error) {
 	if s.redis == nil {
-		return nil, errs.ErrInvalidPasskey
+		return nil, passkeyerrs.ErrInvalidPasskey
 	}
 	data, err := s.redis.Get(ctx, registrationKeyPrefix+fmt.Sprintf("%d", userID)).Bytes()
 	if err != nil {
-		return nil, errs.ErrInvalidPasskey
+		return nil, passkeyerrs.ErrInvalidPasskey
 	}
 	var session webauthn.SessionData
 	if err := json.Unmarshal(data, &session); err != nil {
@@ -308,11 +309,11 @@ func (s *passkeyService) storeAuthenticationSession(ctx context.Context, challen
 
 func (s *passkeyService) getAuthenticationSession(ctx context.Context, challenge string) (*webauthn.SessionData, error) {
 	if s.redis == nil {
-		return nil, errs.ErrInvalidPasskey
+		return nil, passkeyerrs.ErrInvalidPasskey
 	}
 	data, err := s.redis.Get(ctx, authenticationKeyPrefix+challenge).Bytes()
 	if err != nil {
-		return nil, errs.ErrInvalidPasskey
+		return nil, passkeyerrs.ErrInvalidPasskey
 	}
 	var session webauthn.SessionData
 	if err := json.Unmarshal(data, &session); err != nil {
@@ -333,7 +334,7 @@ func (s *passkeyService) deleteAuthenticationSession(ctx context.Context, challe
 func extractCredentialID(response map[string]any) (string, error) {
 	id, ok := response["id"].(string)
 	if !ok || id == "" {
-		return "", errs.ErrInvalidPasskey
+		return "", passkeyerrs.ErrInvalidPasskey
 	}
 	return id, nil
 }

@@ -14,7 +14,7 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -171,7 +171,7 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_InvalidCredentials(t *testing.T) {
 	svc := &mockUserService{
 		authenticateFn: func(ctx context.Context, username, password string) (*model.User, error) {
-			return nil, errs.ErrInvalidCredentials
+			return nil, usererrs.ErrInvalidCredentials
 		},
 	}
 	h := NewUserHandler(svc, config.Cfg)
@@ -251,7 +251,7 @@ func TestRegister_Success(t *testing.T) {
 func TestRegister_UserExists(t *testing.T) {
 	svc := &mockUserService{
 		createUserFn: func(ctx context.Context, username, password, email, emailCode, avatarURL string) (*model.User, *model.Profile, error) {
-			return nil, nil, errs.ErrUserExists
+			return nil, nil, usererrs.ErrUserExists
 		},
 	}
 	h := NewUserHandler(svc, config.Cfg)
@@ -271,7 +271,7 @@ func TestRegister_UserExists(t *testing.T) {
 func TestRegister_EmailExists(t *testing.T) {
 	svc := &mockUserService{
 		createUserFn: func(ctx context.Context, username, password, email, emailCode, avatarURL string) (*model.User, *model.Profile, error) {
-			return nil, nil, errs.ErrEmailExists
+			return nil, nil, usererrs.ErrEmailExists
 		},
 	}
 	h := NewUserHandler(svc, config.Cfg)
@@ -291,7 +291,7 @@ func TestRegister_EmailExists(t *testing.T) {
 func TestRegister_InvalidEmailCode(t *testing.T) {
 	svc := &mockUserService{
 		createUserFn: func(ctx context.Context, username, password, email, emailCode, avatarURL string) (*model.User, *model.Profile, error) {
-			return nil, nil, errs.ErrInvalidEmailCode
+			return nil, nil, usererrs.ErrInvalidEmailCode
 		},
 	}
 	h := NewUserHandler(svc, config.Cfg)
@@ -347,7 +347,7 @@ func TestMe_Success(t *testing.T) {
 func TestMe_UserNotFound(t *testing.T) {
 	svc := &mockUserService{
 		getByIDFn: func(ctx context.Context, userID uint) (*model.User, *model.Profile, error) {
-			return nil, nil, errs.ErrUserNotFound
+			return nil, nil, usererrs.ErrUserNotFound
 		},
 	}
 	h := NewUserHandler(svc, config.Cfg)
@@ -411,7 +411,7 @@ func TestRefreshToken_Success(t *testing.T) {
 func TestRefreshToken_InvalidToken(t *testing.T) {
 	svc := &mockUserService{
 		refreshFn: func(ctx context.Context, refreshToken string) (*dto.TokensResponse, error) {
-			return nil, errs.ErrInvalidToken
+			return nil, usererrs.ErrInvalidToken
 		},
 	}
 	h := NewUserHandler(svc, config.Cfg)

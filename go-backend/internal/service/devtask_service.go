@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/devtask/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 	"github.com/KanoCifer/kuroome-blog/internal/repository/mongodb"
 )
@@ -343,12 +343,12 @@ func (s *DevTaskService) ArchiveDoneTasks(ctx context.Context) (int64, error) {
 // 不阻塞返回。withParent=false 跳过第二次查询。
 func (s *DevTaskService) GetBySlug(ctx context.Context, slug string, withParent bool) (*dto.DevTaskResponse, error) {
 	if slug == "" {
-		return nil, errs.ErrTaskNotFound
+		return nil, devtaskerrs.ErrTaskNotFound
 	}
 	task, err := s.repo.GetBySlug(ctx, slug)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errs.ErrTaskNotFound
+			return nil, devtaskerrs.ErrTaskNotFound
 		}
 		slog.Error("get dev task by slug", "error", err, "slug", slug)
 		return nil, err

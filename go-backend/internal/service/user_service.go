@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/pkg/jwt"
 	"github.com/KanoCifer/kuroome-blog/pkg/notification"
@@ -86,7 +86,7 @@ func (s *userService) GetByID(ctx context.Context, userID uint) (*model.User, *m
 		return nil, nil, err
 	}
 	if u == nil {
-		return nil, nil, errs.ErrUserNotFound
+		return nil, nil, usererrs.ErrUserNotFound
 	}
 	return u, u.Profile, nil
 }
@@ -106,15 +106,15 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 
 func (s *userService) CreateUser(ctx context.Context, username, password, email, emailCode, avatarURL string) (*model.User, *model.Profile, error) {
 	if s.repo.UsernameExists(ctx, username) {
-		return nil, nil, errs.ErrUserExists
+		return nil, nil, usererrs.ErrUserExists
 	}
 	if email != "" && s.repo.EmailExists(ctx, email) {
-		return nil, nil, errs.ErrEmailExists
+		return nil, nil, usererrs.ErrEmailExists
 	}
 
 	if emailCode != "" {
 		if !s.verifyEmailCode(ctx, email, emailCode) {
-			return nil, nil, errs.ErrInvalidEmailCode
+			return nil, nil, usererrs.ErrInvalidEmailCode
 		}
 	}
 
@@ -174,10 +174,10 @@ func (s *userService) Authenticate(ctx context.Context, username, password strin
 		return nil, err
 	}
 	if u == nil {
-		return nil, errs.ErrInvalidCredentials
+		return nil, usererrs.ErrInvalidCredentials
 	}
 	if !s.CheckPassword(u, password) {
-		return nil, errs.ErrInvalidCredentials
+		return nil, usererrs.ErrInvalidCredentials
 	}
 	return u, nil
 }
@@ -212,18 +212,18 @@ func (s *userService) CreateTokens(ctx context.Context, u *model.User) (*dto.Tok
 func (s *userService) RefreshTokens(ctx context.Context, refreshToken string) (*dto.TokensResponse, error) {
 	claims, err := jwt.ParseToken(refreshToken)
 	if err != nil {
-		return nil, errs.ErrInvalidToken
+		return nil, usererrs.ErrInvalidToken
 	}
 	userID, err := parseUint(claims.Subject)
 	if err != nil {
-		return nil, errs.ErrInvalidToken
+		return nil, usererrs.ErrInvalidToken
 	}
 
 	// 校验 Redis 里存的和传入的是否一致（防止重放/盗用）
 	if s.redis != nil {
 		stored, err := s.redis.Get(ctx, "refresh:"+claims.Subject).Result()
 		if err != nil || stored != refreshToken {
-			return nil, errs.ErrInvalidToken
+			return nil, usererrs.ErrInvalidToken
 		}
 	}
 

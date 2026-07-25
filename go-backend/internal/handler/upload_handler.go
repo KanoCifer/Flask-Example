@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/upload/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
@@ -17,10 +17,10 @@ import (
 // uploadStatus 把上传领域错误映射到 HTTP 状态码：校验类 400，其余 500。
 func uploadStatus(err error) int {
 	switch {
-	case errors.Is(err, errs.ErrInvalidUploadType),
-		errors.Is(err, errs.ErrUnsupportedImageType),
-		errors.Is(err, errs.ErrImageTooLarge),
-		errors.Is(err, errs.ErrInvalidImageData):
+	case errors.Is(err, uploaderrs.ErrInvalidUploadType),
+		errors.Is(err, uploaderrs.ErrUnsupportedImageType),
+		errors.Is(err, uploaderrs.ErrImageTooLarge),
+		errors.Is(err, uploaderrs.ErrInvalidImageData):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
@@ -76,7 +76,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 	// 拒绝未知的非空上传类型：空串（无 type 字段）保持向后兼容走 generic，
 	// 仅 "blog" / "gallery" 被显式放行，其余（含 "avatar"、拼写错误、脏数据）返回 400。
 	if uploadType != "" && uploadType != "blog" && uploadType != "gallery" {
-		response.APIError(c, errs.ErrInvalidUploadType.Error(), uploadStatus(errs.ErrInvalidUploadType))
+		response.APIError(c, uploaderrs.ErrInvalidUploadType.Error(), uploadStatus(uploaderrs.ErrInvalidUploadType))
 		return
 	}
 

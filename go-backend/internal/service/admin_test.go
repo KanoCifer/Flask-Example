@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 	"github.com/KanoCifer/kuroome-blog/internal/repository/postgres"
@@ -29,7 +29,7 @@ func TestAdminService_UpdatePost_InvalidID(t *testing.T) {
 		Body:  ptr("b"),
 		ID:    "not-a-hex",
 	})
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -37,7 +37,7 @@ func TestAdminService_UpdatePost_InvalidID(t *testing.T) {
 func TestAdminService_DeletePost_InvalidID(t *testing.T) {
 	svc := &adminService{}
 	err := svc.DeletePost(context.Background(), "%%%")
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -174,7 +174,7 @@ func TestAdminService_DeletePost_NotFound(t *testing.T) {
 	svc := &adminService{repo: repo, redis: nil}
 
 	err := svc.DeletePost(context.Background(), "507f1f77bcf86cd799439011")
-	if !errors.Is(err, errs.ErrPostNotFound) {
+	if !errors.Is(err, blogerrs.ErrPostNotFound) {
 		t.Errorf("err = %v, want ErrPostNotFound", err)
 	}
 }
@@ -215,7 +215,7 @@ func TestAdminService_UpdatePost_NotFound(t *testing.T) {
 		Title: ptr("t"),
 		Body:  ptr("b"),
 	})
-	if !errors.Is(err, errs.ErrPostNotFound) {
+	if !errors.Is(err, blogerrs.ErrPostNotFound) {
 		t.Errorf("err = %v, want ErrPostNotFound", err)
 	}
 }

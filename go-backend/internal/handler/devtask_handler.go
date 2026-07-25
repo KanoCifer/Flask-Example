@@ -11,7 +11,7 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/devtask/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 	"github.com/KanoCifer/kuroome-blog/pkg/jwt"
@@ -60,7 +60,7 @@ func (h *DevTaskHandler) GetTaskBySlug(c *gin.Context) {
 	data, err := h.svc.GetBySlug(c.Request.Context(), slug, withParent)
 	if err != nil {
 		switch {
-		case errors.Is(err, errs.ErrTaskNotFound):
+		case errors.Is(err, devtaskerrs.ErrTaskNotFound):
 			response.APIError(c, err.Error(), http.StatusNotFound)
 		default:
 			slog.ErrorContext(c.Request.Context(), "get dev task by slug", "error", err, "slug", slug)

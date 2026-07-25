@@ -7,7 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 )
 
@@ -74,7 +74,7 @@ func TestBlogService_GetPost_InvalidID(t *testing.T) {
 	svc := newBlogService(&mockBlogRepo{})
 
 	_, err := svc.GetPost(context.Background(), "not-a-hex")
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -83,7 +83,7 @@ func TestBlogService_GetPost_EmptyID(t *testing.T) {
 	svc := newBlogService(&mockBlogRepo{})
 
 	_, err := svc.GetPost(context.Background(), "")
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -97,7 +97,7 @@ func TestBlogService_GetPost_NotFound(t *testing.T) {
 	svc := newBlogService(repo)
 
 	_, err := svc.GetPost(context.Background(), "507f1f77bcf86cd799439011")
-	if !errors.Is(err, errs.ErrPostNotFound) {
+	if !errors.Is(err, blogerrs.ErrPostNotFound) {
 		t.Errorf("err = %v, want ErrPostNotFound", err)
 	}
 }
@@ -128,7 +128,7 @@ func TestBlogService_LikePost_InvalidID(t *testing.T) {
 	svc := newBlogService(&mockBlogRepo{})
 
 	_, err := svc.LikePost(context.Background(), "")
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -137,7 +137,7 @@ func TestBlogService_LikePost_HexInvalid(t *testing.T) {
 	svc := newBlogService(&mockBlogRepo{})
 
 	_, err := svc.LikePost(context.Background(), "zzz")
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -165,7 +165,7 @@ func TestBlogService_IncrementViews_EmptyID(t *testing.T) {
 	svc := newBlogService(&mockBlogRepo{})
 
 	err := svc.IncrementViews(context.Background(), "")
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -195,7 +195,7 @@ func TestBlogService_ListPostsByTag_EmptyTag(t *testing.T) {
 	svc := newBlogService(&mockBlogRepo{})
 
 	_, err := svc.ListPostsByTag(context.Background(), "", 1, 10)
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }
@@ -204,7 +204,7 @@ func TestBlogService_ListPostsByTag_WhitespaceTag(t *testing.T) {
 	svc := newBlogService(&mockBlogRepo{})
 
 	_, err := svc.ListPostsByTag(context.Background(), "   ", 1, 10)
-	if !errors.Is(err, errs.ErrInvalidPostID) {
+	if !errors.Is(err, blogerrs.ErrInvalidPostID) {
 		t.Errorf("err = %v, want ErrInvalidPostID", err)
 	}
 }

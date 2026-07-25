@@ -10,7 +10,7 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 )
 
@@ -58,10 +58,10 @@ func (h *AdminHandler) UpdatePost(c *gin.Context) {
 	}
 	if err := h.adminSvc.UpdatePost(c.Request.Context(), req.ID, req); err != nil {
 		switch {
-		case errors.Is(err, errs.ErrPostNotFound):
+		case errors.Is(err, blogerrs.ErrPostNotFound):
 			slog.WarnContext(c.Request.Context(), "update post failed", "reason", "post_not_found", "post_id", req.ID)
 			response.APIError(c, err.Error(), 404)
-		case errors.Is(err, errs.ErrInvalidPostID):
+		case errors.Is(err, blogerrs.ErrInvalidPostID):
 			slog.WarnContext(c.Request.Context(), "update post failed", "reason", "invalid_post_id", "post_id", req.ID)
 			response.APIError(c, err.Error(), 400)
 		default:
@@ -78,10 +78,10 @@ func (h *AdminHandler) DeletePost(c *gin.Context) {
 	postID := c.Param("post_id")
 	if err := h.adminSvc.DeletePost(c.Request.Context(), postID); err != nil {
 		switch {
-		case errors.Is(err, errs.ErrPostNotFound):
+		case errors.Is(err, blogerrs.ErrPostNotFound):
 			slog.WarnContext(c.Request.Context(), "delete post failed", "reason", "post_not_found", "post_id", postID)
 			response.APIError(c, err.Error(), 404)
-		case errors.Is(err, errs.ErrInvalidPostID):
+		case errors.Is(err, blogerrs.ErrInvalidPostID):
 			slog.WarnContext(c.Request.Context(), "delete post failed", "reason", "invalid_post_id", "post_id", postID)
 			response.APIError(c, err.Error(), 400)
 		default:

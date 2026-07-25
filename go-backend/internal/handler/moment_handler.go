@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
@@ -17,8 +17,8 @@ import (
 // MomentHandler 处理 moment 资源的 HTTP 请求。
 //
 // 错误处理契约（与 devtask / blog 对齐）：
-//   - errs.ErrMomentNotFound   → 404
-//   - errs.ErrInvalidObjectID  → 400
+//   - momenterrs.ErrMomentNotFound   → 404
+//   - momenterrs.ErrInvalidObjectID  → 400
 //   - 其他                     → 500
 //
 // handler 不感知 mongo / bson —— 翻译工作在 service.translateRepoErr 完成。
@@ -63,9 +63,9 @@ func (h *MomentHandler) GetPublicMoment(c *gin.Context) {
 // respondGetErr 统一处理 Get / Update / Delete 路径的错误翻译 —— 避免重复写 4-case switch。
 func (h *MomentHandler) respondGetErr(c *gin.Context, err error, id, op string) {
 	switch {
-	case errors.Is(err, errs.ErrMomentNotFound):
+	case errors.Is(err, momenterrs.ErrMomentNotFound):
 		response.APIError(c, err.Error(), http.StatusNotFound)
-	case errors.Is(err, errs.ErrInvalidObjectID):
+	case errors.Is(err, momenterrs.ErrInvalidObjectID):
 		response.APIError(c, err.Error(), http.StatusBadRequest)
 	default:
 		slog.ErrorContext(c.Request.Context(), op, "error", err, "id", id)

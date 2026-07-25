@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/middleware"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 )
@@ -56,9 +56,9 @@ func (h *BlogHandler) GetBlogPost(c *gin.Context) {
 	data, err := h.blogSvc.GetPost(c.Request.Context(), _id)
 	if err != nil {
 		switch {
-		case errors.Is(err, errs.ErrInvalidPostID):
+		case errors.Is(err, blogerrs.ErrInvalidPostID):
 			response.APIError(c, err.Error(), http.StatusBadRequest)
-		case errors.Is(err, errs.ErrPostNotFound):
+		case errors.Is(err, blogerrs.ErrPostNotFound):
 			response.APIError(c, err.Error(), http.StatusNotFound)
 		default:
 			slog.ErrorContext(c.Request.Context(), "get blog post", "error", err)
@@ -92,7 +92,7 @@ func (h *BlogHandler) GetPostsByTag(c *gin.Context) {
 
 	data, err := h.blogSvc.ListPostsByTag(c.Request.Context(), tag, page, perPage)
 	if err != nil {
-		if errors.Is(err, errs.ErrInvalidPostID) {
+		if errors.Is(err, blogerrs.ErrInvalidPostID) {
 			response.APIError(c, "Tag is required", http.StatusBadRequest)
 			return
 		}
@@ -110,9 +110,9 @@ func (h *BlogHandler) LikePost(c *gin.Context) {
 	likes, err := h.blogSvc.LikePost(c.Request.Context(), id)
 	if err != nil {
 		switch {
-		case errors.Is(err, errs.ErrInvalidPostID):
+		case errors.Is(err, blogerrs.ErrInvalidPostID):
 			response.APIError(c, err.Error(), http.StatusBadRequest)
-		case errors.Is(err, errs.ErrPostNotFound):
+		case errors.Is(err, blogerrs.ErrPostNotFound):
 			response.APIError(c, err.Error(), http.StatusNotFound)
 		default:
 			slog.ErrorContext(c.Request.Context(), "like post", "error", err, "id", id)

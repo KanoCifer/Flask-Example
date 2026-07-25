@@ -13,7 +13,7 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/devtask/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
@@ -272,7 +272,7 @@ func TestDevTask_GetTaskBySlug_Success(t *testing.T) {
 func TestDevTask_GetTaskBySlug_NotFound(t *testing.T) {
 	svc := &mockDevTaskService{
 		getBySlugFn: func(ctx context.Context, slug string, withParent bool) (*dto.DevTaskResponse, error) {
-			return nil, errs.ErrTaskNotFound
+			return nil, devtaskerrs.ErrTaskNotFound
 		},
 	}
 	r := newDevTaskHandler(svc)

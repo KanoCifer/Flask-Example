@@ -13,7 +13,7 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
 )
 
 func init() {
@@ -148,7 +148,7 @@ func TestAdmin_AddPost_InvalidBody(t *testing.T) {
 
 func TestAdmin_UpdatePost_InvalidID(t *testing.T) {
 	svc := &mockAdminService{
-		updatePostFn: func(ctx context.Context, id string, post dto.PostUpdate) error { return errs.ErrInvalidPostID },
+		updatePostFn: func(ctx context.Context, id string, post dto.PostUpdate) error { return blogerrs.ErrInvalidPostID },
 	}
 	_, r := newAdminHandler(svc)
 	w, req := putJSON(t, "/v3/post/update", postUpdate("bad-id", "t", "b"))
@@ -162,7 +162,7 @@ func TestAdmin_UpdatePost_InvalidID(t *testing.T) {
 func TestAdmin_UpdatePost_NotFound(t *testing.T) {
 	svc := &mockAdminService{
 		updatePostFn: func(ctx context.Context, id string, post dto.PostUpdate) error {
-			return errs.ErrPostNotFound
+			return blogerrs.ErrPostNotFound
 		},
 	}
 	_, r := newAdminHandler(svc)
@@ -209,7 +209,7 @@ func TestAdmin_UpdatePost_ServerError(t *testing.T) {
 // ---------- DeletePost ----------
 
 func TestAdmin_DeletePost_InvalidID(t *testing.T) {
-	svc := &mockAdminService{deletePostFn: func(ctx context.Context, id string) error { return errs.ErrInvalidPostID }}
+	svc := &mockAdminService{deletePostFn: func(ctx context.Context, id string) error { return blogerrs.ErrInvalidPostID }}
 	_, r := newAdminHandler(svc)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodDelete, "/v3/post/bad-id/delete", nil)
@@ -221,7 +221,7 @@ func TestAdmin_DeletePost_InvalidID(t *testing.T) {
 }
 
 func TestAdmin_DeletePost_NotFound(t *testing.T) {
-	svc := &mockAdminService{deletePostFn: func(ctx context.Context, id string) error { return errs.ErrPostNotFound }}
+	svc := &mockAdminService{deletePostFn: func(ctx context.Context, id string) error { return blogerrs.ErrPostNotFound }}
 	_, r := newAdminHandler(svc)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodDelete, "/v3/post/507f1f77bcf86cd799439011/delete", nil)

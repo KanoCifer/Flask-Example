@@ -12,8 +12,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/passkey/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -135,7 +135,7 @@ func TestRegistrationOptions_Success(t *testing.T) {
 func TestRegistrationOptions_AlreadyExists(t *testing.T) {
 	svc := &mockPasskeyService{
 		beginRegistrationFn: func(ctx context.Context, userID uint) (map[string]any, error) {
-			return nil, errs.ErrPasskeyExists
+			return nil, passkeyerrs.ErrPasskeyExists
 		},
 	}
 	h := NewPasskeyHandler(svc, nil, config.Cfg)
@@ -168,7 +168,7 @@ func TestPasskeyRegister_Success(t *testing.T) {
 func TestPasskeyRegister_InvalidResponse(t *testing.T) {
 	svc := &mockPasskeyService{
 		finishRegistrationFn: func(ctx context.Context, userID uint, response map[string]any) error {
-			return errs.ErrInvalidPasskey
+			return passkeyerrs.ErrInvalidPasskey
 		},
 	}
 	h := NewPasskeyHandler(svc, nil, config.Cfg)
@@ -240,7 +240,7 @@ func TestAuthenticate_Success(t *testing.T) {
 func TestAuthenticate_InvalidPasskey(t *testing.T) {
 	svc := &mockPasskeyService{
 		finishLoginFn: func(ctx context.Context, response map[string]any) (*model.User, error) {
-			return nil, errs.ErrInvalidPasskey
+			return nil, passkeyerrs.ErrInvalidPasskey
 		},
 	}
 	h := NewPasskeyHandler(svc, nil, config.Cfg)
@@ -273,7 +273,7 @@ func TestDeletePasskey_Success(t *testing.T) {
 func TestDeletePasskey_NotFound(t *testing.T) {
 	svc := &mockPasskeyService{
 		deletePasskeyFn: func(ctx context.Context, userID uint) error {
-			return errs.ErrPasskeyNotFound
+			return passkeyerrs.ErrPasskeyNotFound
 		},
 	}
 	h := NewPasskeyHandler(svc, nil, config.Cfg)

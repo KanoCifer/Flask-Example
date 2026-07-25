@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -146,11 +146,11 @@ func (r *MomentRepo) ListAdmin(
 }
 
 // GetByIDAdmin 按 hex ID 查单条 moment，包含软删的文档（管理员视图）。
-// ID 非法 → errs.ErrInvalidObjectID；不存在 → mongo.ErrNoDocuments（service 翻译）。
+// ID 非法 → momenterrs.ErrInvalidObjectID；不存在 → mongo.ErrNoDocuments（service 翻译）。
 func (r *MomentRepo) GetByIDAdmin(ctx context.Context, id string) (*document.Moment, error) {
 	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, errs.ErrInvalidObjectID
+		return nil, momenterrs.ErrInvalidObjectID
 	}
 	var m document.Moment
 	if err := r.coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&m); err != nil {
@@ -187,28 +187,28 @@ func (r *MomentRepo) GetByID(ctx context.Context, id string) (*document.Moment, 
 	return &m, nil
 }
 
-// Update 部分更新；MatchedCount==0（文档不存在）→ 翻译成 errs.ErrMomentNotFound。
+// Update 部分更新；MatchedCount==0（文档不存在）→ 翻译成 momenterrs.ErrMomentNotFound。
 func (r *MomentRepo) Update(ctx context.Context, id string, fields bson.M) error {
 	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return errs.ErrInvalidObjectID
+		return momenterrs.ErrInvalidObjectID
 	}
 	res, err := r.coll.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": fields})
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errs.ErrMomentNotFound
+		return momenterrs.ErrMomentNotFound
 	}
 	return nil
 }
 
 // SoftDelete 软删：filter 同时排除已删除的文档，避免重复设置 deleted_at。
-// MatchedCount==0（不存在或已删除）→ errs.ErrMomentNotFound。
+// MatchedCount==0（不存在或已删除）→ momenterrs.ErrMomentNotFound。
 func (r *MomentRepo) SoftDelete(ctx context.Context, id string) error {
 	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return errs.ErrInvalidObjectID
+		return momenterrs.ErrInvalidObjectID
 	}
 	res, err := r.coll.UpdateOne(ctx,
 		bson.M{"_id": oid, "deleted_at": nil},
@@ -217,23 +217,23 @@ func (r *MomentRepo) SoftDelete(ctx context.Context, id string) error {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errs.ErrMomentNotFound
+		return momenterrs.ErrMomentNotFound
 	}
 	return nil
 }
 
-// HardDelete 物理删除；DeletedCount==0 → errs.ErrMomentNotFound。
+// HardDelete 物理删除；DeletedCount==0 → momenterrs.ErrMomentNotFound。
 func (r *MomentRepo) HardDelete(ctx context.Context, id string) error {
 	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return errs.ErrInvalidObjectID
+		return momenterrs.ErrInvalidObjectID
 	}
 	res, err := r.coll.DeleteOne(ctx, bson.M{"_id": oid})
 	if err != nil {
 		return err
 	}
 	if res.DeletedCount == 0 {
-		return errs.ErrMomentNotFound
+		return momenterrs.ErrMomentNotFound
 	}
 	return nil
 }

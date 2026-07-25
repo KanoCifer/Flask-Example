@@ -22,7 +22,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/github/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -102,7 +102,7 @@ func randomState() (string, error) {
 // 返回的 URL 应由 handler 发起 302 重定向。
 func (g *GitHubOAuth) AuthURL(ctx context.Context, mode string, userID uint) (string, error) {
 	if g.clientID == "" {
-		return "", errs.ErrGitHubNotConfigured
+		return "", githuberrs.ErrGitHubNotConfigured
 	}
 	state, err := randomState()
 	if err != nil {
@@ -139,11 +139,11 @@ func (g *GitHubOAuth) AuthURL(ctx context.Context, mode string, userID uint) (st
 func (g *GitHubOAuth) HandleCallback(ctx context.Context, state, code string) (*model.User, *dto.TokensResponse, error) {
 	// 1. 校验 state
 	if state == "" || code == "" {
-		return nil, nil, errs.ErrInvalidOAuthState
+		return nil, nil, githuberrs.ErrInvalidOAuthState
 	}
 	userIDVal, err := g.redis.Get(ctx, statePrefix+state).Result()
 	if err != nil {
-		return nil, nil, errs.ErrInvalidOAuthState
+		return nil, nil, githuberrs.ErrInvalidOAuthState
 	}
 	g.redis.Del(ctx, statePrefix+state) // 一次性
 	userID, _ := strconv.ParseUint(userIDVal, 10, 64)
@@ -208,7 +208,7 @@ func (g *GitHubOAuth) bindGitHub(ctx context.Context, userID uint, gh *ghUser) (
 		return nil, nil, err
 	}
 	if existing != nil {
-		return nil, nil, errs.ErrGitHubAlreadyBound
+		return nil, nil, githuberrs.ErrGitHubAlreadyBound
 	}
 	if err := g.userRepo.SetGithubID(ctx, userID, gh.ID); err != nil {
 		return nil, nil, err

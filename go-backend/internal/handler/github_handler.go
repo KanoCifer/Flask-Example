@@ -10,7 +10,8 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/github/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/util"
@@ -73,13 +74,13 @@ func (h *GitHubHandler) Callback(c *gin.Context) {
 	_, tokens, err := h.githubSvc.HandleCallback(c.Request.Context(), state, code)
 	if err != nil {
 		switch {
-		case errors.Is(err, errs.ErrInvalidOAuthState):
+		case errors.Is(err, githuberrs.ErrInvalidOAuthState):
 			slog.WarnContext(c.Request.Context(), "github callback failed", "reason", "invalid_oauth_state")
 			redirectWithError(c, h.cfg, "invalid_oauth_state")
-		case errors.Is(err, errs.ErrUserNotFound):
+		case errors.Is(err, usererrs.ErrUserNotFound):
 			slog.WarnContext(c.Request.Context(), "github callback failed", "reason", "user_not_found")
 			redirectWithError(c, h.cfg, "user_not_found")
-		case errors.Is(err, errs.ErrGitHubAlreadyBound):
+		case errors.Is(err, githuberrs.ErrGitHubAlreadyBound):
 			slog.WarnContext(c.Request.Context(), "github callback failed", "reason", "github_already_bound")
 			redirectWithError(c, h.cfg, "github_already_bound")
 		default:

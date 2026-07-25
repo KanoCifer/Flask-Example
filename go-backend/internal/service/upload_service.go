@@ -21,7 +21,8 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/upload/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/util"
 )
@@ -101,7 +102,7 @@ func (s *uploadService) UploadFile(ctx context.Context, userID uint, filename st
 // 与 Python 端 save_upload_image 行为一致：校验 content-type + 大小限制，不缩略。
 func (s *uploadService) UploadBlogImage(ctx context.Context, userID uint, filename, contentType string, src io.Reader) (string, error) {
 	if !slices.Contains(allowedImageTypes, contentType) {
-		return "", errs.ErrUnsupportedImageType
+		return "", uploaderrs.ErrUnsupportedImageType
 	}
 
 	// 从已校验的 Content-Type 派生安全后缀，不信任用户文件名。
@@ -120,7 +121,7 @@ func (s *uploadService) UploadBlogImage(ctx context.Context, userID uint, filena
 // 与 Python 端 save_upload_image 行为一致：校验 content-type + 大小限制，不缩略。
 func (s *uploadService) UploadGalleryImage(ctx context.Context, userID uint, filename, contentType string, src io.Reader) (string, error) {
 	if !slices.Contains(allowedImageTypes, contentType) {
-		return "", errs.ErrUnsupportedImageType
+		return "", uploaderrs.ErrUnsupportedImageType
 	}
 
 	// 从已校验的 Content-Type 派生安全后缀，不信任用户文件名。
@@ -139,7 +140,7 @@ func (s *uploadService) UploadGalleryImage(ctx context.Context, userID uint, fil
 // 返回缩略图相对路径（如 pics/1/xxx-256.jpg）。
 func (s *uploadService) UploadAvatar(ctx context.Context, userID uint, filename, contentType string, src io.Reader) (string, error) {
 	if !slices.Contains(allowedImageTypes, contentType) {
-		return "", errs.ErrUnsupportedImageType
+		return "", uploaderrs.ErrUnsupportedImageType
 	}
 
 	img, format, err := util.DecodeImage(src, s.maxBytes())
@@ -181,7 +182,7 @@ func (s *uploadService) updatePhoto(ctx context.Context, userID uint, photoRel s
 		return err
 	}
 	if u == nil {
-		return errs.ErrUserNotFound
+		return usererrs.ErrUserNotFound
 	}
 
 	p := u.Profile

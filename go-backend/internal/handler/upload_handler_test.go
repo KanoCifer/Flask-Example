@@ -15,7 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/KanoCifer/kuroome-blog/internal/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/domain/upload/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
@@ -170,7 +170,7 @@ func TestUpload_SvcError(t *testing.T) {
 func TestUpload_BlogType(t *testing.T) {
 	up := &mockUpload{
 		blogFn: func(ctx context.Context, userID uint, filename, contentType string, src io.Reader) (string, error) {
-			return "", errs.ErrUnsupportedImageType
+			return "", uploaderrs.ErrUnsupportedImageType
 		},
 	}
 	r := setupUpload(t, up, nil)
@@ -238,7 +238,7 @@ func TestUploadPic_Success(t *testing.T) {
 func TestUploadPic_SvcBadRequest(t *testing.T) {
 	up := &mockUpload{
 		avatarFn: func(ctx context.Context, userID uint, filename, contentType string, src io.Reader) (string, error) {
-			return "", errs.ErrImageTooLarge
+			return "", uploaderrs.ErrImageTooLarge
 		},
 	}
 	r := setupUpload(t, up, nil)
