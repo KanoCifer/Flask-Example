@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -106,6 +107,7 @@ func (s *MomentService) Create(
 		return nil, err
 	}
 
+	slog.InfoContext(ctx, "moment created", "user_id", userID, "visibility", m.Visibility)
 	out := dto.ToMomentResponse(*m)
 	return &out, nil
 }

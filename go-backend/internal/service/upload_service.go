@@ -14,6 +14,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -95,6 +96,7 @@ func (s *uploadService) UploadFile(ctx context.Context, userID uint, filename st
 	if err := util.WriteFile(full, src, s.maxBytes()); err != nil {
 		return "", err
 	}
+	slog.InfoContext(ctx, "file uploaded", "user_id", userID, "rel", rel, "kind", "file")
 	return rel, nil
 }
 
@@ -114,6 +116,7 @@ func (s *uploadService) UploadBlogImage(ctx context.Context, userID uint, filena
 	if err := util.WriteFile(full, src, s.maxBytes()); err != nil {
 		return "", err
 	}
+	slog.InfoContext(ctx, "image uploaded", "user_id", userID, "rel", rel, "kind", "blog")
 	return rel, nil
 }
 
@@ -133,6 +136,7 @@ func (s *uploadService) UploadGalleryImage(ctx context.Context, userID uint, fil
 	if err := util.WriteFile(full, src, s.maxBytes()); err != nil {
 		return "", err
 	}
+	slog.InfoContext(ctx, "image uploaded", "user_id", userID, "rel", rel, "kind", "gallery")
 	return rel, nil
 }
 
@@ -172,6 +176,7 @@ func (s *uploadService) UploadAvatar(ctx context.Context, userID uint, filename,
 	if err := s.updatePhoto(ctx, userID, filepath.ToSlash(photoRel)); err != nil {
 		return "", err
 	}
+	slog.InfoContext(ctx, "avatar uploaded", "user_id", userID, "rel", photoRel)
 	return photoRel, nil
 }
 

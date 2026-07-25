@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
@@ -98,7 +99,11 @@ func (s *FishService) UpdateFishingSpot(ctx context.Context, id string, spot *dt
 		return nil
 	}
 	data["updated_at"] = time.Now().UTC()
-	return s.repo.Update(ctx, id, data)
+	if err := s.repo.Update(ctx, id, data); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "fishing spot updated", "id", id)
+	return nil
 }
 
 func (s *FishService) CreateFishingSpot(ctx context.Context, spot *dto.FishingSpotRequest) error {
@@ -112,7 +117,11 @@ func (s *FishService) CreateFishingSpot(ctx context.Context, spot *dto.FishingSp
 		UpdatedAt:   time.Now().UTC(),
 		Images:      spot.Images,
 	}
-	return s.repo.Create(ctx, doc)
+	if err := s.repo.Create(ctx, doc); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "fishing spot created", "name", doc.Name)
+	return nil
 }
 
 // Delete 删除钓点 —— 默认软删（设 DeletedAt），hardDelete=true 时物理删除。
