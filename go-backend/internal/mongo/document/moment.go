@@ -5,26 +5,26 @@ import "time"
 type MomentVisibility string
 
 const (
-	MomentPublic   MomentVisibility = "PUBLIC"
-	MomentPrivate  MomentVisibility = "PRIVATE"
-	MomentUnlisted MomentVisibility = "UNLISTED"
+	MomentPublic   MomentVisibility = "public"
+	MomentPrivate  MomentVisibility = "private"
+	MomentUnlisted MomentVisibility = "unlisted"
 )
 
 type MomentStatus string
 
 const (
-	MomentPublished MomentStatus = "PUBLISHED"
-	MomentDraft     MomentStatus = "DRAFT"
-	MomentArchived  MomentStatus = "ARCHIVED"
+	MomentPublished MomentStatus = "published"
+	MomentDraft     MomentStatus = "draft"
+	MomentArchived  MomentStatus = "archived"
 )
 
 type MomentAttachmentType string
 
 const (
-	MomentAttachmentImage MomentAttachmentType = "IMAGE"
-	MomentAttachmentLink  MomentAttachmentType = "LINK"
-	MomentAttachmentBook  MomentAttachmentType = "BOOK"
-	MomentAttachmentQuote MomentAttachmentType = "QUOTE"
+	MomentAttachmentImage MomentAttachmentType = "image"
+	MomentAttachmentLink  MomentAttachmentType = "link"
+	MomentAttachmentBook  MomentAttachmentType = "book"
+	MomentAttachmentQuote MomentAttachmentType = "quote"
 )
 
 type MomentAttachment struct {
@@ -43,7 +43,7 @@ type MomentLocation struct {
 }
 
 type Moment struct {
-	ID           string             `bson:"_id,omitempty"`
+	ID           string             `bson:"_id,omitempty" json:"id"`
 	UserID       int                `bson:"user_id"`
 	Content      string             `bson:"content"`
 	Summary      *string            `bson:"summary"`

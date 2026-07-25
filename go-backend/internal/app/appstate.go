@@ -25,6 +25,7 @@ type AppState struct {
 	wsSvc       service.WSer
 	fishSvc     service.Fisher
 	uploadSvc   service.Uploader
+	momentSvc   service.Momenter
 }
 
 // NewAppState 组装所有 service，作为唯一的组合根入口。
@@ -67,6 +68,7 @@ func NewAppState(
 		),
 		fishSvc:   service.NewFishService(fishRepo),
 		uploadSvc: service.NewUploadService(userRepo, cfg),
+		momentSvc: service.NewMomentService(mongoDB),
 	}
 }
 
@@ -82,5 +84,6 @@ func (a *AppState) SystemSvc() service.Systemer        { return a.systemSvc }
 func (a *AppState) GitHubOAuth() service.GitHubOAuther { return a.githubOAuth }
 func (a *AppState) FishSvc() service.Fisher            { return a.fishSvc }
 func (a *AppState) UploadSvc() service.Uploader        { return a.uploadSvc }
+func (a *AppState) MomentSvc() service.Momenter        { return a.momentSvc }
 
 func (a *AppState) Cfg() *config.Config { return a.config }
