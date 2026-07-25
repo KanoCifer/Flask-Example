@@ -55,18 +55,22 @@ logger.bind(channel="feishu").warning("webhook url not configured, skip")
 
 下游 sink 按 `record["extra"]["channel"]` 等字段路由或过滤。
 
-## 5. Layer——在 service / task 层打，repo 默认不打
+## 5. Layer——service 记业务事件，handler 记边界失败
 
-业务日志记**业务事实与决策点**，不记数据操作。
+业务日志按"语义"分层，不按"数据操作"分层。**INFO/WARN 在 service，WARN/ERROR 在 handler**，repo 默认不打。
 
-| 层                 | 该记                                         | 不该记                                       |
-| ------------------ | -------------------------------------------- | -------------------------------------------- |
-| **service / task** | 业务动作的开始/完成/失败、编排结果、降级决策 | —                                            |
-| **repo**           | 容错决策（重试/兜底）、吞异常留痕（warning） | INSERT/SELECT 等数据操作、把异常细节重复一遍 |
+| 层                 | 该记                                                                 | 不该记                                       |
+| ------------------ | -------------------------------------------------------------------- | -------------------------------------------- |
+| **service / task** | 业务动作的**完成**（INFO：user login、post created、passkey registered）+ 软失败/降级（WARN：内部 lookup 失败但不阻塞返回） | 来自 repo 的 ERROR——错误上抛，由 handler 在边界记 |
+| **handler**        | 边界决策：**WARN**（4xx：参数错、鉴权失败、资源不存在）+ **ERROR**（5xx：内部错误、repo 错误上抛） | 业务 INFO——成功动作移到 service |
+| **repo**           | 容错决策（重试/兜底）、吞异常留痕（warning）                          | INSERT/SELECT 等数据操作、把异常细节重复一遍 |
 
+- "用户登录成功"由 service 记 INFO（"这是登录业务事件"），"登录校验失败 / repo 报错"由 handler 记 WARN/ERROR（"这是给客户端的边界响应"）。
+- service **不记** repo 失败的 ERROR——错误上抛给 handler 在边界统一记。重复记录同一 err 既不增加信息又稀释 trace_id 关联。
+- service **可以**记 WARN：场景是 service 自己吞掉了一个内部异常（例如"父任务找不到、仍返回子任务"），handler 看不见这个细节，service 留痕。
 - "迁移提交成功"记在 task/service 层（那里才有业务语境：这是"迁移"还是"用户注册" repo 不知道）。
 - repo 是实现细节，可换 ORM；日志绑死在 repo 层会跟着 SQL 翻译走，丢失业务语义。
-- 异常**记录责任在调用方**：repo 透传数据访问，commit 失败抛出，由 service/task 决定记什么、catch 还是 re-raise。
+- 异常**记录责任在调用方**：repo 透传数据访问，commit 失败抛出，由 handler 决定记什么（不 re-raise 时由 service 记 WARN）。
 - repo **唯一**该打 log 的两种情况：(1) 内部有重试/降级/缓存兜底等容错逻辑；(2) catch 后吞掉异常返回 None——吃了就得留痕，且只记 warning。
 
 ## 6. 串联——trace_id
