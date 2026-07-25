@@ -43,43 +43,43 @@ export interface MomentsGateway {
 export const momentsGateway = (): MomentsGateway => {
   return {
     async listPublic(params) {
-      return apiClient.get('v1/moments', { params }) as Promise<
+      return apiClient.get('v3/moments', { params }) as Promise<
         AxiosResponse<MomentListResponse>
       >;
     },
 
     async listAdmin(params) {
-      return apiClient.get('v1/moments/admin', { params }) as Promise<
+      return apiClient.get('v3/moments/admin', { params }) as Promise<
         AxiosResponse<MomentListResponse>
       >;
     },
 
     async get(id) {
-      return apiClient.get(`v1/moments/${id}`) as Promise<
+      return apiClient.get(`v3/moments/${id}`) as Promise<
         AxiosResponse<{ moment: Moment }>
       >;
     },
 
     async getAdmin(id) {
-      return apiClient.get(`v1/moments/admin/${id}`) as Promise<
+      return apiClient.get(`v3/moments/admin/${id}`) as Promise<
         AxiosResponse<{ moment: Moment }>
       >;
     },
 
     async create(payload) {
-      return apiClient.post('v1/moments', payload) as Promise<
+      return apiClient.post('v3/moments', payload) as Promise<
         AxiosResponse<{ moment: Moment }>
       >;
     },
 
     async update(id, payload) {
-      return apiClient.patch(`v1/moments/${id}`, payload) as Promise<
+      return apiClient.patch(`v3/moments/${id}`, payload) as Promise<
         AxiosResponse<{ moment: Moment }>
       >;
     },
 
     async remove(id) {
-      return apiClient.delete(`v1/moments/${id}`) as Promise<
+      return apiClient.delete(`v3/moments/${id}`) as Promise<
         AxiosResponse<void>
       >;
     },

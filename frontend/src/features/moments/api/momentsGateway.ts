@@ -21,7 +21,7 @@ export interface MomentsGateway {
 export const momentsGateway: MomentsGateway = {
   async listPublic(params) {
     const res = await apiClient.get<{ data: MomentListResponse }>(
-      'v1/moments',
+      'v3/moments',
       {
         params,
       },
@@ -31,7 +31,7 @@ export const momentsGateway: MomentsGateway = {
 
   async listAdmin(params) {
     const res = await apiClient.get<{ data: MomentListResponse }>(
-      'v1/moments/admin',
+      'v3/moments/admin',
       { params },
     );
     return res.data.data;
@@ -39,21 +39,21 @@ export const momentsGateway: MomentsGateway = {
 
   async get(id) {
     const res = await apiClient.get<{ data: { moment: Moment } }>(
-      `v1/moments/${id}`,
+      `v3/moments/${id}`,
     );
     return res.data.data;
   },
 
   async getAdmin(id) {
     const res = await apiClient.get<{ data: { moment: Moment } }>(
-      `v1/moments/admin/${id}`,
+      `v3/moments/admin/${id}`,
     );
     return res.data.data;
   },
 
   async create(payload) {
     const res = await apiClient.post<{ data: { moment: Moment } }>(
-      'v1/moments',
+      'v3/moments',
       payload,
     );
     return res.data.data;
@@ -61,13 +61,13 @@ export const momentsGateway: MomentsGateway = {
 
   async update(id, payload) {
     const res = await apiClient.patch<{ data: { moment: Moment } }>(
-      `v1/moments/${id}`,
+      `v3/moments/${id}`,
       payload,
     );
     return res.data.data;
   },
 
   async remove(id) {
-    await apiClient.delete(`v1/moments/${id}`);
+    await apiClient.delete(`v3/moments/${id}`);
   },
 };
