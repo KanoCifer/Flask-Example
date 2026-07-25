@@ -31,7 +31,7 @@ func (h *WSHandler) HandleWS(c *gin.Context) {
 	defer conn.Close(websocket.StatusNormalClosure, "Connection closed")
 
 	reqCtx := c.Request.Context()
-	slog.InfoContext(reqCtx, "websocket connected", "remote", c.Request.RemoteAddr)
+	slog.DebugContext(reqCtx, "websocket connected", "remote", c.Request.RemoteAddr)
 
 	readCtx, readCancel := context.WithTimeout(reqCtx, 10*time.Second)
 	defer readCancel()
@@ -39,7 +39,7 @@ func (h *WSHandler) HandleWS(c *gin.Context) {
 	var msg map[string]interface{}
 	if err := h.Svc.ReadMsg(readCtx, conn, &msg); err != nil {
 		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-			slog.InfoContext(reqCtx, "client closed before first message")
+			slog.DebugContext(reqCtx, "client closed before first message")
 		} else {
 			slog.ErrorContext(reqCtx, "failed to read first message", "error", err)
 		}
@@ -49,16 +49,18 @@ func (h *WSHandler) HandleWS(c *gin.Context) {
 	registered, err := h.Svc.HandleFirstMessage(readCtx, conn, msg)
 	if err != nil {
 		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-			slog.InfoContext(reqCtx, "client closed during handshake")
+			slog.DebugContext(reqCtx, "client closed during handshake")
 		} else {
 			slog.ErrorContext(reqCtx, "failed to handle first message", "error", err)
 		}
 		return
 	}
 
-	// 提取 visitor_id 用于断开时清理
+	// 提取 visitor_id 用于断开时清理。
+	// 'visitor registered' / 'visitor cleaned up' 由 ws_service 在边界记 INFO；
+	// 这里只留 Debug 行给连接握手阶段串 trace_id 排查。
 	visitorId, _ := msg["visitor_id"].(string)
-	slog.InfoContext(reqCtx, "visitor registered", "visitor_id", visitorId, "registered", registered)
+	slog.DebugContext(reqCtx, "visitor handshake complete", "visitor_id", visitorId, "registered", registered)
 
 	// 连接生命周期 context：任一 goroutine 结束即取消，驱动另一方退出
 	ctx, cancel := context.WithCancel(reqCtx)
@@ -72,16 +74,16 @@ func (h *WSHandler) HandleWS(c *gin.Context) {
 		errc <- h.Svc.WSReceiver(ctx, conn)
 	}()
 
-	slog.InfoContext(reqCtx, "ws goroutines started")
+	slog.DebugContext(reqCtx, "ws goroutines started", "visitor_id", visitorId)
 
 	// 等待任一任务结束（连接断开或出错），然后取消上下文让另一个也退出
 	<-errc
 	cancel()
 	<-errc
 
-	slog.InfoContext(reqCtx, "websocket disconnected", "visitor_id", visitorId)
+	slog.DebugContext(reqCtx, "websocket disconnected", "visitor_id", visitorId)
 
-	// 清理访客计数并广播更新
+	// 清理访客计数并广播更新（成功路径在 ws_service 记 INFO 'visitor cleaned up'）
 	if registered && visitorId != "" {
 		cleanupCtx, cleanupCancel := context.WithTimeout(reqCtx, 5*time.Second)
 		defer cleanupCancel()
@@ -93,7 +95,6 @@ func (h *WSHandler) HandleWS(c *gin.Context) {
 			slog.ErrorContext(reqCtx, "failed to broadcast count after disconnect", "error", err)
 			return
 		}
-		slog.InfoContext(reqCtx, "visitor cleaned up", "visitor_id", visitorId)
 	}
 }
 

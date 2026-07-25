@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"sync"
 
 	"github.com/coder/websocket"
@@ -43,7 +44,11 @@ func (s *WSService) addVisitor(ctx context.Context, visitorId string) error {
 	pipe.SAdd(ctx, visitorSetKey, visitorId)
 	pipe.HIncrBy(ctx, visitorHashKey, visitorId, 1)
 	_, err := pipe.Exec(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "visitor registered", "visitor_id", visitorId)
+	return nil
 }
 
 // shouldCleanupVisitor 在引用计数减一后判断是否应从集合移除。
@@ -61,8 +66,11 @@ func (s *WSService) RemoveVisitor(ctx context.Context, visitorId string) error {
 		pipe := s.redis.Pipeline()
 		pipe.SRem(ctx, visitorSetKey, visitorId)
 		pipe.HDel(ctx, visitorHashKey, visitorId)
-		_, err := pipe.Exec(ctx)
-		return err
+		if _, err := pipe.Exec(ctx); err != nil {
+			return err
+		}
+		slog.InfoContext(ctx, "visitor cleaned up", "visitor_id", visitorId)
+		return nil
 	}
 	return nil
 }
