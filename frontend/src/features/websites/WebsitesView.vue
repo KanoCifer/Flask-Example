@@ -17,7 +17,7 @@
           class="focus-visible:ring-ring inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-[background-color,color] duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:px-4 sm:text-[0.9375rem]"
           :class="
             activeSlug === opt.slug
-              ? 'bg-accent text-ink shadow-sm'
+              ? 'bg-accent text-contrast shadow-sm'
               : 'text-muted hover:bg-surface hover:text-ink'
           "
           @click="setCategory(opt.slug)"
@@ -25,7 +25,9 @@
           <span>{{ opt.label }}</span>
           <span
             class="text-xs tabular-nums"
-            :class="activeSlug === opt.slug ? 'text-ink/70' : 'text-muted/70'"
+            :class="
+              activeSlug === opt.slug ? 'text-contrast/70' : 'text-muted/70'
+            "
           >
             {{ opt.count }}
           </span>

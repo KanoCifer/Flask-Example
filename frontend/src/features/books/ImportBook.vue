@@ -154,11 +154,7 @@
         </div>
 
         <!-- Submit Button -->
-        <button
-          type="submit"
-          :disabled="loading"
-          class="bg-accent text-ink hover:bg-accent/90 focus:ring-accent w-full rounded-2xl px-6 py-4 text-base font-medium shadow-lg transition-all duration-300 hover:scale-[1.02] focus:ring-2 focus:ring-offset-2 focus:outline-none active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button size="lg" class="w-full" type="submit" :disabled="loading">
           <span v-if="loading" class="flex items-center justify-center gap-2">
             <span
               class="border-accent/30 border-t-accent h-4 w-4 animate-spin rounded-full border-2"
@@ -182,7 +178,7 @@
             </svg>
             保存 API Key
           </span>
-        </button>
+        </Button>
       </form>
     </div>
   </div>
@@ -190,7 +186,7 @@
 
 <script setup lang="ts">
 import { wereadGateway } from '@/features/books/api';
-import { FieldError } from '@/components';
+import { Button, FieldError } from '@/components';
 import { useNotificationStore } from '@/stores';
 import { computed, ref } from 'vue';
 

@@ -395,27 +395,6 @@ onUnmounted(() => {
       v-else-if="post"
       class="mx-auto max-w-4xl px-6 pt-8 pb-20 sm:pt-10"
     >
-      <!-- 管理员操作 -->
-      <div
-        v-if="showEditButton"
-        class="mb-8 flex items-center justify-end gap-2"
-      >
-        <router-link
-          :to="`/blog/${post._id}/edit`"
-          class="bg-surface text-ink hover:bg-surface/80 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
-        >
-          <EditIcon />
-          编辑
-        </router-link>
-        <button
-          @click="showDeleteDialog = true"
-          class="bg-destructive/10 text-destructive hover:bg-destructive/15 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
-        >
-          <DelIcon />
-          删除
-        </button>
-      </div>
-
       <!-- 封面置顶：主视觉先行 -->
       <figure v-if="post.cover" class="mb-10 overflow-hidden rounded-xl">
         <div class="bg-surface aspect-[16/9] w-full overflow-hidden">
@@ -455,9 +434,30 @@ onUnmounted(() => {
         </div>
 
         <h1
-          class="text-ink font-serif text-[clamp(1.875rem,5vw,2.5rem)] leading-[1.18] font-medium tracking-[-0.02em] text-balance"
+          class="text-ink flex items-center justify-between gap-2 font-serif text-[clamp(1.875rem,5vw,2.5rem)] leading-[1.18] font-medium tracking-[-0.02em] text-balance"
         >
           {{ post.title }}
+
+          <!-- 管理员操作 -->
+          <div
+            v-if="showEditButton"
+            class="mb-8 flex items-center justify-end gap-2"
+          >
+            <router-link
+              :to="`/blog/${post._id}/edit`"
+              class="bg-surface text-ink hover:bg-surface/80 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
+            >
+              <EditIcon />
+              编辑
+            </router-link>
+            <button
+              @click="showDeleteDialog = true"
+              class="bg-destructive/10 text-destructive hover:bg-destructive/15 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
+            >
+              <DelIcon />
+              删除
+            </button>
+          </div>
         </h1>
 
         <!-- Deck / standfirst — 阅读时长 + 字数 + 阅读量 + 可点击喜欢 -->

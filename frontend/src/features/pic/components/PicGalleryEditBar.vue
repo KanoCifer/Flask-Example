@@ -6,13 +6,17 @@
         variant="outline"
         size="sm"
         @click="$emit('toggle-edit')"
-        class="/60 h-9 gap-2 rounded-full px-4 shadow-sm transition-all duration-300"
+        class="h-9 gap-2 rounded-full px-4"
         :class="isEditMode ? 'bg-accent text-ink' : ''"
       >
         <component :is="isEditMode ? Check : Edit2" class="h-4 w-4" />
         {{ isEditMode ? '完成编辑' : '编辑模式' }}
       </Button>
-      <Button @click="$emit('shuffle')" size="md">
+      <Button
+        @click="$emit('shuffle')"
+        size="sm"
+        class="h-9 gap-2 rounded-full px-4"
+      >
         <Shuffle class="h-4 w-4" />
         重排
       </Button>

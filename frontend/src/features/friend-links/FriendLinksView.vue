@@ -57,20 +57,14 @@
             </div>
 
             <div class="flex shrink-0 items-center gap-3 sm:flex-col sm:gap-4">
-              <button
-                class="bg-accent text-ink hover:bg-accent/90 flex cursor-pointer items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95"
-                @click.stop="$router.push('/websites')"
-              >
+              <Button size="sm" @click.stop="$router.push('/websites')">
                 <IconExternalLink class="h-3.5 w-3.5" />
                 <span class="hidden sm:inline">看更多</span>
-              </button>
-              <button
-                class="bg-surface hover:bg-secondary text-muted hover:text-ink flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 active:scale-95"
-                @click.stop="refreshDailyPick"
-              >
+              </Button>
+              <Button size="sm" variant="ghost" @click.stop="refreshDailyPick">
                 <IconRefresh class="h-3.5 w-3.5" />
                 <span class="hidden sm:inline">换一个</span>
-              </button>
+              </Button>
             </div>
           </div>
         </Transition>
@@ -116,7 +110,7 @@
 
               <!-- 一键复制 -->
               <button
-                class="group bg-accent text-ink hover:bg-accent/90 flex shrink-0 cursor-pointer items-center rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95"
+                class="group bg-accent text-contrast hover:bg-accent/90 flex shrink-0 cursor-pointer items-center rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95"
                 @click="copySelfInfo"
               >
                 <IconCopy class="h-4 w-4" />
@@ -287,15 +281,15 @@
             </div>
 
             <!-- CTA -->
-            <a
-              href="https://github.com/KanoCifer/kuroome-blog/issues/1"
-              target="_blank"
+            <Button
+              size="lg"
+              @click="handleHref"
+              class="w-full"
               rel="noopener noreferrer"
-              class="bg-accent text-ink hover:bg-accent/90 flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95"
             >
               <IconExternalLink class="h-4 w-4" />
               前往 GitHub Issue 提交申请
-            </a>
+            </Button>
           </div>
         </div>
       </div>
@@ -309,7 +303,7 @@
 </template>
 
 <script setup lang="ts">
-import { BasicDetail, TagPill } from '@/components';
+import { BasicDetail, Button, TagPill } from '@/components';
 import { useFriendLinks } from '@/features/friend-links/composables';
 import { motion } from 'motion-v';
 import { SPRING_REVEAL, WHILE_IN_VIEW_FADE_UP, HOVER_LIFT } from '@/constants';
@@ -333,6 +327,11 @@ const {
   refreshDailyPick,
   copySelfInfo,
 } = useFriendLinks();
+
+const handleHref = (e: Event) => {
+  const href = 'https://github.com/KanoCifer/kuroome-blog/issues/1';
+  window.open(href, '_blank');
+};
 </script>
 
 <style scoped>

@@ -98,13 +98,15 @@
           <div class="mt-8 flex gap-3">
             <Button
               variant="outline"
-              class="flex-1 rounded-xl shadow-sm"
+              class="flex-1"
+              size="sm"
               @click="$emit('close')"
             >
               取消
             </Button>
             <Button
-              class="bg-accent text-ink hover:bg-accent/90 flex-1 rounded-xl shadow-md"
+              class="flex-1"
+              size="sm"
               :disabled="!canSubmit"
               @click="onConfirm"
             >

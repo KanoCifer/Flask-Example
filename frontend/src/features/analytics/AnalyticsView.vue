@@ -77,28 +77,6 @@
         </div>
       </div>
 
-      <!-- Error -->
-      <div v-if="error" class="col-span-1 mt-6 sm:col-span-2 lg:col-span-3">
-        <div
-          class="bg-destructive/5 border-destructive/20 text-destructive rounded-2xl border p-4"
-        >
-          <div class="flex items-center gap-2">
-            <svg
-              class="h-5 w-5 shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            {{ error }}
-          </div>
-        </div>
-      </div>
-
       <!-- Primary: 3 stat tiles + trend chart -->
       <div
         class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3"
@@ -107,16 +85,39 @@
             loading && !!overviewData,
         }"
       >
+        <!-- Error (spans full row inside the dashboard grid) -->
+        <div v-if="error" class="col-span-1 lg:col-span-3">
+          <div
+            class="bg-destructive/5 border-destructive/20 text-destructive rounded-2xl border p-4"
+          >
+            <div class="flex items-center gap-2">
+              <svg
+                class="h-5 w-5 shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              {{ error }}
+            </div>
+          </div>
+        </div>
+
+
         <!-- 3 stat tiles: align-baseline with matching heights -->
         <div class="col-span-1 lg:col-span-3">
-          <div v-if="loading && !overviewData" class="grid grid-cols-3 gap-4">
+          <div v-if="loading && !overviewData" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div
               v-for="i in 3"
               :key="i"
               class="bg-surface/50 h-24 animate-pulse rounded-2xl"
             ></div>
           </div>
-          <div v-else-if="overviewData" class="grid grid-cols-3 gap-4">
+          <div v-else-if="overviewData" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile
               label="总访问量"
               :value="overviewData.total_visits"
@@ -213,7 +214,7 @@
         </div>
 
         <!-- Secondary: Popular Pages -->
-        <div class="col-span-2">
+        <div class="col-span-1 lg:col-span-2">
           <PopularPagesChartCard
             :loading="loading"
             :overview-data="overviewData"
@@ -221,7 +222,7 @@
         </div>
 
         <!-- Secondary: Post Views -->
-        <div class="col-span-1">
+        <div class="col-span-1 lg:col-span-1">
           <PostViewsChartCard :loading="loading" :data="postViewsData" />
         </div>
 
