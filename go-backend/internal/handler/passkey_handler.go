@@ -81,7 +81,6 @@ func (h *PasskeyHandler) Register(c *gin.Context) {
 		response.APIError(c, err.Error(), 500)
 		return
 	}
-	slog.InfoContext(c.Request.Context(), "passkey registered", "user_id", userID)
 	response.Success(c, nil, "Passkey 注册成功")
 }
 
@@ -122,8 +121,6 @@ func (h *PasskeyHandler) Authenticate(c *gin.Context) {
 		return
 	}
 
-	slog.InfoContext(c.Request.Context(), "passkey login", "user_id", user.ID)
-
 	// 写入 refresh_token cookie（与 Python 端一致）。
 	util.SetRefreshCookie(c, h.cfg, tokens.RefreshToken)
 
@@ -148,7 +145,6 @@ func (h *PasskeyHandler) DeletePasskey(c *gin.Context) {
 		response.APIError(c, err.Error(), 500)
 		return
 	}
-	slog.InfoContext(c.Request.Context(), "passkey deleted", "user_id", userID)
 	response.Success(c, nil, "Passkey 删除成功")
 }
 

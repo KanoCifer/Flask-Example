@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -172,6 +173,7 @@ func (s *passkeyService) FinishRegistration(ctx context.Context, userID uint, re
 	if err := s.passkeyRepo.Create(ctx, cred); err != nil {
 		return fmt.Errorf("create credential: %w", err)
 	}
+	slog.InfoContext(ctx, "passkey registered", "user_id", userID, "credential_id", cred.CredentialID)
 	return nil
 }
 
@@ -238,6 +240,7 @@ func (s *passkeyService) FinishLogin(ctx context.Context, response map[string]an
 	if cred.User == nil {
 		return nil, usererrs.ErrUserNotFound
 	}
+	slog.InfoContext(ctx, "passkey login", "user_id", cred.User.ID, "credential_id", cred.CredentialID)
 	return cred.User, nil
 }
 
@@ -247,7 +250,11 @@ func (s *passkeyService) DeletePasskey(ctx context.Context, userID uint) error {
 	if err != nil || cred == nil {
 		return passkeyerrs.ErrPasskeyNotFound
 	}
-	return s.passkeyRepo.Delete(ctx, cred)
+	if err := s.passkeyRepo.Delete(ctx, cred); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "passkey deleted", "user_id", userID)
+	return nil
 }
 
 // discoverableHandler 提供 discoverable login 的用户查找回调。
