@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -77,13 +76,11 @@ func (s *blogService) ListPosts(ctx context.Context, page int, search string) (*
 
 	posts, total, err := s.repo.ListPosts(ctx, page, perPage, search)
 	if err != nil {
-		slog.ErrorContext(ctx, "list posts", "error", err)
 		return nil, err
 	}
 
 	tagCounts, err := s.repo.AggregateTagCounts(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "aggregate tag counts", "error", err)
 		return nil, err
 	}
 
@@ -113,7 +110,6 @@ func (s *blogService) GetPost(ctx context.Context, id string) (*dto.PostResponse
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, blogerrs.ErrPostNotFound
 		}
-		slog.ErrorContext(ctx, "get post by id", "error", err, "id", id)
 		return nil, err
 	}
 	out := dto.ToPostResponse(*post)
@@ -145,7 +141,6 @@ func (s *blogService) LikePost(ctx context.Context, id string) (int, error) {
 func (s *blogService) ListTags(ctx context.Context) ([]dto.TagResponse, error) {
 	tagCounts, err := s.repo.AggregateTagCounts(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "aggregate tag counts", "error", err)
 		return nil, err
 	}
 	tags := make([]dto.TagResponse, 0, len(tagCounts))
@@ -170,7 +165,6 @@ func (s *blogService) ListPostsByTag(ctx context.Context, tag string, page, perP
 
 	posts, total, err := s.repo.ListPostsByTag(ctx, tag, page, perPage)
 	if err != nil {
-		slog.ErrorContext(ctx, "list posts by tag", "error", err, "tag", tag)
 		return nil, err
 	}
 
