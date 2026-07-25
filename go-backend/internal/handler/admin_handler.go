@@ -70,7 +70,6 @@ func (h *AdminHandler) UpdatePost(c *gin.Context) {
 		}
 		return
 	}
-	slog.InfoContext(c.Request.Context(), "post updated", "post_id", req.ID)
 	response.Success(c, gin.H{"_id": req.ID}, "Blog post updated successfully")
 }
 
@@ -90,7 +89,6 @@ func (h *AdminHandler) DeletePost(c *gin.Context) {
 		}
 		return
 	}
-	slog.InfoContext(c.Request.Context(), "post deleted", "post_id", postID)
 	response.Success(c, gin.H{"_id": postID}, "Blog post deleted successfully")
 }
 

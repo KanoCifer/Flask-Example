@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -84,6 +85,7 @@ func (s *adminService) AddPost(ctx context.Context, post dto.PostRequest) (strin
 		return "", err
 	}
 	s.invalidateBlogCache(ctx)
+	slog.InfoContext(ctx, "post created", "post_id", id, "title", doc.Title)
 	return id, nil
 }
 
@@ -130,6 +132,7 @@ func (s *adminService) UpdatePost(ctx context.Context, id string, post dto.PostU
 		return err
 	}
 	s.invalidateBlogCache(ctx)
+	slog.InfoContext(ctx, "post updated", "post_id", id)
 	return nil
 }
 
@@ -149,6 +152,7 @@ func (s *adminService) DeletePost(ctx context.Context, id string) error {
 		return err
 	}
 	s.invalidateBlogCache(ctx)
+	slog.InfoContext(ctx, "post deleted", "post_id", id)
 	return nil
 }
 
