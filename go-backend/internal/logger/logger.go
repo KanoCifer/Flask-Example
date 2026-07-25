@@ -24,17 +24,17 @@ const ginSource = "gin"
 func Init(cfg *config.Config) {
 	level := parseLevel(cfg.Server.LogLevel)
 
-	appWriter := io.MultiWriter(os.Stdout, newLumberjackWriter("logs/app.log"))
-	errWriter := io.MultiWriter(os.Stderr, newLumberjackWriter("logs/app_error.log"))
-
 	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
 	var appHandler, errHandler slog.Handler
 	if cfg.Server.ENV == "prod" {
+		appWriter := io.MultiWriter(os.Stdout, newLumberjackWriter("logs/app.log"))
+		errWriter := io.MultiWriter(os.Stderr, newLumberjackWriter("logs/app_error.log"))
+
 		appHandler = slog.NewJSONHandler(appWriter, opts)
 		errHandler = slog.NewJSONHandler(errWriter, opts)
 	} else {
+		appWriter := io.MultiWriter(os.Stdout, os.Stderr)
 		appHandler = slog.NewTextHandler(appWriter, opts)
-		errHandler = slog.NewTextHandler(errWriter, opts)
 	}
 
 	router := &routerHandler{appHandler: appHandler, errHandler: errHandler, minLevel: level}
@@ -45,8 +45,8 @@ func newLumberjackWriter(path string) *lumberjack.Logger {
 	_ = os.MkdirAll(filepath.Dir(path), 0o755)
 	return &lumberjack.Logger{
 		Filename:   path,
-		MaxSize:    1, // 1 MB, 与 Python MAX_LOG_SIZE 一致
-		MaxBackups: 5, // 与 Python BACKUP_COUNT 一致
+		MaxSize:    1,
+		MaxBackups: 5,
 		MaxAge:     30,
 		Compress:   true,
 	}
@@ -69,6 +69,7 @@ func parseLevel(s string) slog.Level {
 
 // routerHandler 按 level 把记录分发到 app.log / app_error.log，并从 Context 注入 trace_id。
 type routerHandler struct {
+	// 日志路由器
 	appHandler slog.Handler
 	errHandler slog.Handler
 	minLevel   slog.Leveler
@@ -122,6 +123,12 @@ func traceIDFromContext(ctx context.Context) (string, bool) {
 	return s, ok
 }
 
+// TraceIDFromContext 从 ctx 读取 trace_id。供基础设施层（如 httpclient）
+// 在发出出站请求时传播 trace_id 使用。不存在时返回 ("", false)。
+func TraceIDFromContext(ctx context.Context) (string, bool) {
+	return traceIDFromContext(ctx)
+}
+
 // GinLogWriter 适配 io.Writer，把 gin 内部输出桥接为 slog 记录。
 // 全仓日志走同一套 JSON / Text handler，不再输出 uvicorn 风格的独立行。
 //
@@ -134,4 +141,19 @@ func (GinLogWriter) Write(p []byte) (int, error) {
 		slog.Default().Info(msg, "source", ginSource)
 	}
 	return len(p), nil
+}
+
+// ── 测试辅助 ─────────────────────────────────────────────────────────────
+
+// NewTestHandler 构造一个与 Init 行为等价的 slog.Handler：JSON 渲染 +
+// trace_id 从 ctx 提取。不写文件、不依赖 Config。供 service / handler
+// 单测断言 trace_id 串联时使用，配 slog.SetDefault(slog.New(...))。
+func NewTestHandler(w io.Writer, level slog.Level) *slog.Logger {
+	opts := &slog.HandlerOptions{Level: level}
+	inner := slog.NewJSONHandler(w, opts)
+	return slog.New(&routerHandler{
+		appHandler: inner,
+		errHandler: inner,
+		minLevel:   level,
+	})
 }

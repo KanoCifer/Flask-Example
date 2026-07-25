@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -10,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
+	"github.com/KanoCifer/kuroome-blog/internal/logger"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 	"github.com/KanoCifer/kuroome-blog/internal/repository/mongodb"
 )
@@ -548,5 +552,44 @@ func TestSerializeTasks_Empty(t *testing.T) {
 	out := serializeTasks(nil)
 	if out == nil || len(out) != 0 {
 		t.Errorf("serializeTasks(nil) = %v, want empty non-nil slice", out)
+	}
+}
+
+// ---------- logging ----------
+
+// TestDevTaskService_LogPropagatesTraceID 验证 service 层错误日志会把 ctx
+// 中的 trace_id 透传到 slog 记录。回归 #17 commit 2 —— 之前所有 slog.Error
+// 都是裸调用，trace_id 拿不到，handler 跟 service 两条日志无法用同一
+// trace_id 串起来。
+func TestDevTaskService_LogPropagatesTraceID(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(logger.NewTestHandler(&buf, slog.LevelDebug))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	repo := &mockDevTaskRepo{
+		getBySlugFn: func(_ context.Context, _ string) (*document.DevTask, error) {
+			return nil, errors.New("mongo boom")
+		},
+	}
+	svc := newService(repo)
+
+	ctx := logger.WithTraceID(context.Background(), "deadbeef")
+	if _, err := svc.GetBySlug(ctx, "task-7", false); err == nil {
+		t.Fatal("expected error from service, got nil")
+	}
+
+	rec := map[string]any{}
+	if err := json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &rec); err != nil {
+		t.Fatalf("unmarshal slog record: %v\nraw: %s", err, buf.String())
+	}
+	if rec["trace_id"] != "deadbeef" {
+		t.Errorf("trace_id = %v, want deadbeef; full record: %v", rec["trace_id"], rec)
+	}
+	if rec["level"] != "ERROR" {
+		t.Errorf("level = %v, want ERROR", rec["level"])
+	}
+	if rec["msg"] != "get dev task by slug" {
+		t.Errorf("msg = %v, want 'get dev task by slug'", rec["msg"])
 	}
 }
