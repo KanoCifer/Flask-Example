@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -137,6 +138,7 @@ func (s *userService) CreateUser(ctx context.Context, username, password, email,
 	if err := s.repo.Create(ctx, u, p); err != nil {
 		return nil, nil, err
 	}
+	slog.InfoContext(ctx, "user register", "user_id", u.ID, "username", u.Username)
 	return u, p, nil
 }
 
@@ -179,6 +181,7 @@ func (s *userService) Authenticate(ctx context.Context, username, password strin
 	if !s.CheckPassword(u, password) {
 		return nil, usererrs.ErrInvalidCredentials
 	}
+	slog.InfoContext(ctx, "user login", "user_id", u.ID)
 	return u, nil
 }
 
@@ -202,6 +205,7 @@ func (s *userService) CreateTokens(ctx context.Context, u *model.User) (*dto.Tok
 		s.redis.Set(ctx, "refresh:"+itoa(int(u.ID)), refreshToken, refreshTTL)
 	}
 
+	slog.InfoContext(ctx, "tokens issued", "user_id", u.ID)
 	return &dto.TokensResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -235,6 +239,7 @@ func (s *userService) Logout(ctx context.Context, userID uint) {
 	if s.redis != nil {
 		s.redis.Del(ctx, "refresh:"+itoa(int(userID)))
 	}
+	slog.InfoContext(ctx, "user logout", "user_id", userID)
 }
 
 // ---------- 响应构造 ----------

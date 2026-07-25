@@ -62,8 +62,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	slog.InfoContext(c.Request.Context(), "user login", "user_id", user.ID)
-
 	// 写入 refresh_token cookie（与 Python 端一致），供前端静默刷新。
 	util.SetRefreshCookie(c, h.cfg, tokens.RefreshToken)
 
@@ -101,7 +99,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	slog.InfoContext(c.Request.Context(), "user register", "user_id", u.ID, "username", u.Username)
 	response.Success(c, dto.FromUser(u, false), "注册成功")
 }
 
