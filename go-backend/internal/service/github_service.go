@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -198,6 +199,7 @@ func (g *GitHubOAuth) loginByGitHub(ctx context.Context, gh *ghUser) (*model.Use
 	if err != nil {
 		return nil, nil, err
 	}
+	slog.InfoContext(ctx, "github login", "user_id", u.ID, "github_id", gh.ID)
 	return u, tokens, nil
 }
 
@@ -217,12 +219,17 @@ func (g *GitHubOAuth) bindGitHub(ctx context.Context, userID uint, gh *ghUser) (
 	if err != nil {
 		return nil, nil, err
 	}
+	slog.InfoContext(ctx, "github bound", "user_id", userID, "github_id", gh.ID)
 	return user, nil, nil
 }
 
 // UnbindGitHub 解除用户与 GitHub 的绑定。
 func (g *GitHubOAuth) UnbindGitHub(ctx context.Context, userID uint) error {
-	return g.userRepo.ClearGithubID(ctx, userID)
+	if err := g.userRepo.ClearGithubID(ctx, userID); err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "github unbound", "user_id", userID)
+	return nil
 }
 
 // exchangeCode 用 GitHub 授权码换 access_token。
