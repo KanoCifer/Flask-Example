@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +16,8 @@ import (
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
 	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/logger"
+	"github.com/KanoCifer/kuroome-blog/internal/middleware"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -473,4 +476,62 @@ func TestRefreshToken_FromCookie(t *testing.T) {
 
 func gormModel(id uint) gorm.Model {
 	return gorm.Model{ID: id}
+}
+
+// ---------- 模板：日志 trace_id 断言 ----------
+//
+// TestLogin_LogPropagatesTraceID 演示如何在 handler 测试里捕获 slog 输
+// 出并断言 trace_id 已注入。其它 handler 想加同类测试时复制本用例即可。
+//
+// 关键三步：
+//  1. 用 logger.NewTestHandler 把全局 slog default 替换成 buffer +
+//     trace_id 提取的 handler（与生产 routerHandler 等价，但不写文件）。
+//  2. 用真 router + Trace() 中间件（不是 doRequest helper）跑请求，
+//     让 X-Trace-Id 头经过 Trace() 写进 ctx。
+//  3. 解析 buffer 末行 JSON，断言 trace_id == 期望值。
+func TestLogin_LogPropagatesTraceID(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(logger.NewTestHandler(&buf, slog.LevelDebug))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	svc := &mockUserService{
+		authenticateFn: func(_ context.Context, _, _ string) (*model.User, error) {
+			return nil, usererrs.ErrInvalidCredentials
+		},
+	}
+	h := NewUserHandler(svc, config.Cfg)
+
+	r := gin.New()
+	r.Use(middleware.Trace())
+	r.POST("/login", h.Login)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/login",
+		bytes.NewReader(jsonBody(t, dto.LoginRequest{Username: "alice", Password: "wrong"})))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Trace-Id", "abc-trace")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", w.Code)
+	}
+
+	lines := bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n"))
+	if len(lines) == 0 || len(bytes.TrimSpace(lines[len(lines)-1])) == 0 {
+		t.Fatalf("no log record captured; buf = %q", buf.String())
+	}
+	rec := map[string]any{}
+	if err := json.Unmarshal(bytes.TrimSpace(lines[len(lines)-1]), &rec); err != nil {
+		t.Fatalf("unmarshal last record: %v\nraw: %s", err, buf.String())
+	}
+	if rec["trace_id"] != "abc-trace" {
+		t.Errorf("trace_id = %v, want abc-trace; record: %v", rec["trace_id"], rec)
+	}
+	if rec["level"] != "WARN" {
+		t.Errorf("level = %v, want WARN", rec["level"])
+	}
+	if rec["reason"] != "invalid_credentials" {
+		t.Errorf("reason = %v, want invalid_credentials", rec["reason"])
+	}
 }
