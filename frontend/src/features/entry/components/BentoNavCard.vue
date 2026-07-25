@@ -40,7 +40,12 @@
                 : 'text-ink/70 hover:text-ink dark:text-muted dark:hover:text-ink'
             "
           >
-            <component :is="item.icon" class="h-6 w-6" />
+            <img
+              :src="item.animalSrc"
+              :alt="item.label"
+              class="h-6 w-6 shrink-0 rounded-md object-cover"
+              loading="lazy"
+            />
             <span class="text-[15px]">{{ item.label }}</span>
           </RouterLink>
         </li>
@@ -52,9 +57,6 @@
 <script setup lang="ts">
 import { BentoCard } from '@/components';
 import {
-  AboutIcon,
-  BlogIcon,
-  HomeIcon,
   IconAnalytics,
   IconUser,
   ImportIcon,
@@ -63,7 +65,6 @@ import {
   RegisterIcon,
 } from '@/components';
 import { useAuthStore } from '@/features/auth';
-import { Images, MessageCircleHeart, BookOpenText } from '@lucide/vue';
 import { Motion, type MotionProps } from 'motion-v';
 import { SPRING_BOUNCE } from '@/constants';
 import { onUnmounted, ref, watch } from 'vue';
@@ -118,14 +119,36 @@ const guestMenuItems: DropdownItem[] = [
   },
 ];
 
-// 导航项配置
+// 导航项配置：6 个动物徽标 1:1 替代 lucide / 自绘图标
+// 语义映射：fox 品牌主 → 首页；cat 沉思 → 文章；panda 安静熬夜 → 书架；
+//         rabbit 话痨 → 碎碎念；penguin 出片 → 照片墙；koala 慢节奏 → 关于
 const navItems = [
-  { path: '/', label: '首页', icon: HomeIcon },
-  { path: '/blog', label: '近期文章', icon: BlogIcon },
-  { path: '/bookshelf', label: '我的书架', icon: BookOpenText },
-  { path: '/moments', label: '碎碎念', icon: MessageCircleHeart },
-  { path: '/gallery', label: '照片墙', icon: Images },
-  { path: '/about', label: '关于网站', icon: AboutIcon },
+  { path: '/', label: '首页', animalSrc: '/images/animal-badge/fox.png' },
+  {
+    path: '/blog',
+    label: '近期文章',
+    animalSrc: '/images/animal-badge/cat.png',
+  },
+  {
+    path: '/bookshelf',
+    label: '我的书架',
+    animalSrc: '/images/animal-badge/panda.png',
+  },
+  {
+    path: '/moments',
+    label: '碎碎念',
+    animalSrc: '/images/animal-badge/rabbit.png',
+  },
+  {
+    path: '/gallery',
+    label: '照片墙',
+    animalSrc: '/images/animal-badge/penguin.png',
+  },
+  {
+    path: '/about',
+    label: '关于网站',
+    animalSrc: '/images/animal-badge/koala.png',
+  },
 ];
 
 const hoverNavIndex = ref(0);

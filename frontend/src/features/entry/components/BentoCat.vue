@@ -7,8 +7,8 @@
   >
     <img
       class="cat squircle mx-auto aspect-auto size-48 transform transform-gpu rounded-4xl shadow-2xl transition-transform hover:scale-105 hover:rotate-2"
-      src="/images/cat.webp"
-      alt="Cat Image"
+      src="/images/animal-badge/fox.png"
+      alt="Fox Badge"
     />
   </motion.div>
 </template>

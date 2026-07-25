@@ -220,6 +220,30 @@
               {{ e }}
             </Button>
           </div>
+          <!-- 动物徽标：每只动物 = 一个 emoji，注入 form.mood，与 emoji 行为一致 -->
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            <button
+              v-for="a in ANIMAL_MOODS"
+              :key="a.alt"
+              type="button"
+              :title="a.label"
+              :aria-label="a.label"
+              :class="[
+                'flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border transition-all',
+                form.mood === a.emoji
+                  ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
+                  : 'border-input bg-page hover:bg-surface',
+              ]"
+              @click="toggleMood(a.emoji)"
+            >
+              <img
+                :src="a.src"
+                :alt="a.alt"
+                class="h-7 w-7 object-cover"
+                loading="lazy"
+              />
+            </button>
+          </div>
           <input
             v-model="form.mood"
             type="text"
@@ -397,6 +421,16 @@ const EMOJI_PRESETS = [
   '✏',
   '💭',
   '🪴',
+] as const;
+
+// 动物徽标 → 对应 emoji。点击时把 emoji 写入 form.mood，与 EMOJI_PRESETS 走同一 toggleMood 路径。
+const ANIMAL_MOODS = [
+  { src: '/images/animal-badge/fox.png', alt: 'fox', emoji: '🦊', label: '机警' },
+  { src: '/images/animal-badge/panda.png', alt: 'panda', emoji: '🐼', label: '慵懒' },
+  { src: '/images/animal-badge/koala.png', alt: 'koala', emoji: '🐨', label: '呆萌' },
+  { src: '/images/animal-badge/rabbit.png', alt: 'rabbit', emoji: '🐰', label: '活力' },
+  { src: '/images/animal-badge/dog.png', alt: 'dog', emoji: '🐶', label: '忠诚' },
+  { src: '/images/animal-badge/penguin.png', alt: 'penguin', emoji: '🐧', label: '冷静' },
 ] as const;
 
 const VIS_OPTIONS: [MomentVisibility, string, string][] = [

@@ -43,7 +43,7 @@ const forecastIconClass = (textDay: string): string => {
     <!-- Header -->
     <div class="relative z-10 mb-5 flex items-start justify-between gap-3">
       <div class="min-w-0">
-        <h3 class="text-ink text-lg font-semibold tracking-tight">
+        <h3 class="text-ink font-serif text-lg font-semibold">
           {{ locationName || '钓鱼地点' }}
         </h3>
         <p class="text-muted mt-0.5 truncate text-sm">和风天气</p>

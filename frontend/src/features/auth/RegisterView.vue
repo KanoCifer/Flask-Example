@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { authGateway } from '@/features/auth';
 import { AuthLayout } from './components';
-import { Button, FieldError, IconCloud, IconLock } from '@/components';
+import { Button, FieldError, IconLock } from '@/components';
 import { useNotificationStore } from '@/stores';
 import type { RegisterForm } from '@/features/auth/types';
 import axios from 'axios';
@@ -126,7 +126,11 @@ const handleSubmit = async () => {
   <AuthLayout brand-width="w-1/2" form-width="lg:w-1/2">
     <template #branding>
       <div class="flex items-center gap-2 text-xl font-bold tracking-tight">
-        <IconCloud class="text-accent size-8" />
+        <img
+          src="/images/animal-badge/fox.png"
+          alt="Fox"
+          class="size-8 rounded-md object-cover"
+        />
         <span>Kanocifer<span class="text-accent">.chat</span></span>
       </div>
       <div class="z-10 my-auto">
@@ -147,9 +151,13 @@ const handleSubmit = async () => {
     <template #header>
       <div class="mb-8 flex flex-col items-center lg:items-start">
         <div
-          class="bg-accent text-ink mb-5 flex h-16 w-16 items-center justify-center rounded-full shadow-[0_8px_16px_rgba(37,99,235,0.25)] lg:hidden"
+          class="bg-accent text-ink mb-5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full shadow-[0_8px_16px_rgba(37,99,235,0.25)] lg:hidden"
         >
-          <IconCloud class="size-8" />
+          <img
+            src="/images/animal-badge/fox.png"
+            alt="Fox"
+            class="size-full object-cover"
+          />
         </div>
         <h2
           class="font-headline text-ink text-center text-3xl text-[28px] font-extrabold tracking-tight lg:text-left"

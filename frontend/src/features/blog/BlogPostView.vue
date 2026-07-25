@@ -391,10 +391,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Article -->
-    <article
-      v-else-if="post"
-      class="mx-auto max-w-4xl px-6 pt-8 pb-20 sm:pt-10"
-    >
+    <article v-else-if="post" class="mx-auto max-w-4xl px-6 pt-24 pb-20">
       <!-- 封面置顶：主视觉先行 -->
       <figure v-if="post.cover" class="mb-10 overflow-hidden rounded-xl">
         <div class="bg-surface aspect-[16/9] w-full overflow-hidden">
@@ -531,10 +528,12 @@ onUnmounted(() => {
       <footer class="mt-14 pt-8">
         <div class="flex flex-wrap items-start justify-between gap-5">
           <div class="flex items-center gap-3.5">
-            <span
-              class="text-ink ring-border bg-surface flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-serif text-sm font-semibold ring-1"
-              >{{ (post.author || 'K').slice(0, 1) }}</span
-            >
+            <img
+              src="/images/animal-badge/fox.png"
+              alt="Kurroome"
+              class="ring-border h-11 w-11 shrink-0 rounded-full object-cover ring-1"
+              loading="lazy"
+            />
             <div class="min-w-0">
               <div class="text-ink text-[14px] font-medium tracking-wide">
                 {{ post.author || 'Kurroome' }}

@@ -100,34 +100,12 @@
     class="flex justify-center py-12"
   >
     <div class="bg-card w-full max-w-md rounded-2xl border p-10 text-center">
-      <svg
-        viewBox="0 0 88 64"
-        class="text-muted/50 mx-auto mb-6 h-20"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <!-- shelf top + bottom rails -->
-        <line x1="4" y1="4" x2="84" y2="4" />
-        <line x1="4" y1="60" x2="84" y2="60" />
-        <!-- a few books clustered on the left, plenty of empty space -->
-        <rect x="10" y="18" width="8" height="42" rx="1.2" />
-        <rect
-          x="22"
-          y="12"
-          width="10"
-          height="48"
-          rx="1.2"
-          transform="rotate(-2 27 36)"
-        />
-        <rect x="36" y="22" width="8" height="38" rx="1.2" />
-        <line x1="40" y1="30" x2="40" y2="36" />
-        <!-- a single book on the right to emphasize the gap -->
-        <rect x="68" y="16" width="10" height="44" rx="1.2" />
-      </svg>
+      <img
+        src="/images/animal-badge/fox.png"
+        alt="Fox"
+        class="mx-auto mb-6 h-20 w-20"
+        loading="lazy"
+      />
       <h3 class="text-ink font-serif text-xl font-bold">暂无书籍</h3>
       <p class="text-muted mt-2 text-sm">你的微信读书书架还是空的</p>
       <div v-if="$slots['empty-action']" class="mt-6 flex justify-center">

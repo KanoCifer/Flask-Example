@@ -68,11 +68,12 @@
         <div
           class="bg-card relative max-w-md space-y-3 rounded-3xl border p-10 text-center shadow-2xl"
         >
-          <div
-            class="bg-accent/10 text-ink mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl"
-          >
-            <ImageOff class="h-10 w-10" stroke-width="1.5" />
-          </div>
+          <img
+            src="/images/animal-badge/fox.png"
+            alt="Fox"
+            class="mx-auto mb-6 h-24 w-24"
+            loading="lazy"
+          />
           <h3 class="text-ink text-xl font-bold tracking-tight">还没有图片</h3>
           <p class="text-muted mt-2 text-sm">
             你的图片墙就像一张白纸，点击上方按钮上传第一张照片吧
@@ -125,7 +126,6 @@ import {
 } from '@/features/pic/composables';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores';
-import { ImageOff } from '@lucide/vue';
 import { motion } from 'motion-v';
 import { computed, onMounted, ref, watch } from 'vue';
 

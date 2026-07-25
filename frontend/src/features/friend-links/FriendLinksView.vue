@@ -199,7 +199,12 @@
             v-if="links.length === 0"
             class="bg-page/30 flex flex-col items-center justify-center rounded-4xl border py-16"
           >
-            <IconUsersGroup class="text-muted mb-4 h-16 w-16" />
+            <img
+              src="/images/animal-badge/fox.png"
+              alt="Fox"
+              class="mb-4 h-20 w-20"
+              loading="lazy"
+            />
             <p class="text-muted text-lg">暂无友链</p>
             <p class="text-muted mt-2 text-sm">
               欢迎提交申请，成为第一位友链伙伴
@@ -315,7 +320,6 @@ import {
   IconInfoCircle,
   IconLinkChain,
   IconRefresh,
-  IconUsersGroup,
   TwikooComments,
 } from '@/components';
 

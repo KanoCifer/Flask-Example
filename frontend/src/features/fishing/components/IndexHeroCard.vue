@@ -92,7 +92,7 @@ watch(
     <!-- 标题 + 刷新 + 图标 -->
     <div class="mb-5 flex items-start justify-between gap-3">
       <div>
-        <h3 class="text-ink text-lg font-semibold tracking-tight">钓鱼指数</h3>
+        <h3 class="text-ink font-serif text-lg font-semibold">钓鱼指数</h3>
         <p class="text-muted mt-0.5 text-sm">基于天气、潮汐综合计算</p>
       </div>
       <div class="flex shrink-0 items-center gap-2">

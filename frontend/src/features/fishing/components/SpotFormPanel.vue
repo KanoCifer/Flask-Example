@@ -312,13 +312,9 @@ watch(
         @keydown.esc="emit('close')"
       >
         <!-- 顶栏 -->
-        <header
-          class="flex items-start justify-between gap-3 border-b px-6 pt-6 pb-5"
-        >
+        <header class="flex items-start justify-between gap-3 px-6 pt-6 pb-5">
           <div class="min-w-0">
-            <h2 class="text-ink font-family-averia text-2xl leading-snug">
-              新增钓点
-            </h2>
+            <h2 class="text-ink font-serif text-2xl leading-snug">新增钓点</h2>
             <p class="text-muted mt-0.5 text-xs">
               在地图上选择位置，填写钓点信息
             </p>
@@ -592,7 +588,9 @@ watch(
         </div>
 
         <!-- 底栏 -->
-        <footer class="flex items-center justify-end gap-2 border-t px-6 py-4">
+        <footer
+          class="border-border flex items-center justify-end gap-2 border-t px-6 py-2"
+        >
           <button
             type="button"
             class="text-muted hover:bg-surface rounded-lg px-4 py-2 text-sm font-medium transition-colors"

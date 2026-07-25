@@ -327,7 +327,7 @@ const chartOption = computed(() => {
     <header class="hourly-header">
       <div class="hourly-title">
         <h3 class="hourly-h3">
-          <span class="hourly-h3__main">小时天气</span>
+          <span class="font-serif">小时天气</span>
           <span class="hourly-h3__sub">HOURLY · NEXT 24H</span>
         </h3>
         <p class="hourly-sub">降水柱 · 温度线</p>
@@ -438,12 +438,6 @@ const chartOption = computed(() => {
   letter-spacing: -0.01em;
   line-height: 1.2;
   color: var(--color-ink);
-}
-.hourly-h3__main {
-  /* 中文主标 —— system sans */
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 .hourly-h3__sub {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

@@ -11,11 +11,11 @@
     >
       <!-- 顶部：图标和标题 -->
       <div class="flex items-start justify-between">
-        <div
-          class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/15 transition-transform duration-300 group-hover:scale-110 group-hover:rounded-xl"
-        >
-          <BookOpen class="size-5 text-amber-600" />
-        </div>
+        <img
+          src="/images/animal-badge/fox.png"
+          alt="Fox"
+          class="size-10 rounded-md object-cover"
+        />
         <div class="flex -space-x-2">
           <div
             v-for="(color, i) in bookCovers"

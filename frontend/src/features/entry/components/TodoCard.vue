@@ -11,7 +11,11 @@
       <div
         class="bg-accent-500/15 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
       >
-        <CircleCheckBig class="text-ink size-4.5" />
+        <img
+          src="/images/animal-badge/deer.png"
+          class="size-10 rounded-md object-cover"
+          loading="lazy"
+        />
       </div>
       <span class="text-ink text-sm font-medium">开发任务</span>
       <svg
