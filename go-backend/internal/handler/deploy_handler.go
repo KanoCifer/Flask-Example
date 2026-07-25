@@ -59,7 +59,7 @@ func (h *DeployHandler) WebhookDeploy(c *gin.Context) {
 
 	go runDeployment()
 
-	slog.Info("Deployment triggered by webhook", "ip", c.ClientIP())
+	slog.InfoContext(c.Request.Context(), "Deployment triggered by webhook", "ip", c.ClientIP())
 	response.Success(c, gin.H{"status": "pending"}, "Deployment triggered successfully")
 }
 
@@ -80,22 +80,26 @@ func runDeployment() {
 	if scriptPath == "" {
 		scriptPath = "/home/kano/blog/backend/deploy.sh"
 	}
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		slog.Error("Deploy script not found", "path", scriptPath)
-		return
-	}
 
+	// ctx 提到前面：脚本不存在的 early-return 日志也要走 ctx，
+	// 让所有 deploy 相关记录能按 trace_id 串联（虽然这是 fire-and-forget
+	// goroutine，没有 request ctx，但保留与后续 exec 共用同一 ctx 句柄）。
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
+
+	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		slog.ErrorContext(ctx, "Deploy script not found", "path", scriptPath)
+		return
+	}
 
 	cmd := exec.CommandContext(ctx, scriptPath)
 	cmd.Dir = "/home/kano/blog/backend"
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		slog.Error("Deployment failed", "error", err, "output", string(output))
+		slog.ErrorContext(ctx, "Deployment failed", "error", err, "output", string(output))
 		return
 	}
-	slog.Info("Deployment completed", "output", string(output))
+	slog.InfoContext(ctx, "Deployment completed", "output", string(output))
 }
 
 // RegisterRoutes 挂载部署路由（公开，无需鉴权）。

@@ -25,7 +25,7 @@ func (h *WSHandler) HandleWS(c *gin.Context) {
 		InsecureSkipVerify: true,
 	})
 	if err != nil {
-		slog.Error("failed to accept websocket", "error", err)
+		slog.ErrorContext(c.Request.Context(), "failed to accept websocket", "error", err)
 		return
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "Connection closed")
