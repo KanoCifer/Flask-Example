@@ -107,7 +107,7 @@ func (s *DevTaskService) Create(ctx context.Context, userID int, req dto.DevTask
 	// 自增生成 slug —— counters 集合单文档 $inc 保证原子性，并发安全。
 	seq, err := s.repo.NextSlugSeq(ctx)
 	if err != nil {
-		slog.Error("next slug seq", "error", err)
+		slog.ErrorContext(ctx, "next slug seq", "error", err)
 		return nil, err
 	}
 	slug := fmt.Sprintf("task-%d", seq)
@@ -136,7 +136,7 @@ func (s *DevTaskService) Create(ctx context.Context, userID int, req dto.DevTask
 	}
 
 	if err := s.repo.Create(ctx, task); err != nil {
-		slog.Error("create dev task", "error", err, "user_id", userID)
+		slog.ErrorContext(ctx, "create dev task", "error", err, "user_id", userID)
 		return nil, err
 	}
 
@@ -180,7 +180,7 @@ func (s *DevTaskService) List(
 
 	tasks, total, err := s.repo.List(ctx, toRepoFilter(filter), page, perPage)
 	if err != nil {
-		slog.Error("list dev tasks", "error", err)
+		slog.ErrorContext(ctx, "list dev tasks", "error", err)
 		return nil, err
 	}
 
@@ -251,7 +251,7 @@ func (s *DevTaskService) Update(ctx context.Context, slug string, req dto.DevTas
 	fields["updated_at"] = time.Now().UTC()
 
 	if err := s.repo.Update(ctx, slug, fields); err != nil {
-		slog.Error("update dev task", "error", err, "slug", slug)
+		slog.ErrorContext(ctx, "update dev task", "error", err, "slug", slug)
 		return err
 	}
 	return nil
@@ -285,7 +285,7 @@ func (s *DevTaskService) BatchUpdateStatus(
 				result.Failed[slug] = "task not found"
 				continue
 			}
-			slog.Error("batch status: probe slug", "error", err, "slug", slug)
+			slog.ErrorContext(ctx, "batch status: probe slug", "error", err, "slug", slug)
 			return nil, err
 		}
 		// 已经是目标状态 → 视为成功，无需再写一次（避免无谓 updated_at 推进）。
@@ -299,7 +299,7 @@ func (s *DevTaskService) BatchUpdateStatus(
 	if len(pending) > 0 {
 		_, err := s.repo.BatchUpdateStatus(ctx, pending, status)
 		if err != nil {
-			slog.Error("batch status: update many", "error", err, "status", status)
+			slog.ErrorContext(ctx, "batch status: update many", "error", err, "status", status)
 			return nil, err
 		}
 		result.Succeeded = append(result.Succeeded, pending...)
@@ -311,7 +311,7 @@ func (s *DevTaskService) BatchUpdateStatus(
 // SoftDelete 逻辑删除。
 func (s *DevTaskService) SoftDelete(ctx context.Context, slug string) error {
 	if err := s.repo.SoftDelete(ctx, slug); err != nil {
-		slog.Error("soft delete dev task", "error", err, "slug", slug)
+		slog.ErrorContext(ctx, "soft delete dev task", "error", err, "slug", slug)
 		return err
 	}
 	return nil
@@ -320,7 +320,7 @@ func (s *DevTaskService) SoftDelete(ctx context.Context, slug string) error {
 // HardDelete 物理删除。
 func (s *DevTaskService) HardDelete(ctx context.Context, slug string) error {
 	if err := s.repo.HardDelete(ctx, slug); err != nil {
-		slog.Error("hard delete dev task", "error", err, "slug", slug)
+		slog.ErrorContext(ctx, "hard delete dev task", "error", err, "slug", slug)
 		return err
 	}
 	return nil
@@ -331,7 +331,7 @@ func (s *DevTaskService) HardDelete(ctx context.Context, slug string) error {
 func (s *DevTaskService) ArchiveDoneTasks(ctx context.Context) (int64, error) {
 	n, err := s.repo.ArchiveDoneTasks(ctx)
 	if err != nil {
-		slog.Error("archive done tasks", "error", err)
+		slog.ErrorContext(ctx, "archive done tasks", "error", err)
 		return 0, err
 	}
 	return n, nil
@@ -350,7 +350,7 @@ func (s *DevTaskService) GetBySlug(ctx context.Context, slug string, withParent 
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, devtaskerrs.ErrTaskNotFound
 		}
-		slog.Error("get dev task by slug", "error", err, "slug", slug)
+		slog.ErrorContext(ctx, "get dev task by slug", "error", err, "slug", slug)
 		return nil, err
 	}
 	out := serializeTask(*task)
@@ -358,7 +358,7 @@ func (s *DevTaskService) GetBySlug(ctx context.Context, slug string, withParent 
 	if withParent && task.ParentSlug != nil {
 		parent, err := s.repo.GetBySlug(ctx, *task.ParentSlug)
 		if err != nil {
-			slog.Warn("get parent dev task", "error", err, "slug", *task.ParentSlug)
+			slog.WarnContext(ctx, "get parent dev task", "error", err, "slug", *task.ParentSlug)
 		} else {
 			parentOut := serializeTask(*parent)
 			out.Parent = &parentOut
@@ -376,7 +376,7 @@ func (s *DevTaskService) FindFrontier(ctx context.Context, limit int) ([]dto.Dev
 	}
 	tasks, err := s.repo.FindFrontier(ctx, limit)
 	if err != nil {
-		slog.Error("find frontier tasks", "error", err)
+		slog.ErrorContext(ctx, "find frontier tasks", "error", err)
 		return nil, err
 	}
 	return serializeTasks(tasks), nil
