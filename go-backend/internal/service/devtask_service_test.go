@@ -557,11 +557,10 @@ func TestSerializeTasks_Empty(t *testing.T) {
 
 // ---------- logging ----------
 
-// TestDevTaskService_LogPropagatesTraceID 验证 service 层错误日志会把 ctx
-// 中的 trace_id 透传到 slog 记录。回归 #17 commit 2 —— 之前所有 slog.Error
-// 都是裸调用，trace_id 拿不到，handler 跟 service 两条日志无法用同一
-// trace_id 串起来。
-func TestDevTaskService_LogPropagatesTraceID(t *testing.T) {
+// TestDevTaskService_NoErrorLog 验证 service 不再为 repo 失败记 ERROR。
+// 错误上抛到 handler 统一记，避免双记稀释 trace_id。
+// 回归 #17 commit 2（删除 slog.ErrorContext）。
+func TestDevTaskService_NoErrorLog(t *testing.T) {
 	var buf bytes.Buffer
 	prev := slog.Default()
 	slog.SetDefault(logger.NewTestHandler(&buf, slog.LevelDebug))
@@ -579,17 +578,58 @@ func TestDevTaskService_LogPropagatesTraceID(t *testing.T) {
 		t.Fatal("expected error from service, got nil")
 	}
 
+	// service 只在 WithParent=true 且父任务找不到时记 1 条 Warn。
+	// 这次调用 withParent=false，buffer 应当为空。
+	if buf.Len() != 0 {
+		t.Errorf("service should not log on repo error (no double-log); got: %s", buf.String())
+	}
+}
+
+// TestDevTaskService_LogPropagatesTraceID 验证 service 层的 Warn 会把 ctx
+// 中的 trace_id 透传到 slog 记录。这条规则在新设计下依然适用：service
+// 可以记 Warn 表达软失败/降级，trace_id 必须跟 handler 记录串联。
+func TestDevTaskService_LogPropagatesTraceID(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(logger.NewTestHandler(&buf, slog.LevelDebug))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	// 父任务查询失败 → service 记 Warn（withParent=true）
+	repo := &mockDevTaskRepo{
+		getBySlugFn: func(_ context.Context, slug string) (*document.DevTask, error) {
+			// 第一次：子任务查询成功（含 parent_slug）
+			// 第二次：父任务查询失败
+			if slug == "task-7" {
+				ps := "task-parent"
+				return &document.DevTask{
+					Slug:       "task-7",
+					ParentSlug: &ps,
+					Status:     document.StatusTriage,
+				}, nil
+			}
+			return nil, errors.New("parent missing")
+		},
+	}
+	svc := newService(repo)
+
+	ctx := logger.WithTraceID(context.Background(), "deadbeef")
+	_, _ = svc.GetBySlug(ctx, "task-7", true)
+
+	lines := bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n"))
+	if len(lines) == 0 || len(bytes.TrimSpace(lines[len(lines)-1])) == 0 {
+		t.Fatalf("expected 1 log record (Warn), got 0; buf = %q", buf.String())
+	}
 	rec := map[string]any{}
-	if err := json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &rec); err != nil {
+	if err := json.Unmarshal(bytes.TrimSpace(lines[len(lines)-1]), &rec); err != nil {
 		t.Fatalf("unmarshal slog record: %v\nraw: %s", err, buf.String())
 	}
 	if rec["trace_id"] != "deadbeef" {
-		t.Errorf("trace_id = %v, want deadbeef; full record: %v", rec["trace_id"], rec)
+		t.Errorf("trace_id = %v, want deadbeef; record: %v", rec["trace_id"], rec)
 	}
-	if rec["level"] != "ERROR" {
-		t.Errorf("level = %v, want ERROR", rec["level"])
+	if rec["level"] != "WARN" {
+		t.Errorf("level = %v, want WARN", rec["level"])
 	}
-	if rec["msg"] != "get dev task by slug" {
-		t.Errorf("msg = %v, want 'get dev task by slug'", rec["msg"])
+	if rec["msg"] != "get parent dev task" {
+		t.Errorf("msg = %v, want 'get parent dev task'", rec["msg"])
 	}
 }
