@@ -1,14 +1,18 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"testing"
 
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/KanoCifer/kuroome-blog/internal/domain/user/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/logger"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 
@@ -336,6 +340,44 @@ func TestAuthenticate_Success(t *testing.T) {
 	}
 	if u.Username != "alice" {
 		t.Errorf("username = %q, want alice", u.Username)
+	}
+}
+
+// TestAuthenticate_LogPropagatesTraceID 验证 service 层 INFO 日志在 §5
+// 新规则下也保持 trace_id 串联。这是「INFO 在 service」契约的模板测试。
+// 复制到其它 service（auth / moment / fish / upload / ws）的对应业务
+// 事件即可。
+func TestAuthenticate_LogPropagatesTraceID(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(logger.NewTestHandler(&buf, slog.LevelDebug))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
+	repo := &mockUserRepo{
+		getByUsernameFn: func(ctx context.Context, username string) (*model.User, error) {
+			return &model.User{Model: gormModel(1), Username: "alice", PasswordHash: string(hash)}, nil
+		},
+	}
+	svc := NewUserService(repo, nil, nil)
+
+	ctx := logger.WithTraceID(context.Background(), "trace-xyz")
+	if _, err := svc.Authenticate(ctx, "alice", "secret"); err != nil {
+		t.Fatalf("Authenticate: %v", err)
+	}
+
+	rec := map[string]any{}
+	if err := json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &rec); err != nil {
+		t.Fatalf("unmarshal slog record: %v\nraw: %s", err, buf.String())
+	}
+	if rec["trace_id"] != "trace-xyz" {
+		t.Errorf("trace_id = %v, want trace-xyz; record: %v", rec["trace_id"], rec)
+	}
+	if rec["level"] != "INFO" {
+		t.Errorf("level = %v, want INFO (service §5 contract)", rec["level"])
+	}
+	if rec["msg"] != "user login" {
+		t.Errorf("msg = %v, want 'user login'", rec["msg"])
 	}
 }
 
