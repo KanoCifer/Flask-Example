@@ -106,7 +106,7 @@ func (s *MomentService) Create(
 		return nil, err
 	}
 
-	out := serializeMoment(*m)
+	out := dto.ToMomentResponse(*m)
 	return &out, nil
 }
 
@@ -170,7 +170,7 @@ func (s *MomentService) GetByID(ctx context.Context, id string) (*dto.MomentResp
 	if err != nil {
 		return nil, translateRepoErr(err)
 	}
-	out := serializeMoment(*m)
+	out := dto.ToMomentResponse(*m)
 	return &out, nil
 }
 
@@ -181,7 +181,7 @@ func (s *MomentService) GetByIDAdmin(ctx context.Context, id string) (*dto.Momen
 	if err != nil {
 		return nil, translateRepoErr(err)
 	}
-	out := serializeMoment(*m)
+	out := dto.ToMomentResponse(*m)
 	return &out, nil
 }
 
@@ -204,10 +204,8 @@ func (s *MomentService) ListPublic(
 	}
 
 	return &dto.MomentListResponse{
-		Moments:  serializeMoments(moments),
-		Total:    total,
-		Page:     page,
-		PageSize: pageSize,
+		Moments:    dto.ToMomentList(moments),
+		Pagination: pagination(page, pageSize, total),
 	}, nil
 }
 
@@ -227,10 +225,8 @@ func (s *MomentService) ListAdmin(
 	}
 
 	return &dto.MomentListResponse{
-		Moments:  serializeMoments(moments),
-		Total:    total,
-		Page:     page,
-		PageSize: pageSize,
+		Moments:    dto.ToMomentList(moments),
+		Pagination: pagination(page, pageSize, total),
 	}, nil
 }
 
@@ -324,97 +320,3 @@ func translateRepoErr(err error) error {
 	return err
 }
 
-// serializeMoments 批量 document → 输出 DTO；nil/空切片统一返回非 nil 空切片，
-// 让前端 JSON 始终是 [] 而不是 null。
-func serializeMoments(in []document.Moment) []dto.MomentResponse {
-	if len(in) == 0 {
-		return []dto.MomentResponse{}
-	}
-	out := make([]dto.MomentResponse, 0, len(in))
-	for _, m := range in {
-		out = append(out, serializeMoment(m))
-	}
-	return out
-}
-
-// serializeMoment document → 输出 DTO。
-func serializeMoment(m document.Moment) dto.MomentResponse {
-	return dto.MomentResponse{
-		ID:           m.ID,
-		UserID:       m.UserID,
-		Content:      m.Content,
-		Summary:      m.Summary,
-		Visibility:   toDtoVisibility(m.Visibility),
-		Status:       toDtoStatus(m.Status),
-		Mood:         m.Mood,
-		Tags:         m.Tags,
-		Attachments:  toDtoAttachments(m.Attachments),
-		Location:     toDtoLocation(m.Location),
-		Source:       m.Source,
-		IsPinned:     m.IsPinned,
-		AllowComment: m.AllowComment,
-		LikeCount:    m.LikeCount,
-		CommentCount: m.CommentCount,
-		ViewCount:    m.ViewCount,
-		PublishedAt:  m.PublishedAt,
-		CreatedAt:    m.CreatedAt,
-		UpdatedAt:    m.UpdatedAt,
-		DeletedAt:    m.DeletedAt,
-	}
-}
-
-func toDtoVisibility(v document.MomentVisibility) dto.MomentVisibility {
-	for k, val := range momentVisibilityValues {
-		if val == v {
-			return k
-		}
-	}
-	return dto.MomentPublic
-}
-
-func toDtoStatus(s document.MomentStatus) dto.MomentStatus {
-	for k, val := range momentStatusValues {
-		if val == s {
-			return k
-		}
-	}
-	return dto.MomentDraft
-}
-
-func toDtoAttachmentType(t document.MomentAttachmentType) dto.MomentAttachmentType {
-	for k, val := range momentAttachmentTypeValues {
-		if val == t {
-			return k
-		}
-	}
-	return dto.MomentAttachmentImage
-}
-
-func toDtoAttachments(src []document.MomentAttachment) []dto.MomentAttachment {
-	if len(src) == 0 {
-		return nil
-	}
-	out := make([]dto.MomentAttachment, len(src))
-	for i, a := range src {
-		out[i] = dto.MomentAttachment{
-			Type:         toDtoAttachmentType(a.Type),
-			URL:          a.URL,
-			ThumbnailURL: a.ThumbnailURL,
-			Title:        a.Title,
-			Description:  a.Description,
-			Meta:         a.Meta,
-		}
-	}
-	return out
-}
-
-func toDtoLocation(src *document.MomentLocation) *dto.MomentLocation {
-	if src == nil {
-		return nil
-	}
-	return &dto.MomentLocation{
-		Name:      src.Name,
-		Latitude:  src.Latitude,
-		Longitude: src.Longitude,
-	}
-}

@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/KanoCifer/kuroome-blog/internal/model"
+
 // RegisterRequest 注册请求
 type RegisterRequest struct {
 	Username  string `json:"username" binding:"required,min=3,max=50"`
@@ -34,11 +36,11 @@ type LoginResponse struct {
 	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
-// ToUserResponse 从 model.User 转换为 DTO
-func ToUserResponse(id uint, username string, isAdmin bool) UserResponse {
+// FromUser 从 model.User 转换为 DTO（isAdmin 由调用方显式传入）。
+func FromUser(u *model.User, isAdmin bool) UserResponse {
 	return UserResponse{
-		ID:       id,
-		Username: username,
+		ID:       u.ID,
+		Username: u.Username,
 		IsAdmin:  isAdmin,
 	}
 }

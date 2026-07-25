@@ -20,11 +20,11 @@ import (
 // 由 service.Monitorer 实现；handler 仅依赖此接口，便于测试替换。
 type Monitorer interface {
 	GetOverview(ctx context.Context, days int) (dto.OverviewResponse, error)
-	GetVisitors(ctx context.Context, days, page, pageSize int) (dto.VisitorsResponse, error)
+	GetVisitors(ctx context.Context, days, page, pageSize int) (dto.VisitorListResponse, error)
 	GetUserLogins(ctx context.Context, days, page, pageSize int) (dto.UserLoginsResponse, error)
 	GetServerStatus() (dto.ServerStatusResponse, error)
 	StreamServerStatus(ctx context.Context) (<-chan dto.ServerStatusResponse, error)
-	TrackVisitor(ctx context.Context, data dto.VisitorResponse) error
+	TrackVisitor(ctx context.Context, data dto.VisitorTrackRequest) error
 	GetStatusDetail(ctx context.Context) (dto.StatusDetailResponse, error)
 }
 
@@ -42,7 +42,7 @@ func NewMonitorService(visitor *postgres.VisitorRepo, user *postgres.UserRepo, v
 }
 
 // TrackVisitor 记录访客追踪数据（公开接口）。visit_time 由 PG default current_timestamp 填充。
-func (s *MonitorService) TrackVisitor(ctx context.Context, data dto.VisitorResponse) error {
+func (s *MonitorService) TrackVisitor(ctx context.Context, data dto.VisitorTrackRequest) error {
 	track := &model.VisitorTrack{
 		VisitorID:        data.VisitorID,
 		PageURL:          data.PageURL,
@@ -184,19 +184,19 @@ func (s *MonitorService) GetOverview(ctx context.Context, days int) (dto.Overvie
 }
 
 // GetVisitors 返回 days 天内的访客分页列表，对齐 Python MonitorService.get_visitors。
-func (s *MonitorService) GetVisitors(ctx context.Context, days, page, pageSize int) (dto.VisitorsResponse, error) {
+func (s *MonitorService) GetVisitors(ctx context.Context, days, page, pageSize int) (dto.VisitorListResponse, error) {
 	endTime := time.Now().UTC()
 	startTime := endTime.AddDate(0, 0, -days)
 
 	total, err := s.visitor.CountVisitsSince(ctx, startTime)
 	if err != nil {
-		return dto.VisitorsResponse{}, err
+		return dto.VisitorListResponse{}, err
 	}
 
 	offset := (page - 1) * pageSize
 	tracks, err := s.visitor.ListVisitorsSince(ctx, startTime, offset, pageSize)
 	if err != nil {
-		return dto.VisitorsResponse{}, err
+		return dto.VisitorListResponse{}, err
 	}
 
 	list := make([]dto.VisitorItem, 0, len(tracks))
@@ -215,12 +215,29 @@ func (s *MonitorService) GetVisitors(ctx context.Context, days, page, pageSize i
 		})
 	}
 
-	return dto.VisitorsResponse{
-		List:       list,
-		Total:      total,
-		Page:       page,
-		PageSize:   pageSize,
-		TotalPages: (total + pageSize - 1) / pageSize,
+	pages := (total + pageSize - 1) / pageSize
+	prev, next := (*int)(nil), (*int)(nil)
+	if page > 1 {
+		v := page - 1
+		prev = &v
+	}
+	if page < pages {
+		v := page + 1
+		next = &v
+	}
+
+	return dto.VisitorListResponse{
+		List: list,
+		Pagination: dto.Pagination{
+			Page:    page,
+			PerPage: pageSize,
+			Total:   total,
+			Pages:   pages,
+			HasPrev: page > 1,
+			HasNext: page < pages,
+			PrevNum: prev,
+			NextNum: next,
+		},
 	}, nil
 }
 
@@ -263,12 +280,32 @@ func (s *MonitorService) GetUserLogins(ctx context.Context, days, page, pageSize
 	}
 	paginated := logins[offset:end]
 
+	pages := 0
+	if pageSize > 0 {
+		pages = (total + pageSize - 1) / pageSize
+	}
+	prev, next := (*int)(nil), (*int)(nil)
+	if page > 1 {
+		v := page - 1
+		prev = &v
+	}
+	if page < pages {
+		v := page + 1
+		next = &v
+	}
+
 	return dto.UserLoginsResponse{
-		List:       paginated,
-		Total:      total,
-		Page:       page,
-		PageSize:   pageSize,
-		TotalPages: (total + pageSize - 1) / pageSize,
+		List: paginated,
+		Pagination: dto.Pagination{
+			Page:    page,
+			PerPage: pageSize,
+			Total:   total,
+			Pages:   pages,
+			HasPrev: page > 1,
+			HasNext: page < pages,
+			PrevNum: prev,
+			NextNum: next,
+		},
 	}, nil
 }
 

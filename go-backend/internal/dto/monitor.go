@@ -1,7 +1,5 @@
 package dto
 
-import "time"
-
 // OverviewResponse 对齐 Python monitor_service.get_overview 的返回结构。
 type OverviewResponse struct {
 	TotalVisits      int              `json:"total_visits"`
@@ -12,29 +10,6 @@ type OverviewResponse struct {
 	OSSStats         []map[string]any `json:"os_stats"`
 	DailyTrend       []map[string]any `json:"daily_trend"`
 	PeriodDays       int              `json:"period_days"`
-}
-
-// VisitorItem 单条访客记录，字段名与 Python visit 字典对齐。
-type VisitorItem struct {
-	ID               uint       `json:"id"`
-	VisitorID        string     `json:"visitor_id"`
-	PageURL          string     `json:"page_url"`
-	PagePath         string     `json:"page_path"`
-	Referrer         *string    `json:"referrer"`
-	Browser          *string    `json:"browser"`
-	ScreenResolution *string    `json:"screen_resolution"`
-	Language         *string    `json:"language"`
-	IPAddress        string     `json:"ip_address"`
-	VisitTime        *time.Time `json:"visit_time"`
-}
-
-// VisitorsResponse 分页访客列表。
-type VisitorsResponse struct {
-	List       []VisitorItem `json:"list"`
-	Total      int           `json:"total"`
-	Page       int           `json:"page"`
-	PageSize   int           `json:"page_size"`
-	TotalPages int           `json:"total_pages"`
 }
 
 // UserLoginItem 单条用户登录记录，字段名与 Python login_logs 对齐。
@@ -53,10 +28,7 @@ type UserLoginItem struct {
 // UserLoginsResponse 分页用户登录记录。
 type UserLoginsResponse struct {
 	List       []UserLoginItem `json:"list"`
-	Total      int             `json:"total"`
-	Page       int             `json:"page"`
-	PageSize   int             `json:"page_size"`
-	TotalPages int             `json:"total_pages"`
+	Pagination Pagination      `json:"pagination"`
 }
 
 // ServerStatusResponse 对齐 Python _get_server_status_payload 字段名。

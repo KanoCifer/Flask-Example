@@ -292,6 +292,9 @@ class AiAgent:
                         "content": str(event.content),
                     }
 
+        else:
+            raise ValueError(f"Unsupported mode: {mode}")
+
     async def analyze_weather_stream(
         self,
         weather_data: WeatherAnalysisInput,

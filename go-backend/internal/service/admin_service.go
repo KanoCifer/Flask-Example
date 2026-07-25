@@ -34,7 +34,7 @@ type Adminer interface {
 	AddPost(ctx context.Context, post dto.PostRequest) (id string, err error)
 	UpdatePost(ctx context.Context, id string, post dto.PostUpdate) error
 	DeletePost(ctx context.Context, id string) error
-	TrackVisitor(ctx context.Context, data dto.VisitorResponse) error
+	TrackVisitor(ctx context.Context, data dto.VisitorTrackRequest) error
 	ListPostViewsData(ctx context.Context) ([]dto.PostViewResponse, error)
 }
 
@@ -170,7 +170,7 @@ func (s *adminService) ListPostViewsData(ctx context.Context) ([]dto.PostViewRes
 // 定时任务消费落库——那条链路久经失败（缺显式 commit、browser 列约束、
 // DTO 与 schema 不对齐），所以此处改为 Go 端直写，不再依赖 Redis 跨语言消费。
 // visit_time 不使用前端传的值，由 PG default current_timestamp 填充。
-func (s *adminService) TrackVisitor(ctx context.Context, data dto.VisitorResponse) error {
+func (s *adminService) TrackVisitor(ctx context.Context, data dto.VisitorTrackRequest) error {
 	track := &model.VisitorTrack{
 		VisitorID:        data.VisitorID,
 		PageURL:          data.PageURL,

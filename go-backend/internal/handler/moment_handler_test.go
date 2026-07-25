@@ -149,10 +149,8 @@ func TestMoment_ListPublicMoments_DefaultPagination(t *testing.T) {
 				t.Errorf("page=%d pageSize=%d, want (1,10)", page, pageSize)
 			}
 			return &dto.MomentListResponse{
-				Moments:  []dto.MomentResponse{},
-				Total:    0,
-				Page:     1,
-				PageSize: 10,
+				Moments:    []dto.MomentResponse{},
+				Pagination: dto.Pagination{Total: 0, Page: 1, PerPage: 10, Pages: 0},
 			}, nil
 		},
 	}
@@ -170,7 +168,7 @@ func TestMoment_ListPublicMoments_TagFilter(t *testing.T) {
 			if filter.Tag != "读书" {
 				t.Errorf("filter.Tag = %q, want 读书", filter.Tag)
 			}
-			return &dto.MomentListResponse{Total: 0, Moments: []dto.MomentResponse{}}, nil
+			return &dto.MomentListResponse{Moments: []dto.MomentResponse{}, Pagination: dto.Pagination{Total: 0}}, nil
 		},
 	}
 	r := newMomentHandler(svc)
@@ -187,7 +185,7 @@ func TestMoment_ListPublicMoments_CustomPagination(t *testing.T) {
 			if page != 3 || pageSize != 5 {
 				t.Errorf("page=%d pageSize=%d, want (3,5)", page, pageSize)
 			}
-			return &dto.MomentListResponse{Page: 3, PageSize: 5, Total: 11, Moments: []dto.MomentResponse{}}, nil
+			return &dto.MomentListResponse{Moments: []dto.MomentResponse{}, Pagination: dto.Pagination{Page: 3, PerPage: 5, Total: 11, Pages: 3}}, nil
 		},
 	}
 	r := newMomentHandler(svc)

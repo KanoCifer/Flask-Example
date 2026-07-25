@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/KanoCifer/kuroome-blog/internal/domain/blog/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/dto"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 )
 
@@ -271,11 +272,11 @@ func TestBlogService_ListPosts_NormalizesPage(t *testing.T) {
 	}
 }
 
-// ---------- serializePost ----------
+// ---------- ToPostResponse ----------
 
 func TestSerializePost_ZeroTime(t *testing.T) {
 	p := document.Post{ID: "abc", Title: "T"}
-	out := serializePost(p)
+	out := dto.ToPostResponse(p)
 	if out.CreatedAt != "" {
 		t.Errorf("CreatedAt = %q, want empty string for zero time", out.CreatedAt)
 	}
@@ -288,10 +289,7 @@ func TestSerializePost_ZeroTime(t *testing.T) {
 }
 
 func TestSerializePosts_Empty(t *testing.T) {
-	out := serializePosts(nil)
-	if out == nil {
-		t.Error("serializePosts(nil) = nil, want empty non-nil slice")
-	}
+	out := dto.ToPostList(nil)
 	if len(out) != 0 {
 		t.Errorf("len = %d, want 0", len(out))
 	}

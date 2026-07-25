@@ -274,7 +274,7 @@ func TestAdminService_TrackVisitor_WritesToPostgres(t *testing.T) {
 	}
 
 	svc := NewAdminService(nil, postgres.NewVisitorRepo(db), nil)
-	data := dto.VisitorResponse{
+	data := dto.VisitorTrackRequest{
 		VisitorID:   "v-1",
 		PageURL:     "https://example.com/posts/1",
 		PagePath:    "/posts/1",

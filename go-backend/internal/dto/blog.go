@@ -1,5 +1,11 @@
 package dto
 
+import (
+	"time"
+
+	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
+)
+
 // PostResponse 单篇博客输出 —— 与 Python _serialize_post 形状一致。
 type PostResponse struct {
 	ID        string   `json:"_id"`
@@ -37,5 +43,36 @@ type BlogListResponse struct {
 type PostsByTagResponse struct {
 	Posts []PostResponse `json:"posts"`
 	Tag   string         `json:"tag"`
-	Total int            `json:"total"`
+	Pagination Pagination     `json:"pagination"`
+}
+
+// ToPostResponse document → 输出 DTO —— 与 Python _serialize_post 对齐。
+// mongo-driver 将 _id(ObjectID) 解码为 ID 字段的十六进制字符串。
+func ToPostResponse(p document.Post) PostResponse {
+	return PostResponse{
+		ID:        p.ID,
+		Title:     p.Title,
+		Body:      p.Body,
+		Summary:   p.Summary,
+		Cover:     p.Cover,
+		Tags:      p.Tags,
+		IsPinned:  p.IsPinned,
+		Views:     p.Views,
+		Likes:     p.Likes,
+		CreatedAt: formatTime(p.CreatedAt),
+		UpdatedAt: formatTime(p.UpdatedAt),
+	}
+}
+
+// ToPostList 批量转换，使用 ToResponseSlice 统一实现。
+func ToPostList(items []document.Post) []PostResponse {
+	return ToResponseSlice(items, ToPostResponse)
+}
+
+// formatTime 将 time.Time 格式化为 RFC3339 字符串；零值返回 ""。
+func formatTime(tm time.Time) string {
+	if tm.IsZero() {
+		return ""
+	}
+	return tm.UTC().Format(time.RFC3339)
 }

@@ -1,6 +1,10 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
+)
 
 type MomentVisibility string
 
@@ -107,10 +111,116 @@ type MomentFilter struct {
 }
 
 // MomentListResponse moment 列表响应 —— 与 React 端
-// {moments: Moment[], total, page, page_size} 对齐。
+// {moments: Moment[], pagination: Pagination} 对齐。
 type MomentListResponse struct {
 	Moments    []MomentResponse `json:"moments"`
-	Total      int              `json:"total"`
-	Page       int              `json:"page"`
-	PageSize   int              `json:"page_size"`
+	Pagination Pagination       `json:"pagination"`
+}
+
+// momentVisibilityValues document 枚举 → dto 枚举映射。
+var momentVisibilityValues = map[document.MomentVisibility]MomentVisibility{
+	document.MomentPublic:   MomentPublic,
+	document.MomentPrivate:  MomentPrivate,
+	document.MomentUnlisted: MomentUnlisted,
+}
+
+// momentStatusValues document 枚举 → dto 枚举映射。
+var momentStatusValues = map[document.MomentStatus]MomentStatus{
+	document.MomentPublished: MomentPublished,
+	document.MomentDraft:     MomentDraft,
+	document.MomentArchived:  MomentArchived,
+}
+
+// momentAttachmentTypeValues document 枚举 → dto 枚举映射。
+var momentAttachmentTypeValues = map[document.MomentAttachmentType]MomentAttachmentType{
+	document.MomentAttachmentImage: MomentAttachmentImage,
+	document.MomentAttachmentLink:  MomentAttachmentLink,
+	document.MomentAttachmentBook:  MomentAttachmentBook,
+	document.MomentAttachmentQuote: MomentAttachmentQuote,
+}
+
+// ToMomentResponse document → 输出 DTO。
+func ToMomentResponse(m document.Moment) MomentResponse {
+	return MomentResponse{
+		ID:           m.ID,
+		UserID:       m.UserID,
+		Content:      m.Content,
+		Summary:      m.Summary,
+		Visibility:   momentVisibilityToDTO(m.Visibility),
+		Status:       momentStatusToDTO(m.Status),
+		Mood:         m.Mood,
+		Tags:         m.Tags,
+		Attachments:  momentAttachmentsToDTO(m.Attachments),
+		Location:     momentLocationToDTO(m.Location),
+		Source:       m.Source,
+		IsPinned:     m.IsPinned,
+		AllowComment: m.AllowComment,
+		LikeCount:    m.LikeCount,
+		CommentCount: m.CommentCount,
+		ViewCount:    m.ViewCount,
+		PublishedAt:  m.PublishedAt,
+		CreatedAt:    m.CreatedAt,
+		UpdatedAt:    m.UpdatedAt,
+		DeletedAt:    m.DeletedAt,
+	}
+}
+
+// ToMomentList 批量转换，使用 ToResponseSlice 统一实现。
+func ToMomentList(items []document.Moment) []MomentResponse {
+	return ToResponseSlice(items, ToMomentResponse)
+}
+
+// momentVisibilityToDTO document 枚举 → dto 枚举。
+func momentVisibilityToDTO(v document.MomentVisibility) MomentVisibility {
+	if mapped, ok := momentVisibilityValues[v]; ok {
+		return mapped
+	}
+	return MomentPublic
+}
+
+// momentStatusToDTO document 枚举 → dto 枚举。
+func momentStatusToDTO(s document.MomentStatus) MomentStatus {
+	if mapped, ok := momentStatusValues[s]; ok {
+		return mapped
+	}
+	return MomentDraft
+}
+
+// momentAttachmentTypeToDTO document 枚举 → dto 枚举。
+func momentAttachmentTypeToDTO(t document.MomentAttachmentType) MomentAttachmentType {
+	if mapped, ok := momentAttachmentTypeValues[t]; ok {
+		return mapped
+	}
+	return MomentAttachmentImage
+}
+
+// momentAttachmentsToDTO 批量 document → dto 附件转换。
+func momentAttachmentsToDTO(src []document.MomentAttachment) []MomentAttachment {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make([]MomentAttachment, len(src))
+	for i, a := range src {
+		out[i] = MomentAttachment{
+			Type:         momentAttachmentTypeToDTO(a.Type),
+			URL:          a.URL,
+			ThumbnailURL: a.ThumbnailURL,
+			Title:        a.Title,
+			Description:  a.Description,
+			Meta:         a.Meta,
+		}
+	}
+	return out
+}
+
+// momentLocationToDTO document → dto 位置转换。
+func momentLocationToDTO(src *document.MomentLocation) *MomentLocation {
+	if src == nil {
+		return nil
+	}
+	return &MomentLocation{
+		Name:      src.Name,
+		Latitude:  src.Latitude,
+		Longitude: src.Longitude,
+	}
 }

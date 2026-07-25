@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
-	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -41,42 +40,6 @@ type blogService struct {
 
 func NewBlogService(repo BlogRepositoryer) *blogService {
 	return &blogService{repo: repo}
-}
-
-// serializePost 将文档转为输出 DTO —— 与 Python _serialize_post 对齐。
-// mongo-driver 将 _id(ObjectID) 解码为 ID 字段的十六进制字符串。
-func serializePost(p document.Post) dto.PostResponse {
-	t := func(tm time.Time) string {
-		if tm.IsZero() {
-			return ""
-		}
-		return tm.UTC().Format(time.RFC3339)
-	}
-	return dto.PostResponse{
-		ID:        p.ID,
-		Title:     p.Title,
-		Body:      p.Body,
-		Summary:   p.Summary,
-		Cover:     p.Cover,
-		Tags:      p.Tags,
-		IsPinned:  p.IsPinned,
-		Views:     p.Views,
-		Likes:     p.Likes,
-		CreatedAt: t(p.CreatedAt),
-		UpdatedAt: t(p.UpdatedAt),
-	}
-}
-
-// serializePosts 批量序列化，nil/空切片统一为空数组。
-func serializePosts(posts []document.Post) []dto.PostResponse {
-	if len(posts) == 0 {
-		return []dto.PostResponse{}
-	}
-	out := make([]dto.PostResponse, 0, len(posts))
-	for _, p := range posts {
-		out = append(out, serializePost(p))
-	}
-	return out
 }
 
 func pagination(page, perPage, total int) dto.Pagination {
@@ -130,7 +93,7 @@ func (s *blogService) ListPosts(ctx context.Context, page int, search string) (*
 	}
 
 	return &dto.BlogListResponse{
-		Posts:      serializePosts(posts),
+		Posts:      dto.ToPostList(posts),
 		Tags:       tags,
 		Pagination: pagination(page, perPage, int(total)),
 	}, nil
@@ -153,7 +116,7 @@ func (s *blogService) GetPost(ctx context.Context, id string) (*dto.PostResponse
 		slog.ErrorContext(ctx, "get post by id", "error", err, "id", id)
 		return nil, err
 	}
-	out := serializePost(*post)
+	out := dto.ToPostResponse(*post)
 	return &out, nil
 }
 
@@ -212,8 +175,8 @@ func (s *blogService) ListPostsByTag(ctx context.Context, tag string, page, perP
 	}
 
 	return &dto.PostsByTagResponse{
-		Posts: serializePosts(posts),
-		Tag:   tag,
-		Total: int(total),
+		Posts:      dto.ToPostList(posts),
+		Tag:        tag,
+		Pagination: pagination(page, perPage, int(total)),
 	}, nil
 }

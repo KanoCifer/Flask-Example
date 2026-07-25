@@ -28,20 +28,3 @@ type PostViewResponse struct {
 	Views int    `json:"views"`
 }
 
-type VisitorResponse struct {
-	VisitorID        string `json:"visitor_id" binding:"required"`
-	PageURL          string `json:"page_url" binding:"required"`
-	Referrer         string `json:"referrer"`
-	PagePath         string `json:"page_path" binding:"required"`
-	Browser          string `json:"browser"`
-	ScreenResolution string `json:"screen_resolution"`
-	Language         string `json:"language"`
-	BrowserVersion   string `json:"browser_version"`
-	BrowserName      string `json:"browser_name"`
-	OSName           string `json:"os_name"`
-	OSVersion        string `json:"os_version"`
-	DeviceType       string `json:"device_type"`
-	Cpu              string `json:"cpu"`
-	IpAddress        string `json:"ip_address"`
-	VisitTime        string `json:"visit_time"`
-}

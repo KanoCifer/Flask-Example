@@ -102,7 +102,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 
 	slog.InfoContext(c.Request.Context(), "user register", "user_id", u.ID, "username", u.Username)
-	response.Success(c, dto.ToUserResponse(u.ID, u.Username, false), "注册成功")
+	response.Success(c, dto.FromUser(u, false), "注册成功")
 }
 
 func (h *UserHandler) Me(c *gin.Context) {

@@ -1,9 +1,15 @@
 package dto
 
-import "testing"
+import (
+	"testing"
 
-func TestToUserResponse(t *testing.T) {
-	got := ToUserResponse(1, "alice", true)
+	"github.com/KanoCifer/kuroome-blog/internal/model"
+)
+
+func TestFromUser(t *testing.T) {
+	u := &model.User{Username: "alice"}
+	u.ID = 1
+	got := FromUser(u, true)
 	if got.ID != 1 {
 		t.Errorf("ID = %d, want 1", got.ID)
 	}
@@ -15,9 +21,9 @@ func TestToUserResponse(t *testing.T) {
 	}
 }
 
-func TestToUserResponse_ZeroValues(t *testing.T) {
-	got := ToUserResponse(0, "", false)
+func TestFromUser_ZeroValues(t *testing.T) {
+	got := FromUser(&model.User{}, false)
 	if got.ID != 0 || got.Username != "" || got.IsAdmin {
-		t.Errorf("zero-value ToUserResponse = %+v, want {0 \"\" false}", got)
+		t.Errorf("zero-value FromUser = %+v, want {0 \"\" false}", got)
 	}
 }

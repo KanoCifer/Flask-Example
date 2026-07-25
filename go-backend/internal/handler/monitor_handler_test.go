@@ -24,10 +24,10 @@ func init() {
 
 type mockMonitorService struct {
 	overviewFn        func(ctx context.Context, days int) (dto.OverviewResponse, error)
-	visitorsFn        func(ctx context.Context, days, page, pageSize int) (dto.VisitorsResponse, error)
+	visitorsFn        func(ctx context.Context, days, page, pageSize int) (dto.VisitorListResponse, error)
 	userLoginsFn      func(ctx context.Context, days, page, pageSize int) (dto.UserLoginsResponse, error)
 	serverStatusFn    func() (dto.ServerStatusResponse, error)
-	trackVisitorFn    func(ctx context.Context, data dto.VisitorResponse) error
+	trackVisitorFn    func(ctx context.Context, data dto.VisitorTrackRequest) error
 	getStatusDetailFn func(ctx context.Context) (dto.StatusDetailResponse, error)
 }
 
@@ -35,7 +35,7 @@ func (m *mockMonitorService) GetOverview(ctx context.Context, days int) (dto.Ove
 	return m.overviewFn(ctx, days)
 }
 
-func (m *mockMonitorService) GetVisitors(ctx context.Context, days, page, pageSize int) (dto.VisitorsResponse, error) {
+func (m *mockMonitorService) GetVisitors(ctx context.Context, days, page, pageSize int) (dto.VisitorListResponse, error) {
 	return m.visitorsFn(ctx, days, page, pageSize)
 }
 
@@ -57,7 +57,7 @@ func (m *mockMonitorService) GetStatusDetail(ctx context.Context) (dto.StatusDet
 	return dto.StatusDetailResponse{}, nil
 }
 
-func (m *mockMonitorService) TrackVisitor(ctx context.Context, data dto.VisitorResponse) error {
+func (m *mockMonitorService) TrackVisitor(ctx context.Context, data dto.VisitorTrackRequest) error {
 	if m.trackVisitorFn != nil {
 		return m.trackVisitorFn(ctx, data)
 	}
@@ -155,8 +155,11 @@ func TestGetOverview_InvalidDays(t *testing.T) {
 
 func TestGetVisitors_ReturnsPaginatedList(t *testing.T) {
 	svc := &mockMonitorService{
-		visitorsFn: func(ctx context.Context, days, page, pageSize int) (dto.VisitorsResponse, error) {
-			return dto.VisitorsResponse{Total: 50, Page: 1, PageSize: 20, TotalPages: 3}, nil
+		visitorsFn: func(ctx context.Context, days, page, pageSize int) (dto.VisitorListResponse, error) {
+			return dto.VisitorListResponse{
+				List: []dto.VisitorItem{},
+				Pagination: dto.Pagination{Page: 1, PerPage: 20, Total: 50, Pages: 3},
+			}, nil
 		},
 	}
 	adminAllow := func(c *gin.Context) { c.Next() }
@@ -166,7 +169,7 @@ func TestGetVisitors_ReturnsPaginatedList(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), `"total":50`) || !strings.Contains(w.Body.String(), `"total_pages":3`) {
+	if !strings.Contains(w.Body.String(), `"total":50`) || !strings.Contains(w.Body.String(), `"pages":3`) {
 		t.Fatalf("unexpected body: %s", w.Body.String())
 	}
 }
@@ -187,7 +190,10 @@ func TestGetVisitors_InvalidPageSize(t *testing.T) {
 func TestGetUserLogins_ReturnsList(t *testing.T) {
 	svc := &mockMonitorService{
 		userLoginsFn: func(ctx context.Context, days, page, pageSize int) (dto.UserLoginsResponse, error) {
-			return dto.UserLoginsResponse{Total: 2, Page: 1, PageSize: 20, TotalPages: 1}, nil
+			return dto.UserLoginsResponse{
+				List:       []dto.UserLoginItem{{UserID: 1, Username: "u"}},
+				Pagination: dto.Pagination{Total: 2, Page: 1, PerPage: 20, Pages: 1},
+			}, nil
 		},
 	}
 	adminAllow := func(c *gin.Context) { c.Next() }
@@ -338,7 +344,7 @@ func TestTrackVisitor_Disabled(t *testing.T) {
 func TestTrackVisitor_Success(t *testing.T) {
 	config.Cfg = &config.Config{Admin: config.AdminConfig{EnableTracking: true}}
 	svc := &mockMonitorService{
-		trackVisitorFn: func(ctx context.Context, data dto.VisitorResponse) error { return nil },
+		trackVisitorFn: func(ctx context.Context, data dto.VisitorTrackRequest) error { return nil },
 	}
 	r := setupMonitor(svc, func(c *gin.Context) { c.Next() })
 	w := httptest.NewRecorder()
@@ -355,7 +361,7 @@ func TestTrackVisitor_Success(t *testing.T) {
 func TestOldTrackRedirect(t *testing.T) {
 	config.Cfg = &config.Config{Admin: config.AdminConfig{EnableTracking: true}}
 	svc := &mockMonitorService{
-		trackVisitorFn: func(ctx context.Context, data dto.VisitorResponse) error { return nil },
+		trackVisitorFn: func(ctx context.Context, data dto.VisitorTrackRequest) error { return nil },
 	}
 	h := NewMonitorHandler(svc, config.Cfg)
 	r := gin.New()

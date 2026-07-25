@@ -173,7 +173,7 @@ func (h *MonitorHandler) TrackVisitor(c *gin.Context) {
 		c.Status(204)
 		return
 	}
-	var req dto.VisitorResponse
+	var req dto.VisitorTrackRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.APIError(c, err.Error())
 		return
