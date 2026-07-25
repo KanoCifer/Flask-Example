@@ -1,4 +1,5 @@
 import { resolveCssColor } from '@/lib';
+import { formatRgb, parse } from 'culori';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 export interface ChartPalette {
@@ -12,33 +13,19 @@ export interface ChartPalette {
   series: [string, string, string, string, string];
 }
 
+/** 不可解析颜色时的 fallback 通道：与 react-app/src/features/fishing/hooks/useChartTheme.ts
+ *  里的 withAlpha 行为保持一致 —— 返回 muted slate-blue 带指定 alpha，
+ *  而不是把原字符串透传给 zrender（zrender 内部颜色预处理可能产出 undefined，
+ *  最终在 addColorStop 报 "The value provided ('undefined') could not be parsed as a color."）。
+ *  真实案例: TrendChartCard 的 areaStyle 渐变里 oklch 字符串泄露 -> 浏览器崩溃。
+ *
+ *  culori 原生解析 oklch/hex/rgb/hsl/命名色，覆盖原 canvas 实现漏判的分支；
+ *  formatRgb 按 CSSOM 标准输出 rgba(r, g, b, a)。 */
 export function withAlpha(color: string, alpha: number): string {
-  if (!color) return `rgba(0, 0, 0, ${alpha})`;
-  if (color.startsWith('rgba(')) {
-    return color.replace(/,\s*[\d.]+\s*\)$/, `, ${alpha})`);
-  }
-  if (color.startsWith('rgb(')) {
-    return color.replace(/^rgb\(/, 'rgba(').replace(/\)$/, `, ${alpha})`);
-  }
-  if (typeof document !== 'undefined') {
-    const ctx = document.createElement('canvas').getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = '#000';
-      try {
-        ctx.fillStyle = color;
-        const resolved = ctx.fillStyle as string;
-        if (resolved.startsWith('#') && resolved.length === 7) {
-          const r = parseInt(resolved.slice(1, 3), 16);
-          const g = parseInt(resolved.slice(3, 5), 16);
-          const b = parseInt(resolved.slice(5, 7), 16);
-          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        }
-      } catch {
-        /* fall through */
-      }
-    }
-  }
-  return color;
+  const parsed = color ? parse(color) : undefined;
+  // 无法解析（含空串）时兜底为 muted slate-blue，绝不把原字符串泄露给 ECharts
+  if (!parsed) return `rgba(120, 134, 170, ${alpha})`;
+  return formatRgb({ ...parsed, alpha });
 }
 
 const PALETTE_KEYS: Array<keyof ChartPalette> = [

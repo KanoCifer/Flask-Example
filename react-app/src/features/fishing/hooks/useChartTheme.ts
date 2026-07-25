@@ -1,3 +1,4 @@
+import { formatRgb, parse } from 'culori';
 import { useEffect, useState } from 'react';
 
 /**
@@ -7,8 +8,8 @@ import { useEffect, useState } from 'react';
  * 1. `@theme inline` 的 `--color-*` 不会作为 CSS 自定义属性落到 :root，
  *    所以读「原始」主题变量（--ink / --chart-* / --border-color …），它们才真正 emit。
  * 2. zrender（ECharts 的渲染层）解析不了 oklch()，只认 rgb/hex。
- *    用一个隐藏 probe 元素：把 oklch 赋给它的 color，再读 computed color，
- *    浏览器会替我们把 oklch 折算成 rgb。
+ *    用 culori 的 parse + formatRgb 把 oklch/hex/hsl/命名色统一折算成 rgb，
+ *    无需 DOM probe（因此 SSR / 无 body 时也能复用）。
  *
  * 主题切换（.dark class / data-color-scheme 属性）时 MutationObserver 重算。
  */
@@ -56,44 +57,28 @@ const FALLBACK: ChartTheme = {
 
 function resolveChartTheme(): ChartTheme {
   if (typeof document === 'undefined') return FALLBACK;
-  const probe = document.createElement('span');
-  probe.style.cssText =
-    'position:absolute;opacity:0;pointer-events:none;width:0;height:0';
-  document.body.appendChild(probe);
   const rootStyle = getComputedStyle(document.documentElement);
   const out = {} as ChartTheme;
   (Object.keys(VAR_MAP) as (keyof ChartTheme)[]).forEach((key) => {
     const raw = rootStyle.getPropertyValue(VAR_MAP[key]).trim();
-    if (!raw) {
-      out[key] = FALLBACK[key];
-      return;
-    }
-    probe.style.color = raw;
-    const resolved = getComputedStyle(probe).color;
-    out[key] = resolved || FALLBACK[key];
+    // culori 解析不了（含空串 / var() 等）时回退 FALLBACK，绝不把原字符串泄露给 zrender
+    const parsed = raw ? parse(raw) : undefined;
+    out[key] = parsed ? formatRgb(parsed) : FALLBACK[key];
   });
-  probe.remove();
   return out;
 }
 
-/** `rgb(r, g, b)` → `rgba(r, g, b, a)`（用于图表面积渐变的透明尾巴）。
- *  防御性: 输入非字符串 / 非 rgb 格式 / undefined 时, 返回带 fallback 的 rgba,
- *  避免 zrender 在 addColorStop 里撞到 'undefined'。*/
+/** 给颜色叠加透明度（用于图表面积渐变的透明尾巴）。
+ *  culori 原生解析 oklch/hex/rgb/hsl/命名色；解析失败（含 undefined / 非字符串）
+ *  时返回带 fallback 的 rgba，避免 zrender 在 addColorStop 里撞到 'undefined'。*/
 export function withAlpha(
-  rgb: string | undefined | null,
+  color: string | undefined | null,
   alpha: number,
 ): string {
-  if (!rgb || typeof rgb !== 'string') {
-    return `rgba(120, 134, 170, ${alpha})`;
-  }
-  const m = rgb.match(/rgba?\(([^)]+)\)/);
-  if (!m) {
-    // 不是 rgb/rgba 格式 (可能是 oklch / hsl 等), 直接返回透明黑色 fallback,
-    // 比让 zrender 撞到 undefined 安全
-    return `rgba(120, 134, 170, ${alpha})`;
-  }
-  const [r, g, b] = m[1].split(',').map((v) => v.trim());
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  const parsed =
+    color && typeof color === 'string' ? parse(color) : undefined;
+  if (!parsed) return `rgba(120, 134, 170, ${alpha})`;
+  return formatRgb({ ...parsed, alpha });
 }
 
 export function useChartTheme(): ChartTheme {
