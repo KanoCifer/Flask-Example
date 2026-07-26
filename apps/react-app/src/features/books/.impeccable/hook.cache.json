@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "sessions": {
+    "6b3515d2-e727-4246-9df8-6e14bed6b24c": {
+      "updatedAt": 1784624128365,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/todo/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/todo/views.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}

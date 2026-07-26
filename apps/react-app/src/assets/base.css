@@ -1,6 +1,6 @@
 @import 'tailwindcss';
-@import '../../../packages/brand/themes/index.css';
-@import '../../../packages/brand/twikoo.css';
+@import '../../../../packages/brand/themes/index.css';
+@import '../../../../packages/brand/twikoo.css';
 
 @font-face {
   font-family: 'HarmonyOS Sans';
@@ -244,7 +244,7 @@ footer {
   }
 }
 
-@import '../../../packages/brand/prose.css';
+@import '../../../../packages/brand/prose.css';
 
 /* ── 書房設定滑塊 ── driven by --track-fill custom prop ── */
 .slider {

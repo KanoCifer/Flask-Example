@@ -1,5 +1,5 @@
 {
-  "name": "react-app",
+  "name": "@readinglist/react-app",
   "private": true,
   "version": "4.0.0",
   "type": "module",

@@ -1,0 +1,291 @@
+{
+  "version": 1,
+  "sessions": {
+    "3be5cf1e-98aa-4a0a-b281-e005dcbfb792": {
+      "updatedAt": 1782471961946,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/views/Blog/BlogPostView.tsx": {
+          "editCount": 1,
+          "findings": ["broken-image:195"]
+        }
+      }
+    },
+    "907de542-5019-4ad5-83c6-44084599ea4f": {
+      "updatedAt": 1784097817132,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/components/basic/BasicSidebar.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "bb94f926-1183-4d73-9bd0-629fef9a5484": {
+      "updatedAt": 1784622931809,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/components/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/lib/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/pages/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/auth/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/fishing/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/todo/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/fishing/components/FishingFeedbackForm.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/fishing/components/FishingSpotDetailSheet.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/fishing/components/FishingAnalysisDrawer.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/Home.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/todo/components/TaskDetailPanel.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/rss/RssArticleView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/blog/BlogPostView.tsx": {
+          "editCount": 1,
+          "findings": ["broken-image:200"]
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/MomentListView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/pages/websites/WebsiteView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/auth/Login.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/auth/components/SecuritySection.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/components/MomentCard.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/components/MomentDetailModal.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/components/MomentMeta.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/pages/about/AboutView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/components/BentoProfile.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/components/BentoWeb.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/components/BentoTodo.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/components/BentoGreeting.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/components/BentoTech.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/components/BentoMap.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/components/BentoCalendar.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "6b3515d2-e727-4246-9df8-6e14bed6b24c": {
+      "updatedAt": 1784624302125,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/fishing/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/books/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/stores/authState.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/stores/fishingMapStore.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/stores/momentsState.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/stores/readStatsStore.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/stores/todoState.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/hooks/useArticleSummary.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/hooks/useArticleChat.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/router/lazy.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/blog/BlogListView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/home/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/components/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/blog/BlogPostView.tsx": {
+          "editCount": 1,
+          "findings": ["broken-image:200"]
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/pages/friend-links/FriendLinksView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/fishing/api/service.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/api/refresh.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/api/apiClient.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "6d3875ca-3740-49d7-9908-05a7aa38a61d": {
+      "updatedAt": 1784698037294,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/App.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/auth/index.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "68ad2e7b-d263-492a-955e-94dcc5cf1b9d": {
+      "updatedAt": 1784700642750,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/App.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/components/MomentDetailModal.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/components/MomentMeta.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/rss/RssArticleView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/rss/RssWorkspaceView.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/blog/components/BlogListItem.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/blog/BlogPostView.tsx": {
+          "editCount": 1,
+          "findings": ["broken-image:200"]
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/todo/components/FrontierCard.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/todo/components/TaskDetailPanel.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/stores/themeState.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/components/ui/SettingMoal.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/components/ui/BasicLayout.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}
