@@ -1,7 +1,7 @@
 export { wereadGateway } from './wereadApi';
 export type { WereadGateway } from './wereadApi';
 
-// Weread 领域类型 —— 真源在 @/features/books/types，桶重新导出以保持兼容
+// Weread 领域类型 —— 真源在 @readinglist/types，桶重新导出以保持兼容
 export type {
   BookRecommendItem,
   ReadDetailBook,
@@ -18,7 +18,6 @@ export type {
   ReadDetailMonthlyRaw,
   ReadDetailAnnuallyRaw,
   ReadDetailOverallRaw,
-  ReadStatsMode,
   WereadArchive,
   WereadBookDetail,
   WereadBookProgress,
@@ -27,7 +26,8 @@ export type {
   WereadUserInfo,
   WereadUserBook,
   WereadYearlyHeatmap,
-} from '@/features/books/types';
+} from '@readinglist/types';
+export type { ReadStatsMode } from '@/features/books/types';
 export { READ_STATS_MODES } from '@/features/books/types';
 
 // Gallery 领域类型 —— 真源在 @/features/pic/types，桶重新导出以保持兼容

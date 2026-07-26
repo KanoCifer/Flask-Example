@@ -6,9 +6,9 @@ export type { BlogGateway } from './blogGateway';
 export { socialGateway } from './socialGateway';
 export type { SocialGateway } from './socialGateway';
 
-// 博客领域类型 —— 真源在 @/features/blog/types，桶重新导出以保持兼容
+// 博客领域类型 —— 真源在 @readinglist/types，桶重新导出以保持兼容
 export type {
   BlogListResponse,
   BlogPostResponse,
   BlogQuery,
-} from '@/features/blog/types';
+} from '@readinglist/types';

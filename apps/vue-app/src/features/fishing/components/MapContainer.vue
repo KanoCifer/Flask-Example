@@ -120,7 +120,7 @@
 
 <script setup lang="ts">
 import { Loader2, Locate, Maximize, Minimize, Plus } from '@lucide/vue';
-import type { MapMarker } from '@/features/fishing/types';
+import type { MapMarker } from '@readinglist/types';
 import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
 import { loadAMapNamespace } from '@/features/fishing/composables/amapNamespace';
 import { FishingMapRuntime } from '@/features/fishing/composables/fishingMapRuntime';

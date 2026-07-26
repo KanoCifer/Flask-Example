@@ -11,4 +11,3 @@ export {
 export { rssGateway, subscriptionGateway } from './api';
 export type { RssGateway, SubscriptionGateway, Subscription } from './api';
 export * from './rssUtils';
-export * from './types';

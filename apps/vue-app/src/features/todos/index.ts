@@ -9,4 +9,3 @@ export * from './composables';
 export { devTaskGateway } from './api';
 export type { DevTaskGateway } from './api';
 export { useV3DevTaskStore } from './stores/v3devtasks';
-export * from './types';

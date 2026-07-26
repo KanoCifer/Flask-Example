@@ -1,7 +1,7 @@
 export { devTaskGateway } from './devtaskGateway';
 export type { DevTaskGateway } from './devtaskGateway';
 
-// DevTask 领域类型 —— 真源在 @/features/todos/types，桶重新导出以保持兼容
+// DevTask 领域类型 —— 真源在 @readinglist/types，桶重新导出以保持兼容
 export type {
   CreateDevTaskPayload,
   DevTask,
@@ -15,4 +15,4 @@ export type {
   McpTokenResult,
   Pagination,
   UpdateDevTaskPayload,
-} from '@/features/todos/types';
+} from '@readinglist/types';

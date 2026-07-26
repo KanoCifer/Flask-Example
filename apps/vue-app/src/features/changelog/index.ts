@@ -2,4 +2,3 @@
 
 export { default as ChangelogView } from './ChangelogView.vue';
 export { changelogGateway } from './api/changelogGateway';
-export * from './types';

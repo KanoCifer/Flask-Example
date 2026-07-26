@@ -183,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Post } from '@/features/blog/types';
+import type { Post } from '@readinglist/types';
 import { formatDate } from '@/lib/dayjs';
 import { motion } from 'motion-v';
 import { WHILE_IN_VIEW_FADE_UP } from '@/constants';

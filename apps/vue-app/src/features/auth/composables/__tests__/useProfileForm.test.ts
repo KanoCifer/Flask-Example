@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useProfileForm } from '../useProfileForm';
-import type { UserInfo } from '@/features/auth/types';
+import type { UserInfo } from '@readinglist/types';
 
 // ── authGateway mock ────────────────────────────────────────────
 const updateProfileSettings = vi.fn();

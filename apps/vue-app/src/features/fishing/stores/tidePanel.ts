@@ -8,7 +8,7 @@
  */
 import { weatherGateway } from '@/features/fishing/api';
 import { useNotificationStore } from '@/stores';
-import type { TideData } from '@/features/fishing/types';
+import type { TideData } from '@readinglist/types';
 import dayjs from 'dayjs';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';

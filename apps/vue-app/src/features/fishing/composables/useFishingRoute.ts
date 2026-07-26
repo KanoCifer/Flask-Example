@@ -1,5 +1,5 @@
 import { useNotificationStore } from '@/stores';
-import type { MapMarker } from '@/features/fishing/types';
+import type { MapMarker } from '@readinglist/types';
 import { useSequencedTask } from '@/composables';
 import { ref } from 'vue';
 

@@ -11,7 +11,7 @@
  * 桌面优先:与 SpotDetailPanel 并肩,构成右侧统一的书房纸卡语系。
  */
 import WeatherAnalysis from '@/features/fishing/components/WeatherAnalysis.vue';
-import type { WeatherAnalysisPayload } from '@/features/fishing/types';
+import type { WeatherAnalysisPayload } from '@readinglist/types';
 import { X } from '@lucide/vue';
 import { SlideFadeTransitionX } from '@/components';
 import { nextTick, ref, watch } from 'vue';

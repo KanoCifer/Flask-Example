@@ -269,7 +269,7 @@ import type {
   MomentAttachment,
   MomentStatus,
   MomentVisibility,
-} from '@/features/moments/types';
+} from '@readinglist/types';
 import { computed, defineComponent, h, onBeforeUnmount, ref, watch } from 'vue';
 import MomentTagChip from './MomentTagChip.vue';
 import { formatDate } from '@/lib';

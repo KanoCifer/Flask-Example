@@ -1,14 +1,14 @@
 import { fishingGateway } from '@/features/fishing/api';
 import { useNotificationStore } from '@/stores';
 import { useSequencedTask } from '@/composables';
-import type { FishingIndexData } from '@/features/fishing/types';
 import type {
+  FishingIndexData,
   TideData,
   WeatherDay,
   WeatherHourly,
   WeatherIndex,
   WeatherNow,
-} from '@/features/fishing/types';
+} from '@readinglist/types';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 

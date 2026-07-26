@@ -4,7 +4,7 @@ import type {
   Moment,
   MomentCreatePayload,
   MomentUpdatePayload,
-} from '@/features/moments/types';
+} from '@readinglist/types';
 
 /**
  * Composer 对外的窄依赖口（5 个动作 + 2 个通知）。

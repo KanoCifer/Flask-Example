@@ -387,7 +387,7 @@ import type {
   MomentStatus,
   MomentUpdatePayload,
   MomentVisibility,
-} from '@/features/moments/types';
+} from '@readinglist/types';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 
 const EMOJI_PRESETS = [

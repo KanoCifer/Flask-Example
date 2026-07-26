@@ -61,7 +61,7 @@ export interface BlogPagination {
 /** 博客列表查询参数 */
 export interface BlogQuery {
   page?: number;
-  search?: number;
+  search?: string;
 }
 
 /** 博客列表响应（v1/v2 旧格式，含 tags 聚合） */

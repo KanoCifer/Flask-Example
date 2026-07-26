@@ -3,7 +3,7 @@ import { rssGateway } from '@/features/rss/api';
 import { BasicDetail } from '@/components';
 import { AiCompanion } from '@/features/ai';
 import { useNotificationStore } from '@/stores';
-import type { RssArticle } from '@/features/rss/types';
+import type { RssArticle } from '@readinglist/types';
 import { formatDate } from '@/lib/dayjs';
 import { useScroll } from '@vueuse/core';
 import DOMPurify from 'dompurify';

@@ -405,7 +405,7 @@
 import { BasicDetail } from '@/components';
 import { blogGateway } from '@/features/blog/api/blogGateway';
 import { useNotificationStore } from '@/stores';
-import type { BlogPagination, Post } from '@/features/blog/types';
+import type { BlogPagination, Post } from '@readinglist/types';
 import { BentoCalendar, BentoProfileCard } from '@/components';
 import { useHead } from '@vueuse/head';
 import { AnimatePresence, motion } from 'motion-v';

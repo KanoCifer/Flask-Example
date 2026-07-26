@@ -5,7 +5,7 @@ import type {
   BlogQuery,
   PostsByTagResponse,
   TagItem,
-} from '@/features/blog/types';
+} from '@readinglist/types';
 
 export interface BlogGateway {
   getBlogs(query?: BlogQuery): Promise<BlogListResponse>;

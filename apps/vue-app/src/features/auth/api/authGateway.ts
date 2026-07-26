@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/request';
-import type { UserInfo } from '@/features/auth/types';
+import type { UserInfo } from '@readinglist/types';
 import type { AxiosResponse } from 'axios';
 import type {
   PublicKeyCredentialCreationOptionsJSON,

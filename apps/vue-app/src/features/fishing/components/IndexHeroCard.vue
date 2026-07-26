@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useFishingMapStore } from '@/features/fishing/stores/fishingMap';
-import type { FishingIndexData } from '@/features/fishing/types';
+import type { FishingIndexData } from '@readinglist/types';
 import DashboardCard from '@/features/fishing/components/DashboardCard.vue';
 import { ChevronRight, FishingRod, Loader, MapPin } from '@lucide/vue';
 import { storeToRefs } from 'pinia';

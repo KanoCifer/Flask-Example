@@ -256,11 +256,8 @@ import {
   useDevTaskSections,
   PRIORITIES,
 } from '@/features/todos';
-import type {
-  DevTaskPriority,
-  DevTaskSection,
-  DevTaskType,
-} from '@/features/todos';
+import type { DevTaskPriority, DevTaskType } from '@readinglist/types';
+import type { DevTaskSection } from '@/features/todos';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/features/auth';

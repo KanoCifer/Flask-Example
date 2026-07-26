@@ -10,7 +10,7 @@ export type {
 export { weatherGateway } from './weatherGateway';
 export type { WeatherGateway } from './weatherGateway';
 
-// 钓点 / 天气领域类型 —— 真源在 @/features/fishing/types，桶重新导出以保持兼容
+// 钓点 / 天气领域类型 —— 真源在 @readinglist/types，桶重新导出以保持兼容
 export type {
   CreateFishingSpotPayload,
   FishingSpot,
@@ -19,7 +19,7 @@ export type {
   WeatherDay,
   WeatherFullResponse,
   WeatherNow,
-} from '@/features/fishing/types';
+} from '@readinglist/types';
 
 export { mapGateway } from './mapGateway';
 export type { MapGateway } from './mapGateway';

@@ -10,7 +10,7 @@
  * 定位失败时降级到 CitySearch IP 城市级定位。
  */
 import type { AMapWithPlugins } from '@/features/fishing/composables/amapNamespace';
-import type { MapMarker } from '@/features/fishing/types';
+import type { MapMarker } from '@readinglist/types';
 import type { RouteInfo } from '@/features/fishing/composables/useFishingRoute';
 
 // ---- AMap 内部服务类型(本文件独占,不导出)----

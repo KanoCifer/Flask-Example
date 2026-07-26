@@ -17,7 +17,7 @@ import { blogGateway } from '@/features/blog/api/blogGateway';
 import { useAuthStore } from '@/features/auth';
 import { useOrigin } from '@/composables';
 import { useNotificationStore } from '@/stores';
-import type { Post } from '@/features/blog/types';
+import type { Post } from '@readinglist/types';
 import { formatDate } from '@/lib/dayjs';
 import { useHead } from '@vueuse/head';
 import hljs from 'highlight.js/lib/common';

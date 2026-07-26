@@ -8,7 +8,7 @@ import type {
   Moment,
   MomentCreatePayload,
   MomentUpdatePayload,
-} from '@/features/moments/types';
+} from '@readinglist/types';
 
 // ── 测试夹具 ─────────────────────────────────────────────────────────────
 

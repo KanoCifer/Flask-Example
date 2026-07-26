@@ -1,4 +1,4 @@
-import type { UserInfo } from '@/features/auth/types';
+import type { UserInfo } from '@readinglist/types';
 
 const USER_INFO_KEY = 'cached_user_info';
 

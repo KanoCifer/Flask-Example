@@ -7,7 +7,7 @@ import type {
   ListDevTasksParams,
   McpTokenResult,
   UpdateDevTaskPayload,
-} from '@/features/todos/types';
+} from '@readinglist/types';
 
 // ── 与后端 document/dev_task.go 对齐 —— 单一真源在后端，前端镜像。 ──
 

@@ -9,7 +9,7 @@ import type {
   MomentListResponse,
   MomentStatus,
   MomentUpdatePayload,
-} from '@/features/moments/types';
+} from '@readinglist/types';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 

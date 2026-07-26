@@ -7,7 +7,7 @@ import type {
   RssArticleListResponse,
   RssSubscription,
   SubscriptionItem,
-} from '@/features/rss/types';
+} from '@readinglist/types';
 
 export interface RssGateway {
   parseRss(payload: ParseRssPayload): Promise<ParseRssResponse>;

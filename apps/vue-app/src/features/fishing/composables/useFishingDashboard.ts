@@ -4,8 +4,7 @@ import {
 } from '@/features/fishing/stores/fishingMap';
 import { useNotificationStore } from '@/stores';
 import { fishingSpotsGateway } from '@/features/fishing/api';
-import type { FishingIndexData } from '@/features/fishing/types';
-import type { MapMarker } from '@/features/fishing/types';
+import type { FishingIndexData, MapMarker } from '@readinglist/types';
 import { toMapMarker, toMapMarkers } from '@/features/fishing/types';
 import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
 import { useFishingAnalysis } from '@/features/fishing/composables/useFishingAnalysis';

@@ -2,13 +2,13 @@ import { apiClient, type ApiResponse } from '@/api/request';
 
 import type {
   BookRecommendItem,
-  ReadStatsMode,
   WereadBookDetail,
   WereadBookProgress,
   WereadReadProgressData,
   WereadShelfData,
   WereadYearlyHeatmap,
-} from '@/features/books/types';
+} from '@readinglist/types';
+import type { ReadStatsMode } from '@/features/books/types';
 
 export interface WereadGateway {
   saveUserInfo(apiKey: string): Promise<ApiResponse<null>>;

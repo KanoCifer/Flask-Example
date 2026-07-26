@@ -12,7 +12,7 @@ vi.mock('@/api/request', () => ({
 
 import { apiClient } from '@/api/request';
 import { fishingSpotsGateway } from '@/features/fishing/api/fishingSpotsGateway';
-import type { FishingSpot } from '@/features/fishing/types';
+import type { FishingSpot } from '@readinglist/types';
 
 const mockedRequest = vi.mocked(apiClient);
 

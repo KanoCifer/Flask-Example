@@ -3,7 +3,7 @@ import { authGateway } from '@/features/auth';
 import { AuthLayout } from './components';
 import { Button, FieldError, IconLock } from '@/components';
 import { useNotificationStore } from '@/stores';
-import type { RegisterForm } from '@/features/auth/types';
+import type { RegisterForm } from '@readinglist/types';
 import axios from 'axios';
 import { Mail, Loader2, ShieldUser } from '@lucide/vue';
 import { ref } from 'vue';

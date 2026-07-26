@@ -5,7 +5,7 @@ import type {
   FishingFeedbackData,
   FishingFeedbackLevel,
   FishingFeedbackPayload,
-} from '@/features/fishing/types';
+} from '@readinglist/types';
 import dayjs from 'dayjs';
 import { nextTick, ref, watch } from 'vue';
 import { Button } from '@/components';

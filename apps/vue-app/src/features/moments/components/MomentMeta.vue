@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Moment } from '@/features/moments/types';
+import type { Moment } from '@readinglist/types';
 import { formatDate } from '@/lib';
 import { Star } from '@lucide/vue';
 import { computed } from 'vue';

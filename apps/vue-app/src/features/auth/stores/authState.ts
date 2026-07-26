@@ -3,7 +3,7 @@ import { registerTokenRefresher } from '@/lib';
 import { refreshAccessToken } from '@/features/auth/lib/refresh';
 import { tokenService } from '@/api/tokenService';
 import { reconnectWs } from '@/lib';
-import type { UserInfo } from '@/features/auth/types';
+import type { UserInfo } from '@readinglist/types';
 import { userCache } from '@/features/auth/lib/userCache';
 import { useNotificationStore } from '@/stores';
 import { isAxiosError } from 'axios';

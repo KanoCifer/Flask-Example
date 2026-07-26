@@ -205,7 +205,7 @@ import { useAuthStore } from '@/features/auth';
 import { MomentComposer } from '@/features/moments/composables';
 import { useMomentsStore } from '@/features/moments/stores/moments';
 import { useNotificationStore } from '@/stores';
-import type { Moment, MomentUpdatePayload } from '@/features/moments/types';
+import type { Moment, MomentUpdatePayload } from '@readinglist/types';
 import { ChevronLeft, ChevronRight, CircleAlert, Plus } from '@lucide/vue';
 import dayjs from 'dayjs';
 import { storeToRefs } from 'pinia';

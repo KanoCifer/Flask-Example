@@ -6,7 +6,7 @@ import type {
   MomentCreatePayload,
   MomentListResponse,
   MomentUpdatePayload,
-} from '@/features/moments/types';
+} from '@readinglist/types';
 
 export interface MomentsGateway {
   listPublic(params?: ListPublicMomentsParams): Promise<MomentListResponse>;

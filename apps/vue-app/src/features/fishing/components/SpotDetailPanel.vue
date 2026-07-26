@@ -17,8 +17,7 @@ import {
 } from '@/components';
 import SpotMiniMap from '@/features/fishing/components/SpotMiniMap.vue';
 import SpotPhotoLightbox from '@/features/fishing/components/SpotPhotoLightbox.vue';
-import type { MapMarker } from '@/features/fishing/types';
-import type { SpotDetail } from '@/features/fishing/types';
+import type { MapMarker, SpotDetail } from '@readinglist/types';
 import type { UpdateFishingSpotPayload } from '@/features/fishing/api';
 import { fishingSpotsGateway } from '@/features/fishing/api';
 import { useUpload } from '@/features/upload/composables';

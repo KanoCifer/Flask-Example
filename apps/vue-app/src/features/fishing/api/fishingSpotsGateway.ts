@@ -4,7 +4,7 @@ import type {
   CreateFishingSpotPayload,
   FishingSpot,
   UpdateFishingSpotPayload,
-} from '@/features/fishing/types';
+} from '@readinglist/types';
 
 // ── 与 go-backend 对齐 —— 单一真源在后端（dto/fish.go + document/fishing_spot.go），前端镜像。 ──
 

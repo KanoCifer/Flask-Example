@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { AuthLayout } from './components';
 import { Button, FieldError, IconKey, IconLock } from '@/components';
-import type { LoginForm } from '@/features/auth/types';
+import type { LoginForm } from '@readinglist/types';
 import { Check, Loader2, LogIn, ShieldUser } from '@lucide/vue';
 import { AnimatePresence, motion } from 'motion-v';
 import { ref } from 'vue';

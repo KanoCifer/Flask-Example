@@ -12,8 +12,8 @@ import { useFishingMapStore } from '@/features/fishing/stores/fishingMap';
 import type {
   FishingFeedbackData,
   FishingIndexData,
-} from '@/features/fishing/types';
-import type { TideData } from '@/features/fishing/types';
+  TideData,
+} from '@readinglist/types';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 

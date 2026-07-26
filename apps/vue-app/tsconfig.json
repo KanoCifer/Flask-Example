@@ -13,7 +13,8 @@
   ],
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@readinglist/types": ["../../packages/types/src/index.ts"]
     }
   }
 }

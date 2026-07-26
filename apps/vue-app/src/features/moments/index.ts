@@ -6,4 +6,3 @@ export * from './composables';
 export { momentsGateway } from './api';
 export type { MomentsGateway } from './api';
 export { useMomentsStore } from './stores/moments';
-export * from './types';

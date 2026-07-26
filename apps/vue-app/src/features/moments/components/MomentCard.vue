@@ -91,7 +91,7 @@
 import { Button } from '@/components';
 import { Pencil, Star, Trash2 } from '@lucide/vue';
 import { renderMarkdown } from '@/composables';
-import type { Moment } from '@/features/moments/types';
+import type { Moment } from '@readinglist/types';
 import { motion } from 'motion-v';
 import { WHILE_IN_VIEW_FADE_UP } from '@/constants';
 import MomentMeta from './MomentMeta.vue';

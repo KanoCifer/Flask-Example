@@ -173,7 +173,7 @@
 
 <script setup lang="ts">
 import { formatDate } from '@/lib/dayjs';
-import type { RssArticle } from '@/features/rss/types';
+import type { RssArticle } from '@readinglist/types';
 
 defineProps<{
   articles: RssArticle[];

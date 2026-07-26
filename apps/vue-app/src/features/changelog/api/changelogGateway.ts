@@ -1,6 +1,6 @@
 import { apiClient } from '@/api/request';
 
-import type { Changelog } from '@/features/changelog/types';
+import type { Changelog } from '@readinglist/types';
 
 export const changelogGateway = {
   getChangelogs: async (): Promise<Changelog[]> => {

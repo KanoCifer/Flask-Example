@@ -4,7 +4,7 @@ import type {
   WeatherDay,
   WeatherFullResponse,
   WeatherNow,
-} from '@/features/fishing/types';
+} from '@readinglist/types';
 
 export type { TideApiEnvelope, WeatherDay, WeatherFullResponse, WeatherNow };
 

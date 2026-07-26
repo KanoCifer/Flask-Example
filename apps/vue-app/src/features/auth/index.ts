@@ -7,4 +7,3 @@ export { authGateway, createAuthGateway } from './api/authGateway';
 export { refreshAccessToken, isrefreshTokenRequest } from './lib/refresh';
 export { tokenService } from '@/api/tokenService';
 export { userCache } from './lib/userCache';
-export type { UserInfo } from './types';
