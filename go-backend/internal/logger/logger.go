@@ -24,7 +24,7 @@ const ginSource = "gin"
 func Init(cfg *config.Config) {
 	level := parseLevel(cfg.Server.LogLevel)
 
-	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
+	opts := &slog.HandlerOptions{Level: level}
 	var appHandler, errHandler slog.Handler
 	if cfg.Server.ENV == "prod" {
 		appWriter := io.MultiWriter(os.Stdout, newLumberjackWriter("logs/app.log"))
