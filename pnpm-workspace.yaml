@@ -1,0 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+allowBuilds:
+  - '@parcel/watcher'
+  - core-js
+  - esbuild
+  - maplibre-gl
+  - msw
+  - vue-demi
+
+minimumReleaseAgeExclude:
+  - vite@8.1.4
+  - '@typescript/*@7.0.2'
+  - lucide-react@1.25.0
+
+overrides:
+  lottie-web: '5.13.0'
