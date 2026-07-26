@@ -38,9 +38,9 @@ export const useTidePanelStore = defineStore('tidePanel', () => {
     try {
       const res = await weatherGateway.getTide({ harbor, date });
       panelTideData.value = {
-        updateTime: res.updateTime,
-        tideTable: res.tideTable,
-        tideHourly: res.tideHourly,
+        updateTime: res.data.updateTime,
+        tideTable: res.data.tideTable,
+        tideHourly: res.data.tideHourly,
       };
       panelTideSpotName.value =
         HARBOR_OPTIONS.find((option) => option.code === harbor)?.name ??

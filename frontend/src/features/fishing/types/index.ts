@@ -58,10 +58,14 @@ export interface TideData {
   tideHourly: Array<{ fxTime: string; height: number | string }>;
 }
 
-/** 潮汐 API 响应（TideData + 状态码）*/
-export interface TideResponse extends TideData {
-  code: string;
+/** v3 潮汐 API 响应包装层：data 字段含 fromCache 元数据 */
+export interface TideApiEnvelope {
+  data: TideData;
+  fromCache: boolean;
 }
+
+/** @deprecated 兼容别名：v2 时直接返回 raw TideData；v3 后等价于 TideApiEnvelope */
+export type TideResponse = TideApiEnvelope;
 
 export interface WeatherHourly {
   fxTime: string;

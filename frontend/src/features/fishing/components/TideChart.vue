@@ -51,11 +51,11 @@ const fetchTideData = async (harbor: string, date: string) => {
   loading.value = true;
   try {
     const res = await weatherGateway.getTide({ harbor, date });
-    if (res.tideHourly && res.tideHourly.length > 0) {
+    if (res.data.tideHourly && res.data.tideHourly.length > 0) {
       tideData.value = {
-        updateTime: res.updateTime,
-        tideTable: res.tideTable,
-        tideHourly: res.tideHourly,
+        updateTime: res.data.updateTime,
+        tideTable: res.data.tideTable,
+        tideHourly: res.data.tideHourly,
       };
     }
   } catch {

@@ -1,15 +1,15 @@
 import { apiClient } from '@/api/request';
 import type {
-  TideResponse,
+  TideApiEnvelope,
   WeatherDay,
   WeatherFullResponse,
   WeatherNow,
 } from '@/features/fishing/types';
 
-export type { TideResponse, WeatherDay, WeatherFullResponse, WeatherNow };
+export type { TideApiEnvelope, WeatherDay, WeatherFullResponse, WeatherNow };
 
 export interface WeatherGateway {
-  getTide(payload: { harbor: string; date: string }): Promise<TideResponse>;
+  getTide(payload: { harbor: string; date: string }): Promise<TideApiEnvelope>;
   getWeatherFull(payload: {
     location: [number, number];
   }): Promise<WeatherFullResponse>;
@@ -19,10 +19,13 @@ export const weatherGateway: WeatherGateway = {
   async getTide(payload: {
     harbor: string;
     date: string;
-  }): Promise<TideResponse> {
-    const res = await apiClient.get<{ data: TideResponse }>('v2/weather/tide', {
-      params: payload,
-    });
+  }): Promise<TideApiEnvelope> {
+    const res = await apiClient.get<{ data: TideApiEnvelope }>(
+      'v3/weather/tide',
+      {
+        params: payload,
+      },
+    );
     return res.data.data;
   },
 
@@ -31,7 +34,7 @@ export const weatherGateway: WeatherGateway = {
   }): Promise<WeatherFullResponse> {
     const [lng, lat] = payload.location;
     const res = await apiClient.get<{ data: WeatherFullResponse }>(
-      'v2/weather/full',
+      'v3/weather/full',
       {
         params: { location: `${lng.toFixed(2)},${lat.toFixed(2)}` },
       },

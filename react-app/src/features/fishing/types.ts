@@ -25,6 +25,12 @@ export interface TideData {
   tideHourly: Array<{ fxTime: string; height: number | string }>;
 }
 
+/** v3 潮汐 API 响应包装层：data 字段含 fromCache 元数据 */
+export interface TideApiEnvelope {
+  data: TideData;
+  fromCache: boolean;
+}
+
 export interface RouteInfo {
   distance: number;
   time: number;

@@ -8,7 +8,7 @@ import type {
   FishingFeedbackResponse,
   FishingIndexData,
   SecurityKeyResponse,
-  TideData,
+  TideApiEnvelope,
   WeatherFullResponse,
 } from '../types';
 
@@ -17,7 +17,7 @@ export interface fishingMapGateway {
   getTide(payload?: {
     harbor: string;
     date: string;
-  }): Promise<AxiosResponse<ApiEnvelope<TideData>>>;
+  }): Promise<AxiosResponse<ApiEnvelope<TideApiEnvelope>>>;
 
   getWeatherFull(payload: {
     location: [number, number];
@@ -41,14 +41,14 @@ export const fishingMapGateway = (): fishingMapGateway => {
     },
 
     async getTide(payload?: { harbor: string; date: string }) {
-      return apiClient.get('v2/weather/tide', { params: payload }) as Promise<
-        AxiosResponse<ApiEnvelope<TideData>>
+      return apiClient.get('v3/weather/tide', { params: payload }) as Promise<
+        AxiosResponse<ApiEnvelope<TideApiEnvelope>>
       >;
     },
 
     async getWeatherFull(payload: { location: [number, number] }) {
       const [lng, lat] = payload.location;
-      return apiClient.get('v2/weather/full', {
+      return apiClient.get('v3/weather/full', {
         params: { location: `${lng.toFixed(2)},${lat.toFixed(2)}` },
       }) as Promise<AxiosResponse<ApiEnvelope<WeatherFullResponse>>>;
     },

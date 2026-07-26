@@ -59,7 +59,9 @@ export const fishingMapService = (): FishingMapService => {
       date: string;
     }): Promise<TideData> {
       const res = await gateway.getTide(payload);
-      return res.data.data;
+      // res: AxiosResponse<ApiEnvelope<TideApiEnvelope>>
+      // envelope.data.data 取最里层 raw TideData
+      return res.data.data.data;
     },
 
     async getSecurityJsCode(): Promise<string> {
