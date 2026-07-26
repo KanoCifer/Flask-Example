@@ -5,7 +5,7 @@
 ## Overview
 
 - Backend: FastAPI + PostgreSQL + MongoDB + Redis + Go
-- Desktop: Vue 3.5 (`frontend/`) + Vite 8 + Tailwind CSS v4 + Pinia 3
+- Desktop: Vue 3.5 (`apps/vue-app/`) + Vite 8 + Tailwind CSS v4 + Pinia 3
 - Mobile: React 19 (`react-app/`) + Vite 8 + Tailwind CSS v4 + Zustand 5
 - Domain terms: see [domain.md](domain.md)
 

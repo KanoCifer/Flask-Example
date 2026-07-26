@@ -1,7 +1,7 @@
 # Environment
 
 - Backend: `backend/` — FastAPI
-- Desktop: `frontend/`
+- Desktop: `apps/vue-app/`
 - Mobile: `react-app/`
 - Brand themes: `packages/brand/themes/` — shared CSS variables (4 schemes: paper / sage / mist / blush)
 - Brand prose: `packages/brand/prose.css` — `.prose` article styles (shared across both frontends)

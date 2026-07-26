@@ -95,10 +95,10 @@ if [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
   if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- go-backend/)" ]; then
     GO_BACKEND_CHANGED=true
   fi
-  if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- frontend/)" ]; then
+  if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- apps/vue-app/)" ]; then
     FRONTEND_CHANGED=true
   fi
-  if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- react-app/)" ]; then
+  if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- apps/react-app/)" ]; then
     REACT_APP_CHANGED=true
   fi
 fi
@@ -136,14 +136,14 @@ else
   PID_REACT=""
 
   if [ "$FRONTEND_CHANGED" = true ]; then
-    ( cd /home/kano/blog/frontend || exit 1; pnpm i && pnpm run build ) &
+    ( cd /home/kano/blog/apps/vue-app || exit 1; pnpm i && pnpm run build ) &
     PID_FRONTEND=$!
   else
     warn "No frontend changes detected — skipping build"
   fi
 
   if [ "$REACT_APP_CHANGED" = true ]; then
-    ( cd /home/kano/blog/react-app || exit 1; pnpm i && pnpm run build ) &
+    ( cd /home/kano/blog/apps/react-app || exit 1; pnpm i && pnpm run build ) &
     PID_REACT=$!
   else
     warn "No react-app changes detected — skipping build"
