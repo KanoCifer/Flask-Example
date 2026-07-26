@@ -9,7 +9,7 @@
 ## 2) Project Overview
 
 - kanocifer.chat 个人网站（"kuro neko" / 黑猫）。
-- **双前端架构**：Vue (`apps/vue-app/`) + React (`apps/react-app/`) 共享后端、各自独立状态 Store。pnpm monorepo，共享包在 `packages/`。
+- **双前端架构**：Vue (`frontend/apps/vue-app/`) + React (`frontend/apps/react-app/`) 共享后端、各自独立状态 Store。pnpm monorepo，共享包在 `frontend/packages/`。
 
 ## 3) Documentation Index
 

@@ -1,10 +1,10 @@
 # Environment
 
 - Backend: `backend/` — FastAPI
-- Desktop: `apps/vue-app/`
-- Mobile: `react-app/`
-- Brand themes: `packages/brand/themes/` — shared CSS variables (4 schemes: paper / sage / mist / blush)
-- Brand prose: `packages/brand/prose.css` — `.prose` article styles (shared across both frontends)
+- Desktop: `frontend/apps/vue-app/`
+- Mobile: `frontend/apps/react-app/`
+- Brand themes: `frontend/packages/brand/themes/` — shared CSS variables (4 schemes: paper / sage / mist / blush)
+- Brand prose: `frontend/packages/brand/prose.css` — `.prose` article styles (shared across both frontends)
 - Go backend: `go-backend/` — Python 后端的 Go 重构。
 
 ## Required Env Vars

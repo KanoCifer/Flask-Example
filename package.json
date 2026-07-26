@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "frontend/apps/*",
+    "frontend/packages/*"
   ],
   "scripts": {
     "dev:vue": "pnpm --filter @readinglist/vue-app dev",
@@ -16,9 +16,6 @@
     "test": "pnpm --filter @readinglist/vue-app test:unit && pnpm --filter @readinglist/react-app test:unit",
     "lint": "pnpm --filter @readinglist/vue-app lint && pnpm --filter @readinglist/react-app lint",
     "lint:boundaries": "pnpm --filter @readinglist/vue-app lint:boundaries && pnpm --filter @readinglist/react-app lint:boundaries"
-  },
-  "devDependencies": {
-    "dependency-cruiser": "^18.1.0"
   },
   "engines": {
     "node": "^26.4.0"

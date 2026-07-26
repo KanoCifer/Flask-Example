@@ -28,7 +28,7 @@ kanocifer.chat 需要同时覆盖两个终端场景：
 
 ## Decision
 
-维护两套独立前端：**Vue 3.5** (`frontend/`) 用于桌面，**React 19** (`react-app/`) 用于移动。
+维护两套独立前端：**Vue 3.5** (`frontend/apps/vue-app/`) 用于桌面，**React 19** (`frontend/apps/react-app/`) 用于移动。
 
 两端的架构原则：
 

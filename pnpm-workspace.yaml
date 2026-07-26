@@ -1,14 +1,14 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - "frontend/apps/*"
+  - "frontend/packages/*"
 
 allowBuilds:
-  '@parcel/watcher': set this to true or false
+  '@parcel/watcher': true
 
 minimumReleaseAgeExclude:
   - vite
-  - '@typescript'
+  - "@typescript"
   - lucide-react
 
 overrides:
-  lottie-web: '5.13.0'
+  lottie-web: "5.13.0"

@@ -6,8 +6,8 @@ kanocifer.chat是一个个人阅读追踪 + 博客系统，名称源于日语 "k
 
 - Backend: FastAPI
 - Go Backend: Gin
-- Desktop frontend: Vue 3.5 (`apps/vue-app/`)
-- Mobile frontend: React 19 (`react-app/`)
+- Desktop frontend: Vue 3.5 (`frontend/apps/vue-app/`)
+- Mobile frontend: React 19 (`frontend/apps/react-app/`)
 - Task queue: Taskiq + RabbitMQ
 
 ## Domain Glossary
