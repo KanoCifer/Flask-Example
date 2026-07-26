@@ -66,6 +66,9 @@ class FishingIndexResponse(BaseModel):
     tide_data: dict | None = Field(
         default=None, description="潮汐数据（enriched=True 时填充）"
     )
+    hourly_weather: dict | None = Field(
+        default=None, description="小时天气预报（enriched=True 时填充）"
+    )
 
 
 class FishingFeedbackRequest(BaseModel):
@@ -185,6 +188,7 @@ async def get_fishing_index(
         resp_data.forecasts = weather_data.get("daily", {}).get("daily")
         resp_data.location_name = weather_data.get("locationName")
         resp_data.tide_data = weather_data.get("tide")
+        resp_data.hourly_weather = weather_data.get("hourly", {})
 
     return APIResponse(data=resp_data.model_dump())
 

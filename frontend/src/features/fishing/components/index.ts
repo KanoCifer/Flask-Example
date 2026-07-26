@@ -4,7 +4,6 @@ export { default as AnalysisPanel } from './AnalysisPanel.vue';
 export { default as DashboardCard } from './DashboardCard.vue';
 export { default as DashboardHeader } from './DashboardHeader.vue';
 export { default as FeedbackFormDialog } from './FeedbackFormDialog.vue';
-export { default as HourlyCard } from './HourlyCard.vue';
 export { default as HourlyChartCard } from './HourlyChartCard.vue';
 export { default as IndexHeroCard } from './IndexHeroCard.vue';
 export { default as MapContainer } from './MapContainer.vue';

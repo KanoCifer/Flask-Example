@@ -108,8 +108,7 @@ export const useFishingMapStore = create<FishingMapState>((set, get) => ({
    * 两次（fishing/index 内部又会调一次 Go weather/full）。改为只调 fishing/index
    * enriched=true，从响应中取天气数据，省掉一次 Go 请求。
    *
-   * 注意：enriched 响应不含 hourly / indices，所以 weatherHourly / weatherIndices
-   * 保持空数组（UI 已有空态兜底）。
+   * 注意：enriched 响应不含 indices，所以 weatherIndices 保持空数组（UI 已有空态兜底）。
    */
   fetchWeatherAndFishing: async (location: [number, number]) => {
     const service = fishingMapService();
@@ -132,8 +131,7 @@ export const useFishingMapStore = create<FishingMapState>((set, get) => ({
       set({
         liveWeather: now,
         forecasts: daily,
-        // enriched 响应不含 hourly / indices —— 保持空数组
-        weatherHourly: [],
+        weatherHourly: fishingIndex.hourly_weather?.hourly ?? [],
         locationName:
           nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点'),
         weatherIndices: [],

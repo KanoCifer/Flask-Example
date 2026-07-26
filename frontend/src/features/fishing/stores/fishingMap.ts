@@ -46,8 +46,7 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
    * 两次（fishing/index 内部又会调一次 Go weather/full）。改为只调 fishing/index
    * enriched=true，从响应中取天气数据，省掉一次 Go 请求。
    *
-   * 注意：enriched 响应不含 hourly / indices，所以 weatherHourly / weatherIndices
-   * 保持空数组（UI 已有空态兜底）。
+   * 注意：enriched 响应不含 indices，所以 weatherIndices 保持空数组（UI 已有空态兜底）。
    */
   async function fetchWeatherAndFishing(
     location: [number, number],
@@ -70,10 +69,13 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
       const daily = fishingIndex.forecasts ?? [];
       const nameFromEnriched = fishingIndex.location_name?.trim();
 
+      const hourlyWrapper = fishingIndex.hourly_weather as
+        | { hourly?: WeatherHourly[] }
+        | undefined;
+
       liveWeather.value = now;
       forecasts.value = daily;
-      // enriched 响应不含 hourly / indices —— 保持空数组
-      weatherHourly.value = [];
+      weatherHourly.value = hourlyWrapper?.hourly ?? [];
       locationName.value = nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点');
       weatherIndices.value = [];
       tideData.value = fishingIndex.tide_data ?? null;

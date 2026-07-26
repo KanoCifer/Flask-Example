@@ -222,6 +222,7 @@ export interface FishingIndexData {
   forecasts?: WeatherDay[];
   location_name?: string;
   tide_data?: TideData;
+  hourly_weather?: { hourly?: WeatherHourly[] };
 }
 
 // 钓鱼反馈所需数据

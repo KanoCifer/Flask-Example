@@ -201,6 +201,7 @@ export interface FishingIndexData {
   forecasts?: WeatherDay[];
   location_name?: string;
   tide_data?: TideData;
+  hourly_weather?: { hourly?: WeatherHourly[] };
 }
 
 export interface FishingFeedbackData {
