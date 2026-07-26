@@ -12,8 +12,7 @@ import (
 	"github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
-	"github.com/KanoCifer/kuroome-blog/internal/repository/mongodb"
-)
+	)
 
 // 错误策略：
 //   - repo 抛底层错误（mongo.ErrNoDocuments / bson.ObjectIDFromHex 错误）
@@ -74,8 +73,8 @@ type MomentService struct {
 	repo MomentRepositoryer
 }
 
-func NewMomentService(db *mongo.Database) *MomentService {
-	return &MomentService{repo: mongodb.NewMomentRepo(db)}
+func NewMomentService(repo MomentRepositoryer) *MomentService {
+	return &MomentService{repo: repo}
 }
 
 // Create 创建一条 moment。

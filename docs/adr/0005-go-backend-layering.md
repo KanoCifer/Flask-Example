@@ -161,20 +161,14 @@ func (h *WSHandler) RegisterRoutes(r *gin.RouterGroup)
 | `internal/repository/mongodb/` | 所有 MongoDB repository（`DevTaskRepository`, `MomentRepo` 等） | MongoDB |
 | `internal/repository/postgres/` | 所有 PostgreSQL repository（`UserRepo`, `VisitorRepo` 等） | PostgreSQL |
 
-注意 Repository 注入有两种模式，并存：
+Repository 通过**外部注入**传给 service：repo 在 `NewAppState` 中构造，通过构造函数参数传入 service：
 
-- **外部注入**（推荐）：repo 在 `NewAppState` 中构造，通过构造函数传入 service：
-  ```go
-  userRepo := postgres.NewUserRepo(db)
-  userSvc := service.NewUserService(userRepo, redis, cfg.Admin.UserIDs)
-  ```
-- **内部构造**（Mongo 域采用）：service 构造函数直接收 `*mongo.Database`，内部调用 `mongodb.NewXxxRepo(db)`：
-  ```go
-  devTaskSvc: service.NewDevTaskService(mongoDB),  // repo 在 service 内创建
-  momentSvc:  service.NewMomentService(mongoDB),   // 同上
-  ```
-
-两种模式都可接受。外部注入更便于 mock，内部构造减少 appstate boilerplate。**不强制统一**，但代码审查时注意内部构造的 service 应在其构造函数中有明确的 repo 创建调用。
+```go
+devTaskRepo := mongodb.NewDevTaskRepository(mongoDB)
+momentRepo := mongodb.NewMomentRepo(mongoDB)
+devTaskSvc := service.NewDevTaskService(devTaskRepo)
+momentSvc := service.NewMomentService(momentRepo)
+```
 
 ### 7. 文件命名与包布局
 

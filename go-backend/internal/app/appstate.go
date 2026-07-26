@@ -49,6 +49,8 @@ func NewAppState(
 	fishRepo := mongodb.NewFishRepo(mongoDB)
 	adminRepo := mongodb.NewAdminRepo(mongoDB)
 	blogRepo := mongodb.NewBlogRepository(mongoDB)
+	devTaskRepo := mongodb.NewDevTaskRepository(mongoDB)
+	momentRepo := mongodb.NewMomentRepo(mongoDB)
 
 	// -- services ---------------------------------------------------- //
 	userSvc := service.NewUserService(userRepo, redis, cfg.Admin.UserIDs)
@@ -57,7 +59,7 @@ func NewAppState(
 		userSvc:    userSvc,
 		adminSvc:   service.NewAdminService(adminRepo, visitorRepo, redis),
 		blogSvc:    service.NewBlogService(blogRepo),
-		devTaskSvc: service.NewDevTaskService(mongoDB),
+		devTaskSvc: service.NewDevTaskService(devTaskRepo),
 		passkeySvc: service.NewPasskeyService(wa, redis, passkeyRepo, userRepo),
 		monitorSvc: service.NewMonitorService(visitorRepo, userRepo, cfg.API.Version),
 		systemSvc:  service.NewSystemService(eventRepo),
@@ -68,7 +70,7 @@ func NewAppState(
 		),
 		fishSvc:   service.NewFishService(fishRepo),
 		uploadSvc: service.NewUploadService(userRepo, cfg),
-		momentSvc: service.NewMomentService(mongoDB),
+		momentSvc: service.NewMomentService(momentRepo),
 	}
 }
 

@@ -48,8 +48,8 @@ type DevTaskService struct {
 	repo DevTaskRepositoryer
 }
 
-func NewDevTaskService(db *mongo.Database) *DevTaskService {
-	return &DevTaskService{repo: mongodb.NewDevTaskRepository(db)}
+func NewDevTaskService(repo DevTaskRepositoryer) *DevTaskService {
+	return &DevTaskService{repo: repo}
 }
 
 // blockedByOrEmpty 把 nil slice 归一化为空数组，避免 omitempty 在 Mongo 里丢字段。
