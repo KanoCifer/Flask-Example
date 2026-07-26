@@ -1,0 +1,992 @@
+{
+  "version": 1,
+  "sessions": {
+    "2ee11f0e-82c5-4333-9750-53e7f320c6c1": {
+      "updatedAt": 1784725703958,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/composables/devTaskPolicy.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/TaskRow.vue": {
+          "editCount": 2,
+          "findings": [],
+          "cleanAcked": true
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/ReviewPanel.vue": {
+          "editCount": 1,
+          "findings": [],
+          "cleanAcked": true
+        }
+      }
+    },
+    "6d3875ca-3740-49d7-9908-05a7aa38a61d": {
+      "updatedAt": 1784697802051,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pages/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/changelog/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/websites/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/device/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pic/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/moments/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/toolbox/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/router/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/router/views.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/stores/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/ProfileSettingView.vue": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "ddacfed7-dc87-441a-b428-1a24ca25f643": {
+      "updatedAt": 1784653775416,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/visitor/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/visitor/stores/visitorCount.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/visitor/lib/visitor-id.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/visitor/lib/visitor-track.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/visitor/lib/visitor-ws.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/stores/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/lib/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/stores/__tests__/visitorCount.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/stores/cardLayout.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/composables/useCardLayout.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/composables/useCardDrag.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/DragWrapper.vue": {
+          "editCount": 3,
+          "findings": [
+            "bounce-easing:103:cubic-bezier(0.34, 1.56, 0.64, 1)",
+            "bounce-easing:106:cubic-bezier(0.34, 1.56, 0.64, 1)"
+          ]
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/FloatingActionButtons.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/EntryView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/composables/useCardLayout.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/composables/useCardDrag.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/composables/useCardImage.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/composables/useLayoutCenter.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/composables/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/CardTab.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/composables/index.ts": {
+          "editCount": 4,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/stores/__tests__/cardLayout.test.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/composables/useGreeting.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/composables/__tests__/useGreeting.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/components/GreetingToast.vue": {
+          "editCount": 1,
+          "findings": ["bounce-easing:190:cubic-bezier(0.34, 1.56, 0.64, 1)"]
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/components/index.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "0a986d0c-35ed-4762-93a7-a068b57c6b0f": {
+      "updatedAt": 1784650130037,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/api/serviceToken.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/api/devtaskGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/stores/auth.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/helper/refresh.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/components/ServerMonitor.vue": {
+          "editCount": 1,
+          "findings": [
+            "flat-type-hierarchy:12",
+            "em-dash-overuse:0:8 em-dashes in body text"
+          ]
+        }
+      }
+    },
+    "f7ba3ceb-b36b-4f90-a8cb-1169e8f7679c": {
+      "updatedAt": 1784558687453,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/router/index.ts": {
+          "editCount": 5,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/composables/useWereadBookDetailSingleton.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/RssArticleView.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/BlogPostView.vue": {
+          "editCount": 2,
+          "findings": ["broken-image:187"]
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/moments/MomentListView.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/RssSubscriptionsView.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/BlogListView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/SubscriptionView.vue": {
+          "editCount": 4,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/toolbox/ImageToolboxView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/device/DeviceTracker.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/FriendLinksView.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/websites/WebsitesView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/EntryView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/Header.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/GlobalOverlays.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/FooterToggle.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/components/StatusHoverPopover.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/components/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/components/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/composables/useRssArticles.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/composables/useRssSubscriptions.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/composables/useRssParse.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/components/RssSubscriptionsSection.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/api/__tests__/fishingSpotsGateway.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/components/SubscriptionCardList.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/composables/useDevTaskSections.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/components/SubscriptionDetailPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/composables/useDevTasks.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/subscriptionUtils.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/composables/__tests__/devTaskPolicy.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/composables/__tests__/useDevTaskSections.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/composables/devTaskPolicy.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/stores/v3devtasks.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/FrontierCard.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/McpTokenModal.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/KanbanCard.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/TaskRow.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/KanbanPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/TypeBadge.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/PriorityBadge.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/TaskDetailPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/DevTaskModal.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/StatusChip.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/KindBadge.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/PlanningPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/DrawerTaskCard.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/components/ReviewPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/TodoListView.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/TaskDrawer.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/composables/useFishingDashboard.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/composables/amapNamespace.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/stores/fishingMap.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/stores/tidePanel.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/components/FeedbackFormDialog.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/components/TideChart.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/components/SpotDetailPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/components/SpotFormPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/components/BentoMap.vue": {
+          "editCount": 4,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/date/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/visitor/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/text/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/image/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/color/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/dom/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/visitor/visitorWs.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/utils/text/__tests__/stripHtml.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/format.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/api/authGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/api/refresh.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/userCache.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/composables/useAuthenticate.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/stores/auth.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/api/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/stores/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/composables/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/shared/api/apiClient.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/RegisterView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/LoginView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/ProfileSettingView.vue": {
+          "editCount": 4,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/api/serviceToken.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/BasicNav.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pic/PicGallery.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/AnalyticsView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/components/ServerMonitor.vue": {
+          "editCount": 1,
+          "findings": [
+            "flat-type-hierarchy:12",
+            "em-dash-overuse:0:8 em-dashes in body text"
+          ]
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/components/UserDropdown.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/components/BentoNavCard.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/composables/useReadingSummary.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/composables/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/composables/useFishingMapSummary.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/composables/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/composables/useLikeSummary.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/composables/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/index.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/components/BentoReadingList.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/components/BentoLike.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/composables/useServerStatus.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/composables/useLogStream.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/composables/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/StatusView.vue": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/composables/useSubscriptions.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/composables/useReminderConfig.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/composables/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/composables/useProfileForm.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/auth/composables/__tests__/useProfileForm.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/composables/__tests__/useSubscriptions.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/composables/__tests__/useReminderConfig.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/components/StatusResourcesPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/components/StatusDetailsPanel.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/composables/__tests__/useServerStatus.test.ts": {
+          "editCount": 7,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/composables/__tests__/useLogStream.test.ts": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/composables/useFriendLinkSubmit.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/composables/useFriendLinks.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/composables/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/components/TwikooComments.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/composables/__tests__/useFriendLinks.test.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/composables/__tests__/useFriendLinkSubmit.test.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/changelog/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/device/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/moments/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pic/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/toolbox/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/websites/index.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "584ab01c-2839-49ff-8e78-3ef4e05ac07e": {
+      "updatedAt": 1784548783896,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/changelog/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/changelog/ChangelogView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/api/statusGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/changelog/api/changelogGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/friend-links/FriendLinksView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/websites/WebsitesView.vue": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "5728cbe9-66ce-40d1-b817-8cd4e1aec399": {
+      "updatedAt": 1784544425170,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/api/fishing/fishingSpotsGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/api/fishing/weatherGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/api/fishing/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/api/blogGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/api/llmGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/blog/api/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/moments/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/moments/api/momentsGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/moments/api/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/api/rss/rssGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/api/rss/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/subscription/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/api/rss/subscriptionGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/api/weread/wereadGateway.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/api/weread/index.ts": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/api/devtask/devtaskGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/todos/api/devtask/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/device/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/device/api/deviceGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pic/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pic/api/galleryGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/api/analyticsGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pages/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pages/api/public/changelogGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pages/api/statusGateway.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/pages/api/public/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/shared/api/index.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "bac4e92a-58ab-4226-bdb4-9f12449eacd1": {
+      "updatedAt": 1784542650074,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/fishing/types/index.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}

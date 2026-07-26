@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "sessions": {
+    "005d41f8-3971-4b0e-b0c7-3e8a0f3eecf2": {
+      "updatedAt": 1784558962273,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/api/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/books/composables/useReadingSummary.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/status/StatusView.vue": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/components/DynamicIsland.vue": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}

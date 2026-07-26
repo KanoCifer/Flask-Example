@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "sessions": {
+    "bc151f39-c3a4-4e67-bfa5-7052daedf244": {
+      "updatedAt": 1784642264365,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/layouts/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/entry/EntryView.vue": {
+          "editCount": 2,
+          "findings": []
+        }
+      }
+    }
+  }
+}

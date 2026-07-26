@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "sessions": {
+    "bac4e92a-58ab-4226-bdb4-9f12449eacd1": {
+      "updatedAt": 1784541680881,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/rss/components/index.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}
