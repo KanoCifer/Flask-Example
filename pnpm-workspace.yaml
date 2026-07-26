@@ -3,17 +3,12 @@ packages:
   - 'packages/*'
 
 allowBuilds:
-  - '@parcel/watcher'
-  - core-js
-  - esbuild
-  - maplibre-gl
-  - msw
-  - vue-demi
+  '@parcel/watcher': set this to true or false
 
 minimumReleaseAgeExclude:
-  - vite@8.1.4
-  - '@typescript/*@7.0.2'
-  - lucide-react@1.25.0
+  - vite
+  - '@typescript'
+  - lucide-react
 
 overrides:
   lottie-web: '5.13.0'
