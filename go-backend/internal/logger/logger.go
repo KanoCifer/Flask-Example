@@ -33,8 +33,10 @@ func Init(cfg *config.Config) {
 		appHandler = slog.NewJSONHandler(appWriter, opts)
 		errHandler = slog.NewJSONHandler(errWriter, opts)
 	} else {
-		appWriter := io.MultiWriter(os.Stdout, os.Stderr)
-		appHandler = slog.NewTextHandler(appWriter, opts)
+		// 仅写 stdout。errHandler 与 appHandler 共用同一个 handler，
+		// 避免 WithAttrs/WithGroup 时对 nil errHandler 解引用 panic。
+		appHandler = slog.NewTextHandler(os.Stdout, opts)
+		errHandler = appHandler
 	}
 
 	router := &routerHandler{appHandler: appHandler, errHandler: errHandler, minLevel: level}

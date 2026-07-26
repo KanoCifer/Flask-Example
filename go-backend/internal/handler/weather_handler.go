@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -62,12 +63,16 @@ func (h *WeatherHandler) GetFullWeather(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
+
 	data, err := h.svc.GetFullWeatherData(c.Request.Context(), location)
 	if err != nil {
 		h.respondError(c, err)
 		return
 	}
+	lag := time.Since(start)
 
+	slog.Debug("FullWeather", "indices", string(data.Indices), "lag", lag)
 	response.Success(c, data,
 		"Full weather data retrieved successfully")
 }

@@ -28,6 +28,13 @@ type Weatherer interface {
 	GetFullWeatherData(ctx context.Context, location string) (*dto.FullWeatherData, error)
 }
 
+// weatherPart 给 FanOut 结果打标签，配合完成顺序无关的 channel 读取。
+type weatherPart struct {
+	Kind string            // "poi" / "tsta" / "current" / "hourly" / "daily" / "tide" / "indices"
+	Data json.RawMessage   // 通用 payload（poi / current / hourly / daily / tide / indices）
+	Map  map[string]string // 仅 TSTA 使用
+}
+
 type WeatherService struct {
 	qw *qweatherClient
 }
@@ -126,15 +133,49 @@ func (s *WeatherService) GetNearbyTSTA(ctx context.Context, location string) (ma
 	return map[string]string{"id": parsed.POI[0].ID}, nil
 }
 
-// GetFullWeatherData 组合全部 5 个 endpoint，保留 Python 端 try/except 语义。
-// 任何 Weather 域错误向上抛 ErrUpstream / ErrUnavailable；
-// 兜底意外异常包装为 ErrUnavailable 风格的 503。
 func (s *WeatherService) GetFullWeatherData(ctx context.Context, location string) (*dto.FullWeatherData, error) {
-	// POI 解析
-	poiData, err := s.GetPOI(ctx, location)
-	if err != nil {
-		return nil, err
+	// 阶段 1：POI + TSTA 并发；POI 失败 fatal，TSTA 失败容错。
+	ch1 := FanOut(ctx,
+		func(ctx context.Context) (weatherPart, error) {
+			d, err := s.GetPOI(ctx, location)
+			return weatherPart{Kind: "poi", Data: d}, err
+		},
+		func(ctx context.Context) (weatherPart, error) {
+			d, err := s.GetNearbyTSTA(ctx, location)
+			return weatherPart{Kind: "tsta", Map: d}, err
+		},
+	)
+
+	var poiData json.RawMessage
+	var tstaID string
+	for range 2 {
+		var r Result[weatherPart]
+		select {
+		case r = <-ch1:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		switch r.Value.Kind {
+		case "poi":
+			if r.Error != nil {
+				return nil, r.Error
+			}
+			poiData = r.Value.Data
+		case "tsta":
+			if r.Error != nil {
+				slog.ErrorContext(ctx, "fetch nearby TSTA failed",
+					"location", location, "error", r.Error.Error())
+				continue
+			}
+			if id, ok := r.Value.Map["id"]; ok && id != "" {
+				tstaID = id
+				slog.InfoContext(ctx, "found nearby TSTA", "id", tstaID)
+			} else {
+				slog.WarnContext(ctx, "no nearby TSTA", "location", location)
+			}
+		}
 	}
+
 	var poiParsed struct {
 		POI []struct {
 			Name string `json:"name"`
@@ -152,48 +193,64 @@ func (s *WeatherService) GetFullWeatherData(ctx context.Context, location string
 	slog.InfoContext(ctx, "POI lookup returned",
 		"location", location, "name", poiName, "id", poiID)
 
-	// 潮汐站点（失败容错）
-	var tstaID string
-	tstaInfo, err := s.GetNearbyTSTA(ctx, location)
-	if err != nil {
-		slog.ErrorContext(ctx, "fetch nearby TSTA failed",
-			"location", location, "error", err.Error())
-	} else if id, ok := tstaInfo["id"]; ok && id != "" {
-		tstaID = id
-		slog.InfoContext(ctx, "found nearby TSTA", "id", tstaID)
-	} else {
-		slog.WarnContext(ctx, "no nearby TSTA", "location", location)
-	}
-
 	if poiName == "" && poiID == "" {
 		return nil, fmt.Errorf("%w: no POI for %s", ErrUpstream, location)
 	}
 
-	// 5 个 endpoint 并发获取
-	current, err := s.GetCurrent(ctx, &location, nil)
-	if err != nil {
-		return nil, err
-	}
-	hourly, err := s.GetHourly(ctx, 24, &location, nil)
-	if err != nil {
-		return nil, err
-	}
-	daily, err := s.GetForecast(ctx, 3, &location, nil)
-	if err != nil {
-		return nil, err
-	}
 	dateStr := time.Now().UTC().Format("20060102")
 	harbor := tstaID
 	if harbor == "" {
 		harbor = "P2352"
 	}
-	tide, _, err := s.GetTide(ctx, harbor, dateStr)
-	if err != nil {
-		return nil, err
-	}
-	indices, err := s.GetIndices(ctx, &location, nil)
-	if err != nil {
-		return nil, err
+
+	// 阶段 2：5 个 weather endpoint 并发；channel 按完成顺序到达，靠 Kind 标签归位。
+	ch2 := FanOut(ctx,
+		func(ctx context.Context) (weatherPart, error) {
+			d, err := s.GetCurrent(ctx, &location, nil)
+			return weatherPart{Kind: "current", Data: d}, err
+		},
+		func(ctx context.Context) (weatherPart, error) {
+			d, err := s.GetHourly(ctx, 24, &location, nil)
+			return weatherPart{Kind: "hourly", Data: d}, err
+		},
+		func(ctx context.Context) (weatherPart, error) {
+			d, err := s.GetForecast(ctx, 3, &location, nil)
+			return weatherPart{Kind: "daily", Data: d}, err
+		},
+		func(ctx context.Context) (weatherPart, error) {
+			// GetTide 返回 (data, from_cache, error)，丢掉 cache 标记。
+			d, _, err := s.GetTide(ctx, harbor, dateStr)
+			return weatherPart{Kind: "tide", Data: d}, err
+		},
+		func(ctx context.Context) (weatherPart, error) {
+			d, err := s.GetIndices(ctx, &location, nil)
+			return weatherPart{Kind: "indices", Data: d}, err
+		},
+	)
+
+	var current, hourly, daily, tide, indices json.RawMessage
+	for range 5 {
+		var r Result[weatherPart]
+		select {
+		case r = <-ch2:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		if r.Error != nil {
+			return nil, r.Error
+		}
+		switch r.Value.Kind {
+		case "current":
+			current = r.Value.Data
+		case "hourly":
+			hourly = r.Value.Data
+		case "daily":
+			daily = r.Value.Data
+		case "tide":
+			tide = r.Value.Data
+		case "indices":
+			indices = r.Value.Data
+		}
 	}
 
 	slog.DebugContext(ctx, "fetched full weather data",

@@ -82,13 +82,18 @@ func (c *qweatherClient) Get(
 		}
 	}
 
-	// 2. JWT（优先 redis 缓存）
+	// 2. signer 未配置（JWT 私钥为空）时返回 ErrUnavailable，避免 nil 解引用 panic。
+	if c.signer == nil {
+		return nil, fmt.Errorf("%w: QWeather signer not configured", ErrUnavailable)
+	}
+
+	// 3. JWT（优先 redis 缓存）
 	token, err := c.signer.Cached(ctx, c.redis, 24*time.Hour, c.now())
 	if err != nil {
 		return nil, fmt.Errorf("qweather: get jwt: %w", err)
 	}
 
-	// 3. construct request
+	// 4. construct request
 	url := c.base + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -101,7 +106,7 @@ func (c *qweatherClient) Get(
 	req.URL.RawQuery = q.Encode()
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	// 4. send
+	// 5. send
 	resp, err := c.http.Do(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrUnavailable, err)
@@ -117,7 +122,7 @@ func (c *qweatherClient) Get(
 		return nil, fmt.Errorf("%w: read body: %v", ErrUnavailable, err)
 	}
 
-	// 5. cache write
+	// 6. cache write
 	if c.redis != nil {
 		_ = c.redis.Set(ctx, cacheKey, body, ttl).Err()
 	}

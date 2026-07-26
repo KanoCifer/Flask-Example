@@ -272,8 +272,8 @@ func TestWeatherService_GetNearbyTSTA_EmptyPOI(t *testing.T) {
 
 // stubUpstream 按 path 分发 mock payload；用于 GetFullWeatherData 的组合测试。
 type stubUpstream struct {
-	paths  map[string]string // path → payload
-	hits   map[string]*atomic.Int32
+	paths map[string]string // path → payload
+	hits  map[string]*atomic.Int32
 }
 
 func (s *stubUpstream) handler() http.Handler {
@@ -293,12 +293,12 @@ func (s *stubUpstream) handler() http.Handler {
 
 func TestWeatherService_GetFullWeatherData_HappyPath(t *testing.T) {
 	hits := map[string]*atomic.Int32{
-		"/geo/v2/poi/lookup":     new(atomic.Int32),
-		"/v7/weather/now":         new(atomic.Int32),
-		"/v7/weather/24h":         new(atomic.Int32),
-		"/v7/weather/3d":          new(atomic.Int32),
-		"/v7/ocean/tide":          new(atomic.Int32),
-		"/v7/indices/1d":          new(atomic.Int32),
+		"/geo/v2/poi/lookup": new(atomic.Int32),
+		"/v7/weather/now":    new(atomic.Int32),
+		"/v7/weather/24h":    new(atomic.Int32),
+		"/v7/weather/3d":     new(atomic.Int32),
+		"/v7/ocean/tide":     new(atomic.Int32),
+		"/v7/indices/1d":     new(atomic.Int32),
 	}
 	stub := &stubUpstream{
 		paths: map[string]string{

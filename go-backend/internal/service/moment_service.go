@@ -12,7 +12,7 @@ import (
 	"github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
 	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
-	)
+)
 
 // 错误策略：
 //   - repo 抛底层错误（mongo.ErrNoDocuments / bson.ObjectIDFromHex 错误）

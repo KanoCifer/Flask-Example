@@ -139,11 +139,13 @@ async def get_fishing_index(
         f"[钓鱼指数] 收到请求 location={location}, enriched={enriched}"
     )
     try:
-        weather_data = await weather_service.get_full_weather_data(
-            location, redis
+        # 天气数据由 Go 后端 /v3/weather/full 提供（并发请求 QWeather + 缓存），
+        # Python 端保留钓鱼指数计算逻辑。
+        weather_data = await weather_service.get_full_weather_data_from_go(
+            location
         )
         logger.info(
-            f"[钓鱼指数] 获取天气数据成功: {list(weather_data.keys())}"
+            f"[钓鱼指数] 从 Go 后端获取天气数据成功: {list(weather_data.keys())}"
         )
     except Exception as e:
         logger.error(f"[钓鱼指数] 获取天气数据失败: {e!r}", exc_info=True)

@@ -23,8 +23,8 @@ func init() {
 // ── mock Weatherer ──────────────────────────────────────────────────
 
 type mockWeatherService struct {
-	getTideFn  func(ctx context.Context, harbor, date string) (json.RawMessage, bool, error)
-	fullFn     func(ctx context.Context, location string) (*dto.FullWeatherData, error)
+	getTideFn func(ctx context.Context, harbor, date string) (json.RawMessage, bool, error)
+	fullFn    func(ctx context.Context, location string) (*dto.FullWeatherData, error)
 	// 其余方法本任务不测；保留占位以便编译期接口断言通过
 	_ func(ctx context.Context, location, locationID *string) (json.RawMessage, error)
 }
@@ -286,7 +286,11 @@ func TestWeatherHandler_GetFullWeather_GenericError_500(t *testing.T) {
 // ── RegisterRoutes ──────────────────────────────────────────────────
 
 func TestWeatherHandler_RegisterRoutes_Reachable(t *testing.T) {
-	r := newWeatherRouter(&mockWeatherService{})
+	r := newWeatherRouter(&mockWeatherService{
+		fullFn: func(_ context.Context, _ string) (*dto.FullWeatherData, error) {
+			return &dto.FullWeatherData{}, nil
+		},
+	})
 
 	for _, path := range []string{
 		"/v3/weather/tide?date=20260115",
