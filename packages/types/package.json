@@ -1,0 +1,17 @@
+{
+  "name": "@readinglist/types",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "跨前端共享的领域类型声明（纯类型，零运行时）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
