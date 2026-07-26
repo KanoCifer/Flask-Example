@@ -1,19 +1,18 @@
 import { llmService } from '@/lib';
 import type { StreamFrameType } from '@/lib/llm';
 import { fishingMapGateway } from './gateway';
+import type { AnalysisPayload, SecurityKeyResponse } from '../types';
 import type {
-  AnalysisPayload,
   FishingFeedbackPayload,
   FishingFeedbackResponse,
   FishingIndexData,
-  SecurityKeyResponse,
   TideData,
   WeatherDay,
   WeatherFullResponse,
   WeatherHourly,
   WeatherIndex,
   WeatherNow,
-} from '../types';
+} from '@readinglist/types';
 
 export interface FishingMapService {
   getSecurityJsCode(): Promise<string>;

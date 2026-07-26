@@ -5,7 +5,7 @@ import type {
   MomentListResponse,
   MomentStatus,
   MomentUpdatePayload,
-} from '@/types';
+} from '@readinglist/types';
 import { create } from 'zustand';
 
 interface ListPublicParams {

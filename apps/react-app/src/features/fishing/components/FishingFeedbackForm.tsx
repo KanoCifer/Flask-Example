@@ -13,7 +13,7 @@ import { BottomSheet } from '@/components';
 import dayjs from 'dayjs';
 import { X } from 'lucide-react';
 import { fishingMapService } from '../api/service';
-import type { FishingFeedbackData, FishingLevel } from '../types';
+import type { FishingFeedbackData, FishingLevel } from '@readinglist/types';
 
 interface FishingFeedbackFormProps {
   open: boolean;

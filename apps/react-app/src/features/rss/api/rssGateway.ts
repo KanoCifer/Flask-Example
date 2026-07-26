@@ -5,7 +5,7 @@ import type {
   RssArticle,
   RssArticleListResponse,
   RssSubscription,
-} from '@/types';
+} from '@readinglist/types';
 
 interface ParseRssPayload {
   rss_url: string;

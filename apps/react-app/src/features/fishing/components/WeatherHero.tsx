@@ -11,14 +11,15 @@ import { Bot, Fish, MapPin } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useFishingMapStore } from '@/features/fishing/stores/fishingMapStore';
-import type { FishingLevel } from '../types';
+import type { FishingIndexLevel } from '@readinglist/types';
 
 interface Verdict {
   text: string;
   tone: string;
 }
 
-const VERDICT: Record<FishingLevel, Verdict> = {
+const VERDICT: Record<FishingIndexLevel, Verdict> = {
+  极好: { text: '今日爆护级别', tone: 'text-success' },
   爆护: { text: '今日爆护', tone: 'text-success' },
   好: { text: '今日宜出钓', tone: 'text-ink' },
   一般: { text: '今日可一试', tone: 'text-warning' },

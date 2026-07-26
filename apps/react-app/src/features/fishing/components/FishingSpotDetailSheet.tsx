@@ -32,8 +32,8 @@ import { BottomSheet } from '@/components';
 import { useNotificationStore } from '@/stores/notificationState';
 
 import { fishingSpotsGateway } from '../api/fishingSpotsGateway';
-import type { MapMarker } from '@/types/marker';
-import type { SpotDetail, UpdateFishingSpotPayload } from '../types';
+import type { MapMarker } from '@readinglist/types';
+import type { SpotDetail, UpdateFishingSpotPayload } from '@readinglist/types';
 
 interface FishingSpotDetailSheetProps {
   open: boolean;

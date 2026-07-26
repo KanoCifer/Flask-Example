@@ -1,5 +1,5 @@
 import { Eye, EyeOff, Lock, Mail, Phone, ShieldUser, User } from 'lucide-react';
-import type { ProfileForm } from '@/types';
+import type { ProfileForm } from '@readinglist/types';
 
 interface ProfileFormFieldsProps {
   form: ProfileForm;

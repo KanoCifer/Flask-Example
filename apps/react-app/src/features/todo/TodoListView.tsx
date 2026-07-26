@@ -9,7 +9,7 @@ import type {
   CreateDevTaskPayload,
   DevTask,
   DevTaskStatus,
-} from '@/features/todo/api/types';
+} from '@readinglist/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { McpTokenModal } from './components/McpTokenModal';
@@ -93,10 +93,7 @@ export default function TodoListView() {
     await createTask(payload);
     setModalOpen(false);
   };
-  const handleUpdate = async (
-    slug: string,
-    patch: Partial<DevTask> & { title?: string },
-  ) => {
+  const handleUpdate = async (slug: string, patch: Partial<DevTask>) => {
     await updateTask(slug, patch);
     setModalOpen(false);
   };

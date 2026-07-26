@@ -6,7 +6,7 @@ import type {
   DevTaskScope,
   DevTaskStatus,
   DevTaskType,
-} from '@/features/todo/api/types';
+} from '@readinglist/types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { TodoModal } from './TodoModal';
 

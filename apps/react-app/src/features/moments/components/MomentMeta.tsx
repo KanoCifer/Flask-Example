@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 
 import { PinIcon } from '@/components';
-import type { Moment } from '@/types';
+import type { Moment } from '@readinglist/types';
 import { isPureEmoji } from '@/lib/emoji';
 
 interface MomentMetaProps {

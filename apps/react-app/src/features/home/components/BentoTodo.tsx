@@ -1,6 +1,6 @@
 import { BentoCard } from '@/components';
 import { useTodoState, STATUS_STYLES, selectFrontier } from '@/features/todo';
-import type { DevTask, DevTaskStatus } from '@/features/todo/api/types';
+import type { DevTask, DevTaskStatus } from '@readinglist/types';
 import { BookCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';

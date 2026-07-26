@@ -1,5 +1,5 @@
 import { CircleCheckBig } from 'lucide-react';
-import type { DevTask } from '@/features/todo/api/types';
+import type { DevTask } from '@readinglist/types';
 import { renderMarkdown } from '@/lib/markdown';
 import { KindBadge, PriorityBadge, TypeBadge } from './Badges';
 

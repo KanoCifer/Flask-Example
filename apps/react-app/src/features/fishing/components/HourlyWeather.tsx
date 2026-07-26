@@ -3,7 +3,6 @@
  * 每格: 时刻 · 天气图标 · 降水概率 · 温度。首格为「现在」。
  * 没有外框, 没有 elevation; 滚动行本身就是 surface (iOS Weather 模式)。
  */
-import { Droplets } from 'lucide-react';
 import dayjs from 'dayjs';
 
 import { useFishingMapStore } from '@/features/fishing/stores/fishingMapStore';
@@ -22,7 +21,6 @@ export function HourlyWeather() {
       {weatherHourly ? (
         <div className="fm-hscroll -mx-2 flex gap-0.5 px-2">
           {hours.map((h, i) => {
-            const pop = Number(h.pop) || 0;
             const isNow = i === 0;
             return (
               <div
@@ -37,14 +35,6 @@ export function HourlyWeather() {
                   {isNow ? '现在' : dayjs(h.fxTime).format('HH:mm')}
                 </span>
                 <i className={`qi-${h.icon} text-ink/85 text-xl`} aria-hidden />
-                <span className="text-muted/80 flex h-3 items-center gap-0.5 text-[10px] tabular-nums">
-                  {pop > 0 && (
-                    <>
-                      <Droplets className="h-2.5 w-2.5" aria-hidden />
-                      {pop}%
-                    </>
-                  )}
-                </span>
                 <span className="text-ink text-sm font-semibold tabular-nums">
                   {h.temp}°
                 </span>

@@ -1,4 +1,4 @@
-import type { DevTask } from '@/features/todo/api/types';
+import type { DevTask } from '@readinglist/types';
 import { KindBadge, PriorityBadge, TypeBadge } from './Badges';
 
 interface TaskRowProps {

@@ -3,7 +3,7 @@ import type {
   DevTaskPriority,
   DevTaskStatus,
   DevTaskType,
-} from '@/features/todo/api/types';
+} from '@readinglist/types';
 import type { ReactNode } from 'react';
 
 // ── 类型 chip ──

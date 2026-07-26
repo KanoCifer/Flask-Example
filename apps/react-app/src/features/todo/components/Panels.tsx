@@ -1,4 +1,4 @@
-import type { DevTaskPriority, DevTaskType } from '@/features/todo/api/types';
+import type { DevTaskPriority, DevTaskType } from '@readinglist/types';
 import {
   selectCompletedThisWeek,
   selectInProgress,

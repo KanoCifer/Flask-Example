@@ -1,4 +1,44 @@
-import type { MapMarker } from '@/types/marker';
+// 仅引入本地定义 / 函数实际使用的共享类型；其余通过下方 export type 透传。
+import type {
+  FishingSpot,
+  MapMarker,
+  TideData,
+  WeatherHourly,
+  WeatherDay,
+  WeatherIndex,
+  WeatherNow,
+  FishingIndexData,
+} from '@readinglist/types';
+
+// ── 共享类型 re-export —— 供 barrel (index.ts) / service.ts / 组件消费 ──
+
+export type {
+  FishingSpot,
+  MapMarker,
+  SpotDetail,
+  TideData,
+  TideTableItem,
+  TideApiEnvelope,
+  TideResponse,
+  WeatherHourly,
+  WeatherDay,
+  WeatherForecastResponse,
+  WeatherIndex,
+  WeatherIndicesResponse,
+  WeatherNow,
+  WeatherLiveResponse,
+  WeatherFullResponse,
+  FishingLevel,
+  FishingIndexData,
+  FishingFeedbackData,
+  FishingFeedbackPayload,
+  FishingFeedbackResponse,
+  FishingStats,
+  CreateFishingSpotPayload,
+  UpdateFishingSpotPayload,
+} from '@readinglist/types';
+
+// ── React / 钓点域本地-only 类型 ──
 
 /**
  * AMap.Geolocation.getCurrentPosition 回调的 result 形状（领域类型,非 SDK 类型）。
@@ -11,24 +51,6 @@ export type GeolocationStatusEvent = {
 
 export interface ApiEnvelope<T> {
   data: T;
-}
-
-export interface TideTableItem {
-  fxTime: string;
-  height: number | string;
-  type: 'H' | 'L';
-}
-
-export interface TideData {
-  updateTime: string;
-  tideTable: TideTableItem[];
-  tideHourly: Array<{ fxTime: string; height: number | string }>;
-}
-
-/** v3 潮汐 API 响应包装层：data 字段含 fromCache 元数据 */
-export interface TideApiEnvelope {
-  data: TideData;
-  fromCache: boolean;
 }
 
 export interface RouteInfo {
@@ -81,191 +103,11 @@ export interface PoiResponse {
   poi?: PoiItem[];
 }
 
-// 天气预报（每日）
-export interface WeatherDay {
-  fxDate: string;
-  sunrise: string;
-  sunset: string;
-  moonrise: string;
-  moonset: string;
-  moonPhase: string;
-  moonPhaseIcon: string;
-  tempMax: string;
-  tempMin: string;
-  iconDay: string;
-  textDay: string;
-  iconNight: string;
-  textNight: string;
-  wind360Day: string;
-  windDirDay: string;
-  windScaleDay: string;
-  windSpeedDay: string;
-  wind360Night: string;
-  windDirNight: string;
-  windScaleNight: string;
-  windSpeedNight: string;
-  humidity: string;
-  precip: string;
-  pressure: string;
-  vis: string;
-  cloud: string;
-  uvIndex: string;
-}
-
-export interface WeatherForecastResponse {
-  code: string;
-  updateTime: string;
-  fxLink: string;
-  daily?: WeatherDay[];
-  refer?: {
-    sources?: string[];
-    license?: string[];
-  };
-}
-
-// 天气指数
-export interface WeatherIndex {
-  date: string;
-  type: string;
-  name: string;
-  level: string;
-  category: string;
-  text: string;
-}
-
-export interface WeatherIndicesResponse {
-  code: string;
-  updateTime: string;
-  fxLink: string;
-  daily?: WeatherIndex[];
-  refer?: {
-    sources?: string[];
-    license?: string[];
-  };
-}
-
-// 实时天气
-export interface WeatherNow {
-  obsTime: string;
-  temp: string;
-  feelsLike: string;
-  icon: string;
-  text: string;
-  wind360: string;
-  windDir: string;
-  windScale: string;
-  windSpeed: string;
-  humidity: string;
-  precip: string;
-  pressure: string;
-  vis: string;
-  cloud: string;
-  dew: string;
-}
-
-export interface WeatherLiveResponse {
-  code: string;
-  updateTime: string;
-  fxLink: string;
-  now?: WeatherNow;
-  refer?: {
-    sources?: string[];
-    license?: string[];
-  };
-}
-
-export interface WeatherFullResponse {
-  current?: WeatherLiveResponse;
-  daily?: WeatherForecastResponse;
-  hourly?: Record<string, unknown>;
-  tide?: TideData;
-  indices?: WeatherIndicesResponse;
-  locationName?: string;
-  poiId?: string;
-}
-
 export interface WeatherHourlyResponse {
   code: string;
   updateTime: string;
   fxLink: string;
   hourly?: WeatherHourly[];
-}
-
-export interface WeatherHourly {
-  fxTime: string;
-  temp: string;
-  icon: string;
-  text: string;
-  wind360: string;
-  windDir: string;
-  windScale: string;
-  windSpeed: string;
-  humidity: string;
-  precip: string;
-  pressure: string;
-  pop: string;
-  cloud: string;
-  dew: string;
-}
-
-// 钓鱼指数
-export type FishingLevel = '爆护' | '好' | '一般' | '差' | '空军';
-
-export interface FishingIndexData {
-  fishing_index: number;
-  expert_score: number;
-  residual: number;
-  level: FishingLevel;
-  feature_breakdown: Record<string, number>;
-  // enriched 模式下附加的天气数据（Go /v2/fishing/index enriched=true 时填充）
-  current_weather?: WeatherNow;
-  forecasts?: WeatherDay[];
-  location_name?: string;
-  tide_data?: TideData;
-  hourly_weather?: { hourly?: WeatherHourly[] };
-}
-
-// 钓鱼反馈所需数据
-export interface FishingFeedbackData {
-  // 钓鱼指数（用于显示）
-  fishing_index: number;
-  level: FishingLevel;
-  // 天气数据
-  temperature: number;
-  humidity: number;
-  pressure: number;
-  wind_speed: number;
-  precipitation: number;
-  indices: number;
-  // 潮汐数据
-  tide_level: number;
-  tide_type?: '涨潮' | '退潮';
-  tide_range: number;
-  hours_to_next_tide: number;
-}
-
-export interface FishingFeedbackPayload {
-  location_id: string;
-  location_name: string;
-  fishing_time: string;
-  temperature?: number;
-  humidity?: number;
-  pressure?: number;
-  wind_speed?: number;
-  precipitation?: number;
-  indices?: number;
-  tide_level?: number;
-  tide_type?: '涨潮' | '退潮';
-  tide_range?: number;
-  hours_to_next_tide?: number;
-  feedback: FishingLevel;
-}
-
-export interface FishingFeedbackResponse {
-  success: boolean;
-  record_id: string;
-  expert_score: number;
-  residual: number;
 }
 
 // AI 天气分析评分
@@ -289,44 +131,8 @@ export interface AnalysisChunk {
 export type WeatherAnalysisPayload = Omit<AnalysisPayload, 'modelId'>;
 
 // ---------------------------------------------------------------------------
-// 钓点 DTO —— 与 go-backend/internal/dto/fish.go 对齐（镜像 frontend types）
+// 钓点 DTO transform（运行时函数）
 // ---------------------------------------------------------------------------
-
-export interface FishingSpot {
-  id: string;
-  name: string;
-  description: string;
-  /** [lng, lat] */
-  location: [number, number];
-  tags: string[];
-  rating: number;
-  images: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * 创建钓点载荷 —— 与 dto.FishingSpotIn 对齐。
- * Name / Location 必填（binding:"required"），其余可选。
- */
-export interface CreateFishingSpotPayload {
-  name: string;
-  /** [lng, lat] */
-  location: [number, number];
-  description?: string;
-  tags?: string[];
-  rating?: number;
-  images?: string[];
-}
-
-/**
- * 更新钓点载荷 —— 与 dto.FishingSpotUpdate 对齐。
- * 全字段可选：未传 = 不动，传了 = 显式覆盖（Partial update）。
- */
-export type UpdateFishingSpotPayload = Partial<CreateFishingSpotPayload>;
-
-/** 钓点业务字段(location 除外)—— MapMarker.extraData 的精确类型 */
-export type SpotDetail = Omit<FishingSpot, 'location'>;
 
 /**
  * FishingSpot DTO → MapMarker transform。

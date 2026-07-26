@@ -7,7 +7,7 @@ import type {
   RssArticle,
   RssArticleListResponse,
   RssSubscription,
-} from '@/types';
+} from '@readinglist/types';
 
 // 解析 RSS 响应（解析后未保存到数据库）
 export interface ParsedRssFeed {

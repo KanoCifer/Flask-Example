@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import dayjs from 'dayjs';
 
 import { useNotificationStore } from '@/stores/notificationState';
-import type { MapMarker } from '@/types/marker';
+import type { MapMarker } from '@readinglist/types';
 
 import {
   fishingMapService,

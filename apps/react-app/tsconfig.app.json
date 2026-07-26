@@ -9,6 +9,7 @@
     "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"],
+      "@readinglist/types": ["../../packages/types/src/index.ts"],
     },
 
     /* Bundler mode */

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import type { TagItem } from '@/types';
+import type { TagItem } from '@readinglist/types';
 
 interface CategorySidebarProps {
   tags: TagItem[];

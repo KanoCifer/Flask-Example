@@ -1,4 +1,4 @@
-import type { BlogPagination } from '@/types';
+import type { BlogPagination } from '@readinglist/types';
 
 export function BlogPagination({
   pagination,

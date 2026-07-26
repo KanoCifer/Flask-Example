@@ -1,5 +1,5 @@
 import apiClient, { extractData, type ApiResponse } from '@/api/apiClient';
-import type { UserInfo } from '@/features/auth/types';
+import type { UserInfo } from '@readinglist/types';
 import { useNotificationStore } from '@/stores/notificationState';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 

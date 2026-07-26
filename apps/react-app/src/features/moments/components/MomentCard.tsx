@@ -1,5 +1,5 @@
 import { PinIcon } from '@/components';
-import type { Moment } from '@/types';
+import type { Moment } from '@readinglist/types';
 import { motion } from 'framer-motion';
 import { EditIcon, IconDel } from './InlineIcons';
 import { MomentMeta } from './MomentMeta';

@@ -5,7 +5,7 @@ import type {
   DevTask,
   DevTaskStatus,
   DevTaskType,
-} from '@/features/todo/api/types';
+} from '@readinglist/types';
 
 // v3 全量状态标签
 export const STATUS_LABELS: Record<DevTaskStatus, string> = {
@@ -125,8 +125,15 @@ export const useTodoState = create<DevTaskState>((set, get) => ({
 
 // ── Derived selectors（与 Vue v3devtasks store 对齐） ──
 
+const PRIORITY_WEIGHT: Record<string, number> = {
+  'P0 紧急': 0,
+  'P1 高': 1,
+  'P2 中': 2,
+  'P3 低': 3,
+};
+
 function priorityWeight(p: DevTask['priority']): number {
-  return { 'P0 紧急': 0, 'P1 高': 1, 'P2 中': 2, 'P3 低': 3 }[p] ?? 9;
+  return PRIORITY_WEIGHT[p] ?? 9;
 }
 
 /** frontier = 非已完成 且 无阻塞依赖 的任务。按优先级权重 + 截止日排序。 */

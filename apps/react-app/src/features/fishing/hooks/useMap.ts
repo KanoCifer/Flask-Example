@@ -4,7 +4,7 @@ import { useRouteMapStore } from '@/stores/routeMapStore';
 import AMapLoader from '@amap/amap-jsapi-loader';
 
 import { MAP_CENTER, MAP_PLUGIN_LIST, MAP_ZOOM } from '../constants';
-import type { MapMarker } from '@/types/marker';
+import type { MapMarker } from '@readinglist/types';
 import type { GeolocationStatusEvent, RouteInfo } from '../types';
 import { useGeolocation } from './useGeolocation';
 import { useNotificationStore } from '@/stores/notificationState';

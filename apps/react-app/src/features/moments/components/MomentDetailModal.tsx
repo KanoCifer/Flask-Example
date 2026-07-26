@@ -4,7 +4,7 @@ import type {
   MomentAttachment,
   MomentStatus,
   MomentVisibility,
-} from '@/types';
+} from '@readinglist/types';
 import { isPureEmoji } from '@/lib/emoji';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';

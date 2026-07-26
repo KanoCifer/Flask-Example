@@ -6,7 +6,7 @@ import type {
   BlogPost,
   PostsByTagResponse,
   TagItem,
-} from '@/types';
+} from '@readinglist/types';
 
 interface BlogQuery {
   page?: number;

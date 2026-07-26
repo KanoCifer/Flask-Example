@@ -6,7 +6,7 @@
  */
 import { X } from 'lucide-react';
 
-import type { FishingIndexData } from '../types';
+import type { FishingIndexData } from '@readinglist/types';
 import { SnapSheet } from './SnapSheet';
 
 interface Props {

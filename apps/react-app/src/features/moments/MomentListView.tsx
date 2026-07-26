@@ -2,7 +2,7 @@ import { BasicDetail } from '@/components';
 import { useAuthStore } from '@/features/auth';
 import { useMomentsStore } from '@/features/moments/stores/momentsState';
 import { useNotificationStore } from '@/stores/notificationState';
-import type { Moment, MomentUpdatePayload } from '@/types';
+import type { Moment, MomentUpdatePayload } from '@readinglist/types';
 import dayjs from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

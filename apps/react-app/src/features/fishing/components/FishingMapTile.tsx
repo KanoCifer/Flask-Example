@@ -9,7 +9,7 @@ import { useEffect, useRef } from 'react';
 import { Loader2, Locate } from 'lucide-react';
 
 import { useRouteMapStore } from '@/stores/routeMapStore';
-import type { MapMarker } from '@/types/marker';
+import type { MapMarker } from '@readinglist/types';
 
 import { useMap } from '../hooks/useMap';
 import { fishingMapService } from '../api/service';

@@ -6,7 +6,7 @@ import type {
   BlogPagination,
   PostsByTagResponse,
   TagItem,
-} from '@/types';
+} from '@readinglist/types';
 
 // 博客列表项（处理后的）
 export interface BlogListItem {

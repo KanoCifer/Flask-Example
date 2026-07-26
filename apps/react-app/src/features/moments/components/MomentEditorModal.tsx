@@ -4,7 +4,7 @@ import type {
   MomentStatus,
   MomentUpdatePayload,
   MomentVisibility,
-} from '@/types';
+} from '@readinglist/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ImageOff, ImagePlus, Loader2, RefreshCw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';

@@ -12,7 +12,7 @@ import type {
   MomentListResponse,
   MomentStatus,
   MomentUpdatePayload,
-} from '@/types';
+} from '@readinglist/types';
 
 interface ListPublicMomentsParams {
   page?: number;

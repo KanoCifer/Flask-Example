@@ -7,7 +7,7 @@ import {
   useFishingMapStore,
 } from '@/features/fishing/stores/fishingMapStore';
 import { useChartTheme, withAlpha } from '../hooks/useChartTheme';
-import type { TideTableItem } from '../types';
+import type { TideTableItem } from '@readinglist/types';
 import { SkeletonCard } from './SkeletonCard';
 import { TideChart } from './TideChart';
 

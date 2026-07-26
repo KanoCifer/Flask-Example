@@ -2,15 +2,14 @@ import type { AxiosResponse } from 'axios';
 
 import apiClient from '@/api/apiClient';
 
+import type { ApiEnvelope, SecurityKeyResponse } from '../types';
 import type {
-  ApiEnvelope,
   FishingFeedbackPayload,
   FishingFeedbackResponse,
   FishingIndexData,
-  SecurityKeyResponse,
   TideApiEnvelope,
   WeatherFullResponse,
-} from '../types';
+} from '@readinglist/types';
 
 export interface fishingMapGateway {
   getSecurityKey(): Promise<AxiosResponse<ApiEnvelope<SecurityKeyResponse>>>;

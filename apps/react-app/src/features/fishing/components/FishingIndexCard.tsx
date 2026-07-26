@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 
 import { RotateCw } from 'lucide-react';
 import { useFishingIndex } from '../hooks/useFishingIndex';
-import type { FishingIndexData } from '../types';
+import type { FishingIndexData } from '@readinglist/types';
 import { SkeletonCard } from './SkeletonCard';
 
 interface FishingIndexCardProps {

@@ -1,6 +1,6 @@
 import apiClient from '@/api/apiClient';
 import { useAuthStore } from '@/features/auth';
-import type { ProfileForm } from '@/types';
+import type { ProfileForm } from '@readinglist/types';
 import { startRegistration } from '@simplewebauthn/browser';
 import { motion } from 'framer-motion';
 import axios from 'axios';

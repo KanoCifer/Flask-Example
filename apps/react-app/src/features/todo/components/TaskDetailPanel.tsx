@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import type { DevTask, DevTaskStatus } from '@/features/todo/api/types';
+import type { DevTask, DevTaskStatus } from '@readinglist/types';
 import { useNavVisibility } from '@/layouts';
 import { useEffect, useMemo } from 'react';
 import { renderMarkdown } from '@/lib/markdown';

@@ -36,7 +36,7 @@ import { MAP_CENTER } from './constants';
 import { AnalysisContextProvider } from './contexts/AnalysisContext';
 import { useFishingAnalysis } from './hooks/useFishingAnalysis';
 import { useFishingFeedback } from './hooks/useFishingFeedback';
-import type { MapMarker } from '@/types/marker';
+import type { MapMarker } from '@readinglist/types';
 import type { FishingIndexData } from './types';
 
 export default function FishingMap() {
