@@ -1,0 +1,14 @@
+{
+  "name": "@readinglist/brand",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "跨前端共享的品牌样式（主题 / 文章排版 / Twikoo 评论）",
+  "exports": {
+    "./themes": "./themes/index.css",
+    "./themes/*": "./themes/*.css",
+    "./prose": "./prose.css",
+    "./twikoo": "./twikoo.css"
+  },
+  "style": "./themes/index.css"
+}

@@ -5,8 +5,8 @@
  */
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '../../../../packages/brand/themes/index.css';
-@import '../../../../packages/brand/twikoo.css';
+@import '@readinglist/brand/themes';
+@import '@readinglist/brand/twikoo';
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {

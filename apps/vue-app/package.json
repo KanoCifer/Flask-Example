@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@readinglist/types": "workspace:*",
+    "@readinglist/brand": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node24": "^24.0.4",
     "@types/amap-js-api": "^1.4.16",

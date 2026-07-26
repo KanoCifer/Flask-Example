@@ -48,6 +48,8 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@readinglist/types": "workspace:*",
+    "@readinglist/brand": "workspace:*",
     "@react-scan/vite-plugin-react-scan": "^0.2.7",
     "@react-trace/core": "^0.0.6",
     "@react-trace/kit": "^0.0.8",

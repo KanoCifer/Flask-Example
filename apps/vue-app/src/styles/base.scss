@@ -92,7 +92,7 @@ a {
   pointer-events: none;
 }
 
-@import '../../../../packages/brand/prose.css';
+@import '@readinglist/brand/prose';
 
 :root[data-font='harmonyos'] {
   --default-font-family:
