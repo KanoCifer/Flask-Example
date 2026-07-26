@@ -101,6 +101,16 @@ export const useFishingMapStore = create<FishingMapState>((set, get) => ({
   spotsError: '',
 
   // actions
+  /**
+   * 拉钓鱼指数（enriched=true 附带天气数据）。
+   *
+   * 旧实现并发调 weather/full + fishing/index，导致 Go 端同一 location 被请求
+   * 两次（fishing/index 内部又会调一次 Go weather/full）。改为只调 fishing/index
+   * enriched=true，从响应中取天气数据，省掉一次 Go 请求。
+   *
+   * 注意：enriched 响应不含 hourly / indices，所以 weatherHourly / weatherIndices
+   * 保持空数组（UI 已有空态兜底）。
+   */
   fetchWeatherAndFishing: async (location: [number, number]) => {
     const service = fishingMapService();
     set({
@@ -110,18 +120,25 @@ export const useFishingMapStore = create<FishingMapState>((set, get) => ({
       indexError: '',
     });
     try {
-      const [weatherRes, indexRes] = await Promise.all([
-        service.fetchWeatherFull({ location }),
-        service.fetchFishingIndex({ location }),
-      ]);
+      const fishingIndex = await service.fetchFishingIndex({
+        location,
+        enriched: true,
+      });
+
+      const now = fishingIndex.current_weather ?? null;
+      const daily = fishingIndex.forecasts ?? [];
+      const nameFromEnriched = fishingIndex.location_name?.trim();
+
       set({
-        liveWeather: weatherRes.now ?? null,
-        forecasts: weatherRes.daily ?? [],
-        locationName: weatherRes.locationName,
-        indexData: indexRes,
-        weatherIndices: weatherRes.indices,
-        tideData: weatherRes.tideData,
-        weatherHourly: weatherRes.hourly ?? [],
+        liveWeather: now,
+        forecasts: daily,
+        // enriched 响应不含 hourly / indices —— 保持空数组
+        weatherHourly: [],
+        locationName:
+          nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点'),
+        weatherIndices: [],
+        tideData: fishingIndex.tide_data ?? null,
+        indexData: fishingIndex,
         weatherLoading: false,
         indexLoading: false,
       });

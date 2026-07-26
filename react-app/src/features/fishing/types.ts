@@ -217,6 +217,11 @@ export interface FishingIndexData {
   residual: number;
   level: FishingLevel;
   feature_breakdown: Record<string, number>;
+  // enriched 模式下附加的天气数据（Go /v2/fishing/index enriched=true 时填充）
+  current_weather?: WeatherNow;
+  forecasts?: WeatherDay[];
+  location_name?: string;
+  tide_data?: TideData;
 }
 
 // 钓鱼反馈所需数据

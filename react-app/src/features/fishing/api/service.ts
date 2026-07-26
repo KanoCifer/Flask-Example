@@ -43,6 +43,7 @@ export interface FishingMapService {
 
   fetchFishingIndex(payload: {
     location: [number, number];
+    enriched?: boolean;
   }): Promise<FishingIndexData>;
 
   submitFishingFeedback(
@@ -117,6 +118,7 @@ export const fishingMapService = (): FishingMapService => {
 
     async fetchFishingIndex(payload: {
       location: [number, number];
+      enriched?: boolean;
     }): Promise<FishingIndexData> {
       const res = await gateway.getFishingIndex(payload);
       return res.data.data;

@@ -10,6 +10,7 @@ import type {
 export interface FishingGateway {
   getFishingIndex(payload: {
     location: [number, number];
+    enriched?: boolean;
   }): Promise<FishingIndexData>;
   postFishingFeedback(
     payload: FishingFeedbackPayload,
@@ -20,12 +21,16 @@ export interface FishingGateway {
 export const fishingGateway: FishingGateway = {
   async getFishingIndex(payload: {
     location: [number, number];
+    enriched?: boolean;
   }): Promise<FishingIndexData> {
     const [lng, lat] = payload.location;
     const res = await apiClient.get<{ data: FishingIndexData }>(
       'v2/fishing/index',
       {
-        params: { location: `${lng.toFixed(2)},${lat.toFixed(2)}` },
+        params: {
+          location: `${lng.toFixed(2)},${lat.toFixed(2)}`,
+          enriched: payload.enriched ?? true,
+        },
       },
     );
     return res.data.data;

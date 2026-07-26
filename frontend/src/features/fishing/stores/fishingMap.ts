@@ -1,31 +1,16 @@
 import { fishingGateway } from '@/features/fishing/api';
-import { weatherGateway } from '@/features/fishing/api';
 import { useNotificationStore } from '@/stores';
 import { useSequencedTask } from '@/composables';
 import type { FishingIndexData } from '@/features/fishing/types';
 import type {
   TideData,
   WeatherDay,
-  WeatherFullResponse,
   WeatherHourly,
   WeatherIndex,
   WeatherNow,
 } from '@/features/fishing/types';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-
-function resolveLocationName(
-  fullData: WeatherFullResponse | undefined,
-  now: WeatherNow | undefined,
-): string {
-  const directName = fullData?.locationName?.trim();
-  const hourlyName = (
-    fullData?.hourly as { locationName?: string } | undefined
-  )?.locationName?.trim();
-  if (directName) return directName;
-  if (hourlyName) return hourlyName;
-  return now?.text ? '当前位置' : '钓鱼地点';
-}
 
 export const DEFAULT_MAP_CENTER: [number, number] = [113.389549, 23.050067];
 
@@ -40,7 +25,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   // 「最新调用胜出」竞态守卫：旧 fetch 的回写被吞掉
   const fetchSeq = useSequencedTask();
 
-  const fullWeatherData = ref<WeatherFullResponse | null>(null);
   const liveWeather = ref<WeatherNow | null>(null);
   const forecasts = ref<WeatherDay[]>([]);
   const weatherHourly = ref<WeatherHourly[]>([]);
@@ -55,6 +39,16 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   const indexLoading = ref(false);
   const indexError = ref('');
 
+  /**
+   * 拉钓鱼指数（enriched=true 附带天气数据）。
+   *
+   * 旧实现并发调 weather/full + fishing/index，导致 Go 端同一 location 被请求
+   * 两次（fishing/index 内部又会调一次 Go weather/full）。改为只调 fishing/index
+   * enriched=true，从响应中取天气数据，省掉一次 Go 请求。
+   *
+   * 注意：enriched 响应不含 hourly / indices，所以 weatherHourly / weatherIndices
+   * 保持空数组（UI 已有空态兜底）。
+   */
   async function fetchWeatherAndFishing(
     location: [number, number],
   ): Promise<void> {
@@ -65,26 +59,24 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
     indexError.value = '';
 
     try {
-      const [data, fishingIndex] = await Promise.all([
-        weatherGateway.getWeatherFull({ location }),
-        fishingGateway.getFishingIndex({ location }),
-      ]);
+      const fishingIndex = await fishingGateway.getFishingIndex({
+        location,
+        enriched: true,
+      });
 
       if (!fetchSeq.isActive(mine)) return;
 
-      const now = data.current?.now;
-      const daily = data.daily?.daily;
-      const hourlyWrapper = data.hourly as
-        { hourly?: WeatherHourly[] } | undefined;
-      const hourly = hourlyWrapper?.hourly ?? [];
+      const now = fishingIndex.current_weather ?? null;
+      const daily = fishingIndex.forecasts ?? [];
+      const nameFromEnriched = fishingIndex.location_name?.trim();
 
-      fullWeatherData.value = data;
-      liveWeather.value = now ?? null;
-      forecasts.value = daily ?? [];
-      weatherHourly.value = hourly;
-      locationName.value = resolveLocationName(data, now);
-      weatherIndices.value = data.indices?.daily ?? [];
-      tideData.value = data.tide ?? null;
+      liveWeather.value = now;
+      forecasts.value = daily;
+      // enriched 响应不含 hourly / indices —— 保持空数组
+      weatherHourly.value = [];
+      locationName.value = nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点');
+      weatherIndices.value = [];
+      tideData.value = fishingIndex.tide_data ?? null;
       indexData.value = fishingIndex;
     } catch (err) {
       if (!fetchSeq.isActive(mine)) return;
@@ -102,7 +94,6 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
   }
 
   return {
-    fullWeatherData,
     liveWeather,
     forecasts,
     weatherHourly,

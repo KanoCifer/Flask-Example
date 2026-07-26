@@ -25,6 +25,7 @@ export interface fishingMapGateway {
 
   getFishingIndex(payload: {
     location: [number, number];
+    enriched?: boolean;
   }): Promise<AxiosResponse<ApiEnvelope<FishingIndexData>>>;
 
   postFishingFeedback(
@@ -53,10 +54,16 @@ export const fishingMapGateway = (): fishingMapGateway => {
       }) as Promise<AxiosResponse<ApiEnvelope<WeatherFullResponse>>>;
     },
 
-    async getFishingIndex(payload: { location: [number, number] }) {
+    async getFishingIndex(payload: {
+      location: [number, number];
+      enriched?: boolean;
+    }) {
       const [lng, lat] = payload.location;
       return apiClient.get('v2/fishing/index', {
-        params: { location: `${lng.toFixed(2)},${lat.toFixed(2)}` },
+        params: {
+          location: `${lng.toFixed(2)},${lat.toFixed(2)}`,
+          enriched: payload.enriched ?? true,
+        },
       }) as Promise<AxiosResponse<ApiEnvelope<FishingIndexData>>>;
     },
 
