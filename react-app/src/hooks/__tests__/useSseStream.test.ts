@@ -157,7 +157,10 @@ describe('consumeSseStream', () => {
     const mockReader = makeReader(['data: {"content":"x"}\n\n']);
     const fetchMock = vi.fn<typeof fetch>(
       async () =>
-        ({ ok: true, body: { getReader: () => mockReader } }) as unknown as Response,
+        ({
+          ok: true,
+          body: { getReader: () => mockReader },
+        }) as unknown as Response,
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -173,7 +176,10 @@ describe('consumeSseStream', () => {
     const mockReader = makeReader(['data: {"content":"x"}\n\n']);
     const fetchMock = vi.fn<typeof fetch>(
       async () =>
-        ({ ok: true, body: { getReader: () => mockReader } }) as unknown as Response,
+        ({
+          ok: true,
+          body: { getReader: () => mockReader },
+        }) as unknown as Response,
     );
     vi.stubGlobal('fetch', fetchMock);
 

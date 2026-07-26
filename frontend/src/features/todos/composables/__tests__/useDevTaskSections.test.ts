@@ -60,7 +60,12 @@ describe('useDevTaskSections · inProgressTasks', () => {
     const tasks = ref<DevTask[]>([
       makeTask({ slug: 'a', status: '进行中', sort_order: 2 }),
       makeTask({ slug: 'b', status: '进行中', sort_order: 0 }),
-      makeTask({ slug: 'c', status: '进行中', is_deleted: true, sort_order: 1 }),
+      makeTask({
+        slug: 'c',
+        status: '进行中',
+        is_deleted: true,
+        sort_order: 1,
+      }),
       makeTask({ slug: 'd', status: '待评估' }),
     ]);
     const { inProgressTasks } = useDevTaskSections(tasks);
@@ -80,11 +85,7 @@ describe('useDevTaskSections · upcomingTasks', () => {
       makeTask({ slug: 'e', status: '已完成' }),
     ]);
     const { upcomingTasks } = useDevTaskSections(tasks);
-    expect(upcomingTasks.value.map((t) => t.slug)).toEqual([
-      'a',
-      'b',
-      'c',
-    ]);
+    expect(upcomingTasks.value.map((t) => t.slug)).toEqual(['a', 'b', 'c']);
   });
 
   it('排除已软删除', () => {

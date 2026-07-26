@@ -84,7 +84,10 @@ describe('consumeSseStream', () => {
   });
 
   it('throws when response body is null', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, body: null })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, body: null })),
+    );
 
     await expect(
       consumeSseStream({ url: '/api/test', body: {} }, { onData: vi.fn() }),
@@ -124,10 +127,13 @@ describe('consumeSseStream', () => {
   // F3: credentials 默认值不再是 'include'。
   it('defaults credentials to same-origin, not include', async () => {
     const reader = makeReader(['data: {"content":"x"}\n\n']);
-    const fetchMock = vi.fn<typeof fetch>(async () => ({
-      ok: true,
-      body: { getReader: () => reader },
-    }) as unknown as Response);
+    const fetchMock = vi.fn<typeof fetch>(
+      async () =>
+        ({
+          ok: true,
+          body: { getReader: () => reader },
+        }) as unknown as Response,
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     await consumeSseStream({ url: '/api/test', body: {} }, { onData: vi.fn() });
@@ -140,10 +146,13 @@ describe('consumeSseStream', () => {
 
   it('lets caller override the credentials default', async () => {
     const reader = makeReader(['data: {"content":"x"}\n\n']);
-    const fetchMock = vi.fn<typeof fetch>(async () => ({
-      ok: true,
-      body: { getReader: () => reader },
-    }) as unknown as Response);
+    const fetchMock = vi.fn<typeof fetch>(
+      async () =>
+        ({
+          ok: true,
+          body: { getReader: () => reader },
+        }) as unknown as Response,
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     await consumeSseStream(

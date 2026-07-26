@@ -38,7 +38,12 @@ describe('aiGateway', () => {
       const signal = new AbortController().signal;
 
       await aiGateway.streamThread(
-        { mode: 'summary', article_title: 'T', article_content: 'C', model: 'M' },
+        {
+          mode: 'summary',
+          article_title: 'T',
+          article_content: 'C',
+          model: 'M',
+        },
         handlers,
         signal,
       );
@@ -46,7 +51,12 @@ describe('aiGateway', () => {
       expect(consumeSseStream).toHaveBeenCalledWith(
         expect.objectContaining({
           url: expect.stringContaining('/v2/llm/thread/stream'),
-          body: { mode: 'summary', article_title: 'T', article_content: 'C', model: 'M' },
+          body: {
+            mode: 'summary',
+            article_title: 'T',
+            article_content: 'C',
+            model: 'M',
+          },
           signal,
         }),
         handlers,

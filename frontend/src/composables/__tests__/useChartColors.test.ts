@@ -20,9 +20,7 @@ describe('withAlpha (culori)', () => {
 
   it('rgb(...) 转 rgba 并加 alpha', () => {
     expect(withAlpha('rgb(255, 0, 0)', 0.5)).toBe('rgba(255, 0, 0, 0.5)');
-    expect(withAlpha('rgb(0, 128, 255)', 0.18)).toBe(
-      'rgba(0, 128, 255, 0.18)',
-    );
+    expect(withAlpha('rgb(0, 128, 255)', 0.18)).toBe('rgba(0, 128, 255, 0.18)');
   });
 
   it('hex 输入解析后转 rgba', () => {

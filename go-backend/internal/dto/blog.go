@@ -41,8 +41,8 @@ type BlogListResponse struct {
 
 // PostsByTagResponse 标签筛选响应 —— 与 Python get_posts_by_tag 返回形状一致。
 type PostsByTagResponse struct {
-	Posts []PostResponse `json:"posts"`
-	Tag   string         `json:"tag"`
+	Posts      []PostResponse `json:"posts"`
+	Tag        string         `json:"tag"`
 	Pagination Pagination     `json:"pagination"`
 }
 

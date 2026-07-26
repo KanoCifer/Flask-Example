@@ -1,1 +1,31 @@
-{"version":1,"sessions":{"5165b50f-c6f2-4ab1-9739-a8f9a7ae1550":{"updatedAt":1784553198902,"files":{"/Users/liudetao/Code/ReadingList/react-app/src/views/FishingMap/components/FishingMapTile.tsx":{"editCount":1,"findings":[]},"/Users/liudetao/Code/ReadingList/react-app/src/views/FishingMap/components/FishingMapFullscreen.tsx":{"editCount":1,"findings":[]}}},"6b3515d2-e727-4246-9df8-6e14bed6b24c":{"updatedAt":1784624100349,"files":{"/Users/liudetao/Code/ReadingList/react-app/src/features/moments/index.ts":{"editCount":1,"findings":[]},"/Users/liudetao/Code/ReadingList/react-app/src/features/moments/views.ts":{"editCount":1,"findings":[]}}}}}
+{
+  "version": 1,
+  "sessions": {
+    "5165b50f-c6f2-4ab1-9739-a8f9a7ae1550": {
+      "updatedAt": 1784553198902,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/views/FishingMap/components/FishingMapTile.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/views/FishingMap/components/FishingMapFullscreen.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "6b3515d2-e727-4246-9df8-6e14bed6b24c": {
+      "updatedAt": 1784624100349,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/index.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/liudetao/Code/ReadingList/react-app/src/features/moments/views.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}

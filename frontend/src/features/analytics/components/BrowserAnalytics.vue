@@ -20,7 +20,11 @@
         <p class="text-xs">浏览器分布会在访客到达后显示在这里。</p>
       </div>
       <div v-else key="data" class="h-56 w-full overflow-hidden">
-        <v-chart :option="browserChartOption" autoresize class="h-full w-full" />
+        <v-chart
+          :option="browserChartOption"
+          autoresize
+          class="h-full w-full"
+        />
       </div>
     </SkeletonCrossfadeTransition>
   </div>

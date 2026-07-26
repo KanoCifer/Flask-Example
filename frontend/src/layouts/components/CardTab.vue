@@ -90,7 +90,7 @@ const canNext = computed(() => cardIndex.value < total - 1);
           :disabled="!canPrev"
           aria-label="上一张"
           @click="toPrev"
-          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-ink transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+          class="text-ink flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -118,9 +118,7 @@ const canNext = computed(() => cardIndex.value < total - 1);
             @click="setCardIndex(i)"
             class="h-1 cursor-pointer rounded-full transition-all duration-300"
             :class="
-              cardIndex === i
-                ? 'w-4 bg-ink'
-                : 'w-1.5 bg-ink/30 hover:bg-ink/50'
+              cardIndex === i ? 'bg-ink w-4' : 'bg-ink/30 hover:bg-ink/50 w-1.5'
             "
           />
         </div>
@@ -130,7 +128,7 @@ const canNext = computed(() => cardIndex.value < total - 1);
           :disabled="!canNext"
           aria-label="下一张"
           @click="toNext"
-          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-ink transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+          class="text-ink flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

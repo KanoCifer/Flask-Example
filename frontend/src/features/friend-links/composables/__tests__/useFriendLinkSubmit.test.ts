@@ -114,7 +114,11 @@ describe('useFriendLinkSubmit', () => {
       const setHref = vi.fn();
       Object.defineProperty(window, 'location', {
         configurable: true,
-        value: { set href(v: string) { setHref(v); } },
+        value: {
+          set href(v: string) {
+            setHref(v);
+          },
+        },
         writable: true,
       });
 
@@ -125,10 +129,16 @@ describe('useFriendLinkSubmit', () => {
       expect(setHref).toHaveBeenCalledTimes(1);
       const href = setHref.mock.calls[0][0] as string;
       expect(href.startsWith('mailto:kano3255@outlook.com')).toBe(true);
-      expect(href).toContain(`subject=${encodeURIComponent('友链申请：MySite')}`);
+      expect(href).toContain(
+        `subject=${encodeURIComponent('友链申请：MySite')}`,
+      );
       expect(href).toContain(encodeURIComponent('昵称：Me'));
-      expect(href).toContain(encodeURIComponent('网站地址：https://mysite.com'));
-      expect(f.successMessage.value).toBe('已打开邮件客户端，请发送邮件完成申请。');
+      expect(href).toContain(
+        encodeURIComponent('网站地址：https://mysite.com'),
+      );
+      expect(f.successMessage.value).toBe(
+        '已打开邮件客户端，请发送邮件完成申请。',
+      );
     });
 
     it('submit 前先清空上次的 successMessage', () => {

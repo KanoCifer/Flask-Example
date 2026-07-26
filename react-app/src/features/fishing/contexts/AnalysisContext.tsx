@@ -114,7 +114,9 @@ export function AnalysisContextProvider({ children }: AnalysisProviderProps) {
   );
 
   return (
-    <AnalysisContext.Provider value={value}>{children}</AnalysisContext.Provider>
+    <AnalysisContext.Provider value={value}>
+      {children}
+    </AnalysisContext.Provider>
   );
 }
 

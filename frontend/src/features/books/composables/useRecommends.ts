@@ -24,10 +24,7 @@ const hasMoreRecommends = ref(true);
  * 失败回 error 但保留旧数据。
  */
 export function useRecommends() {
-  async function fetchRecommends(
-    reset = true,
-    count = 12,
-  ): Promise<void> {
+  async function fetchRecommends(reset = true, count = 12): Promise<void> {
     if (isLoadingRecommends.value) return;
     if (!reset && !hasMoreRecommends.value) return;
     isLoadingRecommends.value = true;

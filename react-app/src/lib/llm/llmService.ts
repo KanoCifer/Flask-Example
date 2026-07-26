@@ -105,7 +105,8 @@ export const llmService = (): LlmService => ({
           if (!data.content) return;
           // type 缺省按 content 处理 —— 兼容无 type 字段的旧帧与错误帧
           // （错误帧后端也 type='content'，保持视觉上仍能看到错误标记）
-          const kind: StreamFrameType = data.type === 'reasoning' ? 'reasoning' : 'content';
+          const kind: StreamFrameType =
+            data.type === 'reasoning' ? 'reasoning' : 'content';
           onChunk(data.content, kind);
         },
       },

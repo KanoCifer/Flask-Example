@@ -48,11 +48,11 @@ function linearToSrgb(v: number): number {
 // ---------- OKLCH → linear sRGB ----------
 
 /** OKLCH → 线性 sRGB（不裁剪，r/g/b 可能为负或 > 1） */
-export function oklchToLinearRgb({
-  L,
-  C,
-  H,
-}: Oklch): { r: number; g: number; b: number } {
+export function oklchToLinearRgb({ L, C, H }: Oklch): {
+  r: number;
+  g: number;
+  b: number;
+} {
   const hRad = (H * Math.PI) / 180;
   const a = C * Math.cos(hRad);
   const b = C * Math.sin(hRad);
@@ -83,7 +83,14 @@ function isInLinearGamut({
   b: number;
 }): boolean {
   // 严格 ±1e-4 容忍度，避免边界值来回抖
-  return r >= -1e-4 && r <= 1 + 1e-4 && g >= -1e-4 && g <= 1 + 1e-4 && b >= -1e-4 && b <= 1 + 1e-4;
+  return (
+    r >= -1e-4 &&
+    r <= 1 + 1e-4 &&
+    g >= -1e-4 &&
+    g <= 1 + 1e-4 &&
+    b >= -1e-4 &&
+    b <= 1 + 1e-4
+  );
 }
 
 // ---------- OKLCH → 显示 sRGB（带色域裁剪） ----------
@@ -158,7 +165,11 @@ export function rgbToHex({ r, g, b }: Rgb): string {
 /** hex → rgb；非法输入返回 null */
 export function parseHex(input: string): Rgb | null {
   let s = input.trim().replace(/^#/, '');
-  if (s.length === 3) s = s.split('').map((c) => c + c).join('');
+  if (s.length === 3)
+    s = s
+      .split('')
+      .map((c) => c + c)
+      .join('');
   if (s.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(s)) return null;
   return {
     r: parseInt(s.slice(0, 2), 16),
@@ -171,7 +182,9 @@ export function parseHex(input: string): Rgb | null {
 export function parseOklch(input: string): Oklch | null {
   const m = input
     .trim()
-    .match(/^oklch\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+(?:deg)?)\s*\/?\s*([+-]?[\d.]+%?)?\s*\)$/i);
+    .match(
+      /^oklch\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+%?)\s+([+-]?[\d.]+(?:deg)?)\s*\/?\s*([+-]?[\d.]+%?)?\s*\)$/i,
+    );
   if (!m) return null;
   const L = m[1].endsWith('%') ? parseFloat(m[1]) / 100 : parseFloat(m[1]);
   const C = m[2].endsWith('%') ? parseFloat(m[2]) / 100 : parseFloat(m[2]);
@@ -199,7 +212,11 @@ export function formatRgb({ r, g, b }: Rgb): string {
 
 /** sRGB 0–255 → 相对亮度 */
 export function relativeLuminance({ r, g, b }: Rgb): number {
-  return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b);
+  return (
+    0.2126 * srgbToLinear(r) +
+    0.7152 * srgbToLinear(g) +
+    0.0722 * srgbToLinear(b)
+  );
 }
 
 /** WCAG 对比度比值（1–21），越大越易读 */
@@ -229,7 +246,7 @@ export interface HarmonyVariant {
 }
 
 function shift(h: number, delta: number): number {
-  return ((h + delta) % 360 + 360) % 360;
+  return (((h + delta) % 360) + 360) % 360;
 }
 
 export function buildHarmony(base: Oklch, kind: HarmonyKind): HarmonyVariant[] {

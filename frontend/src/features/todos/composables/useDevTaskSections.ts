@@ -34,9 +34,7 @@ export function useDevTaskSections(tasks: Ref<DevTask[]>) {
             t.status === '待排期' ||
             t.status === '已搁置'),
       )
-      .sort(
-        (a, b) => priorityWeight(a.priority) - priorityWeight(b.priority),
-      ),
+      .sort((a, b) => priorityWeight(a.priority) - priorityWeight(b.priority)),
   );
 
   // 已完成只取最近 8 条（按列表原序，前端 store 已是 updated_at 倒序）

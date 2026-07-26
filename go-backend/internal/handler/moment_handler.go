@@ -8,20 +8,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	momenterrs "github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/domain/moment/errs"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
 
 // MomentHandler 处理 moment 资源的 HTTP 请求。
 //
-// 错误处理契约（与 devtask / blog 对齐）：
+// 错误处理契约：
 //   - momenterrs.ErrMomentNotFound   → 404
 //   - momenterrs.ErrInvalidObjectID  → 400
 //   - 其他                     → 500
-//
-// handler 不感知 mongo / bson —— 翻译工作在 service.translateRepoErr 完成。
 type MomentHandler struct {
 	svc service.Momenter
 }

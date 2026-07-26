@@ -27,4 +27,3 @@ type PostViewResponse struct {
 	Title string `json:"title"`
 	Views int    `json:"views"`
 }
-

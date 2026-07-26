@@ -75,8 +75,7 @@ export function withAlpha(
   color: string | undefined | null,
   alpha: number,
 ): string {
-  const parsed =
-    color && typeof color === 'string' ? parse(color) : undefined;
+  const parsed = color && typeof color === 'string' ? parse(color) : undefined;
   if (!parsed) return `rgba(120, 134, 170, ${alpha})`;
   return formatRgb({ ...parsed, alpha });
 }

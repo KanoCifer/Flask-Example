@@ -24,15 +24,19 @@ function makeEvent(id: number, type = 'startup') {
  * 挂载一个使用目标 composable 的哨兵组件,返回 composable 返回值。
  * onMounted / onUnmounted 生命周期在 mount / unmount 时触发。
  */
-async function mountHook<R>(setupFn: () => R): Promise<{ hook: R; unmount: () => void }> {
+async function mountHook<R>(
+  setupFn: () => R,
+): Promise<{ hook: R; unmount: () => void }> {
   const Comp = defineComponent({
     setup() {
-      
       return () => h('div');
     },
   });
   const wrapper = mount(Comp);
-  return { hook: wrapper.vm as unknown as R & Record<string, never>, unmount: () => wrapper.unmount() };
+  return {
+    hook: wrapper.vm as unknown as R & Record<string, never>,
+    unmount: () => wrapper.unmount(),
+  };
 }
 
 // 包装:通过 wrapper 暴露 hook 返回值需要借助 defineExpose,改用兜底:

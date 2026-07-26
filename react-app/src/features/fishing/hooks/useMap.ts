@@ -108,13 +108,16 @@ export function useMap(
     useNotificationStore.getState().error(message);
   }, []);
 
-  const getAMap = useCallback(() => window.AMap as AMapWithPlugins | undefined, []);
-
-  const { userPosition, isLocating, retry: retryLocate } = useGeolocation(
-    getAMap,
-    notifyError,
-    { enabled: true },
+  const getAMap = useCallback(
+    () => window.AMap as AMapWithPlugins | undefined,
+    [],
   );
+
+  const {
+    userPosition,
+    isLocating,
+    retry: retryLocate,
+  } = useGeolocation(getAMap, notifyError, { enabled: true });
 
   const clearRoute = useCallback(() => {
     if (currentRouteRef.current && mapInstanceRef.current) {
@@ -188,17 +191,14 @@ export function useMap(
     [clearRoute],
   );
 
-  const handleMarkerClick = useCallback(
-    (index: number) => {
-      const selectedSpot = markersRef.current[index];
-      if (!selectedSpot) {
-        return;
-      }
-      // 直接通知上层打开详情；不再在此拉用户定位（避免触发 Geolocation 自动移图）
-      onMarkerClickRef.current(index, selectedSpot.position);
-    },
-    [],
-  );
+  const handleMarkerClick = useCallback((index: number) => {
+    const selectedSpot = markersRef.current[index];
+    if (!selectedSpot) {
+      return;
+    }
+    // 直接通知上层打开详情；不再在此拉用户定位（避免触发 Geolocation 自动移图）
+    onMarkerClickRef.current(index, selectedSpot.position);
+  }, []);
 
   useEffect(() => {
     onMarkerClickRef.current = onMarkerClick;
@@ -321,14 +321,15 @@ export function useMap(
           .catch((err: unknown) => {
             // 加载失败经 Toast 提示,避免白屏无反馈
             const message =
-              err instanceof Error ? err.message : '地图加载失败，请检查网络后重试';
+              err instanceof Error
+                ? err.message
+                : '地图加载失败，请检查网络后重试';
             notifyError(message);
             setIsMapReady(false);
           });
       } catch (err: unknown) {
         // 同步阶段错误(如缺少 VITE_JS_API):提示并标记未就绪
-        const message =
-          err instanceof Error ? err.message : '地图初始化失败';
+        const message = err instanceof Error ? err.message : '地图初始化失败';
         notifyError(message);
         setIsMapReady(false);
       }

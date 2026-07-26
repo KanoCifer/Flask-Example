@@ -6,13 +6,7 @@ import type {
   MomentVisibility,
 } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ImageOff,
-  ImagePlus,
-  Loader2,
-  RefreshCw,
-  X,
-} from 'lucide-react';
+import { ImageOff, ImagePlus, Loader2, RefreshCw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useUpload } from '@/features/upload';
 import { UploadDropzone, UploadProgress } from '@/features/upload';
@@ -103,9 +97,7 @@ export function MomentEditorModal({
         setStatus(moment.status);
         setIsPinned(moment.is_pinned);
         setAllowComment(moment.allow_comment);
-        setAttachments(
-          moment.attachments.filter((a) => a.type === 'image'),
-        );
+        setAttachments(moment.attachments.filter((a) => a.type === 'image'));
       } else {
         setContent('');
         setMood('');
@@ -144,7 +136,10 @@ export function MomentEditorModal({
    * 与 retryUpload 共用一条上传链 — 失败保留 preview，可重试。
    * `isCancelled` 用于丢弃过期闭包的结果：组件卸载或 selectedFile 被替换时不写入 state。
    */
-  async function runUpload(file: File, isCancelled?: () => boolean): Promise<void> {
+  async function runUpload(
+    file: File,
+    isCancelled?: () => boolean,
+  ): Promise<void> {
     setPendingError(null);
     try {
       const url = await upload(file);
@@ -171,10 +166,7 @@ export function MomentEditorModal({
 
   function removeAttachment(idx: number) {
     // 编辑模式：对已存在的服务器附件删除走 confirm，避免误删。
-    if (
-      isEdit &&
-      !window.confirm('确定删除这张图片吗？')
-    ) {
+    if (isEdit && !window.confirm('确定删除这张图片吗？')) {
       return;
     }
     setAttachments((prev) => prev.filter((_, i) => i !== idx));

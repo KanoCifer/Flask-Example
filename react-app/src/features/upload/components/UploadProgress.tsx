@@ -35,9 +35,10 @@ export function UploadProgress({
         </div>
       )}
       <div
-        className={['bg-surface relative w-full overflow-hidden rounded-full', height].join(
-          ' ',
-        )}
+        className={[
+          'bg-surface relative w-full overflow-hidden rounded-full',
+          height,
+        ].join(' ')}
         role="progressbar"
         aria-valuenow={clamped}
         aria-valuemin={0}

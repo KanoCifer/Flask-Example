@@ -53,9 +53,7 @@ const UNKNOWN_PRIORITY_WEIGHT = 9;
  * 优先级权重：P0 最高（0），P3 最低（3）。
  * 未知 / 缺失值降级为 9，确保排到队尾。
  */
-export function priorityWeight(
-  p: DevTaskPriority | undefined | null,
-): number {
+export function priorityWeight(p: DevTaskPriority | undefined | null): number {
   if (!p) return UNKNOWN_PRIORITY_WEIGHT;
   return PRIORITY_WEIGHT[p] ?? UNKNOWN_PRIORITY_WEIGHT;
 }
@@ -120,8 +118,7 @@ export function completedCount(tasks: DevTask[]): number {
 /** 紧急活跃任务数（P0 且未完成）。 */
 export function urgentActive(tasks: DevTask[]): number {
   return tasks.filter(
-    (t) =>
-      !t.is_deleted && t.priority === 'P0 紧急' && t.status !== '已完成',
+    (t) => !t.is_deleted && t.priority === 'P0 紧急' && t.status !== '已完成',
   ).length;
 }
 

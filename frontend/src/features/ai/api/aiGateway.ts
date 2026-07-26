@@ -1,7 +1,4 @@
-import {
-  consumeSseStream,
-  type SseHandlers,
-} from '@/composables/useSseStream';
+import { consumeSseStream, type SseHandlers } from '@/composables/useSseStream';
 import type {
   AiStreamFrame,
   StreamThreadBody,

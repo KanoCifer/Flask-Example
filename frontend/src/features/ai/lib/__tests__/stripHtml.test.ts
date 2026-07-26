@@ -39,7 +39,9 @@ describe('stripHtml', () => {
     // 旧正则: `<!-- a > b -->` → '<!-- a >' 配对，遗留 ' b -->'
     expect(stripHtml('<!-- a > b -->')).toBe('');
     expect(stripHtml('before <!-- x > y --> after')).toBe('before  after');
-    expect(stripHtml('<!--<script>-->alert(1)<!--</script>-->')).toBe('alert(1)');
+    expect(stripHtml('<!--<script>-->alert(1)<!--</script>-->')).toBe(
+      'alert(1)',
+    );
   });
 
   it('does not leak attribute values containing >', () => {

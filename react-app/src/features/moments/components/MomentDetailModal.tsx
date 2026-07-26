@@ -1,5 +1,10 @@
 import { PinIcon } from '@/components';
-import type { Moment, MomentAttachment, MomentStatus, MomentVisibility } from '@/types';
+import type {
+  Moment,
+  MomentAttachment,
+  MomentStatus,
+  MomentVisibility,
+} from '@/types';
 import { isPureEmoji } from '@/lib/emoji';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
@@ -319,77 +324,77 @@ export function MomentDetailModal({
             </div>
           </motion.div>
 
-            {/* 图片放大查看(inline lightbox,portal 到 body,沿用图片墙看图态) */}
-            {imageAttachments.length > 0 &&
-              createPortal(
-                <AnimatePresence>
-                  {lightboxIndex !== null && (
-                    <motion.div
-                      key="moment-lightbox"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.18 }}
-                      className="fixed inset-0 z-[60] flex items-center justify-center"
-                      role="dialog"
-                      aria-modal="true"
-                    >
-                      {/* 遮罩 */}
-                      <div
-                        className="bg-ink/80 absolute inset-0 backdrop-blur-sm"
+          {/* 图片放大查看(inline lightbox,portal 到 body,沿用图片墙看图态) */}
+          {imageAttachments.length > 0 &&
+            createPortal(
+              <AnimatePresence>
+                {lightboxIndex !== null && (
+                  <motion.div
+                    key="moment-lightbox"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="fixed inset-0 z-[60] flex items-center justify-center"
+                    role="dialog"
+                    aria-modal="true"
+                  >
+                    {/* 遮罩 */}
+                    <div
+                      className="bg-ink/80 absolute inset-0 backdrop-blur-sm"
+                      onClick={closeLightbox}
+                    />
+
+                    {/* 顶部工具条 */}
+                    <div className="text-page absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-5 py-4">
+                      <span className="font-mono text-sm tabular-nums">
+                        {lightboxIndex + 1} / {imageAttachments.length}
+                      </span>
+                      <button
+                        type="button"
+                        className="hover:bg-page/20 inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
+                        aria-label="关闭"
                         onClick={closeLightbox}
-                      />
+                      >
+                        <IconClose className="h-5 w-5" />
+                      </button>
+                    </div>
 
-                      {/* 顶部工具条 */}
-                      <div className="text-page absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-5 py-4">
-                        <span className="font-mono text-sm tabular-nums">
-                          {lightboxIndex + 1} / {imageAttachments.length}
-                        </span>
-                        <button
-                          type="button"
-                          className="hover:bg-page/20 inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-                          aria-label="关闭"
-                          onClick={closeLightbox}
-                        >
-                          <IconClose className="h-5 w-5" />
-                        </button>
-                      </div>
+                    {/* 左切换 */}
+                    {imageAttachments.length > 1 && (
+                      <button
+                        type="button"
+                        className="text-page hover:bg-page/20 absolute left-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors"
+                        aria-label="上一张"
+                        onClick={lightboxPrev}
+                      >
+                        <IconChevronLeft className="h-6 w-6" />
+                      </button>
+                    )}
 
-                      {/* 左切换 */}
-                      {imageAttachments.length > 1 && (
-                        <button
-                          type="button"
-                          className="text-page hover:bg-page/20 absolute left-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors"
-                          aria-label="上一张"
-                          onClick={lightboxPrev}
-                        >
-                          <IconChevronLeft className="h-6 w-6" />
-                        </button>
-                      )}
+                    {/* 主图 */}
+                    <img
+                      src={imageAttachments[lightboxIndex]?.url ?? ''}
+                      alt={`附件图片 ${lightboxIndex + 1}`}
+                      className="relative z-[1] max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+                    />
 
-                      {/* 主图 */}
-                      <img
-                        src={imageAttachments[lightboxIndex]?.url ?? ''}
-                        alt={`附件图片 ${lightboxIndex + 1}`}
-                        className="relative z-[1] max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
-                      />
-
-                      {/* 右切换 */}
-                      {imageAttachments.length > 1 && (
-                        <button
-                          type="button"
-                          className="text-page hover:bg-page/20 absolute right-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors"
-                          aria-label="下一张"
-                          onClick={lightboxNext}
-                        >
-                          <IconChevronRight className="h-6 w-6" />
-                        </button>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>,
-                document.body,
-              )}
+                    {/* 右切换 */}
+                    {imageAttachments.length > 1 && (
+                      <button
+                        type="button"
+                        className="text-page hover:bg-page/20 absolute right-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors"
+                        aria-label="下一张"
+                        onClick={lightboxNext}
+                      >
+                        <IconChevronRight className="h-6 w-6" />
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>,
+              document.body,
+            )}
         </motion.div>
       )}
     </AnimatePresence>

@@ -154,7 +154,8 @@ export function useAiThread(ctx: AiContext) {
       );
     } catch (e: unknown) {
       if (isAbortError(e)) return;
-      const errorMsg = e instanceof Error ? e.message : 'AI总结失败，请稍后重试';
+      const errorMsg =
+        e instanceof Error ? e.message : 'AI总结失败，请稍后重试';
       setError(errorMsg);
       notifier.error(errorMsg);
       setMessages((prev) => prev.filter((m) => m.id !== msg.id));
@@ -245,7 +246,9 @@ export function useAiThread(ctx: AiContext) {
       const errorMsg = e instanceof Error ? e.message : '对话失败，请稍后重试';
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === assistantMsg.id ? { ...m, content: `[ERROR] ${errorMsg}` } : m,
+          m.id === assistantMsg.id
+            ? { ...m, content: `[ERROR] ${errorMsg}` }
+            : m,
         ),
       );
       setError(errorMsg);
@@ -257,7 +260,16 @@ export function useAiThread(ctx: AiContext) {
         setNeedsGrounding(false);
       }
     }
-  }, [canSend, ctx.content, ctx.title, input, needsGrounding, notifier, scrollToBottom, sessionId]);
+  }, [
+    canSend,
+    ctx.content,
+    ctx.title,
+    input,
+    needsGrounding,
+    notifier,
+    scrollToBottom,
+    sessionId,
+  ]);
 
   const onKeydown = useCallback(
     (e: React.KeyboardEvent) => {

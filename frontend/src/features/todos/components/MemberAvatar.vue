@@ -12,7 +12,11 @@
       class="h-full w-full object-cover"
       loading="lazy"
     />
-    <span v-else :class="[bgClass, textClass]" class="flex h-full w-full items-center justify-center font-medium">
+    <span
+      v-else
+      :class="[bgClass, textClass]"
+      class="flex h-full w-full items-center justify-center font-medium"
+    >
       {{ initials }}
     </span>
   </span>
@@ -64,7 +68,9 @@ const hash32 = (s: string): number => {
   return Math.abs(h);
 };
 
-const animalIdx = computed(() => hash32(String(props.userId)) % ANIMAL_BADGES.length);
+const animalIdx = computed(
+  () => hash32(String(props.userId)) % ANIMAL_BADGES.length,
+);
 const animalSrc = computed(() => ANIMAL_BADGES[animalIdx.value]!.src);
 // xs 档位用首字母（20px 装不下 raster 细节）；sm/md 用动物徽标。
 const useAnimal = computed(() => props.size !== 'xs');
@@ -76,12 +82,30 @@ interface AvatarPalette {
   text: string;
 }
 const PALETTES: AvatarPalette[] = [
-  { bg: 'bg-blue-100 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-300' },
-  { bg: 'bg-emerald-100 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300' },
-  { bg: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300' },
-  { bg: 'bg-rose-100 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300' },
-  { bg: 'bg-purple-100 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300' },
-  { bg: 'bg-teal-100 dark:bg-teal-950/40', text: 'text-teal-700 dark:text-teal-300' },
+  {
+    bg: 'bg-blue-100 dark:bg-blue-950/40',
+    text: 'text-blue-700 dark:text-blue-300',
+  },
+  {
+    bg: 'bg-emerald-100 dark:bg-emerald-950/40',
+    text: 'text-emerald-700 dark:text-emerald-300',
+  },
+  {
+    bg: 'bg-amber-100 dark:bg-amber-950/40',
+    text: 'text-amber-700 dark:text-amber-300',
+  },
+  {
+    bg: 'bg-rose-100 dark:bg-rose-950/40',
+    text: 'text-rose-700 dark:text-rose-300',
+  },
+  {
+    bg: 'bg-purple-100 dark:bg-purple-950/40',
+    text: 'text-purple-700 dark:text-purple-300',
+  },
+  {
+    bg: 'bg-teal-100 dark:bg-teal-950/40',
+    text: 'text-teal-700 dark:text-teal-300',
+  },
 ];
 
 const palette = computed<AvatarPalette>(() => {

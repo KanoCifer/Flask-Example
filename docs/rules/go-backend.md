@@ -18,6 +18,8 @@ Python `backend/` 的 Go 重构（核心功能已实现，持续完善中）。�
 
 ## 分层约定（2026-07 统一后）
 
+> 分层决策背景见 [ADR 0005](../adr/0005-go-backend-layering.md)。
+
 所有 service 域已统一为以下约定（详见 task-13 spec）：
 
 ### 双层接口

@@ -225,7 +225,9 @@ describe('MarkdownImageEditor', () => {
 
   describe('getContentForPublish', () => {
     it('上传所有 blob 图片,替换 markdown 中的 URL,清空 map', async () => {
-      const uploadFn = vi.fn().mockResolvedValueOnce({ url: 'http://srv/1.png' });
+      const uploadFn = vi
+        .fn()
+        .mockResolvedValueOnce({ url: 'http://srv/1.png' });
       const editor = new MarkdownImageEditor({ uploadImage: uploadFn });
 
       editor.addImageFile(makeFile('a.png'));
@@ -250,11 +252,9 @@ describe('MarkdownImageEditor', () => {
     });
 
     it('并发上传多张图片', async () => {
-      const uploadFn = vi
-        .fn()
-        .mockImplementation(async (file: File) => ({
-          url: `http://srv/${file instanceof File ? 'x' : '?'}.png`,
-        }));
+      const uploadFn = vi.fn().mockImplementation(async (file: File) => ({
+        url: `http://srv/${file instanceof File ? 'x' : '?'}.png`,
+      }));
       const editor = new MarkdownImageEditor({ uploadImage: uploadFn });
 
       editor.addImageFile(makeFile('a.png'));
@@ -263,9 +263,7 @@ describe('MarkdownImageEditor', () => {
       const result = await editor.getContentForPublish(content);
 
       expect(uploadFn).toHaveBeenCalledTimes(2);
-      expect(result).toBe(
-        '![a](http://srv/x.png) and ![b](http://srv/x.png)',
-      );
+      expect(result).toBe('![a](http://srv/x.png) and ![b](http://srv/x.png)');
     });
   });
 

@@ -1,5 +1,7 @@
 # Architecture
 
+> 架构决策记录见 `docs/adr/`：
+
 ## Overview
 
 - Backend: FastAPI + PostgreSQL + MongoDB + Redis + Go

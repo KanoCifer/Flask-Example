@@ -21,10 +21,7 @@
       viewBox="0 0 64 32"
       fill="currentColor"
     >
-      <path
-        d="M4 16C14 5 34 5 44 16C34 27 14 27 4 16Z"
-        opacity="0.9"
-      />
+      <path d="M4 16C14 5 34 5 44 16C34 27 14 27 4 16Z" opacity="0.9" />
       <path d="M44 16L62 7L56 16L62 25Z" />
       <circle cx="16" cy="14" r="1.6" fill="var(--page)" />
     </svg>

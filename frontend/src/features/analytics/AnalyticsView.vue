@@ -107,7 +107,6 @@
           </div>
         </div>
 
-
         <!-- 3 stat tiles: align-baseline with matching heights -->
         <div class="col-span-1 lg:col-span-3">
           <SkeletonCrossfadeTransition>
@@ -127,90 +126,90 @@
               key="data"
               class="grid grid-cols-1 gap-4 sm:grid-cols-3"
             >
-            <StatTile
-              label="总访问量"
-              :value="overviewData.total_visits"
-              :sparkline="sparklinePoints"
-              sparkline-class="text-ink"
-              accent="bg-accent/10 text-ink"
-            >
-              <template #icon>
-                <svg
-                  class="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-              </template>
-            </StatTile>
+              <StatTile
+                label="总访问量"
+                :value="overviewData.total_visits"
+                :sparkline="sparklinePoints"
+                sparkline-class="text-ink"
+                accent="bg-accent/10 text-ink"
+              >
+                <template #icon>
+                  <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                </template>
+              </StatTile>
 
-            <StatTile
-              label="独立访客"
-              :value="overviewData.unique_visitors"
-              :sparkline="uvSparklinePoints"
-              sparkline-class="text-success"
-              accent="bg-success/10 text-success"
-            >
-              <template #icon>
-                <svg
-                  class="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </template>
-            </StatTile>
+              <StatTile
+                label="独立访客"
+                :value="overviewData.unique_visitors"
+                :sparkline="uvSparklinePoints"
+                sparkline-class="text-success"
+                accent="bg-success/10 text-success"
+              >
+                <template #icon>
+                  <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </template>
+              </StatTile>
 
-            <StatTile
-              label="日均访问"
-              :value="avgVisitsPerDay"
-              value-suffix=""
-              :sparkline="avgSparklinePoints"
-              sparkline-class="text-warning"
-              accent="bg-warning/10 text-warning"
-            >
-              <template #icon>
-                <svg
-                  class="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </template>
-              <template #footer>
-                <span class="text-muted text-xs">
-                  最近 {{ selectedDays }} 天
-                </span>
-              </template>
-            </StatTile>
-          </div>
+              <StatTile
+                label="日均访问"
+                :value="avgVisitsPerDay"
+                value-suffix=""
+                :sparkline="avgSparklinePoints"
+                sparkline-class="text-warning"
+                accent="bg-warning/10 text-warning"
+              >
+                <template #icon>
+                  <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                </template>
+                <template #footer>
+                  <span class="text-muted text-xs">
+                    最近 {{ selectedDays }} 天
+                  </span>
+                </template>
+              </StatTile>
+            </div>
           </SkeletonCrossfadeTransition>
         </div>
 
@@ -327,116 +326,117 @@
                 <p>暂无登录记录</p>
               </div>
 
-            <!-- Table -->
-            <div v-else>
-              <div class="overflow-x-auto">
-                <table class="w-full">
-                  <caption class="sr-only">
-                    用户登录记录表
-                  </caption>
-                  <thead>
-                    <tr class="text-muted border-b text-left text-sm">
-                      <th scope="col" class="pb-3 font-medium">用户</th>
-                      <th scope="col" class="pb-3 font-medium">登录次数</th>
-                      <th scope="col" class="pb-3 font-medium">最近登录</th>
-                      <th scope="col" class="pb-3 font-medium">本次登录</th>
-                      <th scope="col" class="pb-3 font-medium">最近 IP</th>
-                      <th scope="col" class="pb-3 font-medium">本次 IP</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-border divide-y">
-                    <tr
-                      v-for="log in loginLogsData?.list ?? []"
-                      :key="log.user_id"
-                      class="hover:bg-surface/30 text-sm transition-colors"
-                    >
-                      <td class="py-3.5">
-                        <div class="flex items-center gap-3">
-                          <div
-                            class="bg-accent/15 text-ink flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium"
+              <!-- Table -->
+              <div v-else>
+                <div class="overflow-x-auto">
+                  <table class="w-full">
+                    <caption class="sr-only">
+                      用户登录记录表
+                    </caption>
+                    <thead>
+                      <tr class="text-muted border-b text-left text-sm">
+                        <th scope="col" class="pb-3 font-medium">用户</th>
+                        <th scope="col" class="pb-3 font-medium">登录次数</th>
+                        <th scope="col" class="pb-3 font-medium">最近登录</th>
+                        <th scope="col" class="pb-3 font-medium">本次登录</th>
+                        <th scope="col" class="pb-3 font-medium">最近 IP</th>
+                        <th scope="col" class="pb-3 font-medium">本次 IP</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-border divide-y">
+                      <tr
+                        v-for="log in loginLogsData?.list ?? []"
+                        :key="log.user_id"
+                        class="hover:bg-surface/30 text-sm transition-colors"
+                      >
+                        <td class="py-3.5">
+                          <div class="flex items-center gap-3">
+                            <div
+                              class="bg-accent/15 text-ink flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium"
+                            >
+                              {{ log.username?.charAt(0).toUpperCase() }}
+                            </div>
+                            <div>
+                              <p class="text-ink font-medium">
+                                {{ log.name || log.username }}
+                              </p>
+                              <p class="text-muted text-xs">
+                                @{{ log.username }}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="py-3.5">
+                          <span
+                            class="bg-success/20 text-success inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums"
                           >
-                            {{ log.username?.charAt(0).toUpperCase() }}
-                          </div>
-                          <div>
-                            <p class="text-ink font-medium">
-                              {{ log.name || log.username }}
-                            </p>
-                            <p class="text-muted text-xs">
-                              @{{ log.username }}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="py-3.5">
-                        <span
-                          class="bg-success/20 text-success inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums"
+                            {{ log.login_count }}
+                          </span>
+                        </td>
+                        <td class="text-ink/80 py-3.5 tabular-nums">
+                          {{ formatDateTime(log.last_login_at) }}
+                        </td>
+                        <td class="text-ink/80 py-3.5 tabular-nums">
+                          {{ formatDateTime(log.current_login_at) }}
+                        </td>
+                        <td
+                          class="text-muted py-3.5 font-mono text-xs tabular-nums"
                         >
-                          {{ log.login_count }}
-                        </span>
-                      </td>
-                      <td class="text-ink/80 py-3.5 tabular-nums">
-                        {{ formatDateTime(log.last_login_at) }}
-                      </td>
-                      <td class="text-ink/80 py-3.5 tabular-nums">
-                        {{ formatDateTime(log.current_login_at) }}
-                      </td>
-                      <td
-                        class="text-muted py-3.5 font-mono text-xs tabular-nums"
-                      >
-                        {{ log.last_login_ip || '-' }}
-                      </td>
-                      <td
-                        class="text-muted py-3.5 font-mono text-xs tabular-nums"
-                      >
-                        {{ log.current_login_ip || '-' }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                          {{ log.last_login_ip || '-' }}
+                        </td>
+                        <td
+                          class="text-muted py-3.5 font-mono text-xs tabular-nums"
+                        >
+                          {{ log.current_login_ip || '-' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
-              <!-- Pagination -->
-              <div
-                v-if="loginLogsData && loginLogsData.total_pages > 1"
-                class="mt-4 flex items-center justify-between border-t pt-4"
-              >
-                <p class="text-muted text-sm">
-                  显示第
-                  {{ (loginLogsData.page - 1) * loginLogsData.page_size + 1 }}
-                  至
-                  {{
-                    Math.min(
-                      loginLogsData.page * loginLogsData.page_size,
-                      loginLogsData.total,
-                    )
-                  }}
-                  条，共 {{ loginLogsData.total }} 条
-                </p>
-                <div class="flex gap-2">
-                  <button
-                    :disabled="
-                      loginLogsData.page <= 1 || (!!loading && !!loginLogsData)
-                    "
-                    :aria-label="`上一页，第 ${loginLogsData.page - 1} 页`"
-                    @click="changePage(loginLogsData.page - 1)"
-                    class="hover:bg-surface text-ink rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    上一页
-                  </button>
-                  <button
-                    :disabled="
-                      loginLogsData.page >= loginLogsData.total_pages ||
-                      (!!loading && !!loginLogsData)
-                    "
-                    :aria-label="`下一页，第 ${loginLogsData.page + 1} 页`"
-                    @click="changePage(loginLogsData.page + 1)"
-                    class="hover:bg-surface text-ink rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    下一页
-                  </button>
+                <!-- Pagination -->
+                <div
+                  v-if="loginLogsData && loginLogsData.total_pages > 1"
+                  class="mt-4 flex items-center justify-between border-t pt-4"
+                >
+                  <p class="text-muted text-sm">
+                    显示第
+                    {{ (loginLogsData.page - 1) * loginLogsData.page_size + 1 }}
+                    至
+                    {{
+                      Math.min(
+                        loginLogsData.page * loginLogsData.page_size,
+                        loginLogsData.total,
+                      )
+                    }}
+                    条，共 {{ loginLogsData.total }} 条
+                  </p>
+                  <div class="flex gap-2">
+                    <button
+                      :disabled="
+                        loginLogsData.page <= 1 ||
+                        (!!loading && !!loginLogsData)
+                      "
+                      :aria-label="`上一页，第 ${loginLogsData.page - 1} 页`"
+                      @click="changePage(loginLogsData.page - 1)"
+                      class="hover:bg-surface text-ink rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      上一页
+                    </button>
+                    <button
+                      :disabled="
+                        loginLogsData.page >= loginLogsData.total_pages ||
+                        (!!loading && !!loginLogsData)
+                      "
+                      :aria-label="`下一页，第 ${loginLogsData.page + 1} 页`"
+                      @click="changePage(loginLogsData.page + 1)"
+                      class="hover:bg-surface text-ink rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      下一页
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
             </SkeletonCrossfadeTransition>
           </div>
         </div>
@@ -446,7 +446,11 @@
 </template>
 
 <script setup lang="ts">
-import { IconUser, IconAnalytics, SkeletonCrossfadeTransition } from '@/components';
+import {
+  IconUser,
+  IconAnalytics,
+  SkeletonCrossfadeTransition,
+} from '@/components';
 import { analyticsGateway } from '@/features/analytics/api/analyticsGateway';
 import type { PostViewData } from '@/features/analytics/types';
 import { useAuthStore } from '@/features/auth';

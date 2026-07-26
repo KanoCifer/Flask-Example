@@ -51,13 +51,19 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
 
   const upload = async (file: File): Promise<string> => {
     // —— 校验 ——
-    if (allowedTypes && allowedTypes.length > 0 && !allowedTypes.includes(file.type)) {
+    if (
+      allowedTypes &&
+      allowedTypes.length > 0 &&
+      !allowedTypes.includes(file.type)
+    ) {
       const err = new Error(`不支持的文件类型: ${file.type}`);
       error.value = err;
       throw err;
     }
     if (maxSize && file.size > maxSize) {
-      const err = new Error(`文件超过大小限制: ${(maxSize / 1024 / 1024).toFixed(1)}MB`);
+      const err = new Error(
+        `文件超过大小限制: ${(maxSize / 1024 / 1024).toFixed(1)}MB`,
+      );
       error.value = err;
       throw err;
     }

@@ -76,11 +76,19 @@ describe('rgbToHex / parseHex', () => {
 
 describe('parseOklch / formatOklch', () => {
   it('标准 oklch() 解析', () => {
-    expect(parseOklch('oklch(0.65 0.16 250)')).toEqual({ L: 0.65, C: 0.16, H: 250 });
+    expect(parseOklch('oklch(0.65 0.16 250)')).toEqual({
+      L: 0.65,
+      C: 0.16,
+      H: 250,
+    });
   });
 
   it('带 deg 后缀的 H', () => {
-    expect(parseOklch('oklch(0.5 0.1 90deg)')).toEqual({ L: 0.5, C: 0.1, H: 90 });
+    expect(parseOklch('oklch(0.5 0.1 90deg)')).toEqual({
+      L: 0.5,
+      C: 0.1,
+      H: 90,
+    });
   });
 
   it('空白宽松匹配', () => {
@@ -97,7 +105,9 @@ describe('parseOklch / formatOklch', () => {
   });
 
   it('formatOklch 输出保留 3 位', () => {
-    expect(formatOklch({ L: 0.65, C: 0.16, H: 250 })).toBe('oklch(0.65 0.16 250)');
+    expect(formatOklch({ L: 0.65, C: 0.16, H: 250 })).toBe(
+      'oklch(0.65 0.16 250)',
+    );
   });
 
   it('formatRgb 标准化字符串', () => {
@@ -107,12 +117,18 @@ describe('parseOklch / formatOklch', () => {
 
 describe('contrastRatio (WCAG)', () => {
   it('黑/白 = 21', () => {
-    const ratio = contrastRatio({ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 });
+    const ratio = contrastRatio(
+      { r: 0, g: 0, b: 0 },
+      { r: 255, g: 255, b: 255 },
+    );
     expect(ratio).toBeCloseTo(21, 1);
   });
 
   it('相同色 = 1', () => {
-    const ratio = contrastRatio({ r: 100, g: 100, b: 100 }, { r: 100, g: 100, b: 100 });
+    const ratio = contrastRatio(
+      { r: 100, g: 100, b: 100 },
+      { r: 100, g: 100, b: 100 },
+    );
     expect(ratio).toBeCloseTo(1, 5);
   });
 

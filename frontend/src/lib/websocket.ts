@@ -106,7 +106,9 @@ export class WebSocketManager {
 
   private sendVisitorId(visitorId: string | null) {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'visitor_id', visitor_id: visitorId }));
+      this.ws.send(
+        JSON.stringify({ type: 'visitor_id', visitor_id: visitorId }),
+      );
     }
   }
 

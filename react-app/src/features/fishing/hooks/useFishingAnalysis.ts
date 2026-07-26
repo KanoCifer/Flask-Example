@@ -134,8 +134,7 @@ export function useFishingAnalysis(): UseFishingAnalysisResult {
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError')
           return;
-        const message =
-          error instanceof Error ? error.message : 'AI 分析失败';
+        const message = error instanceof Error ? error.message : 'AI 分析失败';
         setAnalysisErrorRef.current(message);
         notifyErrorRef.current(message);
       } finally {

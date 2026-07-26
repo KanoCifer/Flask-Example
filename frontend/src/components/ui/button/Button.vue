@@ -28,12 +28,7 @@ const classes = computed(() => buttonClasses({ variant, size }));
 </script>
 
 <template>
-  <button
-    data-slot="button"
-    :type="type"
-    :disabled="disabled"
-    :class="classes"
-  >
+  <button data-slot="button" :type="type" :disabled="disabled" :class="classes">
     <slot />
   </button>
 </template>

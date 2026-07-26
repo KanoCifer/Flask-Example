@@ -49,7 +49,7 @@
           v-if="isAdmin"
           variant="default"
           size="md"
-          class="ml-auto !h-auto !rounded-md gap-1.5 !border !px-4 !py-2 !text-[13px]"
+          class="ml-auto !h-auto gap-1.5 !rounded-md !border !px-4 !py-2 !text-[13px]"
           aria-label="新建碎碎念"
           @click="openEditor(null)"
         >
@@ -68,7 +68,7 @@
         <span class="flex-1">{{ errorMessage }}</span>
         <Button
           variant="ghost"
-          class="!h-auto !p-0 !text-xs !underline !underline-offset-2 hover:!text-destructive/80"
+          class="hover:!text-destructive/80 !h-auto !p-0 !text-xs !underline !underline-offset-2"
           @click="reload"
         >
           重试
@@ -114,7 +114,7 @@
         <Button
           variant="outline"
           :disabled="publicPage <= 1"
-          class="!h-auto !rounded-full gap-1.5 !border /60 !bg-card !px-4 !py-2 !font-medium shadow-sm disabled:!opacity-40"
+          class="/60 !bg-card !h-auto gap-1.5 !rounded-full !border !px-4 !py-2 !font-medium shadow-sm disabled:!opacity-40"
           @click="goPage(publicPage - 1)"
         >
           <ChevronLeft class="h-3.5 w-3.5" />
@@ -128,7 +128,7 @@
         <Button
           variant="outline"
           :disabled="publicPage >= totalPages"
-          class="!h-auto !rounded-full gap-1.5 !border /60 !bg-card !px-4 !py-2 !font-medium shadow-sm disabled:!opacity-40"
+          class="/60 !bg-card !h-auto gap-1.5 !rounded-full !border !px-4 !py-2 !font-medium shadow-sm disabled:!opacity-40"
           @click="goPage(publicPage + 1)"
         >
           下一页
@@ -181,7 +181,7 @@
         <Button
           variant="outline"
           :disabled="deleting"
-          class="!h-auto !rounded-lg !border /60 !px-4 !py-1.5 !text-[13px] disabled:!opacity-50"
+          class="/60 !h-auto !rounded-lg !border !px-4 !py-1.5 !text-[13px] disabled:!opacity-50"
           @click="onDeleteCancel"
         >
           取消
@@ -206,12 +206,7 @@ import { MomentComposer } from '@/features/moments/composables';
 import { useMomentsStore } from '@/features/moments/stores/moments';
 import { useNotificationStore } from '@/stores';
 import type { Moment, MomentUpdatePayload } from '@/features/moments/types';
-import {
-  ChevronLeft,
-  ChevronRight,
-  CircleAlert,
-  Plus,
-} from '@lucide/vue';
+import { ChevronLeft, ChevronRight, CircleAlert, Plus } from '@lucide/vue';
 import dayjs from 'dayjs';
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';

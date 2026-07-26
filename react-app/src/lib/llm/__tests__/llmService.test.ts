@@ -251,18 +251,18 @@ describe('llmService', () => {
       );
 
       expect(onData).toHaveBeenCalledTimes(3);
-      expect(onData).toHaveBeenNthCalledWith(
-        1,
-        { type: 'reasoning', content: 'think1' },
-      );
-      expect(onData).toHaveBeenNthCalledWith(
-        2,
-        { type: 'content', content: 'out1' },
-      );
-      expect(onData).toHaveBeenNthCalledWith(
-        3,
-        { type: 'reasoning', content: 'think2' },
-      );
+      expect(onData).toHaveBeenNthCalledWith(1, {
+        type: 'reasoning',
+        content: 'think1',
+      });
+      expect(onData).toHaveBeenNthCalledWith(2, {
+        type: 'content',
+        content: 'out1',
+      });
+      expect(onData).toHaveBeenNthCalledWith(3, {
+        type: 'reasoning',
+        content: 'think2',
+      });
     });
   });
 });

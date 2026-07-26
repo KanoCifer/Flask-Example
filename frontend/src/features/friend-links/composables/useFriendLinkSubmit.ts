@@ -19,8 +19,7 @@ export interface FriendLinkSubmitError {
 }
 
 export type FriendLinkSubmitOutcome =
-  | FriendLinkSubmitResult
-  | FriendLinkSubmitError;
+  FriendLinkSubmitResult | FriendLinkSubmitError;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_REGEX =

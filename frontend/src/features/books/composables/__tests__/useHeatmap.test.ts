@@ -14,7 +14,9 @@ async function resetModule() {
   vi.resetModules();
 }
 
-function makeHeatmap(seconds: Record<string, number> = {}): WereadYearlyHeatmap {
+function makeHeatmap(
+  seconds: Record<string, number> = {},
+): WereadYearlyHeatmap {
   return { readTimes: seconds };
 }
 

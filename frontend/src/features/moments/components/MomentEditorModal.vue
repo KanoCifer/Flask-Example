@@ -17,7 +17,7 @@
       <Button
         variant="ghost"
         size="icon"
-        class="!h-7 !w-7 border /40"
+        class="/40 !h-7 !w-7 border"
         aria-label="关闭"
         @click="emit('update:open', false)"
       >
@@ -96,15 +96,11 @@
               :key="att.url"
               class="group bg-surface relative aspect-square overflow-hidden rounded-xl"
             >
-              <img
-                :src="att.url"
-                alt=""
-                class="h-full w-full object-cover"
-              />
+              <img :src="att.url" alt="" class="h-full w-full object-cover" />
               <Button
                 variant="ghost"
                 size="icon"
-                class="!h-6 !w-6 !bg-page/80 !text-ink hover:!bg-page absolute top-1.5 right-1.5 opacity-0 shadow-sm backdrop-blur-md transition-opacity group-hover:opacity-100"
+                class="!bg-page/80 !text-ink hover:!bg-page absolute top-1.5 right-1.5 !h-6 !w-6 opacity-0 shadow-sm backdrop-blur-md transition-opacity group-hover:opacity-100"
                 :aria-label="`删除图片 ${idx + 1}`"
                 @click="removeAttachment(idx)"
               >
@@ -146,15 +142,13 @@
                 role="alert"
               >
                 <ImageOff class="text-destructive h-5 w-5" />
-                <p
-                  class="text-destructive text-xs leading-tight font-medium"
-                >
+                <p class="text-destructive text-xs leading-tight font-medium">
                   {{ pendingError }}
                 </p>
                 <div class="flex gap-1.5">
                   <Button
                     variant="default"
-                    class="!h-auto !rounded-md gap-1 !px-2 !py-1 !text-xs"
+                    class="!h-auto gap-1 !rounded-md !px-2 !py-1 !text-xs"
                     @click="retryUpload"
                   >
                     <RefreshCw class="h-3 w-3" />
@@ -162,7 +156,7 @@
                   </Button>
                   <Button
                     variant="outline"
-                    class="!h-auto !rounded-md !bg-surface !px-2 !py-1 !text-xs hover:!bg-surface/70"
+                    class="!bg-surface hover:!bg-surface/70 !h-auto !rounded-md !px-2 !py-1 !text-xs"
                     @click="removeFailed"
                   >
                     移除
@@ -180,10 +174,7 @@
               :title="`还可上传 ${MAX_ATTACHMENTS - attachments.length} 张`"
               @click="triggerAttachmentPicker"
             >
-              <ImagePlus
-                class="text-muted h-5 w-5"
-                :stroke-width="1.5"
-              />
+              <ImagePlus class="text-muted h-5 w-5" :stroke-width="1.5" />
               <span class="text-muted mt-1 text-xs">添加</span>
             </Button>
           </div>
@@ -210,7 +201,7 @@
               :key="e"
               variant="ghost"
               :class="[
-                '!h-8 !w-8 !rounded-lg !border !text-[16px] !p-0',
+                '!h-8 !w-8 !rounded-lg !border !p-0 !text-[16px]',
                 form.mood === e
                   ? '!border-accent !bg-accent/10'
                   : '!bg-page hover:!bg-surface',
@@ -231,7 +222,7 @@
               :class="[
                 'flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border transition-all',
                 form.mood === a.emoji
-                  ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
+                  ? 'border-accent bg-accent/10 ring-accent/40 ring-1'
                   : 'border-input bg-page hover:bg-surface',
               ]"
               @click="toggleMood(a.emoji)"
@@ -364,7 +355,7 @@
           <Button
             variant="default"
             :disabled="submitting"
-            class="!h-auto !w-full !rounded-lg gap-1.5 !px-3 !py-2 !text-[13px] shadow-sm disabled:!opacity-50"
+            class="!h-auto !w-full gap-1.5 !rounded-lg !px-3 !py-2 !text-[13px] shadow-sm disabled:!opacity-50"
             @click="handleSubmit"
           >
             {{ submitting ? '保存中…' : isEdit ? '保存修改' : '发布' }}
@@ -387,18 +378,9 @@
 
 <script setup lang="ts">
 import { Button, Modal } from '@/components';
-import {
-  ImageOff,
-  ImagePlus,
-  Loader2,
-  RefreshCw,
-  X,
-} from '@lucide/vue';
+import { ImageOff, ImagePlus, Loader2, RefreshCw, X } from '@lucide/vue';
 import { useUpload } from '@/features/upload/composables';
-import {
-  UploadDropzone,
-  UploadProgress,
-} from '@/features/upload/components';
+import { UploadDropzone, UploadProgress } from '@/features/upload/components';
 import type {
   Moment,
   MomentAttachment,
@@ -425,12 +407,42 @@ const EMOJI_PRESETS = [
 
 // 动物徽标 → 对应 emoji。点击时把 emoji 写入 form.mood，与 EMOJI_PRESETS 走同一 toggleMood 路径。
 const ANIMAL_MOODS = [
-  { src: '/images/animal-badge/fox.png', alt: 'fox', emoji: '🦊', label: '机警' },
-  { src: '/images/animal-badge/panda.png', alt: 'panda', emoji: '🐼', label: '慵懒' },
-  { src: '/images/animal-badge/koala.png', alt: 'koala', emoji: '🐨', label: '呆萌' },
-  { src: '/images/animal-badge/rabbit.png', alt: 'rabbit', emoji: '🐰', label: '活力' },
-  { src: '/images/animal-badge/dog.png', alt: 'dog', emoji: '🐶', label: '忠诚' },
-  { src: '/images/animal-badge/penguin.png', alt: 'penguin', emoji: '🐧', label: '冷静' },
+  {
+    src: '/images/animal-badge/fox.png',
+    alt: 'fox',
+    emoji: '🦊',
+    label: '机警',
+  },
+  {
+    src: '/images/animal-badge/panda.png',
+    alt: 'panda',
+    emoji: '🐼',
+    label: '慵懒',
+  },
+  {
+    src: '/images/animal-badge/koala.png',
+    alt: 'koala',
+    emoji: '🐨',
+    label: '呆萌',
+  },
+  {
+    src: '/images/animal-badge/rabbit.png',
+    alt: 'rabbit',
+    emoji: '🐰',
+    label: '活力',
+  },
+  {
+    src: '/images/animal-badge/dog.png',
+    alt: 'dog',
+    emoji: '🐶',
+    label: '忠诚',
+  },
+  {
+    src: '/images/animal-badge/penguin.png',
+    alt: 'penguin',
+    emoji: '🐧',
+    label: '冷静',
+  },
 ] as const;
 
 const VIS_OPTIONS: [MomentVisibility, string, string][] = [

@@ -6,10 +6,7 @@ import { renderMarkdown } from '@/lib/markdown';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { ReasoningRegion } from '@/components/ReasoningRegion';
-import {
-  useAiThread,
-  type AiMessage,
-} from '@/hooks/useAiThread';
+import { useAiThread, type AiMessage } from '@/hooks/useAiThread';
 
 interface AiThreadProps {
   title?: string;
@@ -98,13 +95,13 @@ function ModelSelector({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 4 }}
             transition={{ duration: 0.18, ease: EASE.outQuint }}
-            className="absolute bottom-full left-0 z-10 mb-1 w-56 rounded-lg border bg-card/95 p-1 shadow-lg backdrop-blur-md"
+            className="bg-card/95 absolute bottom-full left-0 z-10 mb-1 w-56 rounded-lg border p-1 shadow-lg backdrop-blur-md"
           >
             {modelOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left font-serif text-sm transition-colors hover:bg-accent/10 ${
+                className={`hover:bg-accent/10 flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left font-serif text-sm transition-colors ${
                   opt.value === model ? 'bg-accent/10 text-ink' : 'text-muted'
                 }`}
                 aria-pressed={opt.value === model}
@@ -145,11 +142,11 @@ function EmptyState({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.25, ease: EASE.outQuint }}
-      className="flex flex-col items-center gap-4 rounded-xl bg-surface/20 px-6 py-8 text-center"
+      className="bg-surface/20 flex flex-col items-center gap-4 rounded-xl px-6 py-8 text-center"
     >
       <div className="relative flex items-center justify-center">
         <div
-          className={`absolute h-16 w-16 rounded-full bg-accent/20 blur-2xl ${
+          className={`bg-accent/20 absolute h-16 w-16 rounded-full blur-2xl ${
             loading ? 'animate-glow-pulse' : 'animate-glow-breathe'
           }`}
           aria-hidden="true"
@@ -163,7 +160,7 @@ function EmptyState({
       </p>
       <button
         type="button"
-        className="bg-accent text-contrast hover:bg-accent/90 disabled:bg-accent/40 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none disabled:cursor-not-allowed active:scale-[0.96]"
+        className="bg-accent text-contrast hover:bg-accent/90 disabled:bg-accent/40 focus-visible:ring-ring/40 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 active:scale-[0.96] disabled:cursor-not-allowed"
         disabled={!canGenerate}
         onClick={onGenerate}
       >
@@ -200,7 +197,7 @@ function BriefingMessage({
       initial={reduce ? false : { opacity: 0, scale: 0.96, y: 8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={SPRING.card}
-      className="min-h-80 rounded-2xl border-t-2 border-accent/20 bg-surface/30 px-5 py-4"
+      className="border-accent/20 bg-surface/30 min-h-80 rounded-2xl border-t-2 px-5 py-4"
     >
       <div className="mb-3 flex items-center gap-2">
         <span className="text-accent text-[11px] font-semibold tracking-[0.14em] uppercase">
@@ -209,7 +206,7 @@ function BriefingMessage({
         <span className="text-muted text-xs">· {modelLabel}</span>
         <button
           type="button"
-          className="text-muted hover:text-ink ml-auto cursor-pointer text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none"
+          className="text-muted hover:text-ink focus-visible:ring-ring/40 ml-auto cursor-pointer text-xs transition-colors focus:outline-none focus-visible:ring-2"
           disabled={loading}
           onClick={onRegenerate}
         >
@@ -318,7 +315,7 @@ export function AiThread({ title, content }: AiThreadProps) {
       {/* Glow layer */}
       <div className="relative">
         <div
-          className={`pointer-events-none absolute top-0 left-6 h-16 w-16 rounded-full bg-accent/30 blur-2xl ${
+          className={`bg-accent/30 pointer-events-none absolute top-0 left-6 h-16 w-16 rounded-full blur-2xl ${
             loading ? 'animate-glow-pulse' : 'animate-glow-breathe'
           }`}
           aria-hidden="true"
@@ -358,7 +355,12 @@ export function AiThread({ title, content }: AiThreadProps) {
             );
           }
           return (
-            <ChatTurn key={msg.id} msg={msg} isLast={isLast} loading={loading} />
+            <ChatTurn
+              key={msg.id}
+              msg={msg}
+              isLast={isLast}
+              loading={loading}
+            />
           );
         })}
       </div>

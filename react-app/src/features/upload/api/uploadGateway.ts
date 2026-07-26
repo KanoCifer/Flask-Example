@@ -20,7 +20,11 @@ export interface UploadConfig {
  * 与 Vue 端对齐：avatar 走 PUT v3/upload-pic，其它走 POST v3/upload。
  */
 export interface UploadGateway {
-  upload(file: File, type: UploadType, config?: UploadConfig): Promise<{ url: string }>;
+  upload(
+    file: File,
+    type: UploadType,
+    config?: UploadConfig,
+  ): Promise<{ url: string }>;
 }
 
 export const uploadGateway: UploadGateway = {

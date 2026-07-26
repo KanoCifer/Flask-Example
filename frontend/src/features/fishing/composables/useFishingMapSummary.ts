@@ -9,7 +9,10 @@
  * 模板只消费字符串 / 数字，不再碰 gateway / store / derive 逻辑。
  */
 import { fishingGateway, fishingSpotsGateway } from '@/features/fishing/api';
-import { DEFAULT_MAP_CENTER, useFishingMapStore } from '@/features/fishing/stores/fishingMap';
+import {
+  DEFAULT_MAP_CENTER,
+  useFishingMapStore,
+} from '@/features/fishing/stores/fishingMap';
 import type { TideData } from '@/features/fishing/types';
 import { formatRelative } from '@/lib/dayjs';
 import dayjs from 'dayjs';
@@ -60,7 +63,9 @@ export function useFishingMapSummary(): UseFishingMapSummaryReturn {
     if (statsRes.status === 'fulfilled') {
       totalRecords.value = statsRes.value.total_records;
       if (statsRes.value.latest_record_time) {
-        lastRecordText.value = formatRelative(statsRes.value.latest_record_time);
+        lastRecordText.value = formatRelative(
+          statsRes.value.latest_record_time,
+        );
       }
     }
 

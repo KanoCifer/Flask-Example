@@ -115,8 +115,10 @@ describe('useAiCompanion', () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
 
-      let captured: { onData: (d: { content?: string }) => void; onDone: () => void } | null =
-        null;
+      let captured: {
+        onData: (d: { content?: string }) => void;
+        onDone: () => void;
+      } | null = null;
       vi.mocked(aiGateway.streamThread).mockImplementation(
         async (_body, handlers) => {
           captured = handlers as typeof captured;
@@ -163,15 +165,13 @@ describe('useAiCompanion', () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
 
-      let captured:
-        | {
-            onData: (d: {
-              content?: string;
-              type?: 'reasoning' | 'content';
-            }) => void;
-            onDone: () => void;
-          }
-        | null = null;
+      let captured: {
+        onData: (d: {
+          content?: string;
+          type?: 'reasoning' | 'content';
+        }) => void;
+        onDone: () => void;
+      } | null = null;
       vi.mocked(aiGateway.streamThread).mockImplementation(
         async (_body, handlers) => {
           captured = handlers as typeof captured;
@@ -315,8 +315,12 @@ describe('useAiCompanion', () => {
       const notify = vi.fn();
       c.input.value = 'q';
 
-      let captured: { onData: (d: { content?: string; type?: 'reasoning' | 'content' }) => void } | null =
-        null;
+      let captured: {
+        onData: (d: {
+          content?: string;
+          type?: 'reasoning' | 'content';
+        }) => void;
+      } | null = null;
       vi.mocked(aiGateway.streamThread).mockImplementation(
         async (_body, handlers) => {
           captured = handlers as typeof captured;
@@ -377,7 +381,9 @@ describe('useAiCompanion', () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
       c.input.value = 'q';
-      vi.mocked(aiGateway.streamThread).mockRejectedValue(new Error('对话失败'));
+      vi.mocked(aiGateway.streamThread).mockRejectedValue(
+        new Error('对话失败'),
+      );
 
       await c.send(notify);
 
@@ -561,8 +567,7 @@ describe('useAiCompanion', () => {
       expect(firstSignal!.aborted).toBe(true);
 
       await p2;
-      const secondCall =
-        vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
+      const secondCall = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
       const secondSignal = secondCall[2] as AbortSignal;
       expect(secondSignal.aborted).toBe(false);
     });
@@ -618,8 +623,7 @@ describe('useAiCompanion', () => {
       // the *previous* signal (from the resolved first call) is already
       // aborted by re-entry; what we care about is the *current* in-flight
       // signal being aborted by clearThread.
-      const currentCall =
-        vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
+      const currentCall = vi.mocked(aiGateway.streamThread).mock.calls.at(-1)!;
       const currentSignal = currentCall[2] as AbortSignal;
       expect(currentSignal.aborted).toBe(false);
 

@@ -1,3 +1,3 @@
-import { greet } from "./lib/impl";
+import { greet } from './lib/impl';
 
 export { greet };

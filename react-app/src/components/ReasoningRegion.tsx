@@ -58,7 +58,7 @@ export function ReasoningRegion({
     <div className={wrapperClassName}>
       <button
         type="button"
-        className="text-muted hover:text-ink inline-flex cursor-pointer items-center gap-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus:outline-none"
+        className="text-muted hover:text-ink focus-visible:ring-ring/40 inline-flex cursor-pointer items-center gap-1 text-xs transition-colors focus:outline-none focus-visible:ring-2"
         aria-expanded={open}
         onClick={() => setOverride(open ? false : true)}
       >
@@ -77,9 +77,7 @@ export function ReasoningRegion({
         </svg>
         <span>思考过程</span>
       </button>
-      {open && (
-        <div className={bodyClassName}>{reasoningStr}</div>
-      )}
+      {open && <div className={bodyClassName}>{reasoningStr}</div>}
     </div>
   );
 }

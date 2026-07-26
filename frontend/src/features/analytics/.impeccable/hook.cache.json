@@ -1,1 +1,14 @@
-{"version":1,"sessions":{"bac4e92a-58ab-4226-bdb4-9f12449eacd1":{"updatedAt":1784541467825,"files":{"/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/components/index.ts":{"editCount":1,"findings":[]}}}}}
+{
+  "version": 1,
+  "sessions": {
+    "bac4e92a-58ab-4226-bdb4-9f12449eacd1": {
+      "updatedAt": 1784541467825,
+      "files": {
+        "/Users/liudetao/Code/ReadingList/frontend/src/features/analytics/components/index.ts": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}

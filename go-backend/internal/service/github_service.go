@@ -22,8 +22,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/KanoCifer/kuroome-blog/internal/dto"
 	"github.com/KanoCifer/kuroome-blog/internal/domain/github/errs"
+	"github.com/KanoCifer/kuroome-blog/internal/dto"
 	"github.com/KanoCifer/kuroome-blog/internal/model"
 )
 

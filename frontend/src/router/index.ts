@@ -5,22 +5,14 @@ import {
   ChangelogView,
   WebsitesView,
 } from './views';
-import {
-  AboutView,
-  NotFound,
-  PrivacyPolicyView,
-} from '@/features/pages/views';
+import { AboutView, NotFound, PrivacyPolicyView } from '@/features/pages/views';
 import { ColorShowcaseView } from '@/features/color/views';
 import {
   LoginView,
   RegisterView,
   ProfileSettingView,
 } from '@/features/auth/views';
-import {
-  BookShelf,
-  BookStats,
-  ImportBook,
-} from '@/features/books/views';
+import { BookShelf, BookStats, ImportBook } from '@/features/books/views';
 import {
   BlogListView,
   BlogPostView,
@@ -29,10 +21,7 @@ import {
 import { TodoListView } from '@/features/todos/views';
 import { MomentListView } from '@/features/moments/views';
 import { PicGallery } from '@/features/pic/views';
-import {
-  RssSubscriptionsView,
-  RssArticleView,
-} from '@/features/rss/views';
+import { RssSubscriptionsView, RssArticleView } from '@/features/rss/views';
 import { AnalyticsView } from '@/features/analytics/views';
 import { SubscriptionView } from '@/features/subscription/views';
 import { DeviceTracker } from '@/features/device/views';

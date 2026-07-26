@@ -12,7 +12,10 @@ vi.mock('@/features/books/api', () => ({
   READ_STATS_MODES: ['weekly', 'monthly', 'annually', 'overall'] as const,
 }));
 
-function makeSnapshot(mode: string, baseTime: number | null = 100): ReadDetailSnapshot {
+function makeSnapshot(
+  mode: string,
+  baseTime: number | null = 100,
+): ReadDetailSnapshot {
   return {
     mode,
     baseTime,
@@ -90,7 +93,12 @@ describe('useReadStatsStore', () => {
       });
       const s = useReadStatsStore();
       await s.fetchCurrentAll();
-      expect(calls.sort()).toEqual(['annually', 'monthly', 'overall', 'weekly']);
+      expect(calls.sort()).toEqual([
+        'annually',
+        'monthly',
+        'overall',
+        'weekly',
+      ]);
       expect(getReadProgress).toHaveBeenCalledTimes(4);
     });
 

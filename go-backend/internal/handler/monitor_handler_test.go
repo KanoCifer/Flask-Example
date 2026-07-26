@@ -157,7 +157,7 @@ func TestGetVisitors_ReturnsPaginatedList(t *testing.T) {
 	svc := &mockMonitorService{
 		visitorsFn: func(ctx context.Context, days, page, pageSize int) (dto.VisitorListResponse, error) {
 			return dto.VisitorListResponse{
-				List: []dto.VisitorItem{},
+				List:       []dto.VisitorItem{},
 				Pagination: dto.Pagination{Page: 1, PerPage: 20, Total: 50, Pages: 3},
 			}, nil
 		},

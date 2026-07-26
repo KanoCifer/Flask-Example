@@ -22,11 +22,19 @@ export interface UploadConfig {
  * avatar 走 PUT v3/upload-pic（FormData field: image，后端做缩略图 + 回写）。
  */
 export interface UploadGateway {
-  upload(file: File, type: UploadType, config?: UploadConfig): Promise<{ url: string }>;
+  upload(
+    file: File,
+    type: UploadType,
+    config?: UploadConfig,
+  ): Promise<{ url: string }>;
 }
 
 export const uploadGateway: UploadGateway = {
-  async upload(file: File, type: UploadType, config?: UploadConfig): Promise<{ url: string }> {
+  async upload(
+    file: File,
+    type: UploadType,
+    config?: UploadConfig,
+  ): Promise<{ url: string }> {
     const onProgress = config?.onProgress;
 
     if (type === 'avatar') {
