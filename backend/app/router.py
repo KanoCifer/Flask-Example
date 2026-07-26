@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import (
-    blog,
     moments,
     public,
     rss,
@@ -17,7 +16,6 @@ from app.api.v2 import (
     friendlinks,
     llm,
     subscriptions,
-    weather,
 )
 from app.api.v2 import (
     devtasks as devtasks_v2,
@@ -49,7 +47,7 @@ def register_router(app: FastAPI):
     app.include_router(router=llm.router, prefix="/v2")
     app.include_router(router=device.router, prefix="/v2")
     app.include_router(router=fishing.router, prefix="/v2")
-    app.include_router(router=weather.router, prefix="/v2")
+    # app.include_router(router=weather.router, prefix="/v2")
     app.include_router(router=public_v2.router, prefix="/v2")
     app.include_router(router=friendlinks.router, prefix="/v2")
     app.include_router(router=devtasks_v2.router, prefix="/v2")
