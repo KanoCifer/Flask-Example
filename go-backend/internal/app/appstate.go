@@ -1,14 +1,18 @@
 package app
 
 import (
+	"log/slog"
+
 	"github.com/go-webauthn/webauthn/webauthn"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"gorm.io/gorm"
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
+	"github.com/KanoCifer/kuroome-blog/internal/infra/httpclient"
 	"github.com/KanoCifer/kuroome-blog/internal/repository/mongodb"
 	"github.com/KanoCifer/kuroome-blog/internal/repository/postgres"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
+	"github.com/KanoCifer/kuroome-blog/pkg/qweather"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -26,6 +30,7 @@ type AppState struct {
 	fishSvc     service.Fisher
 	uploadSvc   service.Uploader
 	momentSvc   service.Momenter
+	weatherSvc  service.Weatherer
 }
 
 // NewAppState 组装所有 service，作为唯一的组合根入口。
@@ -52,6 +57,20 @@ func NewAppState(
 	devTaskRepo := mongodb.NewDevTaskRepository(mongoDB)
 	momentRepo := mongodb.NewMomentRepo(mongoDB)
 
+	// -- infra ------------------------------------------------------- //
+	// 通用 HTTP 客户端：trace_id 注入 + 出站日志 + 超时。
+	// weather / 未来其它出站调用都复用这一份，不另起 *http.Client。
+	httpCli := httpclient.New()
+
+	// QWeather EdDSA 签名器。私钥未配置时不阻断启动；weather 接口会
+	// 在首次请求时 fail-fast（service 层 nil signer 会 panic，可观测）。
+	signer, err := qweather.NewSigner(cfg.Weather.JWTPrivateKey)
+	if err != nil {
+		slog.Warn("qweather signer init failed; /api/v3/weather/* will error at runtime",
+			"error", err.Error())
+		signer = nil
+	}
+
 	// -- services ---------------------------------------------------- //
 	userSvc := service.NewUserService(userRepo, redis, cfg.Admin.UserIDs)
 	return &AppState{
@@ -68,9 +87,10 @@ func NewAppState(
 			redis, userRepo, userSvc,
 			cfg.GitHub.ClientID, cfg.GitHub.ClientSecret, cfg.GitHub.RedirectURI,
 		),
-		fishSvc:   service.NewFishService(fishRepo),
-		uploadSvc: service.NewUploadService(userRepo, cfg),
-		momentSvc: service.NewMomentService(momentRepo),
+		fishSvc:    service.NewFishService(fishRepo),
+		uploadSvc:  service.NewUploadService(userRepo, cfg),
+		momentSvc:  service.NewMomentService(momentRepo),
+		weatherSvc: service.NewWeatherService(httpCli, redis, cfg.Weather, signer),
 	}
 }
 
@@ -87,5 +107,6 @@ func (a *AppState) GitHubOAuth() service.GitHubOAuther { return a.githubOAuth }
 func (a *AppState) FishSvc() service.Fisher            { return a.fishSvc }
 func (a *AppState) UploadSvc() service.Uploader        { return a.uploadSvc }
 func (a *AppState) MomentSvc() service.Momenter        { return a.momentSvc }
+func (a *AppState) WeatherSvc() service.Weatherer      { return a.weatherSvc }
 
 func (a *AppState) Cfg() *config.Config { return a.config }

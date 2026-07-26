@@ -121,7 +121,12 @@ type APIConfig struct {
 
 // WeatherConfig 天气服务。
 type WeatherConfig struct {
+	// QweatherBaseURL 和风天气 API 根地址，例如 "https://api.qweather.com"。
 	QweatherBaseURL string `mapstructure:"QWEATHER_BASE_URL"`
+	// JWTPrivateKey Ed25519 私钥 (PKCS#8 PEM)，用于签发和风天气所需的
+	// EdDSA JWT。可包含 "\\n" 转义（环境变量常见写法），
+	// 由 qweather.NewSigner 内部处理。
+	JWTPrivateKey string `mapstructure:"QWEATHER_JWT_PRIVATE_KEY"`
 }
 
 // UploadConfig 上传 / 媒体存储相关。

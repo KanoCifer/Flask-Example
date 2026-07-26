@@ -20,13 +20,12 @@ import (
 func Setup(r *gin.Engine, state *app.AppState, redis *redis.Client) {
 	r.Use(middleware.Duration())
 	r.Use(middleware.Trace())
-	// Slog 在 Trace 之后，才能读到 trace_id。
 	r.Use(middleware.SlogMiddleware(slog.Default()))
 	r.Use(middleware.CORS())
 
 	v3 := r.Group("/v3")
 
-	// 限流: 登录 / 注册各 5 次 / 分钟。
+	// 限流
 	loginLimiter := middleware.NewRateLimiter(redis, "login", 5, 60*time.Second)
 	registerLimiter := middleware.NewRateLimiter(redis, "register", 5, 60*time.Second)
 
@@ -66,6 +65,10 @@ func Setup(r *gin.Engine, state *app.AppState, redis *redis.Client) {
 	fishH := handler.NewFishHandler(state.FishSvc())
 	// fish：GET 列表/详情公开；POST / PATCH / DELETE 需 admin 中间件。
 	fishH.RegisterRoutes(v3, middleware.AuthMiddleware(), middleware.AdminMiddleware(state.Cfg().Admin.UserIDs))
+
+	weatherH := handler.NewWeatherHandler(state.WeatherSvc())
+	// weather：公开访问，对齐 Python 端 /api/v2/weather/*。
+	weatherH.RegisterRoutes(v3)
 
 	uploadH := handler.NewUploadHandler(state.UploadSvc(), state.UserSvc())
 	uploadH.RegisterRoutes(v3, middleware.AuthMiddleware())
