@@ -18,10 +18,10 @@ const scrollToTop = () => {
 
 <template>
   <Transition
-    enter-active-class="transition-[transform,opacity] transform-gpu duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity"
+    enter-active-class="transition-[translate,opacity] transform-gpu duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity"
     enter-from-class="opacity-0 translate-y-4 scale-90 motion-reduce:translate-y-0 motion-reduce:scale-100"
     enter-to-class="opacity-100 translate-y-0 scale-100"
-    leave-active-class="!transition-all transform-gpu duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity"
+    leave-active-class="!transition-[translate,opacity] transform-gpu duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity"
     leave-from-class="opacity-100 translate-y-0 scale-100"
     leave-to-class="opacity-0 translate-y-4 scale-90 motion-reduce:translate-y-0 motion-reduce:scale-100"
   >

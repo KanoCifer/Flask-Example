@@ -84,7 +84,7 @@ export default function BasicDetail({
         <div className="mt-12 text-center">
           <button
             onClick={() => navigate(-1)}
-            className="bg-accent text-ink hover:bg-accent/90 mb-30 inline-flex cursor-pointer items-center gap-2 rounded-full px-6 py-3 font-medium transition-all duration-300 hover:shadow-lg"
+            className="bg-accent text-ink hover:bg-accent/90 mb-30 inline-flex cursor-pointer items-center gap-2 rounded-full px-6 py-3 font-medium transition-[background-color,box-shadow] duration-300 hover:shadow-lg"
           >
             <BackButton />
             返回上一页
