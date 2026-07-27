@@ -41,6 +41,8 @@ type qweatherClient struct {
 	now    func() time.Time // 注入时钟，便于测试 JWT iat/exp
 }
 
+const maxRetry = 3
+
 // newQWeatherClient 构造 qweatherClient。
 func newQWeatherClient(
 	http *httpclient.Client,
@@ -107,7 +109,7 @@ func (c *qweatherClient) Get(
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	// 5. send
-	resp, err := c.http.Do(ctx, req)
+	resp, err := doWithRetry(ctx, c.http, req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrUnavailable, err)
 	}
@@ -124,9 +126,35 @@ func (c *qweatherClient) Get(
 
 	// 6. cache write
 	if c.redis != nil {
-		_ = c.redis.Set(ctx, cacheKey, body, ttl).Err()
+		go func() {
+			err := c.redis.Set(ctx, cacheKey, body, ttl).Err()
+			if err != nil {
+				slog.WarnContext(ctx, "qweather cache write failed", "cache_key", cacheKey, "error", err)
+			}
+		}()
 	}
 	return body, nil
+}
+
+// doWithRetry 带退避重试的 HTTP 请求。
+func doWithRetry(ctx context.Context, cli *httpclient.Client, req *http.Request) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+
+	for i := 0; i <= maxRetry; i++ {
+		resp, err = cli.Do(ctx, req)
+		if err == nil && resp.StatusCode < 500 {
+			return resp, nil
+		}
+
+		if resp != nil {
+			resp.Body.Close()
+		}
+
+		time.Sleep(time.Duration(i+1) * time.Second)
+	}
+
+	return resp, err
 }
 
 // ResolveLocation 校验位置输入并返回 (effective value, params)：
