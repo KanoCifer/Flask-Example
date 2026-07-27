@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import (
-    moments,
     public,
     rss,
 )
@@ -17,13 +16,7 @@ from app.api.v2 import (
     llm,
     subscriptions,
 )
-from app.api.v2 import (
-    devtasks as devtasks_v2,
-)
 from app.api.v2 import public as public_v2
-from app.api.v2 import (
-    weread as weread_v2,
-)
 from app.utils.media import _get_media_root
 
 if TYPE_CHECKING:
@@ -36,7 +29,7 @@ def register_router(app: FastAPI):
     # app.include_router(router=admin.router, prefix="/v1")
     # app.include_router(router=auth.router, prefix="/v1")
     # app.include_router(router=blog.router, prefix="/v1")
-    app.include_router(router=moments.router, prefix="/v1")
+    # app.include_router(router=moments.router, prefix="/v1")
     app.include_router(router=public.router, prefix="/v1")
     app.include_router(router=rss.router, prefix="/v1")
     # app.include_router(router=monitor.router, prefix="/v1")
@@ -50,8 +43,8 @@ def register_router(app: FastAPI):
     # app.include_router(router=weather.router, prefix="/v2")
     app.include_router(router=public_v2.router, prefix="/v2")
     app.include_router(router=friendlinks.router, prefix="/v2")
-    app.include_router(router=devtasks_v2.router, prefix="/v2")
-    app.include_router(router=weread_v2.router, prefix="/v2")
+    # app.include_router(router=devtasks_v2.router, prefix="/v2")
+    # app.include_router(router=weread_v2.router, prefix="/v2")
     # app.include_router(router=system.router, prefix="/v2")
 
 

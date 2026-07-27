@@ -25,9 +25,12 @@
         ref="railEl"
         class="flex snap-x snap-mandatory scroll-px-4 scrollbar-none gap-3 overflow-x-auto px-4 pb-2 sm:scroll-px-6 sm:gap-4 sm:px-6 md:scroll-px-10 md:px-10 [&::-webkit-scrollbar]:hidden"
       >
-        <div
-          v-for="book in books"
+        <Motion
+          v-for="(book, index) in books"
           :key="book.bookId"
+          :initial="{ opacity: 0, y: 6 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="{ type: 'spring', delay: index * 0.08 }"
           class="w-28 flex-shrink-0 snap-start sm:w-32 md:w-36"
         >
           <WereadBookCard
@@ -49,7 +52,7 @@
               </span>
             </template>
           </WereadBookCard>
-        </div>
+        </Motion>
       </div>
     </div>
   </section>
@@ -58,6 +61,8 @@
 <script setup lang="ts">
 import type { WereadUserBook } from '@/features/books/api';
 import WereadBookCard from '@/features/books/components/WereadBookCard.vue';
+import { Motion } from 'motion-v';
+import { EASE } from '@/constants';
 import { formatRelative } from '@/lib/dayjs';
 import { Button } from '@/components';
 import { onBeforeUnmount, onMounted, ref } from 'vue';

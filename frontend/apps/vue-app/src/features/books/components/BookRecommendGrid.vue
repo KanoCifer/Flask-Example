@@ -125,10 +125,11 @@ function ratingScore(v: number): string {
     <!-- Carousel -->
     <div v-else :class="listClass">
       <slot
-        v-for="book in books"
+        v-for="(book, index) in books"
         :key="book.bookId"
         name="card"
         :book="book"
+        :index="index"
         :open="openBook"
         :rating-score="ratingScore"
       />

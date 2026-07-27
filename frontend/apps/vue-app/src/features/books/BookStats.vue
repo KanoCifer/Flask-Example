@@ -10,15 +10,36 @@
     <div class="flex-1 pb-12">
       <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 md:px-10 md:py-10">
         <!-- ── Mode Tabs ─────────────────────────────────────────────── -->
-        <div class="mb-4 flex gap-1 rounded-xl p-1">
+        <div
+          ref="tabsRef"
+          class="bg-page relative mb-4 flex gap-1 rounded-xl p-1"
+        >
+          <!--
+            滑动指示条:x/width 由 measure() 计算(纯像素),传给 motion-v 做 spring。
+            不用 calc():CSS 不允许跨"纯像素 ↔ 含百分比的 calc"插值,
+            motion-v 的 spring 引擎会卡在初始位置。
+          -->
+          <Motion
+            :initial="false"
+            :animate="{ x: indicator.x }"
+            :transition="SPRING_CRISP"
+            :style="{
+              top: '4px',
+              bottom: '4px',
+              left: 0,
+              width: `${indicator.w}px`,
+            }"
+            class="bg-accent pointer-events-none absolute rounded-lg shadow-sm"
+            aria-hidden="true"
+          />
           <Button
-            v-for="m in MODES"
+            v-for="(m, i) in MODES"
             :key="m.key"
+            :ref="(el) => setTabRef(i, el)"
+            variant="ghost"
             :class="[
-              '!active:scale-100 !inline-flex flex-1 !rounded-lg px-4 py-2.5 text-sm',
-              activeMode === m.key
-                ? 'bg-accent shadow-sm'
-                : 'text-muted bg-page hover:bg-surface hover:text-ink',
+              '!active:scale-100 text-contrast! relative z-10 !inline-flex flex-1 !rounded-lg px-4 py-2.5 text-sm transition-colors',
+              activeMode === m.key ? '' : 'hover:bg-surface hover:text-ink',
             ]"
             @click="switchMode(m.key)"
           >
@@ -119,82 +140,119 @@
 
         <template v-else-if="activeSnapshot">
           <!-- ── 段落一：你读了多少 ─────────────────────────────── -->
-          <section class="mb-14">
-            <p class="text-muted mb-3 text-sm">
-              {{ eyebrow }}
-            </p>
-            <p
-              class="text-ink font-serif text-5xl leading-tight font-bold tracking-tight tabular-nums sm:text-6xl md:text-7xl"
-            >
-              {{ formatDuration(activeSnapshot.totalReadTime) }}
-            </p>
-            <p class="text-muted mt-4 text-base sm:text-lg">
-              {{ subtitle }}
-            </p>
-          </section>
+          <Motion
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0 }"
+          >
+            <section class="mb-14">
+              <p class="text-muted mb-3 text-sm">
+                {{ eyebrow }}
+              </p>
+              <p
+                class="text-ink font-serif text-5xl leading-tight font-bold tracking-tight tabular-nums sm:text-6xl md:text-7xl"
+              >
+                {{ formatDuration(totalReadTimeAnim) }}
+              </p>
+              <p class="text-muted mt-4 text-base sm:text-lg">
+                {{ subtitle }}
+              </p>
+            </section>
+          </Motion>
 
           <!-- ── 段落二：让你停不下来的是 ─────────────────────────── -->
-          <StatsTopBooksSection
+          <Motion
             v-if="activeSnapshot"
-            :snapshot="activeSnapshot"
-            :mode="activeMode"
-          />
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.06 }"
+          >
+            <StatsTopBooksSection
+              :snapshot="activeSnapshot"
+              :mode="activeMode"
+            />
+          </Motion>
 
           <!-- ── 段落三：你的阅读节奏 ─────────────────────────────── -->
-          <StatsRhythmSection
+          <Motion
             v-if="activeSnapshot && hasRhythmData"
-            :snapshot="activeSnapshot"
-            :mode="activeMode"
-          />
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.12 }"
+          >
+            <StatsRhythmSection :snapshot="activeSnapshot" :mode="activeMode" />
+          </Motion>
 
           <!-- ── 段落三·年：本年的阅读足迹(仅年视图) ─────────────── -->
-          <StatsYearHeatmapSection
+          <Motion
             v-if="activeMode === 'annually' && hasYearHeatmapData"
-            :heatmap="currentHeatmap"
-            :year="currentYear"
-            :mode="activeMode"
-          />
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.18 }"
+          >
+            <StatsYearHeatmapSection
+              :heatmap="currentHeatmap"
+              :year="currentYear"
+              :mode="activeMode"
+            />
+          </Motion>
 
           <!-- ── 段落四：你偏好的 ─────────────────────────────────── -->
-          <StatsPreferencesSection
+          <Motion
             v-if="activeSnapshot && hasPreferenceData"
-            :snapshot="activeSnapshot"
-          />
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.24 }"
+          >
+            <StatsPreferencesSection :snapshot="activeSnapshot" />
+          </Motion>
 
-          <!-- ── 段落 4.5：接下来读什么（推荐） ───────────────────── -->
-          <StatsRecommendSection
-            :books="recommends"
-            :loading="isLoadingRecommends"
-            :has-more="hasMoreRecommends"
-            :error="recommendError"
-            @refresh="reloadRecommends"
-            @load-more="loadMoreRecommends"
-          />
+          <!-- ── 段落 4.5：接下来读什么(推荐) ───────────────────── -->
+          <Motion
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.3 }"
+          >
+            <StatsRecommendSection
+              :books="recommends"
+              :loading="isLoadingRecommends"
+              :has-more="hasMoreRecommends"
+              :error="recommendError"
+              @refresh="reloadRecommends"
+              @load-more="loadMoreRecommends"
+            />
+          </Motion>
 
-          <!-- ── 段落五（仅累计模式）：阅读概览 ─────────────────── -->
-          <section
+          <!-- ── 段落五(仅累计模式):阅读概览 ─────────────────── -->
+          <Motion
             v-if="
               activeMode === 'overall' &&
               activeSnapshot.readStat &&
               activeSnapshot.readStat.length
             "
-            class="mb-4 grid grid-cols-2 gap-x-6 gap-y-6 border-t pt-10 sm:grid-cols-4"
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.36 }"
           >
-            <div
-              v-for="stat in activeSnapshot.readStat"
-              :key="stat.stat"
-              class="text-left"
+            <section
+              class="mb-4 grid grid-cols-2 gap-x-6 gap-y-6 border-t pt-10 sm:grid-cols-4"
             >
-              <p
-                class="text-ink font-serif text-3xl font-bold tabular-nums sm:text-4xl"
+              <div
+                v-for="stat in activeSnapshot.readStat"
+                :key="stat.stat"
+                class="text-left"
               >
-                {{ stat.counts }}
-              </p>
-              <p class="text-muted mt-1 text-xs sm:text-sm">
-                {{ stat.stat }}
-              </p>
-            </div>
-          </section>
+                <p
+                  class="text-ink font-serif text-3xl font-bold tabular-nums sm:text-4xl"
+                >
+                  {{ stat.counts }}
+                </p>
+                <p class="text-muted mt-1 text-xs sm:text-sm">
+                  {{ stat.stat }}
+                </p>
+              </div>
+            </section>
+          </Motion>
 
           <!-- Footer meta -->
           <StatsRefreshFooter
@@ -215,8 +273,18 @@ import { useHeatmap } from '@/features/books/composables/useHeatmap';
 import { useRecommends } from '@/features/books/composables/useRecommends';
 import { formatDuration } from '@/lib/dayjs';
 import { PageHero } from '@/components';
+import { Motion } from 'motion-v';
+import { EASE, SPRING_CRISP } from '@/constants';
 import dayjs from 'dayjs';
-import { computed, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 import StatsPreferencesSection from './components/StatsPreferencesSection.vue';
 import StatsRecommendSection from './components/StatsRecommendSection.vue';
 import StatsRefreshFooter from './components/StatsRefreshFooter.vue';
@@ -229,6 +297,7 @@ import { usePreferenceView } from './composables/usePreferenceView';
 import { useRhythmView } from './composables/useRhythmView';
 import { useYearHeatmapView } from './composables/useYearHeatmapView';
 import { usePeriodNavigation } from './composables/usePeriodNavigation';
+import { useCountUp } from './composables/useCountUp';
 import { Button } from '@/components';
 
 const MODES = [
@@ -260,6 +329,62 @@ const {
   switchMode,
   reloadCurrent,
 } = usePeriodNavigation(statsStore);
+
+// Mode Tab 滑动指示条:activeMode 在 MODES 数组中的位置(0..3)
+const activeModeIdx = computed(() =>
+  MODES.findIndex((m) => m.key === activeMode.value),
+);
+
+// ── Mode Tab 滑动指示条 ────────────────────────────────────
+// motion-v 的 spring 无法 tween "4px ↔ calc(N * (25% - 1px) + 4px)"
+// (CSS 不允许跨"纯像素 ↔ 含% 的 calc"插值),所以用 ResizeObserver
+// 在容器里量出目标按钮的 offsetLeft/offsetWidth,喂纯像素给 motion。
+const tabsRef = ref<HTMLDivElement | null>(null);
+const tabRefs = ref<HTMLElement[]>([]);
+const indicator = reactive({ x: 0, w: 0 });
+
+function setTabRef(i: number, el: unknown) {
+  if (el == null) {
+    tabRefs.value[i] = null as unknown as HTMLElement;
+    return;
+  }
+  // el 可能是 Button 组件实例或原生 DOM;
+  // Button 是 SFC 默认 export,在 setup script 里 $el 就是底层 button
+  const dom = (el as { $el?: HTMLElement }).$el ?? (el as HTMLElement);
+  tabRefs.value[i] = dom;
+}
+
+function measure() {
+  const idx = activeModeIdx.value;
+  const btn = tabRefs.value[idx];
+  if (!btn) return;
+  indicator.w = btn.offsetWidth;
+  indicator.x = btn.offsetLeft;
+}
+
+let ro: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (typeof ResizeObserver !== 'undefined' && tabsRef.value) {
+    ro = new ResizeObserver(measure);
+    ro.observe(tabsRef.value);
+  }
+  // 首次布局完成后立即量一次,避免初始位置跳变
+  nextTick(measure);
+});
+
+onBeforeUnmount(() => {
+  ro?.disconnect();
+});
+
+watch(activeModeIdx, () => {
+  nextTick(measure);
+});
+
+// 段落一 "你读了多少":数字从 0 tween 到 totalReadTime
+const totalReadTimeAnim = useCountUp(
+  computed(() => activeSnapshot.value?.totalReadTime ?? 0),
+);
 
 // 段落级 narrow composables,只暴露模板真正关心的几个键
 const { eyebrow, subtitle } = useOverviewView(activeSnapshot, activeMode);

@@ -63,16 +63,23 @@
       </div>
     </template>
 
-    <template #card="{ book, open, ratingScore }">
-      <button
-        type="button"
-        class="group bg-page hover:border-accent/40 flex w-56 flex-shrink-0 snap-start flex-col gap-3 rounded-2xl border border-transparent p-4 text-left transition-colors sm:w-60"
-        @click="open(book)"
+    <template #card="{ book, index, open, ratingScore }">
+      <Motion
+        :key="book.bookId"
+        :initial="{ opacity: 0, y: 6 }"
+        :animate="{ opacity: 1, y: 0 }"
+        :transition="{ ...EASE, delay: (index ?? 0) * 0.04 }"
+        class="block w-56 flex-shrink-0 snap-start sm:w-60"
       >
-        <Motion
-          :layoutId="RECOMMEND_COVER_LAYOUT_ID_PREFIX + book.bookId"
-          class="bg-surface relative aspect-[2/3] w-full overflow-hidden rounded-md shadow-sm"
+        <button
+          type="button"
+          class="group bg-page hover:border-accent/40 flex w-full flex-col gap-3 rounded-2xl border border-transparent p-4 text-left transition-colors"
+          @click="open(book)"
         >
+          <Motion
+            :layoutId="RECOMMEND_COVER_LAYOUT_ID_PREFIX + book.bookId"
+            class="bg-surface relative aspect-[2/3] w-full overflow-hidden rounded-md shadow-sm"
+          >
           <img
             v-if="book.cover"
             :src="book.cover"
@@ -120,7 +127,8 @@
         >
           {{ readingCountLabel(book.readingCount) }}
         </p>
-      </button>
+        </button>
+      </Motion>
     </template>
 
     <template #load-more="{ loading: isLoading, onLoadMore }">
@@ -154,6 +162,7 @@
 <script setup lang="ts">
 import type { BookRecommendItem } from '@/features/books/api';
 import { Motion } from 'motion-v';
+import { EASE } from '@/constants';
 import { computed } from 'vue';
 import BookRecommendGrid from '@/features/books/components/BookRecommendGrid.vue';
 import { RECOMMEND_COVER_LAYOUT_ID_PREFIX } from '@/features/books/lib/recommendLayoutId';

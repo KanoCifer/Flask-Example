@@ -1,8 +1,7 @@
 <template>
-  <Button
+  <button
     v-if="weeklySnapshot"
-    variant="ghost"
-    class="!active:scale-100 !inline-flex group block w-full border-t border-white/15 bg-black/30 px-4 py-2.5 text-left backdrop-blur-md transition-colors hover:bg-black/40 sm:px-6 md:px-10 md:py-3"
+    class="group block inline-flex w-full border-t border-white/15 bg-black/30 px-4 py-2.5 text-left backdrop-blur-md transition-colors hover:bg-black/40 sm:px-6 md:px-10 md:py-3"
     @click="router.push('/bookshelf/stats')"
   >
     <div class="mx-auto flex max-w-6xl items-center gap-3 sm:gap-5">
@@ -10,7 +9,7 @@
       <span class="inline-flex items-baseline gap-1.5 text-white">
         <span class="text-xs font-medium text-white/60">本周</span>
         <span class="font-serif text-sm font-bold tabular-nums sm:text-base">
-          {{ formatDuration(weeklySnapshot.totalReadTime) }}
+          {{ formatDuration(totalReadTimeAnim) }}
         </span>
       </span>
 
@@ -20,7 +19,7 @@
       <span class="inline-flex items-baseline gap-1.5 text-white">
         <span class="text-xs font-medium text-white/60">阅读</span>
         <span class="font-serif text-sm font-bold tabular-nums sm:text-base">
-          {{ weeklySnapshot.readDays ?? 0 }}
+          {{ readDays }}
         </span>
         <span class="text-xs text-white/60">天</span>
       </span>
@@ -57,7 +56,7 @@
         <ChevronRight class="h-3.5 w-3.5" />
       </span>
     </div>
-  </Button>
+  </button>
 </template>
 
 <script setup lang="ts">
@@ -68,13 +67,19 @@ import { useRouter } from 'vue-router';
 import type { ReadDetailSnapshot } from '@/features/books/api';
 import { formatDuration } from '@/lib/dayjs';
 import { formatRelative } from '@/lib/dayjs';
-import { Button } from '@/components';
+import { useCountUp } from '@/features/books/composables/useCountUp';
 
 const props = defineProps<{
   weeklySnapshot: ReadDetailSnapshot | null;
 }>();
 
 const router = useRouter();
+
+// 数字 tween:本周阅读时长 + 阅读天数;snapshot 首次到位时一起涨
+const totalReadTimeAnim = useCountUp(
+  computed(() => props.weeklySnapshot?.totalReadTime ?? 0),
+);
+const readDays = computed(() => props.weeklySnapshot?.readDays ?? 0);
 
 const latestBook = computed<{ title: string | null } | null>(() => {
   const s = props.weeklySnapshot;

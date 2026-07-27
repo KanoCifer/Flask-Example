@@ -39,21 +39,29 @@
       </header>
     </template>
 
-    <template #card="{ book, open, ratingScore }">
-      <button
-        type="button"
-        class="group block w-28 flex-shrink-0 snap-start text-left sm:w-32 md:w-36"
-        @click="open(book)"
+    <template #card="{ book, index, open, ratingScore }">
+      <Motion
+        :key="book.bookId"
+        :initial="{ opacity: 0, y: 6 }"
+        :animate="{ opacity: 1, y: 0 }"
+        :transition="{ ...EASE, delay: (index ?? 0) * 0.04 }"
+        class="block w-28 flex-shrink-0 snap-start sm:w-32 md:w-36"
       >
-        <Motion
-          :layoutId="RECOMMEND_COVER_LAYOUT_ID_PREFIX + book.bookId"
-          class="bg-page relative aspect-3/4 overflow-hidden rounded-xl shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+        <button
+          type="button"
+          class="group block w-full text-left"
+          @click="open(book)"
         >
+          <Motion
+            :layoutId="RECOMMEND_COVER_LAYOUT_ID_PREFIX + book.bookId"
+            class="bg-page relative aspect-3/4 overflow-hidden rounded-xl shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+          >
           <img
             v-if="book.cover"
             :src="book.cover"
             :alt="book.title"
             loading="lazy"
+            decoding="async"
             class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             @error="($event.target as HTMLImageElement).style.display = 'none'"
           />
@@ -94,7 +102,8 @@
         >
           {{ book.reason }}
         </p>
-      </button>
+        </button>
+      </Motion>
     </template>
 
     <template #load-more="{ loading: isLoading, onLoadMore }">
@@ -116,6 +125,7 @@
 import type { BookRecommendItem } from '@/features/books/api';
 import { ArrowRight, RefreshCw, Star } from '@lucide/vue';
 import { Motion } from 'motion-v';
+import { EASE } from '@/constants';
 import BookRecommendGrid from '@/features/books/components/BookRecommendGrid.vue';
 import { RECOMMEND_COVER_LAYOUT_ID_PREFIX } from '@/features/books/lib/recommendLayoutId';
 

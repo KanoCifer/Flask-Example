@@ -19,62 +19,73 @@
 
       <!-- 密度切换 -->
       <div
-        class="bg-page hidden items-center rounded-xl border p-0.5 sm:flex"
+        class="bg-page relative hidden items-center rounded-xl border p-0.5 sm:flex"
         role="group"
         aria-label="书架密度"
       >
+        <span
+          class="bg-accent pointer-events-none absolute top-1/2 left-0.5 size-9 rounded-lg shadow-sm transition-transform duration-280 ease-in-out"
+          :style="{
+            transform: `translate(${36 * densityIndex}px, -50%)`,
+          }"
+        >
+        </span>
         <Button
           v-for="opt in DENSITY_OPTIONS"
           :key="opt.key"
           size="icon"
+          variant="ghost"
           :aria-pressed="density === opt.key"
           :aria-label="opt.label"
           :title="opt.label"
           :class="[
-            '!active:scale-100 !rounded-lg',
+            '!active:scale-100 z-10 !rounded-lg',
             density === opt.key
-              ? 'bg-accent text-contrast shadow-sm'
-              : 'text-muted bg-page hover:text-ink hover:bg-surface',
+              ? 'bg-accent text-contrast! shadow-sm hover:bg-transparent!'
+              : 'text-muted hover:text-ink',
           ]"
-          @click="$emit('update:density', opt.key)"
+          @click="onDensityChange(opt.key)"
         >
           <component :is="opt.icon" class="h-4 w-4" />
         </Button>
       </div>
 
       <!-- 排序下拉 -->
-      <div class="relative">
-        <Button
-          variant="outline"
-          :aria-expanded="sortMenuOpen"
-          aria-haspopup="menu"
-          class="bg-page hover:bg-surface text-ink h-9 gap-1.5 px-3 text-sm"
-          @click="sortMenuOpen = !sortMenuOpen"
-        >
-          <ArrowUpDown class="h-4 w-4" />
-          <span class="hidden sm:inline">{{ activeSortLabel }}</span>
-          <ChevronDown class="h-3.5 w-3.5 opacity-60" />
-        </Button>
-        <div
-          v-if="sortMenuOpen"
-          class="bg-page absolute top-full right-0 z-30 mt-1 w-36 overflow-hidden rounded-xl border shadow-lg"
-          role="menu"
-          @click.stop
-        >
+      <HoverDropdown
+        panel-class="bg-page absolute top-full right-0 z-30 mt-1 w-36 overflow-hidden rounded-xl border shadow-lg"
+      >
+        <template #trigger="{ isOpen }">
           <Button
-            v-for="opt in SORT_OPTIONS"
-            :key="opt.key"
-            variant="ghost"
-            class="!active:scale-100 text-ink hover:bg-surface flex w-full items-center justify-between !rounded-none px-3 py-2 text-sm font-normal"
-            role="menuitemradio"
-            :aria-checked="sort === opt.key"
-            @click="onSelectSort(opt.key)"
+            variant="outline"
+            :aria-expanded="isOpen"
+            aria-haspopup="menu"
+            class="bg-page hover:bg-surface text-ink h-9 gap-1.5 px-3 text-sm"
           >
-            <span>{{ opt.label }}</span>
-            <Check v-if="sort === opt.key" class="text-ink h-3.5 w-3.5" />
+            <ArrowUpDown class="h-4 w-4" />
+            <span class="hidden sm:inline">{{ activeSortLabel }}</span>
+            <ChevronDown
+              class="h-3.5 w-3.5 opacity-60 transition-transform duration-150"
+              :class="{ 'rotate-180': isOpen }"
+            />
           </Button>
-        </div>
-      </div>
+        </template>
+        <template #default="{ close }">
+          <div role="menu">
+            <Button
+              v-for="opt in SORT_OPTIONS"
+              :key="opt.key"
+              variant="ghost"
+              class="!active:scale-100 text-ink hover:bg-surface flex w-full items-center justify-between !rounded-none px-3 py-2 text-sm font-normal"
+              role="menuitemradio"
+              :aria-checked="sort === opt.key"
+              @click="onSelectSort(opt.key, close)"
+            >
+              <span>{{ opt.label }}</span>
+              <Check v-if="sort === opt.key" class="text-ink h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </template>
+      </HoverDropdown>
     </div>
 
     <!-- Row 2: 状态 chip -->
@@ -109,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import {
   ArrowUpDown,
   Check,
@@ -119,7 +130,7 @@ import {
   List,
   Search,
 } from '@lucide/vue';
-import { Button } from '@/components';
+import { Button, HoverDropdown } from '@/components';
 import type {
   ShelfDensity,
   ShelfFilter,
@@ -167,36 +178,31 @@ const DENSITY_OPTIONS = [
   { key: 'list' as const, label: '列表', icon: List },
 ];
 
-const sortMenuOpen = ref(false);
-
 const activeSortLabel = computed(
   () => SORT_OPTIONS.find((o) => o.key === props.sort)?.label ?? '排序',
 );
+
+const densityIndex = computed(() => {
+  const index = DENSITY_OPTIONS.findIndex(
+    (option) => option.key === props.density,
+  );
+  return Math.max(index, 0);
+});
+
+function onDensityChange(value: ShelfDensity) {
+  emit('update:density', value);
+}
 
 function onSearchInput(e: Event) {
   emit('update:searchQuery', (e.target as HTMLInputElement).value);
 }
 
-function onSelectSort(key: ShelfSort) {
+function onSelectSort(key: ShelfSort, close: () => void) {
   emit('update:sort', key);
-  sortMenuOpen.value = false;
+  close();
 }
 
 function countOf(key: ShelfFilter) {
   return props.counts[key];
 }
-
-// 点击外部收起排序菜单
-function onDocClick(e: MouseEvent) {
-  if (!sortMenuOpen.value) return;
-  const target = e.target as HTMLElement;
-  if (
-    !target.closest?.('[aria-haspopup="menu"]') &&
-    !target.closest?.('[role="menu"]')
-  ) {
-    sortMenuOpen.value = false;
-  }
-}
-onMounted(() => document.addEventListener('click', onDocClick));
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
 </script>

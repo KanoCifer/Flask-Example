@@ -23,77 +23,114 @@
 
         <!-- Has books: toolbar + (reading rail) + grid/list -->
         <template v-else>
-          <BookShelfToolbar
-            v-model:searchQuery="searchQuery"
-            v-model:filter="filter"
-            v-model:sort="sort"
-            v-model:density="density"
-            :counts="counts"
-          />
+          <Motion
+            :initial="{ opacity: 0, y: 6 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0 }"
+          >
+            <BookShelfToolbar
+              v-model:searchQuery="searchQuery"
+              v-model:filter="filter"
+              v-model:sort="sort"
+              v-model:density="density"
+              :counts="counts"
+            />
+          </Motion>
 
           <!-- 「你正在读」横向 rail:仅 filter=all 且非搜索状态时显示 -->
-          <BookShelfReadingRail
+          <Motion
             v-if="showReadingRail"
-            :books="recentReading"
-            @select="selectBook"
-          />
+            :initial="{ opacity: 0, y: 6 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.05 }"
+          >
+            <BookShelfReadingRail :books="recentReading" @select="selectBook" />
+          </Motion>
 
           <!-- 「接下来读什么」推荐 rail:同样仅 filter=all 且非搜索状态时显示 -->
-          <BookShelfRecommendRail
+          <Motion
             v-if="showRecommendRail"
-            :books="recommends"
-            :loading="isLoadingRecommends"
-            :has-more="hasMoreRecommends"
-            :error="recommendError"
-            @refresh="reloadRecommends"
-            @load-more="loadMoreRecommends"
-          />
+            :initial="{ opacity: 0, y: 6 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.1 }"
+          >
+            <BookShelfRecommendRail
+              :books="recommends"
+              :loading="isLoadingRecommends"
+              :has-more="hasMoreRecommends"
+              :error="recommendError"
+              @refresh="reloadRecommends"
+              @load-more="loadMoreRecommends"
+            />
+          </Motion>
 
           <!-- 分区标题(filter=all 时给"全部书架"一个 section 标识) -->
-          <header
+          <Motion
             v-if="filter === 'all' && (showReadingRail || showRecommendRail)"
-            class="mt-2 mb-3 flex items-baseline justify-between"
+            :initial="{ opacity: 0, y: 6 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.15 }"
           >
-            <h2 class="text-ink font-serif text-xl font-bold md:text-2xl">
-              全部书架
-            </h2>
-            <span class="text-muted text-xs tabular-nums">
-              {{ displayedBooks.length }} 本
-            </span>
-          </header>
+            <header class="mt-2 mb-3 flex items-baseline justify-between">
+              <h2 class="text-ink font-serif text-xl font-bold md:text-2xl">
+                全部书架
+              </h2>
+              <span class="text-muted text-xs tabular-nums">
+                {{ displayedBooks.length }} 本
+              </span>
+            </header>
+          </Motion>
 
           <!-- No results -->
-          <div
+          <Motion
             v-if="displayedBooks.length === 0"
-            class="flex flex-col items-center justify-center py-16"
+            :initial="{ opacity: 0, y: 6 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.15 }"
           >
-            <p class="text-muted text-sm">
-              {{ noResultMessage }}
-            </p>
-          </div>
+            <div class="flex flex-col items-center justify-center py-16">
+              <p class="text-muted text-sm">
+                {{ noResultMessage }}
+              </p>
+            </div>
+          </Motion>
 
           <!-- List variant -->
-          <div v-else-if="density === 'list'" class="flex flex-col gap-2">
-            <WereadBookCard
-              v-for="(book, index) in displayedBooks"
-              :key="book.bookId"
-              :book="book"
-              :index="index"
-              variant="list"
-              @select="selectBook"
-            />
-          </div>
+          <Motion
+            v-else-if="density === 'list'"
+            :initial="{ opacity: 0, y: 6 }"
+            :whileInView="{ opacity: 1, y: 0 }"
+            :transition="{ ...EASE, delay: 0.15 }"
+          >
+            <div class="flex flex-col gap-2">
+              <WereadBookCard
+                v-for="(book, index) in displayedBooks"
+                :key="book.bookId"
+                :book="book"
+                :index="index"
+                variant="list"
+                @select="selectBook"
+              />
+            </div>
+          </Motion>
 
           <!-- Grid variant -->
-          <div v-else :class="gridClass">
-            <WereadBookCard
-              v-for="(book, index) in displayedBooks"
-              :key="book.bookId"
-              :book="book"
-              :index="index"
-              @select="selectBook"
-            />
-          </div>
+          <Motion
+            v-else
+            :initial="{ opacity: 0, y: 6 }"
+            :whileInView="{ opacity: 1, y: 0 }"
+            :transition="{ type: 'spring' }"
+          >
+            <div :class="gridClass">
+              <WereadBookCard
+                v-for="(book, index) in displayedBooks"
+                :key="book.bookId"
+                :book="book"
+                :index="index"
+                @select="selectBook"
+              />
+            </div>
+          </Motion>
         </template>
       </div>
     </div>
@@ -110,6 +147,8 @@ import { useReadStatsStore } from '@/features/books/stores/readStats';
 import WereadBookCard from '@/features/books/components/WereadBookCard.vue';
 import WereadBookDetailPanel from '@/features/books/components/WereadBookDetailPanel.vue';
 import { useWereadBookDetailSingleton } from '@/features/books/composables/useWereadBookDetailSingleton';
+import { Motion } from 'motion-v';
+import { EASE } from '@/constants';
 import { onMounted } from 'vue';
 import BookShelfHero from './components/BookShelfHero.vue';
 import BookShelfReadingRail from './components/BookShelfReadingRail.vue';

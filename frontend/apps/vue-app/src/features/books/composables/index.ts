@@ -1,5 +1,6 @@
 // Books composables — 书架视图、阅读统计各视图、微信读书集成.
 
+export * from './useCountUp';
 export * from './useEChartsTheme';
 export * from './useHeatmap';
 export * from './useLongestView';
