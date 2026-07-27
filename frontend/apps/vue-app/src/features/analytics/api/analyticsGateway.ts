@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/request';
 import { type ApiResponse } from '@/lib';
+import type { VisitorData } from '@readinglist/utils';
 
 import type {
   AnalyticsOverviewData,
@@ -14,7 +15,7 @@ export interface AnalyticsGateway {
     page_size: number;
   }): Promise<AnalyticsOverviewData>;
   getPostViews(): Promise<ApiResponse<PostViewData[]>>;
-  reportVisitorData(data: Record<string, unknown>): Promise<void>;
+  reportVisitorData(data: VisitorData): Promise<void>;
 }
 
 export const analyticsGateway: AnalyticsGateway = {
@@ -48,7 +49,7 @@ export const analyticsGateway: AnalyticsGateway = {
     return res.data;
   },
 
-  async reportVisitorData(data: Record<string, unknown>): Promise<void> {
+  async reportVisitorData(data: VisitorData): Promise<void> {
     await apiClient.post('/v3/track', data, {
       timeout: 5000,
       withCredentials: true,

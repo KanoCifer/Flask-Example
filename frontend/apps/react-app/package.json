@@ -48,8 +48,6 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@readinglist/types": "workspace:*",
-    "@readinglist/brand": "workspace:*",
     "@react-scan/vite-plugin-react-scan": "^0.2.7",
     "@react-trace/core": "^0.0.6",
     "@react-trace/kit": "^0.0.8",
@@ -58,6 +56,10 @@
     "@react-trace/plugin-open-editor": "^0.0.7",
     "@react-trace/plugin-preview": "^0.0.7",
     "@react-trace/ui-components": "^0.0.2",
+    "@readinglist/brand": "workspace:*",
+    "@readinglist/config": "workspace:*",
+    "@readinglist/types": "workspace:*",
+    "@readinglist/utils": "workspace:*",
     "@testing-library/jest-dom": "^6.10.0",
     "@testing-library/react": "^16.3.2",
     "@types/amap-js-api": "^1.4.16",
@@ -77,6 +79,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vite-plugin-react-click-to-component": "^4.2.2",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
   }
 }

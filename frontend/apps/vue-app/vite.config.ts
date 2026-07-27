@@ -4,28 +4,24 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 import vueDevTools from 'vite-plugin-vue-devtools';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import {
+  sharedBuildConfig,
+  createServerConfig,
+} from '@readinglist/config/vite-shared';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    tsconfigPaths(),
     vue(),
     vueDevTools({
       launchEditor: 'zed',
     }),
     tailwindcss(),
   ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@readinglist/utils': fileURLToPath(new URL('../../packages/utils/src/index.ts', import.meta.url)),
-    },
-  },
   build: {
-    minify: 'oxc',
-    cssMinify: true,
-    sourcemap: false,
-    // chunk 超过此大小时发出警告（twikoo 评论组件近 1MB，适度放宽）
-    chunkSizeWarningLimit: 1200,
+    ...sharedBuildConfig,
     terserOptions: {
       compress: {
         drop_console: true, // 删除 console
@@ -80,7 +76,7 @@ export default defineConfig({
               if (id.includes('dayjs')) return 'dayjs';
             },
           },
-          // 忽略lottie-web的eval警告（第三方库问题，无法修复）
+          // 忽略 lottie-web 的 eval 警告（第三方库问题，无法修复）
           onwarn(warning, warn) {
             if (
               warning.code === 'EVAL' &&
@@ -95,26 +91,5 @@ export default defineConfig({
   optimizeDeps: {
     include: ['vue3-lottie'],
   },
-  server: {
-    port: 5173,
-    proxy: {
-      // Python 后端（FastAPI）— v1 / v2 接口
-      '/v1': {
-        target: 'http://localhost:5555',
-        changeOrigin: true,
-        ws: true,
-      },
-      '/v2': {
-        target: 'http://localhost:5555',
-        changeOrigin: true,
-        ws: true,
-      },
-      // Go 后端 — v3 接口
-      '/v3': {
-        target: 'http://localhost:5556',
-        changeOrigin: true,
-        ws: true,
-      },
-    },
-  },
+  server: createServerConfig(5173),
 });

@@ -1,11 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import {
-  playThemeTransition,
-  COLOR_SCHEMES,
-  isColorScheme,
-  safeScheme,
-} from '@readinglist/utils';
+import { playThemeTransition, isColorScheme, safeScheme } from '@readinglist/utils';
 import type { ColorScheme } from '@readinglist/utils';
 
 type Theme = 'light' | 'dark' | 'system';

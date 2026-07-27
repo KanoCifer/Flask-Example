@@ -2,24 +2,24 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import reactScan from '@react-scan/vite-plugin-react-scan';
 import { reactClickToComponent } from 'vite-plugin-react-click-to-component';
-import path from 'path';
 import { defineConfig } from 'vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import {
+  sharedBuildConfig,
+  createServerConfig,
+} from '@readinglist/config/vite-shared';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), reactClickToComponent(), reactScan()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@readinglist/utils': path.resolve(__dirname, '../../packages/utils/src/index.ts'),
-    },
-  },
+  plugins: [
+    tsconfigPaths(),
+    react(),
+    tailwindcss(),
+    reactClickToComponent(),
+    reactScan(),
+  ],
   build: {
-    minify: 'oxc',
-    cssMinify: true,
-    sourcemap: false,
-    // chunk 超过此大小时发出警告（twikoo 评论组件近 1MB，适度放宽）
-    chunkSizeWarningLimit: 1200,
+    ...sharedBuildConfig,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -79,7 +79,7 @@ export default defineConfig({
             return 'date';
         },
       },
-      // 忽略 lottie-web 的 eval 警告
+      // 忽略 lottie-web 的 eval 警告（第三方库问题，无法修复）
       onwarn(warning, warn) {
         if (
           warning.code === 'EVAL' &&
@@ -91,26 +91,5 @@ export default defineConfig({
       },
     },
   },
-  server: {
-    port: 5174, // 避免与 Vue 项目冲突
-    proxy: {
-      // Python 后端（FastAPI）— v1 / v2 接口
-      '/v1/': {
-        target: 'http://localhost:5555',
-        changeOrigin: true,
-        ws: true,
-      },
-      '/v2/': {
-        target: 'http://localhost:5555',
-        changeOrigin: true,
-        ws: true,
-      },
-      // Go 后端 — v3 接口
-      '/v3/': {
-        target: 'http://localhost:5556',
-        changeOrigin: true,
-        ws: true,
-      },
-    },
-  },
+  server: createServerConfig(5174),
 });

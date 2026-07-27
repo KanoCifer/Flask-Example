@@ -7,6 +7,9 @@ import {
 } from '@readinglist/utils';
 import type { ColorScheme } from '@readinglist/utils';
 
+// 供仍从 @/stores 导入的模块保持兼容
+export { COLOR_SCHEMES, isColorScheme } from '@readinglist/utils';
+
 export type Theme = 'light' | 'dark' | 'system';
 export type FontFamily = 'default' | 'harmonyos';
 export type { ColorScheme } from '@readinglist/utils';

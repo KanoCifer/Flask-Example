@@ -1,16 +1,12 @@
-import path from 'path';
 import { defineConfig } from 'vitest/config';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import { baseVitestConfig } from '@readinglist/config/vitest.config';
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@readinglist/utils': path.resolve(__dirname, '../../packages/utils/src/index.ts'),
-    },
-  },
+  plugins: [tsconfigPaths()],
+  ...baseVitestConfig(),
   test: {
-    environment: 'happy-dom',
+    ...baseVitestConfig().test,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/__tests__/**/*.test.ts'],
   },
 });

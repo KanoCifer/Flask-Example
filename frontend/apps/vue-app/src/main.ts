@@ -3,7 +3,7 @@ import 'highlight.js/styles/atom-one-dark.css';
 import { createPinia, setActivePinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './App.vue';
-import { isColorScheme } from '@/stores';
+import { isColorScheme } from '@readinglist/utils';
 import './styles/base.css'; // Tailwind v4 入口
 import './styles/backgrounds.css'; // 背景渐变
 import './styles/base.scss'; // font-face sass

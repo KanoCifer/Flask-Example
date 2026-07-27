@@ -57,8 +57,10 @@
     "yjs": "^13.6.31"
   },
   "devDependencies": {
-    "@readinglist/types": "workspace:*",
     "@readinglist/brand": "workspace:*",
+    "@readinglist/config": "workspace:*",
+    "@readinglist/types": "workspace:*",
+    "@readinglist/utils": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node24": "^24.0.4",
     "@types/amap-js-api": "^1.4.16",
@@ -84,6 +86,7 @@
     "typescript": "^6.0.3",
     "vite": "^8.1.5",
     "vite-plugin-vue-devtools": "^8.1.5",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10",
     "vue-tsc": "^3.3.7"
   },

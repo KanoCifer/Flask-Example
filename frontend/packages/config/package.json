@@ -1,0 +1,22 @@
+{
+  "name": "@readinglist/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "跨前端共享的构建/测试/格式化配置（vite、vitest、tsconfig、prettier）",
+  "exports": {
+    ".": "./src/index.ts",
+    "./vitest-setup": "./src/vitest-setup.ts",
+    "./vitest.config": "./src/vitest.config.ts",
+    "./vite-shared": "./src/vite-shared.ts",
+    "./tsconfig.base": "./src/tsconfig.base.json"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.0",
+    "vite": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}
