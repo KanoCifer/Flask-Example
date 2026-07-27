@@ -1,6 +1,12 @@
 <template>
+  <!--
+    页内标题行 —— 不做 sticky bar。
+    全站顶栏由 layout 的浮动 BasicNav 承担,这里若再画一条
+    sticky + border-b + backdrop 的横条,会和 BasicNav 在同一视觉高度
+    互相穿插。pt-24 给浮动 nav 留出净空。
+  -->
   <header
-    class="bg-page/75 border-border sticky top-0 z-10 flex flex-wrap items-end justify-between gap-3 border-b px-5 py-3 backdrop-blur-sm sm:px-8"
+    class="flex flex-wrap items-end justify-between gap-3 px-5 pt-20 pb-3 sm:px-8"
   >
     <div>
       <h1

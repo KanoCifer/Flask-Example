@@ -3,7 +3,6 @@ defineOptions({ name: 'FishingMapView' });
 import TideCard from '@/features/fishing/components/TideCard.vue';
 import WeatherCard from '@/features/fishing/components/WeatherCard.vue';
 import AnalysisPanel from '@/features/fishing/components/AnalysisPanel.vue';
-import DashboardHeader from '@/features/fishing/components/DashboardHeader.vue';
 import FeedbackFormDialog from '@/features/fishing/components/FeedbackFormDialog.vue';
 import FishingAmbient from '@/features/fishing/components/FishingAmbient.vue';
 import HourlyChartCard from '@/features/fishing/components/HourlyChartCard.vue';
@@ -11,6 +10,7 @@ import IndexHeroCard from '@/features/fishing/components/IndexHeroCard.vue';
 import MapContainer from '@/features/fishing/components/MapContainer.vue';
 import SpotDetailPanel from '@/features/fishing/components/SpotDetailPanel.vue';
 import QuickFeedbackBanner from '@/features/fishing/components/QuickFeedbackBanner.vue';
+import DashboardToolbar from '@/features/fishing/components/DashboardToolbar.vue';
 import { useFishingDashboard } from '@/features/fishing/composables/useFishingDashboard';
 import { defineAsyncComponent, onMounted } from 'vue';
 
@@ -28,17 +28,16 @@ onMounted(dash.init);
   <div class="bg-page relative min-h-screen">
     <FishingAmbient />
 
-    <DashboardHeader
-      class="relative z-10"
-      :analysis-open="dash.analysisOpen.value"
-      :analysis-has-data="dash.analysisHasData.value"
-      @toggle-analysis="dash.toggleAnalysis"
-      @add-spot="dash.openSpotForm"
-    />
-
     <main
-      class="relative z-10 mx-auto flex max-w-screen-2xl flex-col gap-6 px-4 py-5 sm:px-6 sm:py-8"
+      class="relative z-10 mx-auto flex max-w-screen-2xl flex-col gap-6 px-4 pt-24 pb-5 sm:px-6 sm:pt-20 sm:pb-8"
     >
+      <DashboardToolbar
+        :analysis-open="dash.analysisOpen.value"
+        :analysis-has-data="dash.analysisHasData.value"
+        @toggle-analysis="dash.toggleAnalysis"
+        @add-spot="dash.openSpotForm"
+      />
+
       <QuickFeedbackBanner
         :disabled="!dash.indexData.value"
         @submit="dash.onQuickFeedback"

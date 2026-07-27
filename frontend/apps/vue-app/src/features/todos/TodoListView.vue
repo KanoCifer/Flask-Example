@@ -8,7 +8,7 @@
       <TodoSidebar v-model="activeTab" v-model:collapsed="sidebarCollapsed" />
 
       <main class="min-w-0 overflow-y-auto px-5 py-5 sm:px-8">
-        <!-- mobile tab strip (in flow, below sticky header, clear of floating nav) -->
+        <!-- mobile tab strip (in flow, below the page title row) -->
         <TodoMobileTabs v-model="activeTab" />
 
         <!-- 未登录空状态 -->

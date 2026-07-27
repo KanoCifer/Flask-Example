@@ -165,7 +165,7 @@ export interface WereadBookProgress {
   updateTime: number | null;
   readingTime: number;
   finishTime: number | null;
-  isStartReading: string | null;
+  isStartReading: number | null;
 }
 
 export interface BookRecommendItem {

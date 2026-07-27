@@ -40,11 +40,11 @@
           :to="item.to"
           :aria-label="item.ariaLabel"
           :aria-current="isActive(item.to) ? 'page' : undefined"
-          class="nav-text nav-link relative z-10 flex h-11 flex-col items-center justify-center gap-1 px-4 text-[13px] leading-none transition-[transform,background-color,color,opacity] duration-150 ease-out active:scale-[0.96]"
+          class="nav-text nav-link relative z-10 flex h-11 flex-col items-center justify-center gap-1 px-4 leading-none transition-[transform,background-color,color,opacity] duration-150 ease-out active:scale-[0.96]"
           :class="{ 'opacity-40 hover:opacity-70': !isActive(item.to) }"
         >
-          <component :is="item.icon" :size="20" stroke-width="1.75" />
-          <span>{{ item.label }}</span>
+          <component :is="item.icon" :size="24" stroke-width="2" />
+          <span class="text-[11px]">{{ item.label }}</span>
         </RouterLink>
       </li>
       <!-- Others: hover dropdown — routes not shown in the pill strip -->

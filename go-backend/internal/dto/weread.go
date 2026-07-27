@@ -191,16 +191,17 @@ type BookRecommendItem struct {
 }
 
 // WereadBookProgress 是单本书的阅读进度。
-// 字段对齐 Python models/weread/documents.py ReadProgress，
-// 其中 IsStartReading 在前端契约里是 string|null(upstream 原始为 "0"/"1")。
+// 字段对齐 Python models/weread/documents.py ReadProgress。
+// IsStartReading 是裸 number(0/1),与 upstream 真实结构 + Python int 模型一致;
+// task-235 修正了之前误判为 string 的回归。
 type WereadBookProgress struct {
-	ChapterUid     *int   `json:"chapterUid,omitempty"`
-	ChapterOffset  *int   `json:"chapterOffset,omitempty"`
-	Progress       *int   `json:"progress,omitempty"`
-	UpdateTime     *int   `json:"updateTime,omitempty"`
-	ReadingTime    int    `json:"readingTime"`
-	FinishTime     *int   `json:"finishTime,omitempty"`
-	IsStartReading string `json:"isStartReading,omitempty"`
+	ChapterUid     *int `json:"chapterUid,omitempty"`
+	ChapterOffset  *int `json:"chapterOffset,omitempty"`
+	Progress       *int `json:"progress,omitempty"`
+	UpdateTime     *int `json:"updateTime,omitempty"`
+	ReadingTime    int  `json:"readingTime"`
+	FinishTime     *int `json:"finishTime,omitempty"`
+	IsStartReading *int `json:"isStartReading,omitempty"`
 }
 
 // ParseShelfRaw 将上游原生结构转换为前端契约结构。

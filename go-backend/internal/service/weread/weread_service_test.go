@@ -976,7 +976,7 @@ const sampleBookProgressNested = `{
 		"updateTime": 1700000000,
 		"readingTime": 3600,
 		"finishTime": 0,
-		"isStartReading": "1"
+		"isStartReading": 1
 	}
 }`
 
@@ -988,7 +988,7 @@ const sampleBookProgressFlat = `{
 	"updateTime": 1700000000,
 	"readingTime": 3600,
 	"finishTime": 0,
-	"isStartReading": "1"
+	"isStartReading": 1
 }`
 
 // buildProgressService 构造指向指定响应的测试 Service,复用 newTestService 的固定 token。
@@ -1035,8 +1035,8 @@ func TestService_FetchBookProgress_NestedShape(t *testing.T) {
 	if p.ReadingTime != 3600 {
 		t.Errorf("readingTime = %d, want 3600", p.ReadingTime)
 	}
-	if p.IsStartReading != "1" {
-		t.Errorf("isStartReading = %q, want 1", p.IsStartReading)
+	if p.IsStartReading == nil || *p.IsStartReading != 1 {
+		t.Errorf("isStartReading = %v, want 1", p.IsStartReading)
 	}
 }
 
@@ -1163,6 +1163,74 @@ func TestService_FetchBookProgress_Unauthorized(t *testing.T) {
 	}
 	if !errors.Is(err, weread.ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+// sampleBookProgressRealUpstream 是 trace_id=0c604ad8 回归的完整 upstream 形态:
+// 顶层 bookId/timestamp/upgrade_info,嵌套 book 内含完整阅读进度字段。
+// task-235 引入 — 锁定真实契约,防止后续再把 isStartReading 误判为 string。
+const sampleBookProgressRealUpstream = `{
+	"bookId": "book-1",
+	"timestamp": 1700000000,
+	"book": {
+		"appId": "app",
+		"bookVersion": 1,
+		"reviewId": "r1",
+		"chapterUid": 100,
+		"chapterOffset": 50,
+		"chapterIdx": 5,
+		"updateTime": 1700000000,
+		"synckey": 1,
+		"summary": "summary",
+		"repairOffsetTime": 0,
+		"readingTime": 3600,
+		"progress": 42,
+		"isStartReading": 1,
+		"ttsTime": 0,
+		"startReadingTime": 1699999999,
+		"installId": "inst",
+		"recordReadingTime": 3600
+	},
+	"upgrade_info": {
+		"latest_version": "1.0.0",
+		"current_version": "1.0.0",
+		"message": "",
+		"upgrade_url": ""
+	}
+}`
+
+// TestService_FetchBookProgress_RealUpstream 回归测试:
+// isStartReading 必须是 number(0/1),不能被任何上游新增字段拖入 unmarshal 失败。
+func TestService_FetchBookProgress_RealUpstream(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleBookProgressRealUpstream))
+	}))
+	t.Cleanup(srv.Close)
+
+	svc := buildProgressService(t, mr, srv)
+
+	p, err := svc.FetchBookProgress(context.Background(), "user-1", "book-1", false)
+	if err != nil {
+		t.Fatalf("FetchBookProgress: %v", err)
+	}
+	if p == nil {
+		t.Fatal("expected non-nil progress")
+	}
+	if p.IsStartReading == nil || *p.IsStartReading != 1 {
+		t.Errorf("isStartReading = %v, want 1 (number from upstream)", p.IsStartReading)
+	}
+	if p.Progress == nil || *p.Progress != 42 {
+		t.Errorf("progress = %v, want 42", p.Progress)
+	}
+	if p.ReadingTime != 3600 {
+		t.Errorf("readingTime = %d, want 3600", p.ReadingTime)
 	}
 }
 

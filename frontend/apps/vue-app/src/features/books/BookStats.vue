@@ -39,7 +39,9 @@
             variant="ghost"
             :class="[
               '!active:scale-100 text-contrast! relative z-10 !inline-flex flex-1 !rounded-lg px-4 py-2.5 text-sm transition-colors',
-              activeMode === m.key ? '' : 'hover:bg-surface hover:text-ink',
+              activeMode === m.key
+                ? 'hover:bg-transparent!'
+                : 'hover:bg-surface hover:text-ink text-muted!',
             ]"
             @click="switchMode(m.key)"
           >

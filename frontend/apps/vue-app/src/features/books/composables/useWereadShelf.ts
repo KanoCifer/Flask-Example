@@ -43,7 +43,6 @@ export const useWereadShelf = () => {
   const handleSync = async (): Promise<void> => {
     isSyncing.value = true;
     try {
-      await wereadGateway.syncMyBooks();
       await fetchBooks();
     } catch (err: unknown) {
       const error = err as {
