@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { useOrigin } from '@/composables';
+import { useOrigin } from '@readinglist/utils';
 import { computed } from 'vue';
 
 const props = withDefaults(

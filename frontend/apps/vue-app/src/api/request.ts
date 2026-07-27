@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { tokenService } from '@/api/tokenService';
+import { tokenService } from '@readinglist/utils';
 
 export interface ApiResponse<T = unknown> {
   message: string;

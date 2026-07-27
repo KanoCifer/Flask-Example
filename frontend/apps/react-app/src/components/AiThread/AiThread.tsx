@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useRef, useState } from 'react';
 import { ArrowRight, Check, ChevronDown, Loader2 } from 'lucide-react';
 import { SPRING, EASE } from '@/constants/springs';
-import { renderMarkdown } from '@/lib/markdown';
+import { renderMarkdown } from '@readinglist/utils';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { ReasoningRegion } from '@/components/ReasoningRegion';

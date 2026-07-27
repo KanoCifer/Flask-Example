@@ -1,7 +1,7 @@
 import { createAuthGateway } from '@/features/auth/api/authGateway';
 import { registerTokenRefresher } from '@/lib';
 import { refreshAccessToken } from '@/features/auth/lib/refresh';
-import { tokenService } from '@/api/tokenService';
+import { tokenService } from '@readinglist/utils';
 import { reconnectWs } from '@/lib';
 import type { UserInfo } from '@readinglist/types';
 import { userCache } from '@/features/auth/lib/userCache';

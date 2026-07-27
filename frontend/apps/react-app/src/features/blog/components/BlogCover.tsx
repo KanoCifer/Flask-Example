@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useOrigin } from '@/hooks/useOrigin';
+import { useOrigin } from '@readinglist/utils';
 
 type CoverSize = 'sm' | 'md' | 'lg';
 

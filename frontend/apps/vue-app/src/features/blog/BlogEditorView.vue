@@ -2,7 +2,7 @@
 import MarkdownEditor from './components/MarkdownEditor.vue';
 import { Button as UiButton, IconSave } from '@/components';
 import { blogGateway } from '@/features/blog/api/blogGateway';
-import { useOrigin } from '@/composables';
+import { useOrigin } from '@readinglist/utils';
 import { useUpload } from '@/features/upload/composables';
 import { useNotificationStore } from '@/stores';
 import { ModalFadeTransition } from '@/components';

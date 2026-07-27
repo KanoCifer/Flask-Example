@@ -41,10 +41,7 @@ export function formatCurrentWeekRange(opts: WeekRangeOptions = {}): string {
 
 // ── formatdate.ts ───────────────────────────────────────────────────
 
-export const formatDate = (dateStr: string | null | undefined) => {
-  if (!dateStr) return '未知时间';
-  return dayjs.utc(dateStr).local().format('YYYY-MM-DD HH:mm:ss');
-};
+export { formatDate } from '@readinglist/utils';
 
 // ── duration.ts ─────────────────────────────────────────────────────
 

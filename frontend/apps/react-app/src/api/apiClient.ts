@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { isrefreshTokenRequest, refreshAccessToken } from './refresh';
-import { tokenService } from '../lib/tokenService';
+import { tokenService } from '@readinglist/utils';
 
 export interface ApiResponse<T = unknown> {
   message: string;

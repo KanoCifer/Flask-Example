@@ -2,7 +2,7 @@ import { AiThread } from '@/components';
 import { rssService } from '@/features/rss/api/rssService';
 import { useNotificationStore } from '@/stores/notificationState';
 import type { RssArticle } from '@readinglist/types';
-import { formatDate } from '@/lib/formatdate';
+import { formatDate } from '@readinglist/utils';
 import DOMPurify from 'dompurify';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';

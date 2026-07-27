@@ -1,5 +1,5 @@
 import { useWebSocket } from '@/composables';
-import { getVisitorId } from './visitor-id';
+import { getVisitorId, buildWsUrl } from '@readinglist/utils';
 import { useVisitorCountStore } from '../stores/visitorCount';
 import type { Pinia } from 'pinia';
 
@@ -13,20 +13,6 @@ export let connectionDelay:
 /** 全局单例的连接状态 ref */
 export let isConnected: ReturnType<typeof useWebSocket>['isConnected'] | null =
   null;
-
-function buildWsUrl(): string {
-  const apiBase = import.meta.env.VITE_API_BASE || '';
-
-  // VITE_API_BASE 是绝对 URL（如 https://api.kanocifer.chat）时，
-  // 直接从中派生 wss URL，忽略当前页面的 host
-  if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
-    return apiBase.replace(/^http/, 'ws') + '/v3/public/ws';
-  }
-
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  return `${protocol}//${host}${apiBase}/v3/public/ws`;
-}
 
 export function initVisitorWebSocket(pinia: Pinia) {
   if (initialized) return;

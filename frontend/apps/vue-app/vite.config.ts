@@ -17,6 +17,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@readinglist/utils': fileURLToPath(new URL('../../packages/utils/src/index.ts', import.meta.url)),
     },
   },
   build: {

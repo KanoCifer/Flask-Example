@@ -15,7 +15,7 @@ import { DelIcon, EditIcon } from '@/components';
 import { Eye, Heart } from '@lucide/vue';
 import { blogGateway } from '@/features/blog/api/blogGateway';
 import { useAuthStore } from '@/features/auth';
-import { useOrigin } from '@/composables';
+import { useOrigin } from '@readinglist/utils';
 import { useNotificationStore } from '@/stores';
 import type { Post } from '@readinglist/types';
 import { formatDate } from '@/lib/dayjs';

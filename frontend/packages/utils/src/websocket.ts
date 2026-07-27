@@ -2,10 +2,11 @@
  * 框架无关的 WebSocket 连接管理器。
  *
  * 职责：原生 WebSocket 连接、指数退避重连、ping/pong 延迟测量、
- * visitor_id 上报。不含 Vue / 浏览器事件绑定，可由任意上层包装。
+ * visitor_id 上报。不含 Vue / React / 浏览器事件绑定，可由任意上层包装。
  *
- * 上层（composables/useWebSocket）负责：Vue ref 状态同步、生命周期
- * (onMounted/onUnmounted)、visibilitychange / online 事件。
+ * 上层（composables/useWebSocket / hooks/useWebsocket）负责：
+ * 响应式状态同步、生命周期 (onMounted/onUnmounted / useEffect)、
+ * visibilitychange / online 事件。
  */
 
 export interface WebSocketManagerOptions {
@@ -89,18 +90,20 @@ export class WebSocketManager {
 
   private startPing() {
     this.stopPing();
-    this.pingTimer = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.pingStartTime = performance.now();
-        this.ws.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, this.pingIntervalMs);
+    this.pingTimer = setInterval(() => this.sendPingMessage(), this.pingIntervalMs);
   }
 
   private stopPing() {
     if (this.pingTimer) {
       clearInterval(this.pingTimer);
       this.pingTimer = null;
+    }
+  }
+
+  private sendPingMessage() {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.pingStartTime = performance.now();
+      this.ws.send(JSON.stringify({ type: 'ping' }));
     }
   }
 
@@ -114,10 +117,7 @@ export class WebSocketManager {
 
   /** 发送一次性 ping，用于外部主动延迟测量（如 StatusView） */
   sendPing() {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.pingStartTime = performance.now();
-      this.ws.send(JSON.stringify({ type: 'ping' }));
-    }
+    this.sendPingMessage();
   }
 
   send(data: object) {

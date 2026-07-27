@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted, ref } from 'vue';
-import { WebSocketManager } from '@/lib/websocket';
+import { WebSocketManager } from '@readinglist/utils';
 
 interface UseWebSocketOptions {
   url: string;

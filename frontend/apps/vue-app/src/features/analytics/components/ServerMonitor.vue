@@ -325,8 +325,8 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
 import dayjs from 'dayjs';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import VChart from 'vue-echarts';
-import { useOrigin } from '@/composables';
-import { tokenService } from '@/api/tokenService';
+import { useOrigin } from '@readinglist/utils';
+import { tokenService } from '@readinglist/utils';
 
 // Types
 interface ServerStatus {

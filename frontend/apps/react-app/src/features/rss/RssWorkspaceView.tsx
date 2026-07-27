@@ -4,7 +4,7 @@ import {
 } from '@/features/rss/api/rssService';
 import { useNotificationStore } from '@/stores/notificationState';
 import type { RssArticle } from '@readinglist/types';
-import { formatDate } from '@/lib/formatdate';
+import { formatDate } from '@readinglist/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Rss } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

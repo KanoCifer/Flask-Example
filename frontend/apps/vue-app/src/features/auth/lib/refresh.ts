@@ -2,7 +2,7 @@ import axios, {
   type CreateAxiosDefaults,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import { tokenService } from '@/api/tokenService';
+import { tokenService } from '@readinglist/utils';
 
 const refreshTokenEndpoint = 'v3/refresh-token';
 

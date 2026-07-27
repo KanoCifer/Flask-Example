@@ -1,9 +1,7 @@
 export * from './dayjs';
-export { tokenService } from '../api/tokenService';
+export { tokenService } from '@readinglist/utils';
 export * from '../api/request';
-export * from './websocket';
 export * from './color';
-export * from './dom';
 export * from './route-transition';
 export {
   getVisitorId,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { WebSocketManager } from '@readinglist/utils';
 
 interface UseWebSocketOptions {
   url: string;
@@ -11,6 +12,12 @@ interface UseWebSocketOptions {
   pingIntervalMs?: number;
 }
 
+/**
+ * React 薄包装层 — 将框架无关的 WebSocketManager 适配为 React hook。
+ *
+ * 负责：useEffect 生命周期、visibilitychange / online / beforeunload 事件绑定。
+ * 连接/重连/ping 核心逻辑全部委托给 {@link WebSocketManager}。
+ */
 export function useWebsocket(options: UseWebSocketOptions) {
   const {
     url,
@@ -22,13 +29,6 @@ export function useWebsocket(options: UseWebSocketOptions) {
     reconnectMaxMs = 30000,
     pingIntervalMs = 30000,
   } = options;
-
-  const wsRef = useRef<WebSocket | null>(null);
-  const isConnectedRef = useRef(false);
-  const reconnectAttemptRef = useRef(0);
-  const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pingStartTimeRef = useRef(0);
 
   // Stable callbacks — refs for values that change but shouldn't trigger reconnect
   const onCountRef = useRef(onCount);
@@ -43,163 +43,39 @@ export function useWebsocket(options: UseWebSocketOptions) {
     visitorIdRef.current = visitorId;
   });
 
-  const stopPing = useCallback(() => {
-    if (pingTimerRef.current) {
-      clearInterval(pingTimerRef.current);
-      pingTimerRef.current = null;
-    }
-  }, []);
-
-  // Ref to the latest connect — lets the setTimeout below avoid the TDZ
-  // warning from react-hooks/immutability while still calling the live version.
-  const connectRef = useRef<(() => void) | null>(null);
-
-  const connect = useCallback(() => {
-    stopPing();
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.onmessage = null;
-      wsRef.current.onerror = null;
-      wsRef.current.close();
-    }
-
-    let startTime: number;
-
-    try {
-      startTime = performance.now();
-      wsRef.current = new WebSocket(url);
-    } catch {
-      // Invalid URL or environment — schedule reconnect
-      const delay = Math.min(
-        reconnectBaseMs * Math.pow(2, reconnectAttemptRef.current),
-        reconnectMaxMs,
-      );
-      reconnectTimerRef.current = setTimeout(
-        () => connectRef.current?.(),
-        delay,
-      );
-      reconnectAttemptRef.current++;
-      return;
-    }
-
-    const ws = wsRef.current;
-
-    ws.onopen = () => {
-      isConnectedRef.current = true;
-      onConnectedChangeRef.current?.(true);
-      reconnectAttemptRef.current = 0;
-      onConnectionDelayRef.current?.(performance.now() - startTime);
-
-      if (visitorIdRef.current) {
-        ws.send(
-          JSON.stringify({
-            type: 'visitor_id',
-            visitor_id: visitorIdRef.current,
-          }),
-        );
-      }
-
-      // Start ping loop
-      stopPing();
-      pingTimerRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          pingStartTimeRef.current = performance.now();
-          ws.send(JSON.stringify({ type: 'ping' }));
-        }
-      }, pingIntervalMs);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (
-          data.type === 'count' &&
-          onCountRef.current &&
-          typeof data.count === 'number'
-        ) {
-          onCountRef.current(data.count);
-        } else if (data.type === 'pong') {
-          onConnectionDelayRef.current?.(
-            performance.now() - pingStartTimeRef.current,
-          );
-        }
-      } catch {
-        // ignore non-JSON or malformed messages
-      }
-    };
-
-    ws.onclose = (event) => {
-      isConnectedRef.current = false;
-      onConnectedChangeRef.current?.(false);
-      stopPing();
-      if (event.code !== 1000) {
-        const delay = Math.min(
-          reconnectBaseMs * Math.pow(2, reconnectAttemptRef.current),
-          reconnectMaxMs,
-        );
-        reconnectTimerRef.current = setTimeout(
-          () => connectRef.current?.(),
-          delay,
-        );
-        reconnectAttemptRef.current++;
-      }
-    };
-
-    ws.onerror = () => {
-      ws.close();
-    };
-  }, [url, reconnectBaseMs, reconnectMaxMs, pingIntervalMs, stopPing]);
-
-  // Keep ref pointing at the latest connect so the setTimeout above
-  // can re-invoke it without referring to a forward-declared const.
-  useEffect(() => {
-    connectRef.current = connect;
-  }, [connect]);
-
-  const disconnect = useCallback(() => {
-    stopPing();
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.close(1000);
-      wsRef.current = null;
-    }
-    isConnectedRef.current = false;
-    onConnectedChangeRef.current?.(false);
-  }, [stopPing]);
-
-  /** Send a ping and record start time for latency calculation */
-  const sendPing = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      pingStartTimeRef.current = performance.now();
-      wsRef.current.send(JSON.stringify({ type: 'ping' }));
-    }
-  }, []);
+  const managerRef = useRef<WebSocketManager | null>(null);
 
   useEffect(() => {
-    connect();
+    const manager = new WebSocketManager({
+      url,
+      visitorId: visitorIdRef.current,
+      onCount: (count) => onCountRef.current?.(count),
+      onOpen: () => onConnectedChangeRef.current?.(true),
+      onClose: () => onConnectedChangeRef.current?.(false),
+      onLatency: (ms) => onConnectionDelayRef.current?.(ms),
+      reconnectBaseMs,
+      reconnectMaxMs,
+      pingIntervalMs,
+    });
+    managerRef.current = manager;
+
+    manager.connect();
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && !isConnectedRef.current) {
-        reconnectAttemptRef.current = 0;
-        connect();
+      if (
+        document.visibilityState === 'visible' &&
+        !manager.isConnected
+      ) {
+        manager.connect();
       }
     };
 
     const handleOnline = () => {
-      reconnectAttemptRef.current = 0;
-      connect();
+      manager.connect();
     };
 
     const handleBeforeUnload = () => {
-      disconnect();
+      manager.disconnect();
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
@@ -210,9 +86,14 @@ export function useWebsocket(options: UseWebSocketOptions) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      disconnect();
+      manager.disconnect();
+      managerRef.current = null;
     };
-  }, [connect, disconnect]);
+  }, [url, reconnectBaseMs, reconnectMaxMs, pingIntervalMs]);
+
+  const sendPing = useCallback(() => {
+    managerRef.current?.sendPing();
+  }, []);
 
   return { sendPing };
 }

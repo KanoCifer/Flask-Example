@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/request';
-import { tokenService } from '@/api/tokenService';
+import { tokenService } from '@readinglist/utils';
 
 // ── devtask service-JWT 缓存 ──
 // /v3/dev-tasks/* 走 DevTaskMiddleware（service-JWT 鉴权），与用户 JWT 是两套体系。

@@ -1,0 +1,25 @@
+{
+  "name": "@readinglist/utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "跨前端共享的纯工具函数（框架无关，零 React/Vue 运行时依赖）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "culori": "^4.0.2",
+    "dayjs": "^1.11.21",
+    "dompurify": "^3.4.12",
+    "marked": "^18.0.7",
+    "ua-parser-js": "^2.0.10",
+    "uuid": "^13.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.0"
+  }
+}

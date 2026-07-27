@@ -1,15 +1,16 @@
-import { playThemeTransition } from '@/lib';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import {
+  playThemeTransition,
+  COLOR_SCHEMES,
+  isColorScheme,
+} from '@readinglist/utils';
+import type { ColorScheme } from '@readinglist/utils';
 
 export type Theme = 'light' | 'dark' | 'system';
-export type ColorScheme = 'paper' | 'sage' | 'mist' | 'blush';
-
-export const COLOR_SCHEMES = ['paper', 'sage', 'mist', 'blush'] as const;
-
-export const isColorScheme = (v: unknown): v is ColorScheme =>
-  typeof v === 'string' && (COLOR_SCHEMES as readonly string[]).includes(v);
 export type FontFamily = 'default' | 'harmonyos';
+export type { ColorScheme } from '@readinglist/utils';
+
 export const useThemeStore = defineStore('theme', () => {
   const theme = ref<Theme>(
     (localStorage.getItem('theme') as Theme) || 'system',

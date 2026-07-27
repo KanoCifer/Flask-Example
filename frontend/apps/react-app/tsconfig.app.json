@@ -10,6 +10,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@readinglist/types": ["../../packages/types/src/index.ts"],
+      "@readinglist/utils": ["../../packages/utils/src/index.ts"],
     },
 
     /* Bundler mode */

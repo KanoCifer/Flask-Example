@@ -1,6 +1,13 @@
-import type { Theme } from '@/stores';
+// ── themeTransition.ts ──────────────────────────────────────────────────────
+// 主题切换的 clip-path 圆形展开动画。框架无关，直接操作 DOM。
+//
+// 从 Vue 端 `lib/dom.ts` 与 React 端 `lib/themeTransition.ts` 迁入，
+// 以 React 端为底本（已使用字面量类型，无框架依赖）。
 
-function getCssVar(
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+/** 读取当前主题/配色方案下的 CSS 变量值，取不到时回退到 fallback。 */
+export function getCssVar(
   isDark: boolean,
   scheme: string | undefined,
   varName: string,
@@ -16,10 +23,8 @@ function getCssVar(
   return value || fallback;
 }
 
-function createTransitionIcon(
-  targetTheme: Theme,
-  inkColor: string,
-): HTMLElement {
+/** 目标主题对应的居中图标（纯 SVG 内联字符串，无框架依赖）。 */
+function createTransitionIcon(targetTheme: ThemeMode): HTMLElement {
   const container = document.createElement('div');
   container.style.cssText = `
     position: absolute;
@@ -33,7 +38,7 @@ function createTransitionIcon(
   if (targetTheme === 'dark') {
     container.innerHTML = `<div><svg t="1778846851241" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8408" width="120" height="120"><path d="M718.506667 500.906667a213.333333 213.333333 0 0 0-413.013334 0 42.666667 42.666667 0 0 0 42.666667 53.333333h330.24a42.666667 42.666667 0 0 0 42.666667-53.333333zM512 298.666667a42.666667 42.666667 0 0 1-42.666667-42.666667V170.666667a42.666667 42.666667 0 0 1 85.333334 0v85.333333a42.666667 42.666667 0 0 1-42.666667 42.666667zM300.8 386.133333a42.666667 42.666667 0 0 1-30.293333-12.373333L210.346667 313.173333a42.666667 42.666667 0 0 1 60.16-60.16l60.586666 60.16a42.666667 42.666667 0 0 1 0 60.586667 42.666667 42.666667 0 0 1-30.293333 12.373333zM725.333333 386.133333a42.666667 42.666667 0 0 1-30.293333-12.373333 42.666667 42.666667 0 0 1 0-60.586667l60.586667-60.16a42.666667 42.666667 0 1 1 60.16 60.16l-62.293334 60.586667a42.666667 42.666667 0 0 1-28.16 12.373333zM896 725.333333H128a42.666667 42.666667 0 0 1 0-85.333333h768a42.666667 42.666667 0 0 1 0 85.333333zM725.333333 896H298.666667a42.666667 42.666667 0 0 1 0-85.333333h426.666666a42.666667 42.666667 0 0 1 0 85.333333z" fill="#ffffff" p-id="8409"></path></svg></div>`;
   } else if (targetTheme === 'system') {
-    container.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="${inkColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-laptop-icon lucide-laptop"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z"/><path d="M20.054 15.987H3.946"/></svg>`;
+    container.innerHTML = `<div><svg viewBox="0 0 48 48" width="120" height="120" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="44" height="28" rx="2" ry="2"/><line x1="16" y1="42" x2="32" y2="42"/><line x1="24" y1="35" x2="24" y2="42"/></svg></div>`;
   } else {
     container.innerHTML = `<div class="animate-tt-spin"><svg viewBox="0 0 48 48" width="120" height="120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9.15039 9.15088L11.3778 11.3783" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 24H6.15" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.15039 38.8495L11.3778 36.6221" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M38.8495 38.8495L36.6221 36.6221" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M44.9996 24H41.8496" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M38.8495 9.15088L36.6221 11.3783" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 3V6.15" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 36C30.6274 36 36 30.6274 36 24C36 17.3726 30.6274 12 24 12C17.3726 12 12 17.3726 12 24C12 30.6274 17.3726 36 24 36Z" fill="#f5df17" stroke="#f5df17" stroke-width="4" stroke-linejoin="round"/><path d="M24 45.0001V41.8501" stroke="#f5df17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
   }
@@ -41,12 +46,20 @@ function createTransitionIcon(
   return container;
 }
 
+/**
+ * 在点击位置播放 clip-path 圆形展开/收缩动画。
+ *
+ * @param event 含 clientX/clientY 的鼠标/触摸事件
+ * @param targetTheme 目标主题
+ * @param scheme 可选配色方案名（会写到 data-color-scheme 上取对应 CSS 变量）
+ * @param onComplete 第一段展开完成时的回调（此时画面已被新主题色覆盖，可在此切换 store 状态）
+ */
 export function playThemeTransition(
-  event: MouseEvent,
-  targetTheme: Theme,
+  event: { clientX: number; clientY: number },
+  targetTheme: ThemeMode,
   scheme?: string,
   onComplete?: () => void,
-) {
+): void {
   const isDark =
     targetTheme === 'dark' ||
     (targetTheme === 'system' &&
@@ -57,12 +70,6 @@ export function playThemeTransition(
     scheme,
     '--page',
     isDark ? '#0f172a' : '#ffffff',
-  );
-  const inkColor = getCssVar(
-    isDark,
-    scheme,
-    '--ink',
-    isDark ? '#f8fafc' : '#0f172a',
   );
 
   const cx = event.clientX;
@@ -79,7 +86,7 @@ export function playThemeTransition(
     transition: clip-path 0.6s ease-in-out;
   `;
 
-  const icon = createTransitionIcon(targetTheme, inkColor);
+  const icon = createTransitionIcon(targetTheme);
   overlay.appendChild(icon);
 
   document.body.appendChild(overlay);

@@ -1,23 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { playThemeTransition } from '../lib/themeTransition';
+import {
+  playThemeTransition,
+  COLOR_SCHEMES,
+  isColorScheme,
+  safeScheme,
+} from '@readinglist/utils';
+import type { ColorScheme } from '@readinglist/utils';
 
 type Theme = 'light' | 'dark' | 'system';
 type FontFamily = 'default' | 'harmonyos';
-type ColorScheme = 'paper' | 'sage' | 'mist' | 'blush';
-
-const COLOR_SCHEMES: readonly ColorScheme[] = [
-  'paper',
-  'sage',
-  'mist',
-  'blush',
-];
-
-const isColorScheme = (v: unknown): v is ColorScheme =>
-  typeof v === 'string' && (COLOR_SCHEMES as readonly string[]).includes(v);
-
-const safeScheme = (v: unknown): ColorScheme =>
-  isColorScheme(v) ? v : 'paper';
 
 interface ThemeState {
   theme: Theme;
@@ -44,7 +36,8 @@ interface ThemeState {
 
 const BG_DEFAULTS = { blur: 8, brightness: 1.0, scale: 1.05 } as const;
 
-export type { Theme, FontFamily, ColorScheme };
+export type { Theme, FontFamily };
+export type { ColorScheme } from '@readinglist/utils';
 
 const applyTheme = (newTheme: Theme) => {
   const root = document.documentElement;
