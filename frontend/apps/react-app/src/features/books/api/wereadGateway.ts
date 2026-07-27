@@ -248,7 +248,7 @@ export const wereadGateway = {
     refresh = false,
   ): Promise<ApiResponse<WereadBookProgress | null>> {
     const res = await apiClient.get<ApiResponse<WereadBookProgress | null>>(
-      `v2/weread/book/${bookId}/progress`,
+      `v3/weread/book/${bookId}/progress`,
       { params: { refresh } },
     );
     return res.data;

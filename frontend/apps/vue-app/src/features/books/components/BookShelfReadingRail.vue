@@ -62,7 +62,6 @@
 import type { WereadUserBook } from '@/features/books/api';
 import WereadBookCard from '@/features/books/components/WereadBookCard.vue';
 import { Motion } from 'motion-v';
-import { EASE } from '@/constants';
 import { formatRelative } from '@/lib/dayjs';
 import { Button } from '@/components';
 import { onBeforeUnmount, onMounted, ref } from 'vue';

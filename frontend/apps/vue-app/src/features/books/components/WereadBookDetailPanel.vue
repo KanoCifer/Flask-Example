@@ -378,9 +378,16 @@ const coverGradient = computed(() =>
                   variant="ghost"
                   size="icon"
                   :title="book.secret ? '取消隐藏' : '隐藏'"
-                  class="!active:scale-100 text-muted hover:text-ink inline-flex items-center gap-2 !rounded-full px-3 py-2.5 text-sm font-normal"
+                  class="!active:scale-100 text-muted hover:text-ink relative inline-flex items-center gap-2 !rounded-full px-3 py-2.5 text-sm font-normal"
                 >
-                  <component :is="book.secret ? Eye : EyeOff" class="h-4 w-4" />
+                  <Eye
+                    class="h-4 w-4 transition-opacity duration-200"
+                    :class="book.secret ? 'opacity-0' : 'opacity-100'"
+                  />
+                  <EyeOff
+                    class="absolute top-1/2 left-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200"
+                    :class="book.secret ? 'opacity-100' : 'opacity-0'"
+                  />
                 </Button>
               </motion.div>
             </div>

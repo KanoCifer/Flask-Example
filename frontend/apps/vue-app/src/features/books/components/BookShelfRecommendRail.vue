@@ -49,59 +49,61 @@
       >
         <button
           type="button"
-          class="group block w-full text-left"
+          class="group block w-full overflow-visible text-left"
           @click="open(book)"
         >
           <Motion
             :layoutId="RECOMMEND_COVER_LAYOUT_ID_PREFIX + book.bookId"
-            class="bg-page relative aspect-3/4 overflow-hidden rounded-xl shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+            class="bg-page relative aspect-3/4 overflow-hidden rounded-xl shadow-sm transition-[translate,box-shadow,scale] duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
           >
-          <img
-            v-if="book.cover"
-            :src="book.cover"
-            :alt="book.title"
-            loading="lazy"
-            decoding="async"
-            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            @error="($event.target as HTMLImageElement).style.display = 'none'"
-          />
-          <div
-            v-else
-            class="bg-surface flex h-full w-full items-center justify-center"
-          >
-            <span class="text-muted/40 font-serif text-2xl">
-              {{ book.title.slice(0, 1) }}
-            </span>
-          </div>
+            <img
+              v-if="book.cover"
+              :src="book.cover"
+              :alt="book.title"
+              loading="lazy"
+              decoding="async"
+              class="h-full w-full overflow-visible object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              @error="
+                ($event.target as HTMLImageElement).style.display = 'none'
+              "
+            />
+            <div
+              v-else
+              class="bg-surface flex h-full w-full items-center justify-center"
+            >
+              <span class="text-muted/40 font-serif text-2xl">
+                {{ book.title.slice(0, 1) }}
+              </span>
+            </div>
 
-          <span
-            v-if="book.newRating > 0"
-            class="bg-page/85 text-ink absolute top-2 right-2 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums backdrop-blur-md"
+            <span
+              v-if="book.newRating > 0"
+              class="bg-page/85 text-ink absolute top-2 right-2 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums backdrop-blur-md"
+            >
+              <Star class="text-ink h-2.5 w-2.5 fill-current" />
+              {{ ratingScore(book.newRating) }}
+            </span>
+          </Motion>
+          <p
+            class="text-ink mt-2 line-clamp-2 px-1 text-xs leading-snug font-medium"
+            :title="book.title"
           >
-            <Star class="text-ink h-2.5 w-2.5 fill-current" />
-            {{ ratingScore(book.newRating) }}
-          </span>
-        </Motion>
-        <p
-          class="text-ink mt-2 line-clamp-2 px-1 text-xs leading-snug font-medium"
-          :title="book.title"
-        >
-          {{ book.title }}
-        </p>
-        <p
-          v-if="book.author"
-          class="text-muted mt-0.5 truncate px-1 text-[11px]"
-          :title="book.author"
-        >
-          {{ book.author }}
-        </p>
-        <p
-          v-if="book.reason"
-          class="text-muted/70 mt-1 line-clamp-2 px-1 text-[10.5px] leading-snug"
-          :title="book.reason"
-        >
-          {{ book.reason }}
-        </p>
+            {{ book.title }}
+          </p>
+          <p
+            v-if="book.author"
+            class="text-muted mt-0.5 truncate px-1 text-[11px]"
+            :title="book.author"
+          >
+            {{ book.author }}
+          </p>
+          <p
+            v-if="book.reason"
+            class="text-muted/70 mt-1 line-clamp-2 px-1 text-[10.5px] leading-snug"
+            :title="book.reason"
+          >
+            {{ book.reason }}
+          </p>
         </button>
       </Motion>
     </template>

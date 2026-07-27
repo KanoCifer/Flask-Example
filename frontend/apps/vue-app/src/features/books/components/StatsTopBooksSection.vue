@@ -68,7 +68,7 @@ const visible = computed(() => topBooks.value.length > 0);
         <div class="flex flex-1 items-center gap-3">
           <div class="bg-surface h-1 flex-1 overflow-hidden rounded-full">
             <div
-              class="bg-accent h-full rounded-full transition-all duration-700"
+              class="bg-accent h-full rounded-full transition-[width] duration-700"
               :style="{ width: `${barPercent(book.readTime)}%` }"
             />
           </div>

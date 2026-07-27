@@ -82,9 +82,9 @@ const badgeCls = computed(() =>
     : 'bg-accent/85 text-ink backdrop-blur-sm',
 );
 
-const gridAnimStyle = computed(() => ({
-  animationDelay: `${props.index * 30}ms`,
-}));
+// const gridAnimStyle = computed(() => ({
+//   animationDelay: `${props.index * 30}ms`,
+// }));
 
 function handleSelect() {
   emit('select', props.book);
@@ -104,7 +104,7 @@ function onImgError(e: Event) {
     <!-- ─── List variant: 横向单行 ────────────────────────────── -->
     <div
       v-if="isList"
-      class="book-card /60 bg-page hover:bg-surface/40 hover:shadow-accent/5 flex items-center gap-3 rounded-xl border p-3 transition-all duration-300 sm:gap-4 sm:p-4"
+      class="book-card bg-page hover:bg-surface/40 hover:shadow-accent/5 flex items-center gap-3 rounded-xl border p-3 transition-[background-color,box-shadow,border-color] duration-300 sm:gap-4 sm:p-4"
       :style="gridAnimStyle"
     >
       <div
@@ -167,8 +167,7 @@ function onImgError(e: Event) {
     <!-- ─── Grid variants: standard / compact ─────────────────── -->
     <div
       v-else
-      class="book-card bg-page ring-border/0 group-hover:ring-border/40 group-hover:shadow-accent/10 relative overflow-hidden rounded-xl shadow-sm ring-1 transition-all duration-300 ease-out ring-inset group-hover:-translate-y-1 group-hover:shadow-lg"
-      :style="gridAnimStyle"
+      class="book-card bg-page ring-border/0 group-hover:ring-border/40 group-hover:shadow-accent/10 relative overflow-hidden rounded-xl shadow-sm ring-1 transition-[translate,opacity] duration-300 ease-out ring-inset group-hover:-translate-y-1 group-hover:shadow-lg"
     >
       <div class="relative aspect-3/4 overflow-hidden">
         <img
@@ -193,6 +192,12 @@ function onImgError(e: Event) {
           </span>
         </div>
 
+        <!-- 封面描边:1px 纯黑/纯白低透明度,给图片统一的边缘层次 -->
+        <div
+          class="pointer-events-none absolute inset-0 ring-1 ring-black/10 ring-inset dark:ring-white/10"
+          aria-hidden="true"
+        />
+
         <!-- hover: 自下而上渐变薄纱,只暗化下半部,封面标题仍可读 -->
         <div
           class="from-ink/40 via-ink/10 pointer-events-none absolute inset-0 bg-gradient-to-t to-transparent opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
@@ -201,7 +206,7 @@ function onImgError(e: Event) {
         <!-- hover: 中央动作按钮(带 scale 弹入) -->
         <div class="absolute inset-0 flex items-center justify-center">
           <div
-            class="bg-page/90 text-ink ring-border/50 flex h-9 w-9 scale-90 items-center justify-center rounded-full opacity-0 shadow-md ring-1 backdrop-blur-md transition-all duration-300 ease-out group-hover:scale-100 group-hover:opacity-100"
+            class="bg-page/90 text-ink ring-border/50 flex h-9 w-9 scale-90 items-center justify-center rounded-full opacity-0 shadow-md ring-1 backdrop-blur-md transition-[transform,opacity] duration-300 ease-out group-hover:scale-100 group-hover:opacity-100"
           >
             <ChevronRight class="h-4 w-4" />
           </div>
@@ -244,7 +249,7 @@ function onImgError(e: Event) {
 <style scoped>
 /* 网格 + 列表 stagger 入场:配合 :style="gridAnimStyle" (animationDelay) 使用。
    30ms × index 错峰,>8 项的长尾在 240ms 后几乎同时出现(在视觉上不会察觉)。 */
-.book-card {
+/*.book-card {
   animation: book-card-fade 380ms ease-out backwards;
 }
 
@@ -263,5 +268,5 @@ function onImgError(e: Event) {
   .book-card {
     animation: none;
   }
-}
+}*/
 </style>

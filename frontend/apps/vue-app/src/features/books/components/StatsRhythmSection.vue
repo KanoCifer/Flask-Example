@@ -71,11 +71,11 @@ const visible = computed(() => hasData.value);
       </p>
       <div class="bg-surface flex h-2 overflow-hidden rounded-full">
         <div
-          class="bg-accent h-full transition-all duration-700"
+          class="bg-accent h-full transition-[width] duration-700"
           :style="{ width: `${readPercent}%` }"
         />
         <div
-          class="bg-success h-full transition-all duration-700"
+          class="bg-success h-full transition-[width] duration-700"
           :style="{ width: `${listenPercent}%` }"
         />
       </div>

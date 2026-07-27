@@ -508,7 +508,7 @@ func TestParseShelfRaw_FromUpstream(t *testing.T) {
 			},
 			{
 				BookId: "b2", Title: "无分类书", Author: "某人", Cover: "",
-				Category: nil, // 测试 nil category
+				Category:      nil, // 测试 nil category
 				FinishReading: 0, Secret: 1,
 			},
 		},
@@ -959,6 +959,234 @@ func assertRecommendItem(t *testing.T, item dto.BookRecommendItem, bookID, title
 		if item.Cover != nil {
 			t.Errorf("expected nil cover, got %q", *item.Cover)
 		}
+	}
+}
+
+// ── FetchBookProgress ────────────────────────────────────────────────
+
+// sampleBookProgressNested 是上游 /book/getprogress 的嵌套形态:
+// 顶层仅 bookId/timestamp,进度字段包在 raw["book"] 里。
+const sampleBookProgressNested = `{
+	"bookId": "book-1",
+	"timestamp": 1700000000,
+	"book": {
+		"chapterUid": 100,
+		"chapterOffset": 50,
+		"progress": 42,
+		"updateTime": 1700000000,
+		"readingTime": 3600,
+		"finishTime": 0,
+		"isStartReading": "1"
+	}
+}`
+
+// sampleBookProgressFlat 是直平形态:进度字段直接在顶层。
+const sampleBookProgressFlat = `{
+	"chapterUid": 100,
+	"chapterOffset": 50,
+	"progress": 42,
+	"updateTime": 1700000000,
+	"readingTime": 3600,
+	"finishTime": 0,
+	"isStartReading": "1"
+}`
+
+// buildProgressService 构造指向指定响应的测试 Service,复用 newTestService 的固定 token。
+func buildProgressService(t *testing.T, mr *miniredis.Miniredis, srv *httptest.Server) *weread.Service {
+	t.Helper()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	repo := &mockRepository{token: "test-token"}
+	return weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+}
+
+func TestService_FetchBookProgress_NestedShape(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleBookProgressNested))
+	}))
+	t.Cleanup(srv.Close)
+
+	svc := buildProgressService(t, mr, srv)
+
+	p, err := svc.FetchBookProgress(context.Background(), "user-1", "book-1", false)
+	if err != nil {
+		t.Fatalf("FetchBookProgress: %v", err)
+	}
+	if p == nil {
+		t.Fatal("expected non-nil progress")
+	}
+	if p.ChapterUid == nil || *p.ChapterUid != 100 {
+		t.Errorf("chapterUid = %v, want 100", p.ChapterUid)
+	}
+	if p.ChapterOffset == nil || *p.ChapterOffset != 50 {
+		t.Errorf("chapterOffset = %v, want 50", p.ChapterOffset)
+	}
+	if p.Progress == nil || *p.Progress != 42 {
+		t.Errorf("progress = %v, want 42", p.Progress)
+	}
+	if p.ReadingTime != 3600 {
+		t.Errorf("readingTime = %d, want 3600", p.ReadingTime)
+	}
+	if p.IsStartReading != "1" {
+		t.Errorf("isStartReading = %q, want 1", p.IsStartReading)
+	}
+}
+
+func TestService_FetchBookProgress_FlatShape(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleBookProgressFlat))
+	}))
+	t.Cleanup(srv.Close)
+
+	svc := buildProgressService(t, mr, srv)
+
+	p, err := svc.FetchBookProgress(context.Background(), "user-1", "book-1", false)
+	if err != nil {
+		t.Fatalf("FetchBookProgress: %v", err)
+	}
+	if p.ChapterUid == nil || *p.ChapterUid != 100 {
+		t.Errorf("chapterUid = %v, want 100", p.ChapterUid)
+	}
+	if p.ReadingTime != 3600 {
+		t.Errorf("readingTime = %d, want 3600", p.ReadingTime)
+	}
+}
+
+func TestService_FetchBookProgress_CacheHitOnSecondCall(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+
+	var reqCount atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		reqCount.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleBookProgressNested))
+	}))
+	t.Cleanup(srv.Close)
+
+	svc := buildProgressService(t, mr, srv)
+	ctx := context.Background()
+
+	// 第一次:缓存未命中,请求上游并写缓存。
+	if _, err := svc.FetchBookProgress(ctx, "user-1", "book-1", false); err != nil {
+		t.Fatalf("FetchBookProgress (1st): %v", err)
+	}
+	// 第二次:应直接命中缓存。
+	if _, err := svc.FetchBookProgress(ctx, "user-1", "book-1", false); err != nil {
+		t.Fatalf("FetchBookProgress (2nd): %v", err)
+	}
+	if got := reqCount.Load(); got != 1 {
+		t.Errorf("expected 1 upstream request (cache hit on 2nd), got %d", got)
+	}
+
+	// 缓存键校验
+	cacheKey := "weread:book-progress:user-1:book-1"
+	if !mr.Exists(cacheKey) {
+		t.Errorf("cache key %q should exist", cacheKey)
+	}
+}
+
+func TestService_FetchBookProgress_RefreshBypassesCache(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+
+	var reqCount atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		reqCount.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleBookProgressNested))
+	}))
+	t.Cleanup(srv.Close)
+
+	svc := buildProgressService(t, mr, srv)
+	ctx := context.Background()
+
+	// 第一次:写缓存。
+	if _, err := svc.FetchBookProgress(ctx, "user-1", "book-1", false); err != nil {
+		t.Fatalf("FetchBookProgress (1st): %v", err)
+	}
+	// 第二次 (refresh=true):绕过旧缓存,重新请求上游。
+	if _, err := svc.FetchBookProgress(ctx, "user-1", "book-1", true); err != nil {
+		t.Fatalf("FetchBookProgress (refresh): %v", err)
+	}
+	if got := reqCount.Load(); got != 2 {
+		t.Errorf("expected 2 upstream requests (refresh bypasses cache), got %d", got)
+	}
+	// refresh 后缓存应存在新值
+	if !mr.Exists("weread:book-progress:user-1:book-1") {
+		t.Errorf("cache should be repopulated after refresh")
+	}
+}
+
+func TestService_FetchBookProgress_Unauthorized(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	repo := &mockRepository{token: "bad"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	_, err = svc.FetchBookProgress(context.Background(), "user-1", "book-1", false)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, weread.ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestService_FetchBookProgress_InvalidJSON(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`not json`))
+	}))
+	t.Cleanup(srv.Close)
+
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	repo := &mockRepository{token: "t"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	_, err = svc.FetchBookProgress(context.Background(), "user-1", "book-1", false)
+	if err == nil {
+		t.Fatal("expected error on invalid JSON, got nil")
 	}
 }
 

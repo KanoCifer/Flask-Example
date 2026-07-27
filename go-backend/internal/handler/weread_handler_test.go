@@ -24,12 +24,13 @@ func init() {
 // ── mock Wereader ────────────────────────────────────────────────────
 
 type mockWereader struct {
-	fetchFn            func(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
-	createFn           func(ctx context.Context, userID string, token string) error
-	fetchBookFn        func(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
-	fetchReadDetailFn  func(ctx context.Context, userID, mode string, baseTime *int) (*dto.ReadDetailSnapshot, error)
-	fetchHeatmapFn     func(ctx context.Context, userID string, year *int) (map[string]int, error)
-	fetchRecommendFn   func(ctx context.Context, userID string, count, maxIdx int) ([]dto.BookRecommendItem, error)
+	fetchFn             func(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
+	createFn            func(ctx context.Context, userID string, token string) error
+	fetchBookFn         func(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
+	fetchBookProgressFn func(ctx context.Context, userID string, bookID string, refresh bool) (*dto.WereadBookProgress, error)
+	fetchReadDetailFn   func(ctx context.Context, userID, mode string, baseTime *int) (*dto.ReadDetailSnapshot, error)
+	fetchHeatmapFn      func(ctx context.Context, userID string, year *int) (map[string]int, error)
+	fetchRecommendFn    func(ctx context.Context, userID string, count, maxIdx int) ([]dto.BookRecommendItem, error)
 }
 
 var _ Wereader = (*mockWereader)(nil)
@@ -51,6 +52,13 @@ func (m *mockWereader) CreateUserToken(ctx context.Context, userID string, token
 func (m *mockWereader) FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error) {
 	if m.fetchBookFn != nil {
 		return m.fetchBookFn(ctx, userID, bookID)
+	}
+	return nil, nil
+}
+
+func (m *mockWereader) FetchBookProgress(ctx context.Context, userID string, bookID string, refresh bool) (*dto.WereadBookProgress, error) {
+	if m.fetchBookProgressFn != nil {
+		return m.fetchBookProgressFn(ctx, userID, bookID, refresh)
 	}
 	return nil, nil
 }
@@ -631,6 +639,114 @@ func TestWereadHandler_GetBooksRecommend_RequiresAuth(t *testing.T) {
 	g.GET("/weread/books-recommend", h.GetBooksRecommend)
 
 	w := doWereadGET(r, "/v3/weread/books-recommend")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401; body=%s", w.Code, w.Body.String())
+	}
+}
+
+// ── GetBookProgress ──────────────────────────────────────────────────
+
+func TestWereadHandler_GetBookProgress_Success(t *testing.T) {
+	var gotUserID, gotBookID string
+	var gotRefresh bool
+	svc := &mockWereader{
+		fetchBookProgressFn: func(_ context.Context, userID string, bookID string, refresh bool) (*dto.WereadBookProgress, error) {
+			gotUserID = userID
+			gotBookID = bookID
+			gotRefresh = refresh
+			progress := 42
+			chapterUid := 100
+			return &dto.WereadBookProgress{
+				ChapterUid:  &chapterUid,
+				Progress:    &progress,
+				ReadingTime: 3600,
+			}, nil
+		},
+	}
+
+	w := doWereadGET(newWereadTestRouter(svc), "/v3/weread/book/book-1/progress")
+	if w.Code != 200 {
+		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
+	}
+
+	resp := decodeWereadResponse(t, w.Body.Bytes())
+	if resp.Message != "阅读进度获取成功" {
+		t.Errorf("message = %q, want 阅读进度获取成功", resp.Message)
+	}
+	if gotUserID != "42" {
+		t.Errorf("userID = %q, want 42", gotUserID)
+	}
+	if gotBookID != "book-1" {
+		t.Errorf("bookID = %q, want book-1", gotBookID)
+	}
+	if gotRefresh {
+		t.Errorf("refresh = true, want false (default)")
+	}
+
+	data, ok := resp.Data.(map[string]any)
+	if !ok {
+		t.Fatalf("data type = %T, want object", resp.Data)
+	}
+	if data["readingTime"].(float64) != 3600 {
+		t.Errorf("readingTime = %v, want 3600", data["readingTime"])
+	}
+}
+
+func TestWereadHandler_GetBookProgress_RefreshParam(t *testing.T) {
+	var gotRefresh bool
+	svc := &mockWereader{
+		fetchBookProgressFn: func(_ context.Context, _ string, _ string, refresh bool) (*dto.WereadBookProgress, error) {
+			gotRefresh = refresh
+			return &dto.WereadBookProgress{ReadingTime: 100}, nil
+		},
+	}
+
+	w := doWereadGET(newWereadTestRouter(svc), "/v3/weread/book/book-1/progress?refresh=true")
+	if w.Code != 200 {
+		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
+	}
+	if !gotRefresh {
+		t.Errorf("refresh = false, want true")
+	}
+}
+
+func TestWereadHandler_GetBookProgress_Unauthorized(t *testing.T) {
+	svc := &mockWereader{
+		fetchBookProgressFn: func(_ context.Context, _, _ string, _ bool) (*dto.WereadBookProgress, error) {
+			return nil, weread.ErrUnauthorized
+		},
+	}
+
+	w := doWereadGET(newWereadTestRouter(svc), "/v3/weread/book/book-1/progress")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401; body=%s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "微信读书授权已过期") {
+		t.Errorf("body = %s", w.Body.String())
+	}
+}
+
+func TestWereadHandler_GetBookProgress_InternalError(t *testing.T) {
+	svc := &mockWereader{
+		fetchBookProgressFn: func(_ context.Context, _, _ string, _ bool) (*dto.WereadBookProgress, error) {
+			return nil, errors.New("upstream timeout")
+		},
+	}
+
+	w := doWereadGET(newWereadTestRouter(svc), "/v3/weread/book/book-1/progress")
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500; body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestWereadHandler_GetBookProgress_RequiresAuth(t *testing.T) {
+	h := NewWereadHandler(&mockWereader{})
+	r := gin.New()
+	g := r.Group("/v3")
+	// 不注入 authMW → 没有 user_id
+	g.GET("/weread/book/:bookId/progress", h.GetBookProgress)
+
+	w := doWereadGET(r, "/v3/weread/book/book-1/progress")
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401; body=%s", w.Code, w.Body.String())
 	}

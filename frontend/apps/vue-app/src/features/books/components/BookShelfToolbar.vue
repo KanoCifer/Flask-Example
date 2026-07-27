@@ -24,7 +24,7 @@
         aria-label="书架密度"
       >
         <span
-          class="bg-accent pointer-events-none absolute top-1/2 left-0.5 size-9 rounded-lg shadow-sm transition-transform duration-280 ease-in-out"
+          class="bg-accent pointer-events-none absolute top-1/2 left-0.5 size-9 rounded-[10px] shadow-sm transition-transform duration-280 ease-in-out"
           :style="{
             transform: `translate(${36 * densityIndex}px, -50%)`,
           }"

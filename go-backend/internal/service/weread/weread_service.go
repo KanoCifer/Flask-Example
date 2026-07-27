@@ -22,6 +22,7 @@ type Reader interface {
 	CreateUserToken(ctx context.Context, userID string, token string) error
 	FetchUserShelf(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
 	FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
+	FetchBookProgress(ctx context.Context, userID string, bookID string, refresh bool) (*dto.WereadBookProgress, error)
 	FetchReadDetail(ctx context.Context, userID string, mode string, baseTime *int) (*dto.ReadDetailSnapshot, error)
 	FetchYearlyHeatmap(ctx context.Context, userID string, year *int) (map[string]int, error)
 	FetchBooksRecommend(ctx context.Context, userID string, count, maxIdx int) ([]dto.BookRecommendItem, error)
@@ -34,10 +35,11 @@ type Repositoryer interface {
 }
 
 const (
-	shelfPath      = "/shelf/sync"
-	bookPath       = "/book/info"
-	readDetailPath = "/readdata/detail"
-	recommendPath  = "/book/recommend"
+	shelfPath        = "/shelf/sync"
+	bookPath         = "/book/info"
+	bookProgressPath = "/book/getprogress"
+	readDetailPath   = "/readdata/detail"
+	recommendPath    = "/book/recommend"
 )
 
 // Service 实现 Reader，组合 HTTP 客户端与缓存。
@@ -92,6 +94,49 @@ func (s *Service) FetchBookInfo(ctx context.Context, userID string, bookID strin
 		return nil, fmt.Errorf("%w: parse book response: %w", ErrUpstream, err)
 	}
 	return rawResp.toDTO(time.Now().UTC()), nil
+}
+
+// FetchBookProgress 获取单本书阅读进度，Redis 10 分钟缓存，不写 Mongo。
+// refresh=true 先清旧缓存再走 SendRequest，强制触发上游拉取并回写缓存。
+// 上游 /book/getprogress 有两种返回形态：
+//   - 顶层 {bookId, timestamp, book: {...progress fields}}  → 解析 .book
+//   - 直平 {...progress fields}                              → 直接解析
+//
+// 对齐 Python stats.py fetch_progress_by_book_id。
+func (s *Service) FetchBookProgress(ctx context.Context, userID string, bookID string, refresh bool) (*dto.WereadBookProgress, error) {
+	const cacheTTL = 10 * time.Minute
+	cacheKey := "weread:book-progress:" + userID + ":" + bookID
+
+	if refresh {
+		if err := s.client.InvalidateCache(ctx, cacheKey); err != nil {
+			slog.WarnContext(ctx, "weread invalidate book-progress cache", "cache_key", cacheKey, "error", err)
+		}
+	}
+
+	extra := map[string]any{"bookId": bookID}
+	raw, err := s.client.SendRequest(ctx, cacheKey, cacheTTL, userID, bookProgressPath, extra)
+	if err != nil {
+		return nil, err
+	}
+
+	// 上游有时把进度字段包在 raw["book"] 里,顶多只剩 bookId/timestamp;
+	// 先按嵌套结构尝试,解析失败/无 book 字段时回退直平结构。
+	var wrapped struct {
+		Book json.RawMessage `json:"book"`
+	}
+	if err := json.Unmarshal(raw, &wrapped); err == nil && len(wrapped.Book) > 0 && string(wrapped.Book) != "null" {
+		var p dto.WereadBookProgress
+		if err := json.Unmarshal(wrapped.Book, &p); err != nil {
+			return nil, fmt.Errorf("%w: parse progress.book: %w", ErrUpstream, err)
+		}
+		return &p, nil
+	}
+
+	var p dto.WereadBookProgress
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, fmt.Errorf("%w: parse progress: %w", ErrUpstream, err)
+	}
+	return &p, nil
 }
 
 // FetchReadDetail 获取指定 mode + 周期的阅读统计快照。

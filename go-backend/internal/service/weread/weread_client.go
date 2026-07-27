@@ -93,6 +93,15 @@ func (c *Client) BuildPayload(ctx context.Context, userID string, apiName string
 	return payload, authHeader
 }
 
+// InvalidateCache 删除一个缓存 key，用于 refresh=true 时强制下一次 SendRequest 走上游。
+// 空 key / nil redis 直接返回 nil 不报错。
+func (c *Client) InvalidateCache(ctx context.Context, cacheKey string) error {
+	if c.redis == nil || cacheKey == "" {
+		return nil
+	}
+	return c.redis.Del(ctx, cacheKey).Err()
+}
+
 // SendRequest 发送 POST 请求到微信读书 API，带 Redis 缓存和重试。
 // 缓存命中时直接返回；未命中则请求上游，写回缓存后返回。
 func (c *Client) SendRequest(ctx context.Context, cacheKey string, ttl time.Duration, userID string, apiName string, extraData ...map[string]any) (json.RawMessage, error) {
@@ -147,13 +156,11 @@ func (c *Client) SendRequest(ctx context.Context, cacheKey string, ttl time.Dura
 		return nil, fmt.Errorf("%w: read body: %w", ErrUpstream, err)
 	}
 
-	// 异步写回缓存
+	// 同步写回缓存:确保响应返回前缓存已落定,避免 ctx 取消 / 测试 rdb.Close() 导致丢写。
 	if c.redis != nil {
-		go func() {
-			if err := c.redis.Set(ctx, cacheKey, body, ttl).Err(); err != nil {
-				slog.WarnContext(ctx, "weread cache write failed", "cache_key", cacheKey, "error", err)
-			}
-		}()
+		if err := c.redis.Set(ctx, cacheKey, body, ttl).Err(); err != nil {
+			slog.WarnContext(ctx, "weread cache write failed", "cache_key", cacheKey, "error", err)
+		}
 	}
 
 	return json.RawMessage(body), nil

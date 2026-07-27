@@ -29,8 +29,8 @@ type WereadBookResponse struct {
 
 // WereadShelfRaw 是 /shelf/sync 回包的顶层结构，与微信读书上游 API 1:1 对齐。
 type WereadShelfRaw struct {
-	Books       []WereadShelfBookRaw `json:"books"`
-	Archive     []WereadShelfArchiveRaw `json:"archive"`
+	Books   []WereadShelfBookRaw    `json:"books"`
+	Archive []WereadShelfArchiveRaw `json:"archive"`
 }
 
 // WereadShelfBookRaw 是上游 books 数组中的单本书。
@@ -96,13 +96,13 @@ type ReadDetailSnapshot struct {
 	FetchedAt string `json:"fetched_at"`
 
 	// ── Weekly ──────────────────────────────────────────────────────-
-	ReadTimes         map[string]int       `json:"readTimes,omitempty"`
-	ReadDays          *int                 `json:"readDays,omitempty"`
-	ReadLongest       []ReadLongestItem    `json:"readLongest,omitempty"`
-	Rank              *ReadRank            `json:"rank,omitempty"`
-	Compare           *float64             `json:"compare,omitempty"`
-	DayAverageReadTime *int                `json:"dayAverageReadTime,omitempty"`
-	TotalReadTime     *int                 `json:"totalReadTime,omitempty"`
+	ReadTimes          map[string]int    `json:"readTimes,omitempty"`
+	ReadDays           *int              `json:"readDays,omitempty"`
+	ReadLongest        []ReadLongestItem `json:"readLongest,omitempty"`
+	Rank               *ReadRank         `json:"rank,omitempty"`
+	Compare            *float64          `json:"compare,omitempty"`
+	DayAverageReadTime *int              `json:"dayAverageReadTime,omitempty"`
+	TotalReadTime      *int              `json:"totalReadTime,omitempty"`
 
 	// ── Monthly 附加 ────────────────────────────────────────────────-
 	PreferCategory     []ReadCategoryItem `json:"preferCategory,omitempty"`
@@ -110,24 +110,24 @@ type ReadDetailSnapshot struct {
 	ReadStat           []ReadStatItem     `json:"readStat,omitempty"`
 
 	// ── Annually 附加 ────────────────────────────────────────────────
-	PreferAuthor     []ReadAuthorItem    `json:"preferAuthor,omitempty"`
-	AuthorCount      *int                `json:"authorCount,omitempty"`
-	PreferPublisher  []ReadPublisherItem `json:"preferPublisher,omitempty"`
-	ReadRate         *int                `json:"readRate,omitempty"`
-	WrReadTime       *int                `json:"wrReadTime,omitempty"`
-	WrListenTime     *int                `json:"wrListenTime,omitempty"`
+	PreferAuthor    []ReadAuthorItem    `json:"preferAuthor,omitempty"`
+	AuthorCount     *int                `json:"authorCount,omitempty"`
+	PreferPublisher []ReadPublisherItem `json:"preferPublisher,omitempty"`
+	ReadRate        *int                `json:"readRate,omitempty"`
+	WrReadTime      *int                `json:"wrReadTime,omitempty"`
+	WrListenTime    *int                `json:"wrListenTime,omitempty"`
 
 	// ── Overall 附加 ────────────────────────────────────────────────-
-	PreferTime     []int  `json:"preferTime,omitempty"`
+	PreferTime     []int   `json:"preferTime,omitempty"`
 	PreferTimeWord *string `json:"preferTimeWord,omitempty"`
 }
 
 // ReadLongestItem 是 readLongest 数组项。
 type ReadLongestItem struct {
-	Book      *ReadDetailBook    `json:"book,omitempty"`
-	AlbumInfo map[string]any     `json:"albumInfo,omitempty"`
-	ReadTime  int                `json:"readTime"`
-	Tags      []string           `json:"tags,omitempty"`
+	Book      *ReadDetailBook `json:"book,omitempty"`
+	AlbumInfo map[string]any  `json:"albumInfo,omitempty"`
+	ReadTime  int             `json:"readTime"`
+	Tags      []string        `json:"tags,omitempty"`
 }
 
 // ReadDetailBook 是 readLongest 数组项中的 book 字段。
@@ -190,6 +190,19 @@ type BookRecommendItem struct {
 	NewRating    int     `json:"newRating"`
 }
 
+// WereadBookProgress 是单本书的阅读进度。
+// 字段对齐 Python models/weread/documents.py ReadProgress，
+// 其中 IsStartReading 在前端契约里是 string|null(upstream 原始为 "0"/"1")。
+type WereadBookProgress struct {
+	ChapterUid     *int   `json:"chapterUid,omitempty"`
+	ChapterOffset  *int   `json:"chapterOffset,omitempty"`
+	Progress       *int   `json:"progress,omitempty"`
+	UpdateTime     *int   `json:"updateTime,omitempty"`
+	ReadingTime    int    `json:"readingTime"`
+	FinishTime     *int   `json:"finishTime,omitempty"`
+	IsStartReading string `json:"isStartReading,omitempty"`
+}
+
 // ParseShelfRaw 将上游原生结构转换为前端契约结构。
 // 对齐 Python parse_shelf_books + get_user_shelf 的转换逻辑。
 func ParseShelfRaw(raw WereadShelfRaw) *WereadShelfResponse {
@@ -222,8 +235,8 @@ func ParseShelfRaw(raw WereadShelfRaw) *WereadShelfResponse {
 			}
 		}
 		archives = append(archives, WereadShelfArchive{
-			Name:    a.Name,
-			BookIds: a.BookIds,
+			Name:     a.Name,
+			BookIds:  a.BookIds,
 			AlbumIds: albumIds,
 		})
 	}

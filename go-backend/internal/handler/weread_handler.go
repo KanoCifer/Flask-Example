@@ -19,6 +19,7 @@ type Wereader interface {
 	CreateUserToken(ctx context.Context, userID string, token string) error
 	FetchUserShelf(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
 	FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
+	FetchBookProgress(ctx context.Context, userID string, bookID string, refresh bool) (*dto.WereadBookProgress, error)
 	FetchReadDetail(ctx context.Context, userID, mode string, baseTime *int) (*dto.ReadDetailSnapshot, error)
 	FetchYearlyHeatmap(ctx context.Context, userID string, year *int) (map[string]int, error)
 	FetchBooksRecommend(ctx context.Context, userID string, count, maxIdx int) ([]dto.BookRecommendItem, error)
@@ -100,6 +101,36 @@ func (h *WereadHandler) GetBookInfo(c *gin.Context) {
 	}
 
 	response.Success(c, data, "书籍详情获取成功")
+}
+
+// GetBookProgress 获取单本书阅读进度（代理微信读书 /book/getprogress，Redis 10 分钟缓存，不落库）。
+// refresh=true 清旧缓存并强制调上游后再回写;refresh=false 命中缓存即返回。
+func (h *WereadHandler) GetBookProgress(c *gin.Context) {
+	bookID := c.Param("bookId")
+	if bookID == "" {
+		response.APIError(c, "无效的请求", http.StatusBadRequest)
+		return
+	}
+	userID := strconv.Itoa(c.GetInt("user_id"))
+	if userID == "0" {
+		response.APIError(c, "未授权", http.StatusUnauthorized)
+		return
+	}
+
+	refresh := c.Query("refresh") == "true"
+
+	data, err := h.svc.FetchBookProgress(c.Request.Context(), userID, bookID, refresh)
+	if err != nil {
+		slog.ErrorContext(c.Request.Context(), "weread fetch book progress", "error", err)
+		if errors.Is(err, weread.ErrUnauthorized) {
+			response.APIError(c, "微信读书授权已过期", http.StatusUnauthorized)
+			return
+		}
+		response.APIError(c, "获取阅读进度失败", http.StatusInternalServerError)
+		return
+	}
+
+	response.Success(c, data, "阅读进度获取成功")
 }
 
 // GetReadProgress 获取阅读统计快照（mode=weekly/monthly/annually/overall）或年度热力图（perDay=true）。
@@ -215,6 +246,7 @@ func (h *WereadHandler) RegisterRoutes(r *gin.RouterGroup, authMW gin.HandlerFun
 	g.POST("/user-info", h.ImportUserToken)
 	g.GET("/shelf", h.GetShelf)
 	g.GET("/book/:bookId", h.GetBookInfo)
+	g.GET("/book/:bookId/progress", h.GetBookProgress)
 	g.GET("/read-progress", h.GetReadProgress)
 	g.GET("/books-recommend", h.GetBooksRecommend)
 }
