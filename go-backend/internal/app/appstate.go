@@ -12,6 +12,7 @@ import (
 	"github.com/KanoCifer/kuroome-blog/internal/repository/mongodb"
 	"github.com/KanoCifer/kuroome-blog/internal/repository/postgres"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
+	wereadSvc "github.com/KanoCifer/kuroome-blog/internal/service/weread"
 	"github.com/KanoCifer/kuroome-blog/pkg/qweather"
 	"github.com/redis/go-redis/v9"
 )
@@ -31,6 +32,7 @@ type AppState struct {
 	uploadSvc   service.Uploader
 	momentSvc   service.Momenter
 	weatherSvc  service.Weatherer
+	wereadSvc   wereadSvc.Reader
 }
 
 // NewAppState 组装所有 service，作为唯一的组合根入口。
@@ -56,6 +58,7 @@ func NewAppState(
 	blogRepo := mongodb.NewBlogRepository(mongoDB)
 	devTaskRepo := mongodb.NewDevTaskRepository(mongoDB)
 	momentRepo := mongodb.NewMomentRepo(mongoDB)
+	wereadRepo := mongodb.NewWeReadRepository(mongoDB)
 
 	// -- infra ------------------------------------------------------- //
 	// 通用 HTTP 客户端：trace_id 注入 + 出站日志 + 超时。
@@ -91,6 +94,7 @@ func NewAppState(
 		uploadSvc:  service.NewUploadService(userRepo, cfg),
 		momentSvc:  service.NewMomentService(momentRepo),
 		weatherSvc: service.NewWeatherService(httpCli, redis, cfg.Weather, signer),
+		wereadSvc:  wereadSvc.New(httpCli, redis, wereadRepo),
 	}
 }
 
@@ -108,5 +112,6 @@ func (a *AppState) FishSvc() service.Fisher            { return a.fishSvc }
 func (a *AppState) UploadSvc() service.Uploader        { return a.uploadSvc }
 func (a *AppState) MomentSvc() service.Momenter        { return a.momentSvc }
 func (a *AppState) WeatherSvc() service.Weatherer      { return a.weatherSvc }
+func (a *AppState) WereadSvc() wereadSvc.Reader        { return a.wereadSvc }
 
 func (a *AppState) Cfg() *config.Config { return a.config }
