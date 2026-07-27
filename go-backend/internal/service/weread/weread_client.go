@@ -129,10 +129,10 @@ func (c *Client) SendRequest(ctx context.Context, cacheKey string, ttl time.Dura
 	}
 
 	resp, err := doWithRetry(ctx, c.http, newReq)
-	slog.DebugContext(ctx, "weread request", "api_name", apiName, "status", resp.StatusCode)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrUpstream, err)
 	}
+	slog.DebugContext(ctx, "weread request", "api_name", apiName, "status", resp.StatusCode)
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, fmt.Errorf("%w: status=%d", ErrUnauthorized, resp.StatusCode)
@@ -170,9 +170,9 @@ func doWithRetry(
 	)
 
 	for i := 0; i <= maxRetry; i++ {
-		req, err := newReq()
-		if err != nil {
-			return nil, err
+		req, reqErr := newReq()
+		if reqErr != nil {
+			return nil, reqErr
 		}
 
 		resp, err = cli.Do(ctx, req)

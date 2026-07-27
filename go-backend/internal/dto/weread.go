@@ -83,6 +83,113 @@ type WereadShelfResponse struct {
 	Archives []WereadShelfArchive `json:"archives"`
 }
 
+// ── 阅读统计快照（/readdata/detail）──────────────────────────────────────
+// 单一扁平结构 = ReadDetailOverallRaw 超集，指针 + omitempty。
+// 与 Python weread_detail_raw.py ReadDetailOverallRaw 和前端 TS ReadDetailOverallRaw 对齐。
+
+// ReadDetailSnapshot 是 /readdata/detail 四种 mode 的统一返回类型。
+type ReadDetailSnapshot struct {
+	// ── 元数据 ──────────────────────────────────────────────────────-
+	UserID    int    `json:"user_id"`
+	Mode      string `json:"mode"`
+	BaseTime  int    `json:"baseTime"`
+	FetchedAt string `json:"fetched_at"`
+
+	// ── Weekly ──────────────────────────────────────────────────────-
+	ReadTimes         map[string]int       `json:"readTimes,omitempty"`
+	ReadDays          *int                 `json:"readDays,omitempty"`
+	ReadLongest       []ReadLongestItem    `json:"readLongest,omitempty"`
+	Rank              *ReadRank            `json:"rank,omitempty"`
+	Compare           *float64             `json:"compare,omitempty"`
+	DayAverageReadTime *int                `json:"dayAverageReadTime,omitempty"`
+	TotalReadTime     *int                 `json:"totalReadTime,omitempty"`
+
+	// ── Monthly 附加 ────────────────────────────────────────────────-
+	PreferCategory     []ReadCategoryItem `json:"preferCategory,omitempty"`
+	PreferCategoryWord *string            `json:"preferCategoryWord,omitempty"`
+	ReadStat           []ReadStatItem     `json:"readStat,omitempty"`
+
+	// ── Annually 附加 ────────────────────────────────────────────────
+	PreferAuthor     []ReadAuthorItem    `json:"preferAuthor,omitempty"`
+	AuthorCount      *int                `json:"authorCount,omitempty"`
+	PreferPublisher  []ReadPublisherItem `json:"preferPublisher,omitempty"`
+	ReadRate         *int                `json:"readRate,omitempty"`
+	WrReadTime       *int                `json:"wrReadTime,omitempty"`
+	WrListenTime     *int                `json:"wrListenTime,omitempty"`
+
+	// ── Overall 附加 ────────────────────────────────────────────────-
+	PreferTime     []int  `json:"preferTime,omitempty"`
+	PreferTimeWord *string `json:"preferTimeWord,omitempty"`
+}
+
+// ReadLongestItem 是 readLongest 数组项。
+type ReadLongestItem struct {
+	Book      *ReadDetailBook    `json:"book,omitempty"`
+	AlbumInfo map[string]any     `json:"albumInfo,omitempty"`
+	ReadTime  int                `json:"readTime"`
+	Tags      []string           `json:"tags,omitempty"`
+}
+
+// ReadDetailBook 是 readLongest 数组项中的 book 字段。
+type ReadDetailBook struct {
+	BookId     *string `json:"bookId,omitempty"`
+	Title      *string `json:"title,omitempty"`
+	Author     *string `json:"author,omitempty"`
+	Translator *string `json:"translator,omitempty"`
+	Intro      *string `json:"intro,omitempty"`
+	Cover      *string `json:"cover,omitempty"`
+}
+
+// ReadRank 是仅 Weekly 返回的 rank。
+type ReadRank struct {
+	Text   string `json:"text"`
+	Scheme string `json:"scheme,omitempty"`
+}
+
+// ReadStatItem 是 readStat 数组项（Monthly 及以上）。
+type ReadStatItem struct {
+	Stat   string `json:"stat"`
+	Counts string `json:"counts"`
+}
+
+// ReadCategoryItem 是 preferCategory 数组项（Monthly 及以上）。
+type ReadCategoryItem struct {
+	CategoryTitle string `json:"categoryTitle"`
+	ReadingCount  int    `json:"readingCount"`
+	ReadingTime   int    `json:"readingTime"`
+}
+
+// ReadAuthorItem 是 preferAuthor 数组项（Annually 及以上）。
+type ReadAuthorItem struct {
+	Name     *string `json:"name,omitempty"`
+	Count    *int    `json:"count,omitempty"`
+	ReadTime *string `json:"readTime,omitempty"`
+}
+
+// ReadPublisherItem 是 preferPublisher 数组项。
+type ReadPublisherItem struct {
+	Name  *string `json:"name,omitempty"`
+	Count int     `json:"count"`
+}
+
+// WereadYearlyHeatmap 是 /read-progress?perDay=true 的响应结构。
+type WereadYearlyHeatmap struct {
+	ReadTimes map[string]int `json:"readTimes"`
+}
+
+// BookRecommendItem 是 /book/recommend 的响应数组项。
+// 对齐 Python recommend.py RecommendResponse。
+type BookRecommendItem struct {
+	BookId       string  `json:"bookId"`
+	Title        string  `json:"title"`
+	Author       string  `json:"author"`
+	Cover        *string `json:"cover,omitempty"`
+	Reason       string  `json:"reason"`
+	ReadingCount int     `json:"readingCount"`
+	SearchIdx    int     `json:"searchIdx"`
+	NewRating    int     `json:"newRating"`
+}
+
 // ParseShelfRaw 将上游原生结构转换为前端契约结构。
 // 对齐 Python parse_shelf_books + get_user_shelf 的转换逻辑。
 func ParseShelfRaw(raw WereadShelfRaw) *WereadShelfResponse {

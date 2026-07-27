@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -545,6 +547,420 @@ func TestParseShelfRaw_FromUpstream(t *testing.T) {
 }
 
 func strPtr(s string) *string { return &s }
+
+// ── FetchReadDetail ──────────────────────────────────────────────────
+
+func TestService_FetchReadDetail_Roundtrip(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	defer mr.Close()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	var reqCount atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reqCount.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleReadDetailPayload))
+	}))
+	defer srv.Close()
+
+	repo := &mockRepository{token: "test-token"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	ctx := context.Background()
+	resp, err := svc.FetchReadDetail(ctx, "user-1", "overall", nil)
+	if err != nil {
+		t.Fatalf("FetchReadDetail: %v", err)
+	}
+	if resp == nil {
+		t.Fatal("expected non-nil response")
+	}
+	if resp.UserID != 42 {
+		t.Errorf("userID = %d, want 42", resp.UserID)
+	}
+	if resp.Mode != "overall" {
+		t.Errorf("mode = %q, want overall", resp.Mode)
+	}
+	if resp.BaseTime != 0 {
+		t.Errorf("baseTime = %d, want 0", resp.BaseTime)
+	}
+	if resp.FetchedAt == "" {
+		t.Error("fetchedAt should be set")
+	}
+	if resp.ReadDays == nil || *resp.ReadDays != 5 {
+		t.Errorf("readDays = %v, want 5", resp.ReadDays)
+	}
+	if resp.TotalReadTime == nil || *resp.TotalReadTime != 3600 {
+		t.Errorf("totalReadTime = %v, want 3600", resp.TotalReadTime)
+	}
+	if len(resp.ReadTimes) != 1 || resp.ReadTimes["1700000000"] != 120 {
+		t.Errorf("readTimes = %v, want {1700000000:120}", resp.ReadTimes)
+	}
+	if len(resp.ReadLongest) != 1 {
+		t.Fatalf("expected 1 readLongest item, got %d", len(resp.ReadLongest))
+	}
+	longest := resp.ReadLongest[0]
+	if longest.ReadTime != 600 {
+		t.Errorf("readLongest.readTime = %d, want 600", longest.ReadTime)
+	}
+	if longest.Book == nil {
+		t.Fatal("readLongest.book should be non-nil")
+	}
+	if longest.Book.Title == nil || *longest.Book.Title != "三体" {
+		t.Errorf("readLongest.book.title = %v, want 三体", longest.Book.Title)
+	}
+	if longest.Book.Author == nil || *longest.Book.Author != "刘慈欣" {
+		t.Errorf("readLongest.book.author = %v, want 刘慈欣", longest.Book.Author)
+	}
+	if resp.Rank == nil || resp.Rank.Text != "Top 10%" {
+		t.Errorf("rank = %v, want Text=Top 10%%", resp.Rank)
+	}
+	if resp.Rank != nil && resp.Rank.Scheme != "gold" {
+		t.Errorf("rank.scheme = %q, want gold", resp.Rank.Scheme)
+	}
+	if resp.Compare == nil || *resp.Compare != 1.5 {
+		t.Errorf("compare = %v, want 1.5", resp.Compare)
+	}
+	if len(resp.PreferCategory) != 1 {
+		t.Fatalf("expected 1 preferCategory, got %d", len(resp.PreferCategory))
+	}
+	if resp.PreferCategory[0].CategoryTitle != "科幻" {
+		t.Errorf("preferCategory[0].categoryTitle = %q, want 科幻", resp.PreferCategory[0].CategoryTitle)
+	}
+	if resp.PreferCategory[0].ReadingCount != 3 {
+		t.Errorf("preferCategory[0].readingCount = %d, want 3", resp.PreferCategory[0].ReadingCount)
+	}
+	if resp.PreferCategoryWord == nil || *resp.PreferCategoryWord != "最爱科幻" {
+		t.Errorf("preferCategoryWord = %v, want 最爱科幻", resp.PreferCategoryWord)
+	}
+	if len(resp.ReadStat) != 1 {
+		t.Fatalf("expected 1 readStat, got %d", len(resp.ReadStat))
+	}
+	if resp.ReadStat[0].Stat != "weekday" {
+		t.Errorf("readStat[0].stat = %q, want weekday", resp.ReadStat[0].Stat)
+	}
+	if len(resp.PreferAuthor) != 1 {
+		t.Fatalf("expected 1 preferAuthor, got %d", len(resp.PreferAuthor))
+	}
+	if resp.PreferAuthor[0].Name == nil || *resp.PreferAuthor[0].Name != "刘慈欣" {
+		t.Errorf("preferAuthor[0].name = %v, want 刘慈欣", resp.PreferAuthor[0].Name)
+	}
+	if resp.PreferAuthor[0].Count == nil || *resp.PreferAuthor[0].Count != 5 {
+		t.Errorf("preferAuthor[0].count = %v, want 5", resp.PreferAuthor[0].Count)
+	}
+	if resp.AuthorCount == nil || *resp.AuthorCount != 10 {
+		t.Errorf("authorCount = %v, want 10", resp.AuthorCount)
+	}
+	if len(resp.PreferPublisher) != 1 {
+		t.Fatalf("expected 1 preferPublisher, got %d", len(resp.PreferPublisher))
+	}
+	if resp.PreferPublisher[0].Name == nil || *resp.PreferPublisher[0].Name != "重庆出版社" {
+		t.Errorf("preferPublisher[0].name = %v, want 重庆出版社", resp.PreferPublisher[0].Name)
+	}
+	if resp.PreferPublisher[0].Count != 3 {
+		t.Errorf("preferPublisher[0].count = %d, want 3", resp.PreferPublisher[0].Count)
+	}
+	if resp.ReadRate == nil || *resp.ReadRate != 80 {
+		t.Errorf("readRate = %v, want 80", resp.ReadRate)
+	}
+	if resp.WrReadTime == nil || *resp.WrReadTime != 7200 {
+		t.Errorf("wrReadTime = %v, want 7200", resp.WrReadTime)
+	}
+	if resp.WrListenTime == nil || *resp.WrListenTime != 600 {
+		t.Errorf("wrListenTime = %v, want 600", resp.WrListenTime)
+	}
+	if len(resp.PreferTime) != 3 {
+		t.Errorf("preferTime length = %d, want 3", len(resp.PreferTime))
+	}
+	if resp.PreferTimeWord == nil || *resp.PreferTimeWord != "evening" {
+		t.Errorf("preferTimeWord = %v, want evening", resp.PreferTimeWord)
+	}
+
+	// 第二次调用应命中缓存，不再请求上游
+	if _, err := svc.FetchReadDetail(ctx, "user-1", "overall", nil); err != nil {
+		t.Fatalf("FetchReadDetail (2nd): %v", err)
+	}
+	if got := reqCount.Load(); got != 1 {
+		t.Errorf("expected 1 upstream request (cache hit on 2nd call), got %d", got)
+	}
+}
+
+func TestService_FetchReadDetail_Unauthorized(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	defer mr.Close()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
+	}))
+	defer srv.Close()
+
+	repo := &mockRepository{token: "bad"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	_, err = svc.FetchReadDetail(context.Background(), "user-1", "overall", nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, weread.ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+// sampleReadDetailPayload 是 /readdata/detail 的完整上游响应，覆盖所有 mode 的嵌套字段。
+const sampleReadDetailPayload = `{
+	"user_id": 42,
+	"mode": "overall",
+	"baseTime": 0,
+	"readTimes": {"1700000000": 120},
+	"readDays": 5,
+	"totalReadTime": 3600,
+	"readLongest": [
+		{
+			"book": {
+				"bookId": "b1",
+				"title": "三体",
+				"author": "刘慈欣",
+				"translator": "译者",
+				"intro": "简介",
+				"cover": "http://example.com/c.jpg"
+			},
+			"readTime": 600,
+			"tags": ["sci-fi"]
+		}
+	],
+	"rank": {"text": "Top 10%", "scheme": "gold"},
+	"compare": 1.5,
+	"dayAverageReadTime": 720,
+	"preferCategory": [{"categoryTitle": "科幻", "readingCount": 3, "readingTime": 10800}],
+	"preferCategoryWord": "最爱科幻",
+	"readStat": [{"stat": "weekday", "counts": "10"}],
+	"preferAuthor": [{"name": "刘慈欣", "count": 5, "readTime": "10800"}],
+	"authorCount": 10,
+	"preferPublisher": [{"name": "重庆出版社", "count": 3}],
+	"readRate": 80,
+	"wrReadTime": 7200,
+	"wrListenTime": 600,
+	"preferTime": [1, 2, 3],
+	"preferTimeWord": "evening"
+}`
+
+// ── FetchYearlyHeatmap ───────────────────────────────────────────────
+
+func TestService_FetchYearlyHeatmap_Concurrent(t *testing.T) {
+	t.Run("all months succeed", func(t *testing.T) {
+		mr, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("miniredis: %v", err)
+		}
+		defer mr.Close()
+		rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+		defer rdb.Close()
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			var payload map[string]any
+			_ = json.Unmarshal(body, &payload)
+			baseTime, _ := payload["baseTime"].(float64)
+			w.Header().Set("Content-Type", "application/json")
+			resp := map[string]any{
+				"readTimes": map[string]int{strconv.Itoa(int(baseTime)): 120},
+			}
+			data, _ := json.Marshal(resp)
+			_, _ = w.Write(data)
+		}))
+		defer srv.Close()
+
+		repo := &mockRepository{token: "test-token"}
+		svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+		heatmap, err := svc.FetchYearlyHeatmap(context.Background(), "user-1", nil)
+		if err != nil {
+			t.Fatalf("FetchYearlyHeatmap: %v", err)
+		}
+		// 当前年份应拉取多个月（1..当前月），合并后应有多个条目
+		if len(heatmap) < 2 {
+			t.Errorf("expected entries from multiple months, got %d: %v", len(heatmap), heatmap)
+		}
+		for k, v := range heatmap {
+			if v != 120 {
+				t.Errorf("heatmap[%s] = %d, want 120", k, v)
+			}
+		}
+	})
+
+	t.Run("partial failure returns partial result", func(t *testing.T) {
+		mr, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("miniredis: %v", err)
+		}
+		defer mr.Close()
+		rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+		defer rdb.Close()
+
+		// 计算服务将请求的各月 baseTime，让后半段月份返回 500 模拟部分失败。
+		now := time.Now()
+		targetYear := now.Year()
+		lastMonth := int(now.Month())
+		timestamps := make([]int, 0, lastMonth)
+		for m := 1; m <= lastMonth; m++ {
+			ts := time.Date(targetYear, time.Month(m), 1, 0, 0, 0, 0, now.Location())
+			timestamps = append(timestamps, int(ts.Unix()))
+		}
+		failFrom := len(timestamps) / 2
+		failing := make(map[int]bool, len(timestamps)-failFrom)
+		for _, ts := range timestamps[failFrom:] {
+			failing[ts] = true
+		}
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			var payload map[string]any
+			_ = json.Unmarshal(body, &payload)
+			baseTime, _ := payload["baseTime"].(float64)
+			if failing[int(baseTime)] {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"error":"boom"}`))
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			resp := map[string]any{
+				"readTimes": map[string]int{strconv.Itoa(int(baseTime)): 120},
+			}
+			data, _ := json.Marshal(resp)
+			_, _ = w.Write(data)
+		}))
+		defer srv.Close()
+
+		repo := &mockRepository{token: "test-token"}
+		svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+		heatmap, err := svc.FetchYearlyHeatmap(context.Background(), "user-1", nil)
+		if err != nil {
+			t.Fatalf("FetchYearlyHeatmap should not error on partial failure, got: %v", err)
+		}
+		// 部分成功：结果非空，成功月份存在，失败月份不存在
+		if len(heatmap) == 0 {
+			t.Error("expected non-empty partial result")
+		}
+		for _, ts := range timestamps[:failFrom] {
+			if _, ok := heatmap[strconv.Itoa(ts)]; !ok {
+				t.Errorf("heatmap should contain successful baseTime %d", ts)
+			}
+		}
+		for _, ts := range timestamps[failFrom:] {
+			if _, ok := heatmap[strconv.Itoa(ts)]; ok {
+				t.Errorf("heatmap should not contain failed baseTime %d", ts)
+			}
+		}
+	})
+}
+
+// ── FetchBooksRecommend ──────────────────────────────────────────────
+
+func TestService_FetchBooksRecommend_BothShapes(t *testing.T) {
+	t.Run("direct list shape", func(t *testing.T) {
+		mr, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("miniredis: %v", err)
+		}
+		defer mr.Close()
+		rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+		defer rdb.Close()
+
+		const payload = `[{"bookId":"b1","title":"t","author":"a","cover":"http://x.com/c.jpg","reason":"r","readingCount":1,"searchIdx":0,"newRating":90}]`
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(payload))
+		}))
+		defer srv.Close()
+
+		repo := &mockRepository{token: "test-token"}
+		svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+		items, err := svc.FetchBooksRecommend(context.Background(), "user-1", 10, 0)
+		if err != nil {
+			t.Fatalf("FetchBooksRecommend: %v", err)
+		}
+		if len(items) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(items))
+		}
+		assertRecommendItem(t, items[0], "b1", "t", "a", "r", 1, 0, 90, true)
+	})
+
+	t.Run("wrapped shape", func(t *testing.T) {
+		mr, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("miniredis: %v", err)
+		}
+		defer mr.Close()
+		rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+		defer rdb.Close()
+
+		const payload = `{"books": [{"book":{"bookId":"b1","title":"t","author":"a","cover":"http://x.com/c.jpg"},"reason":"r","readingCount":1,"searchIdx":0,"newRating":90}]}`
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(payload))
+		}))
+		defer srv.Close()
+
+		repo := &mockRepository{token: "test-token"}
+		svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+		items, err := svc.FetchBooksRecommend(context.Background(), "user-1", 10, 0)
+		if err != nil {
+			t.Fatalf("FetchBooksRecommend: %v", err)
+		}
+		if len(items) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(items))
+		}
+		assertRecommendItem(t, items[0], "b1", "t", "a", "r", 1, 0, 90, true)
+	})
+}
+
+// assertRecommendItem 校验 BookRecommendItem 各字段映射。
+// hasCover 控制是否断言 Cover 非 nil。
+func assertRecommendItem(t *testing.T, item dto.BookRecommendItem, bookID, title, author, reason string, readingCount, searchIdx, newRating int, hasCover bool) {
+	t.Helper()
+	if item.BookId != bookID {
+		t.Errorf("bookId = %q, want %q", item.BookId, bookID)
+	}
+	if item.Title != title {
+		t.Errorf("title = %q, want %q", item.Title, title)
+	}
+	if item.Author != author {
+		t.Errorf("author = %q, want %q", item.Author, author)
+	}
+	if item.Reason != reason {
+		t.Errorf("reason = %q, want %q", item.Reason, reason)
+	}
+	if item.ReadingCount != readingCount {
+		t.Errorf("readingCount = %d, want %d", item.ReadingCount, readingCount)
+	}
+	if item.SearchIdx != searchIdx {
+		t.Errorf("searchIdx = %d, want %d", item.SearchIdx, searchIdx)
+	}
+	if item.NewRating != newRating {
+		t.Errorf("newRating = %d, want %d", item.NewRating, newRating)
+	}
+	if hasCover {
+		if item.Cover == nil || *item.Cover == "" {
+			t.Errorf("expected non-nil non-empty cover, got %v", item.Cover)
+		}
+	} else {
+		if item.Cover != nil {
+			t.Errorf("expected nil cover, got %q", *item.Cover)
+		}
+	}
+}
 
 // ── 接口断言 ─────────────────────────────────────────────────────────
 

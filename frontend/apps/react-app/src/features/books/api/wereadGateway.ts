@@ -222,7 +222,7 @@ export const wereadGateway = {
     const params: Record<string, string | number> = { mode };
     if (baseTime != null && mode !== 'overall') params.baseTime = baseTime;
     const res = await apiClient.get<ApiResponse<WereadReadProgressData>>(
-      'v2/weread/read-progress',
+      'v3/weread/read-progress',
       { params },
     );
     return res.data;
@@ -237,7 +237,7 @@ export const wereadGateway = {
     };
     if (year != null) params.year = year;
     const res = await apiClient.get<ApiResponse<WereadYearlyHeatmap>>(
-      'v2/weread/read-progress',
+      'v3/weread/read-progress',
       { params },
     );
     return res.data;
@@ -259,7 +259,7 @@ export const wereadGateway = {
     maxIdx = 0,
   ): Promise<ApiResponse<BookRecommendItem[]>> {
     const res = await apiClient.get<ApiResponse<BookRecommendItem[]>>(
-      'v2/weread/books-recommend',
+      'v3/weread/books-recommend',
       { params: { count, maxIdx } },
     );
     return res.data;
