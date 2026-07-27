@@ -33,7 +33,7 @@ export interface WereadGateway {
 
 export const wereadGateway: WereadGateway = {
   async saveUserInfo(apiKey: string): Promise<ApiResponse<null>> {
-    const res = await apiClient.post<ApiResponse<null>>('v2/weread/user-info', {
+    const res = await apiClient.post<ApiResponse<null>>('v3/weread/user-info', {
       api_key: apiKey,
     });
     return res.data;
@@ -41,7 +41,7 @@ export const wereadGateway: WereadGateway = {
 
   async getUserShelf(): Promise<ApiResponse<WereadShelfData>> {
     const res = await apiClient.get<ApiResponse<WereadShelfData>>(
-      'v2/weread/bookshelf',
+      'v3/weread/shelf',
     );
     return res.data;
   },
