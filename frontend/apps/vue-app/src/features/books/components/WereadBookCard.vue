@@ -105,7 +105,6 @@ function onImgError(e: Event) {
     <div
       v-if="isList"
       class="book-card bg-page hover:bg-surface/40 hover:shadow-accent/5 flex items-center gap-3 rounded-xl border p-3 transition-[background-color,box-shadow,border-color] duration-300 sm:gap-4 sm:p-4"
-      :style="gridAnimStyle"
     >
       <div
         class="bg-surface relative h-16 w-12 flex-shrink-0 overflow-hidden rounded-md shadow-sm sm:h-20 sm:w-14"
