@@ -17,6 +17,7 @@ import (
 type Reader interface {
 	CreateUserToken(ctx context.Context, userID string, token string) error
 	FetchUserShelf(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
+	FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
 }
 
 // Repositoryer 是 weread 数据访问接口。
@@ -72,13 +73,54 @@ func (s *Service) FetchUserShelf(ctx context.Context, userID string) (*dto.Werea
 
 func (s *Service) FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error) {
 	cacheTTL := 24 * time.Hour
-	raw, err := s.client.SendRequest(ctx, "weread:book:"+bookID, cacheTTL, userID, bookPath)
+	extra := map[string]any{"bookId": bookID}
+	raw, err := s.client.SendRequest(ctx, "weread:book:"+bookID, cacheTTL, userID, bookPath, extra)
 	if err != nil {
 		return nil, err
 	}
-	var resp dto.WereadBookResponse
-	if err := json.Unmarshal(raw, &resp); err != nil {
+	var rawResp wereadBookRaw
+	if err := json.Unmarshal(raw, &rawResp); err != nil {
 		return nil, fmt.Errorf("%w: parse book response: %w", ErrUpstream, err)
 	}
-	return &resp, nil
+	return rawResp.toDTO(time.Now().UTC()), nil
+}
+
+// wereadBookRaw 是微信读书 /book/info 原生响应的字段结构。
+// 字段名与 API 返回一致，再经 toDTO 映射为前端/契约字段（对齐 Python map_book_info）。
+type wereadBookRaw struct {
+	BookId           string         `json:"bookId"`
+	Title            string         `json:"title"`
+	Author           string         `json:"author"`
+	Translator       string         `json:"translator"`
+	Cover            string         `json:"cover"`
+	Intro            string         `json:"intro"`
+	Category         string         `json:"category"`
+	Publisher        string         `json:"publisher"`
+	PublishTime      string         `json:"publishTime"`
+	ISBN             string         `json:"isbn"`
+	WordCount        int            `json:"wordCount"`
+	NewRating        float64        `json:"newRating"`
+	NewRatingCount   int            `json:"newRatingCount"`
+	NewRatingDetails map[string]int `json:"newRatingDetail"`
+}
+
+// toDTO 将原生响应映射为前端契约 DTO（bookId→id、intro→introduction、newRatingDetail→newRatingDetails）。
+func (r wereadBookRaw) toDTO(fetchedAt time.Time) *dto.WereadBookResponse {
+	return &dto.WereadBookResponse{
+		ID:               r.BookId,
+		Title:            r.Title,
+		Author:           r.Author,
+		Translator:       r.Translator,
+		Cover:            r.Cover,
+		Introduction:     r.Intro,
+		Category:         r.Category,
+		Publisher:        r.Publisher,
+		PublishTime:      r.PublishTime,
+		ISBN:             r.ISBN,
+		WordCount:        r.WordCount,
+		NewRating:        r.NewRating,
+		NewRatingCount:   r.NewRatingCount,
+		NewRatingDetails: r.NewRatingDetails,
+		FetchedAt:        fetchedAt,
+	}
 }

@@ -23,8 +23,9 @@ func init() {
 // ── mock Wereader ────────────────────────────────────────────────────
 
 type mockWereader struct {
-	fetchFn  func(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
-	createFn func(ctx context.Context, userID string, token string) error
+	fetchFn      func(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
+	createFn     func(ctx context.Context, userID string, token string) error
+	fetchBookFn  func(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
 }
 
 var _ Wereader = (*mockWereader)(nil)
@@ -41,6 +42,13 @@ func (m *mockWereader) CreateUserToken(ctx context.Context, userID string, token
 		return m.createFn(ctx, userID, token)
 	}
 	return nil
+}
+
+func (m *mockWereader) FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error) {
+	if m.fetchBookFn != nil {
+		return m.fetchBookFn(ctx, userID, bookID)
+	}
+	return nil, nil
 }
 
 // ── helpers ─────────────────────────────────────────────────────────
@@ -156,6 +164,96 @@ func TestWereadHandler_GetShelf_RequiresAuth(t *testing.T) {
 	g.GET("/weread/shelf", h.GetShelf)
 
 	w := doWereadGET(r, "/v3/weread/shelf")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401; body=%s", w.Code, w.Body.String())
+	}
+}
+
+// ── GetBookInfo ──────────────────────────────────────────────────────
+
+func TestWereadHandler_GetBookInfo_Success(t *testing.T) {
+	var gotUserID, gotBookID string
+	svc := &mockWereader{
+		fetchBookFn: func(_ context.Context, userID string, bookID string) (*dto.WereadBookResponse, error) {
+			gotUserID = userID
+			gotBookID = bookID
+			return &dto.WereadBookResponse{
+				ID:           "book-1",
+				Title:        "三体",
+				Author:       "刘慈欣",
+				Introduction: "地球文明向宇宙发出第一声啼鸣。",
+			}, nil
+		},
+	}
+
+	w := doWereadGET(newWereadTestRouter(svc), "/v3/weread/book/book-1")
+	if w.Code != 200 {
+		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
+	}
+
+	resp := decodeWereadResponse(t, w.Body.Bytes())
+	if resp.Message != "书籍详情获取成功" {
+		t.Errorf("message = %q, want 书籍详情获取成功", resp.Message)
+	}
+	if gotUserID != "42" {
+		t.Errorf("userID = %q, want 42", gotUserID)
+	}
+	if gotBookID != "book-1" {
+		t.Errorf("bookID = %q, want book-1", gotBookID)
+	}
+
+	data, ok := resp.Data.(map[string]any)
+	if !ok {
+		t.Fatalf("data type = %T, want object", resp.Data)
+	}
+	if data["title"] != "三体" || data["author"] != "刘慈欣" {
+		t.Errorf("data = %v", data)
+	}
+	if data["introduction"] != "地球文明向宇宙发出第一声啼鸣。" {
+		t.Errorf("introduction = %v", data["introduction"])
+	}
+	if data["fetched_at"] == nil {
+		t.Error("fetched_at should be present")
+	}
+}
+
+func TestWereadHandler_GetBookInfo_Unauthorized(t *testing.T) {
+	svc := &mockWereader{
+		fetchBookFn: func(_ context.Context, _, _ string) (*dto.WereadBookResponse, error) {
+			return nil, weread.ErrUnauthorized
+		},
+	}
+
+	w := doWereadGET(newWereadTestRouter(svc), "/v3/weread/book/book-1")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401; body=%s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "微信读书授权已过期") {
+		t.Errorf("body = %s", w.Body.String())
+	}
+}
+
+func TestWereadHandler_GetBookInfo_InternalError(t *testing.T) {
+	svc := &mockWereader{
+		fetchBookFn: func(_ context.Context, _, _ string) (*dto.WereadBookResponse, error) {
+			return nil, errors.New("upstream timeout")
+		},
+	}
+
+	w := doWereadGET(newWereadTestRouter(svc), "/v3/weread/book/book-1")
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500; body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestWereadHandler_GetBookInfo_RequiresAuth(t *testing.T) {
+	h := NewWereadHandler(&mockWereader{})
+	r := gin.New()
+	g := r.Group("/v3")
+	// 不注入 authMW → 没有 user_id
+	g.GET("/weread/book/:bookId", h.GetBookInfo)
+
+	w := doWereadGET(r, "/v3/weread/book/book-1")
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401; body=%s", w.Code, w.Body.String())
 	}

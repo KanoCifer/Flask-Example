@@ -18,6 +18,7 @@ import (
 type Wereader interface {
 	CreateUserToken(ctx context.Context, userID string, token string) error
 	FetchUserShelf(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
+	FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
 }
 
 // WereadHandler 处理微信读书相关请求。
@@ -71,10 +72,38 @@ func (h *WereadHandler) GetShelf(c *gin.Context) {
 	response.Success(c, data, "书架获取成功")
 }
 
+// GetBookInfo 获取单本书籍详情（代理微信读书 /book/info，Redis 缓存，不落库）。
+func (h *WereadHandler) GetBookInfo(c *gin.Context) {
+	bookID := c.Param("bookId")
+	if bookID == "" {
+		response.APIError(c, "无效的请求", http.StatusBadRequest)
+		return
+	}
+	userID := strconv.Itoa(c.GetInt("user_id"))
+	if userID == "0" {
+		response.APIError(c, "未授权", http.StatusUnauthorized)
+		return
+	}
+
+	data, err := h.svc.FetchBookInfo(c.Request.Context(), userID, bookID)
+	if err != nil {
+		slog.ErrorContext(c.Request.Context(), "weread fetch book info", "error", err)
+		if errors.Is(err, weread.ErrUnauthorized) {
+			response.APIError(c, "微信读书授权已过期", http.StatusUnauthorized)
+			return
+		}
+		response.APIError(c, "获取书籍详情失败", http.StatusInternalServerError)
+		return
+	}
+
+	response.Success(c, data, "书籍详情获取成功")
+}
+
 // RegisterRoutes 挂载 weread 路由，所有接口需登录鉴权。
 func (h *WereadHandler) RegisterRoutes(r *gin.RouterGroup, authMW gin.HandlerFunc) {
 	g := r.Group("/weread")
 	g.Use(authMW)
 	g.POST("/user-info", h.ImportUserToken)
 	g.GET("/shelf", h.GetShelf)
+	g.GET("/book/:bookId", h.GetBookInfo)
 }

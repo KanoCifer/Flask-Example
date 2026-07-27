@@ -48,7 +48,7 @@ export const wereadGateway: WereadGateway = {
 
   async getBookInfo(bookId: string): Promise<ApiResponse<WereadBookDetail>> {
     const res = await apiClient.get<ApiResponse<WereadBookDetail>>(
-      `v2/weread/book/${bookId}`,
+      `v3/weread/book/${bookId}`,
     );
     return res.data;
   },

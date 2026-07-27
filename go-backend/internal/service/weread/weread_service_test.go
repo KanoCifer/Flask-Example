@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,6 +49,183 @@ func newTestService(t *testing.T) (*weread.Service, *miniredis.Miniredis, func()
 		mr.Close()
 	}
 	return svc, mr, cleanup
+}
+
+// ── FetchBookInfo ───────────────────────────────────────────────────
+
+const sampleBookPayload = `{
+	"bookId": "book-1",
+	"title": "三体",
+	"author": "刘慈欣",
+	"translator": null,
+	"cover": "http://example.com/cover.jpg",
+	"intro": "地球文明向宇宙发出第一声啼鸣。",
+	"category": "科幻",
+	"publisher": "重庆出版社",
+	"publishTime": "2008-01",
+	"isbn": "9787536692930",
+	"wordCount": 200000,
+	"newRating": 92.5,
+	"newRatingCount": 1000,
+	"newRatingDetail": {"5": 800, "4": 150, "3": 50}
+}`
+
+func TestService_FetchBookInfo_Roundtrip(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	defer mr.Close()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleBookPayload))
+	}))
+	defer srv.Close()
+
+	repo := &mockRepository{token: "test-token"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	resp, err := svc.FetchBookInfo(context.Background(), "user-1", "book-1")
+	if err != nil {
+		t.Fatalf("FetchBookInfo: %v", err)
+	}
+	if resp == nil {
+		t.Fatal("expected non-nil response")
+	}
+	if resp.ID != "book-1" {
+		t.Errorf("id = %q, want book-1", resp.ID)
+	}
+	if resp.Title != "三体" {
+		t.Errorf("title = %q, want 三体", resp.Title)
+	}
+	if resp.Author != "刘慈欣" {
+		t.Errorf("author = %q, want 刘慈欣", resp.Author)
+	}
+	if resp.Introduction != "地球文明向宇宙发出第一声啼鸣。" {
+		t.Errorf("introduction = %q", resp.Introduction)
+	}
+	if resp.Publisher != "重庆出版社" {
+		t.Errorf("publisher = %q, want 重庆出版社", resp.Publisher)
+	}
+	if resp.WordCount != 200000 {
+		t.Errorf("wordCount = %d, want 200000", resp.WordCount)
+	}
+	if resp.NewRating != 92.5 {
+		t.Errorf("newRating = %f, want 92.5", resp.NewRating)
+	}
+	if resp.NewRatingCount != 1000 {
+		t.Errorf("newRatingCount = %d, want 1000", resp.NewRatingCount)
+	}
+	if resp.NewRatingDetails["5"] != 800 {
+		t.Errorf("newRatingDetails[5] = %d, want 800", resp.NewRatingDetails["5"])
+	}
+	if resp.FetchedAt.IsZero() {
+		t.Error("fetchedAt should be set")
+	}
+}
+
+func TestService_FetchBookInfo_RequestSendsBookId(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	defer mr.Close()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	var gotBookId string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var payload map[string]any
+		_ = json.Unmarshal(body, &payload)
+		if extra, ok := payload["bookId"]; ok {
+			gotBookId = extra.(string)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(sampleBookPayload))
+	}))
+	defer srv.Close()
+
+	repo := &mockRepository{token: "test-token"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	_, err = svc.FetchBookInfo(context.Background(), "user-1", "book-42")
+	if err != nil {
+		t.Fatalf("FetchBookInfo: %v", err)
+	}
+	if gotBookId != "book-42" {
+		t.Errorf("bookId in request = %q, want book-42", gotBookId)
+	}
+}
+
+func TestService_FetchBookInfo_CacheHit(t *testing.T) {
+	svc, mr, cleanup := newTestService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	cacheKey := "weread:book:book-1"
+	if err := mr.Set(cacheKey, sampleBookPayload); err != nil {
+		t.Fatalf("miniredis.Set: %v", err)
+	}
+
+	resp, err := svc.FetchBookInfo(ctx, "user-1", "book-1")
+	if err != nil {
+		t.Fatalf("FetchBookInfo: %v", err)
+	}
+	if resp.ID != "book-1" || resp.Title != "三体" {
+		t.Errorf("unexpected response: %+v", resp)
+	}
+}
+
+func TestService_FetchBookInfo_Unauthorized(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	defer mr.Close()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
+	}))
+	defer srv.Close()
+
+	repo := &mockRepository{token: "bad"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	_, err = svc.FetchBookInfo(context.Background(), "user-1", "book-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestService_FetchBookInfo_InvalidJSON(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	defer mr.Close()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`not json`))
+	}))
+	defer srv.Close()
+
+	repo := &mockRepository{token: "t"}
+	svc := weread.New(httpclient.New(), rdb, repo, weread.WithBaseURL(srv.URL))
+
+	_, err = svc.FetchBookInfo(context.Background(), "user-1", "book-1")
+	if err == nil {
+		t.Fatal("expected error on invalid JSON, got nil")
+	}
 }
 
 // ── FetchUserShelf ───────────────────────────────────────────────────
@@ -254,6 +432,49 @@ func TestDTO_WereadShelfResponse_MarshalRoundtrip(t *testing.T) {
 	}
 	if len(decoded.Archives) != 1 || decoded.Archives[0].Name != "书单" {
 		t.Errorf("archives roundtrip failed: %+v", decoded.Archives)
+	}
+}
+
+func TestDTO_WereadBookResponse_MarshalRoundtrip(t *testing.T) {
+	original := dto.WereadBookResponse{
+		ID:               "book-1",
+		Title:            "三体",
+		Author:           "刘慈欣",
+		Translator:       "译者",
+		Cover:            "https://x.com/c.jpg",
+		Introduction:     "简介",
+		Category:         "科幻",
+		Publisher:        "出版社",
+		PublishTime:      "2008-01",
+		ISBN:             "9787536692930",
+		WordCount:        200000,
+		NewRating:        92.5,
+		NewRatingCount:   1000,
+		NewRatingDetails: map[string]int{"5": 800, "4": 150},
+		FetchedAt:        time.Now().UTC().Truncate(time.Second),
+	}
+
+	data, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	var decoded dto.WereadBookResponse
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+
+	if decoded.ID != "book-1" || decoded.Title != "三体" || decoded.Author != "刘慈欣" {
+		t.Errorf("basic fields roundtrip failed: %+v", decoded)
+	}
+	if decoded.Introduction != "简介" {
+		t.Errorf("introduction = %q, want 简介", decoded.Introduction)
+	}
+	if decoded.NewRatingDetails["5"] != 800 {
+		t.Errorf("newRatingDetails = %v", decoded.NewRatingDetails)
+	}
+	if !decoded.FetchedAt.Equal(original.FetchedAt) {
+		t.Errorf("fetchedAt = %v, want %v", decoded.FetchedAt, original.FetchedAt)
 	}
 }
 
