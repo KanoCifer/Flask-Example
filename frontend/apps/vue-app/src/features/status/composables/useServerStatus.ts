@@ -239,7 +239,7 @@ export function useServerStatus(): UseServerStatusReturn {
           data,
           smooth: 0.25,
           symbol: 'circle',
-          symbolSize: (value: number, params: { dataIndex: number }) =>
+          symbolSize: (_value: number, params: { dataIndex: number }) =>
             params.dataIndex === data.length - 1 ? 6 : 0,
           showSymbol: data.length > 0,
           lineStyle: { width: 1.6, color: primary },

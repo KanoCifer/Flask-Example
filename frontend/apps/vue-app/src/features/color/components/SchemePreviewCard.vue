@@ -4,7 +4,7 @@
 //
 // 暗色态：跟随当前 store.theme（root .dark），让用户能在浅/深间对比。
 import { computed, ref, watch } from 'vue';
-import { COLOR_SCHEMES, useThemeStore } from '@/stores';
+import { useThemeStore } from '@/stores';
 import type { ColorScheme } from '@/stores';
 import { SCHEME_META, TOKEN_GROUPS, TOKEN_META } from '../lib/schemeMeta';
 import { useSchemeTokens } from '../composables/useSchemeTokens';
@@ -62,9 +62,6 @@ watch(swatchHint, () => {});
 const apply = () => emit('apply', props.scheme);
 
 const isCurrent = computed(() => props.active);
-const isOther = computed(
-  () => !props.active && COLOR_SCHEMES.includes(props.scheme),
-);
 </script>
 
 <template>

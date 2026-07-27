@@ -8,7 +8,7 @@
 // - 初始 OKLCH 取自当前 scheme 的 --accent
 import { computed, onMounted, ref } from 'vue';
 import { useHead } from '@vueuse/head';
-import { COLOR_SCHEMES, useThemeStore, type ColorScheme } from '@/stores';
+import { useThemeStore, type ColorScheme } from '@/stores';
 import { useOklch, type Rgb } from './composables/useOklch';
 import OklchControls from './components/OklchControls.vue';
 import OklchPreviewCard from './components/OklchPreviewCard.vue';

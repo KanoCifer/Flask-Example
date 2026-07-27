@@ -14,7 +14,6 @@ vi.mock('@/composables/useSseStream', () => ({
   consumeSseStream: vi.fn(),
 }));
 
-import { apiClient } from '@/api/request';
 import { consumeSseStream } from '@/composables/useSseStream';
 
 describe('aiGateway', () => {

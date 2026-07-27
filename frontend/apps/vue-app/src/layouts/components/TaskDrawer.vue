@@ -295,7 +295,6 @@ function handleLogin() {
 
 // 新建表单（折叠态）
 const showAddForm = ref(false);
-const addTitleInput = ref<HTMLInputElement | null>(null);
 
 const newTaskForm = ref({
   title: '',

@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { IconPopular, SkeletonCrossfadeTransition } from '@/components';
-import { useChartColors, withAlpha } from '@/composables';
+import { useChartColors } from '@/composables';
 import { computed } from 'vue';
 import VChart from 'vue-echarts';
 

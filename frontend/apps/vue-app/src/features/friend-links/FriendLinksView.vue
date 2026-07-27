@@ -332,7 +332,7 @@ const {
   copySelfInfo,
 } = useFriendLinks();
 
-const handleHref = (e: Event) => {
+const handleHref = (_e: Event) => {
   const href = 'https://github.com/KanoCifer/kuroome-blog/issues/1';
   window.open(href, '_blank');
 };

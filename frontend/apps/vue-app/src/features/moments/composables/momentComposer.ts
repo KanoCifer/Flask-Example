@@ -75,7 +75,10 @@ export function buildCreatePayload(
  * 3. 编辑分支不刷新列表（编辑是局部行为），仅落库 + 通知。
  */
 export class MomentComposer {
-  constructor(private readonly port: MomentComposerPort) {}
+  private readonly port: MomentComposerPort;
+  constructor(port: MomentComposerPort) {
+    this.port = port;
+  }
 
   async submit(input: MomentSubmitInput): Promise<MomentSubmitResult> {
     try {

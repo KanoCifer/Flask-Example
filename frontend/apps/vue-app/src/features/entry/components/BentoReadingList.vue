@@ -63,7 +63,6 @@ import { BentoCard } from '@/components';
 import { useAnimateNumber } from '@/composables';
 import { useReadingSummary } from '@/features/books';
 import { formatDuration } from '@/lib/dayjs';
-import { BookOpen } from '@lucide/vue';
 import { onMounted, watch } from 'vue';
 
 const { displayValue: displayCount, animateTo } = useAnimateNumber();

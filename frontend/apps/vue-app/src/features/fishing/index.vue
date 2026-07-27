@@ -12,7 +12,6 @@ import MapContainer from '@/features/fishing/components/MapContainer.vue';
 import SpotDetailPanel from '@/features/fishing/components/SpotDetailPanel.vue';
 import QuickFeedbackBanner from '@/features/fishing/components/QuickFeedbackBanner.vue';
 import { useFishingDashboard } from '@/features/fishing/composables/useFishingDashboard';
-import { MapPin } from '@lucide/vue';
 import { defineAsyncComponent, onMounted } from 'vue';
 
 const SpotFormPanel = defineAsyncComponent(

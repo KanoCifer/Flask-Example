@@ -37,5 +37,4 @@
 
 <script setup lang="ts">
 import { BentoCard } from '@/components';
-import { CircleCheckBig } from '@lucide/vue';
 </script>

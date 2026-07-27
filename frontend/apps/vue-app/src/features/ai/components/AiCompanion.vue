@@ -59,12 +59,10 @@ const {
   hasContent,
   canSend,
   canGenerate,
-  isStreamingBriefing,
   bindContainer,
   generateBriefing,
   send,
   onKeydown,
-  clearThread,
   cancel,
 } = useAiCompanion({ title: props.title, content: props.content });
 
@@ -84,11 +82,6 @@ function pickModel(value: string, close?: () => void) {
   model.value = value;
   close?.();
 }
-
-const statusText = computed(() => {
-  if (!loading.value) return '';
-  return isStreamingBriefing.value ? '正在生成总结…' : '正在回复…';
-});
 
 function rendered(msg: AiMessage) {
   return renderMarkdown(msg.content);

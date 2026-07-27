@@ -549,7 +549,7 @@ describe('useAiCompanion', () => {
 
       let firstSignal: AbortSignal | null = null;
       vi.mocked(aiGateway.streamThread).mockImplementationOnce(
-        async (_body, handlers, signal) => {
+        async (_body, _handlers, signal) => {
           firstSignal = signal ?? null;
         },
       );
@@ -578,7 +578,7 @@ describe('useAiCompanion', () => {
 
       let firstSignal: AbortSignal | null = null;
       vi.mocked(aiGateway.streamThread).mockImplementationOnce(
-        async (_body, handlers, signal) => {
+        async (_body, _handlers, signal) => {
           firstSignal = signal ?? null;
         },
       );
@@ -600,11 +600,8 @@ describe('useAiCompanion', () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
 
-      let captured: AbortSignal | null = null;
       vi.mocked(aiGateway.streamThread).mockImplementationOnce(
-        async (_body, _handlers, signal) => {
-          captured = signal ?? null;
-        },
+        async () => {},
       );
 
       // capture the first call (default impl resolves, so this is fine)

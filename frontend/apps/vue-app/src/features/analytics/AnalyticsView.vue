@@ -516,7 +516,6 @@ const overviewData = ref<OverviewData | null>(null);
 const loginLogsData = ref<LoginLogsResponse | null>(null);
 const postViewsData = ref<PostViewData[] | null>(null);
 const loginLogsPage = ref(1);
-const serverMonitorRef = ref<InstanceType<typeof ServerMonitor> | null>(null);
 const showOsBrowser = ref<boolean>(false);
 
 // Computed

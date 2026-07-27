@@ -494,7 +494,6 @@ import { computed, useTemplateRef } from 'vue';
 const dropZoneRef = useTemplateRef('dropZoneRef');
 
 const {
-  fileInputRef,
   originalFile,
   processedBlob,
   originalPreviewUrl,

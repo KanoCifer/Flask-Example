@@ -128,9 +128,7 @@ const props = defineProps<{
   onBack?: () => void;
 }>();
 
-const heroRef = ref<HTMLElement | null>(null);
 const contentRef = ref<HTMLElement | null>(null);
-const gridRef = ref<HTMLElement | null>(null);
 const indicatorVisible = ref(true);
 
 // 标题按词拆分（保留空白与标点）

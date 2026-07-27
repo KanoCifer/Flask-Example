@@ -489,7 +489,6 @@ const form = reactive<MomentFormState>({
 
 const tagInput = ref('');
 
-const contentTextareaRef = ref<HTMLTextAreaElement | null>(null);
 
 // ── 附件(图片) ──────────────────────────────────────────
 // 复用 useUpload(type='gallery')，与 SpotFormPanel / PicUploadModal 同源。

@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import {
   playThemeTransition,
-  COLOR_SCHEMES,
   isColorScheme,
 } from '@readinglist/utils';
 import type { ColorScheme } from '@readinglist/utils';

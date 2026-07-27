@@ -8,7 +8,6 @@ const visitorCount = useVisitorCountStore();
 
 const open = ref(false);
 const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
-const popoverRef = useTemplateRef<HTMLElement>('popoverRef');
 
 const popoverStyle = ref<Record<string, string>>({});
 

@@ -184,7 +184,7 @@ const renderedBodyWithOrigin = computed(() => {
   if (!renderedBody.value) return '';
   return renderedBody.value.replace(
     /<img\s+([^>]*?)src=["']([^"']+)["']([^>]*)>/gi,
-    (match, pre, src, post) => {
+    (_match, pre, src, post) => {
       const fixed = useOrigin(src);
       return `<img ${pre}src="${fixed}"${post}>`;
     },
