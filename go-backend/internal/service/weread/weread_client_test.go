@@ -19,6 +19,7 @@ import (
 
 // ── fixtures ─────────────────────────────────────────────────────────
 
+// sampleShelfPayload 模拟微信读书 /shelf/sync 真实回包结构
 const sampleShelfPayload = `{
 	"books": [
 		{
@@ -29,16 +30,14 @@ const sampleShelfPayload = `{
 			"category": "科幻",
 			"readUpdateTime": 1700000000,
 			"updateTime": 1700000001,
-			"finishReading": true,
-			"secret": false,
-			"isTop": true
+			"finishReading": 1,
+			"secret": 0
 		}
 	],
-	"archives": [
+	"archive": [
 		{
-			"archiveId": "arc1",
-			"name": "我的书单",
 			"bookIds": ["abc123"],
+			"name": "我的书单",
 			"albumIds": []
 		}
 	]

@@ -26,7 +26,7 @@
       class="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
     >
       <div
-        v-for="i in 8"
+        v-for="i in 10"
         :key="i"
         class="animate-pulse"
         :style="{

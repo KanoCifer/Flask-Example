@@ -11,6 +11,7 @@ export * from './useRecommends';
 export * from './useRhythmView';
 export * from './useShelfView';
 export * from './useStatsFormat';
+export * from './useWereadBookDetail';
 export * from './useWereadBookDetailSingleton';
 export * from './useWereadBookProgress';
 export * from './useWereadShelf';

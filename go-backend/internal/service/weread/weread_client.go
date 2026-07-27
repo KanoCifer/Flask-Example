@@ -2,6 +2,7 @@
 package weread
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/KanoCifer/kuroome-blog/internal/infra/httpclient"
@@ -72,6 +72,7 @@ func NewClient(httpCli *httpclient.Client, redisCli *redis.Client, repo Reposito
 // BuildPayload 构造请求 Payload 和鉴权 Header。
 func (c *Client) BuildPayload(ctx context.Context, userID string, apiName string, extraData ...map[string]any) (map[string]any, map[string]string) {
 	token, _ := c.repo.GetUserToken(ctx, userID)
+	slog.DebugContext(ctx, "weread token", "userID", userID, "token", token)
 	payload := map[string]any{
 		"skill_version": skillVersion,
 		"api_name":      apiName,
@@ -83,9 +84,11 @@ func (c *Client) BuildPayload(ctx context.Context, userID string, apiName string
 	}
 
 	authHeader := map[string]string{
-		"Authorization": "Bearer " + token,
+		"Authorization": fmt.Sprintf("Bearer %s", token),
 	}
 	maps.Copy(authHeader, c.headers)
+
+	slog.DebugContext(ctx, "weread build payload", "payload", payload, "authHeader", authHeader)
 
 	return payload, authHeader
 }
@@ -107,15 +110,26 @@ func (c *Client) SendRequest(ctx context.Context, cacheKey string, ttl time.Dura
 		return nil, fmt.Errorf("%w: marshal payload: %w", ErrUpstream, err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL, strings.NewReader(string(payloadBytes)))
-	if err != nil {
-		return nil, fmt.Errorf("%w: create request: %w", ErrUpstream, err)
-	}
-	for k, v := range authHeader {
-		req.Header.Set(k, v)
+	newReq := func() (*http.Request, error) {
+		req, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodPost,
+			c.baseURL,
+			bytes.NewReader(payloadBytes), // 每次都是新的 Reader
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range authHeader {
+			req.Header.Set(k, v)
+		}
+
+		return req, nil
 	}
 
-	resp, err := doWithRetry(ctx, c.http, req)
+	resp, err := doWithRetry(ctx, c.http, newReq)
+	slog.DebugContext(ctx, "weread request", "api_name", apiName, "status", resp.StatusCode)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrUpstream, err)
 	}
@@ -145,12 +159,22 @@ func (c *Client) SendRequest(ctx context.Context, cacheKey string, ttl time.Dura
 	return json.RawMessage(body), nil
 }
 
-// doWithRetry 带退避重试的 HTTP 请求。
-func doWithRetry(ctx context.Context, cli *httpclient.Client, req *http.Request) (*http.Response, error) {
-	var resp *http.Response
-	var err error
+func doWithRetry(
+	ctx context.Context,
+	cli *httpclient.Client,
+	newReq func() (*http.Request, error),
+) (*http.Response, error) {
+	var (
+		resp *http.Response
+		err  error
+	)
 
 	for i := 0; i <= maxRetry; i++ {
+		req, err := newReq()
+		if err != nil {
+			return nil, err
+		}
+
 		resp, err = cli.Do(ctx, req)
 		if err == nil && resp.StatusCode < 500 {
 			return resp, nil
@@ -160,8 +184,20 @@ func doWithRetry(ctx context.Context, cli *httpclient.Client, req *http.Request)
 			resp.Body.Close()
 		}
 
-		time.Sleep(time.Duration(i+1) * time.Second)
+		if i < maxRetry {
+			backoff := time.Duration(i+1) * time.Second
+
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(backoff):
+			}
+		}
 	}
 
-	return resp, err
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

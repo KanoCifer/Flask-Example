@@ -256,17 +256,19 @@ func TestService_FetchUserShelf_Roundtrip(t *testing.T) {
 	if resp.Books[0].ReadUpdateTime != 1700000000 {
 		t.Errorf("readUpdateTime = %d, want 1700000000", resp.Books[0].ReadUpdateTime)
 	}
-	if !resp.Books[0].FinishReading {
-		t.Error("finishReading should be true")
+	if resp.Books[0].FinishReading == 0 {
+		t.Error("finishReading should be non-zero")
 	}
-	if !resp.Books[0].IsTop {
-		t.Error("isTop should be true")
+	// 上游 books 数组不含 isTop，转换后默认为 0
+	if resp.Books[0].IsTop != 0 {
+		t.Errorf("isTop = %d, want 0 (upstream books field has no isTop)", resp.Books[0].IsTop)
 	}
 	if len(resp.Archives) != 1 {
 		t.Fatalf("expected 1 archive, got %d", len(resp.Archives))
 	}
-	if resp.Archives[0].ArchiveId != "arc1" {
-		t.Errorf("archiveId = %q, want arc1", resp.Archives[0].ArchiveId)
+	// 上游 archive 数组不含 archiveId，转换后为空串
+	if resp.Archives[0].ArchiveId != "" {
+		t.Errorf("archiveId = %q, want empty (upstream archive field has no archiveId)", resp.Archives[0].ArchiveId)
 	}
 	if resp.Archives[0].Name != "我的书单" {
 		t.Errorf("archive name = %q, want 我的书单", resp.Archives[0].Name)
@@ -409,7 +411,7 @@ func TestDTO_WereadShelfResponse_MarshalRoundtrip(t *testing.T) {
 			{
 				BookId: "b1", Title: "书", Author: "作者", Cover: "https://x.com/c.jpg",
 				Category: "科幻", ReadUpdateTime: 100, UpdateTime: 200,
-				FinishReading: true, Secret: false, IsTop: true,
+				FinishReading: 1, Secret: 0, IsTop: 1,
 			},
 		},
 		Archives: []dto.WereadShelfArchive{
@@ -488,10 +490,61 @@ func TestDTO_WereadShelfResponse_Empty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	if string(data) != `{"books":[],"archives":[]}` {
+	if string(data) != `{"user_books":[],"archives":[]}` {
 		t.Errorf("empty payload = %q", data)
 	}
 }
+
+func TestParseShelfRaw_FromUpstream(t *testing.T) {
+	// 模拟上游 /shelf/sync 真实结构
+	raw := dto.WereadShelfRaw{
+		Books: []dto.WereadShelfBookRaw{
+			{
+				BookId: "b1", Title: "书", Author: "作者", Cover: "https://x.com/c.jpg",
+				Category: strPtr("科幻"), ReadUpdateTime: 100, UpdateTime: 200,
+				FinishReading: 1, Secret: 0,
+			},
+			{
+				BookId: "b2", Title: "无分类书", Author: "某人", Cover: "",
+				Category: nil, // 测试 nil category
+				FinishReading: 0, Secret: 1,
+			},
+		},
+		Archive: []dto.WereadShelfArchiveRaw{
+			{BookIds: []string{"b1"}, Name: "书单", AlbumIds: []any{"al1", 123}},
+		},
+	}
+
+	resp := dto.ParseShelfRaw(raw)
+
+	if len(resp.Books) != 2 {
+		t.Fatalf("expected 2 books, got %d", len(resp.Books))
+	}
+	if resp.Books[0].Category != "科幻" {
+		t.Errorf("book[0].Category = %q, want 科幻", resp.Books[0].Category)
+	}
+	if resp.Books[0].FinishReading != 1 {
+		t.Errorf("book[0].FinishReading = %d, want 1", resp.Books[0].FinishReading)
+	}
+	if resp.Books[1].Category != "" {
+		t.Errorf("book[1].Category = %q, want empty string", resp.Books[1].Category)
+	}
+	if resp.Books[1].Secret != 1 {
+		t.Errorf("book[1].Secret = %d, want 1", resp.Books[1].Secret)
+	}
+
+	if len(resp.Archives) != 1 {
+		t.Fatalf("expected 1 archive, got %d", len(resp.Archives))
+	}
+	if resp.Archives[0].Name != "书单" {
+		t.Errorf("archive name = %q, want 书单", resp.Archives[0].Name)
+	}
+	if len(resp.Archives[0].AlbumIds) != 1 || resp.Archives[0].AlbumIds[0] != "al1" {
+		t.Errorf("albumIds filter failed: %+v", resp.Archives[0].AlbumIds)
+	}
+}
+
+func strPtr(s string) *string { return &s }
 
 // ── 接口断言 ─────────────────────────────────────────────────────────
 

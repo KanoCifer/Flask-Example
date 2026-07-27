@@ -13,11 +13,11 @@ export interface WereadUserBook {
   author: string;
   cover: string | null;
   category: string | null;
-  isTop: boolean;
+  isTop: number;
   readUpdateTime: number | null;
   updateTime: number | null;
-  finishReading: boolean;
-  secret: boolean;
+  finishReading: number;
+  secret: number;
   readProgress: WereadBookProgress | null;
   updated_at?: string;
 }

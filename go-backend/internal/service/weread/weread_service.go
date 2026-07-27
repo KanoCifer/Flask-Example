@@ -55,7 +55,7 @@ func (s *Service) CreateUserToken(ctx context.Context, userID string, token stri
 	return s.repo.CreateUserToken(ctx, userID, token)
 }
 
-// FetchUserShelf 获取用户微信读书书架数据，解析为 DTO 返回，不落库 MongoDB。
+// FetchUserShelf 获取用户微信读书书架数据，解析上游原生结构后转换为前端契约返回，不落库 MongoDB。
 func (s *Service) FetchUserShelf(ctx context.Context, userID string) (*dto.WereadShelfResponse, error) {
 	const cacheTTL = 5 * time.Minute
 	cacheKey := "weread:shelf:" + userID
@@ -64,11 +64,11 @@ func (s *Service) FetchUserShelf(ctx context.Context, userID string) (*dto.Werea
 		return nil, err
 	}
 
-	var resp dto.WereadShelfResponse
-	if err := json.Unmarshal(raw, &resp); err != nil {
+	var upstream dto.WereadShelfRaw
+	if err := json.Unmarshal(raw, &upstream); err != nil {
 		return nil, fmt.Errorf("%w: parse shelf response: %w", ErrUpstream, err)
 	}
-	return &resp, nil
+	return dto.ParseShelfRaw(upstream), nil
 }
 
 func (s *Service) FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error) {

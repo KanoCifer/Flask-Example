@@ -14,7 +14,7 @@ type WeReadRepository struct {
 	coll *mongo.Collection
 }
 
-const collectionName = "weread_user"
+const collectionName = "weread_users"
 
 func NewWeReadRepository(coll *mongo.Database) *WeReadRepository {
 	return &WeReadRepository{
@@ -23,13 +23,17 @@ func NewWeReadRepository(coll *mongo.Database) *WeReadRepository {
 }
 
 func (r *WeReadRepository) GetUserToken(ctx context.Context, userID string) (string, error) {
-	filter := bson.M{"user_id": userID}
-	result := r.coll.FindOne(ctx, filter)
-	var token string
-	if err := result.Decode(&token); err != nil {
+	id, err := strconv.Atoi(userID)
+	if err != nil {
 		return "", err
 	}
-	return token, nil
+	filter := bson.M{"user_id": id}
+	result := r.coll.FindOne(ctx, filter)
+	var wereadUser document.WereadUser
+	if err := result.Decode(&wereadUser); err != nil {
+		return "", err
+	}
+	return wereadUser.APIKey, nil
 }
 
 func (r *WeReadRepository) CreateUserToken(ctx context.Context, userID string, token string) error {
