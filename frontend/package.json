@@ -1,10 +1,10 @@
 {
-  "name": "readinglist",
+  "name": "readinglist-frontend",
   "private": true,
   "type": "module",
   "workspaces": [
-    "frontend/apps/*",
-    "frontend/packages/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "dev:vue": "pnpm --filter @readinglist/vue-app dev",
@@ -13,14 +13,13 @@
     "build:react": "pnpm --filter @readinglist/react-app build",
     "build": "pnpm --filter @readinglist/vue-app build && pnpm --filter @readinglist/react-app build",
     "type-check": "pnpm --filter @readinglist/vue-app type-check && pnpm --filter @readinglist/react-app type-check",
+    "type-check:vue": "pnpm --filter @readinglist/vue-app type-check",
+    "type-check:react": "pnpm --filter @readinglist/react-app type-check",
     "test": "pnpm --filter @readinglist/vue-app test:unit && pnpm --filter @readinglist/react-app test:unit",
     "lint": "pnpm --filter @readinglist/vue-app lint && pnpm --filter @readinglist/react-app lint",
     "lint:boundaries": "pnpm --filter @readinglist/vue-app lint:boundaries && pnpm --filter @readinglist/react-app lint:boundaries"
   },
   "engines": {
     "node": "^26.4.0"
-  },
-  "devDependencies": {
-    "vite-tsconfig-paths": "^6.1.1"
   }
 }

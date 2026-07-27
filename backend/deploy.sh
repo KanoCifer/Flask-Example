@@ -130,23 +130,28 @@ fi
 if [ "$FRONTEND_CHANGED" = false ] && [ "$REACT_APP_CHANGED" = false ]; then
   warn "No frontend changes detected — skipping all builds"
 else
+  step "Installing frontend dependencies"
+  cd /home/kano/blog/frontend || exit 1
+  FAILED_STEP="前端依赖安装失败 (pnpm install: lockfile 冲突/网络)" && pnpm install --frozen-lockfile
+  ok "Dependencies installed"
+
   step "Building frontends (parallel)"
 
   PID_FRONTEND=""
   PID_REACT=""
 
   if [ "$FRONTEND_CHANGED" = true ]; then
-    ( cd /home/kano/blog/frontend/apps/vue-app || exit 1; pnpm i && pnpm run build ) &
+    ( pnpm --filter @readinglist/vue-app build ) &
     PID_FRONTEND=$!
   else
-    warn "No frontend changes detected — skipping build"
+    warn "No Vue app changes detected — skipping build"
   fi
 
   if [ "$REACT_APP_CHANGED" = true ]; then
-    ( cd /home/kano/blog/frontend/apps/react-app || exit 1; pnpm i && pnpm run build ) &
+    ( pnpm --filter @readinglist/react-app build ) &
     PID_REACT=$!
   else
-    warn "No react-app changes detected — skipping build"
+    warn "No React app changes detected — skipping build"
   fi
 
   FRONTEND_OK=true
@@ -154,9 +159,9 @@ else
   if [ -n "$PID_FRONTEND" ]; then
     if ! wait "$PID_FRONTEND"; then
       FRONTEND_OK=false
-      warn "Frontend build failed"
+      warn "Vue app build failed"
     else
-      ok "Frontend built"
+      ok "Vue app built"
     fi
   fi
   if [ -n "$PID_REACT" ]; then
@@ -169,7 +174,7 @@ else
   fi
 
   if [ "$FRONTEND_OK" = false ] || [ "$REACT_OK" = false ]; then
-    [ "$FRONTEND_OK" = false ] && FAILED_STEP="Vue 前端构建失败 (frontend: 依赖/构建错误)"
+    [ "$FRONTEND_OK" = false ] && FAILED_STEP="Vue 前端构建失败 (vue-app: 依赖/构建错误)"
     [ "$REACT_OK" = false ] && FAILED_STEP="React 前端构建失败 (react-app: 依赖/构建错误)"
     exit 1
   fi

@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import reactScan from '@react-scan/vite-plugin-react-scan';
 import { reactClickToComponent } from 'vite-plugin-react-click-to-component';
 import { defineConfig } from 'vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import {
   sharedBuildConfig,
   createServerConfig,
@@ -11,13 +10,10 @@ import {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    tsconfigPaths(),
-    react(),
-    tailwindcss(),
-    reactClickToComponent(),
-    reactScan(),
-  ],
+  resolve: {
+    tsconfigPaths: true,
+  },
+  plugins: [react(), tailwindcss(), reactClickToComponent(), reactScan()],
   build: {
     ...sharedBuildConfig,
     rollupOptions: {

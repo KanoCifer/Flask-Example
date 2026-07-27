@@ -46,7 +46,7 @@ docker run -p 5555:5555 --env-file ../.env go-backend
 ## Desktop (Vue)
 
 ```bash
-cd frontend
+cd frontend/apps/vue-app
 pnpm install                        # install deps
 pnpm run dev                        # dev server (:5173)
 pnpm run build                      # tsc -b && vite build (only if user asks)
@@ -62,7 +62,7 @@ pnpm run test:unit -- --run         # single run (not watch mode)
 ## Mobile (React)
 
 ```bash
-cd react-app
+cd frontend/apps/react-app
 pnpm install                        # install deps
 pnpm run dev                        # dev server (:5174)
 pnpm run build                      # tsc -b && vite build (only if user asks)
@@ -72,4 +72,17 @@ pnpm run lint                       # oxlint
 pnpm run lint:fix                   # oxlint auto-fix
 pnpm run format                     # prettier
 pnpm run test:unit                  # vitest run
+```
+
+## 跨端快捷命令（在 frontend/ 下执行）
+
+```bash
+cd frontend
+pnpm install                        # 一次性安装所有依赖
+pnpm run dev:vue                    # 启动 Vue dev server
+pnpm run dev:react                  # 启动 React dev server
+pnpm run build                      # 构建两端
+pnpm run type-check                 # 类型检查两端
+pnpm run test                       # 运行两端单测
+pnpm run lint                       # 检查两端 lint
 ```
