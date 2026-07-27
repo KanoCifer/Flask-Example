@@ -2,6 +2,7 @@
 import type { BookRecommendItem } from '@/features/books/api';
 import { AnimatePresence, Motion } from 'motion-v';
 import { FADE, SPRING_BOUNCE } from '@/constants';
+import { Button } from '@/components';
 import { onMounted, onUnmounted, watch } from 'vue';
 import { RECOMMEND_COVER_LAYOUT_ID_PREFIX } from '../lib/recommendLayoutId';
 
@@ -128,10 +129,11 @@ onUnmounted(() => {
                 </span>
                 <span v-else />
 
-                <button
-                  type="button"
-                  class="text-muted hover:bg-surface hover:text-ink -mt-1 -mr-1 inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors"
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label="关闭"
+                  class="!active:scale-100 !rounded-full text-muted hover:bg-surface hover:text-ink -mt-1 -mr-1 h-8 w-8 flex-shrink-0"
                   @click="emit('close')"
                 >
                   <svg
@@ -148,7 +150,7 @@ onUnmounted(() => {
                       d="M6 18 18 6M6 6l12 12"
                     />
                   </svg>
-                </button>
+                </Button>
               </div>
 
               <!-- Title + author -->

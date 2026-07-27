@@ -11,20 +11,20 @@
       <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 md:px-10 md:py-10">
         <!-- ── Mode Tabs ─────────────────────────────────────────────── -->
         <div class="bg-secondary mb-4 flex gap-1 rounded-xl p-1">
-          <button
+          <Button
             v-for="m in MODES"
             :key="m.key"
-            type="button"
-            class="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-            :class="
+            variant="ghost"
+            :class="[
+              '!active:scale-100 !inline-flex !rounded-lg flex-1 px-4 py-2.5 text-sm',
               activeMode === m.key
                 ? 'bg-accent text-ink shadow-sm'
-                : 'text-muted hover:bg-surface hover:text-ink'
-            "
+                : 'text-muted hover:bg-surface hover:text-ink',
+            ]"
             @click="switchMode(m.key)"
           >
             {{ m.label }}
-          </button>
+          </Button>
         </div>
 
         <!-- ── Period Navigation (hidden in overall) ───────────────── -->
@@ -32,12 +32,12 @@
           v-if="activeMode !== 'overall'"
           class="mb-10 flex items-center justify-between"
         >
-          <button
-            type="button"
-            class="text-muted hover:text-ink hover:bg-surface inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          <Button
+            variant="ghost"
             :disabled="statsStore.isLoading"
-            @click="goPrev"
+            class="!active:scale-100 text-muted hover:text-ink hover:bg-surface inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-normal disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             aria-label="上一周期"
+            @click="goPrev"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -54,16 +54,16 @@
               />
             </svg>
             上{{ unitLabel }}
-          </button>
+          </Button>
           <span class="text-ink text-sm font-medium tabular-nums sm:text-base">
             {{ periodLabel }}
           </span>
-          <button
-            type="button"
-            class="text-muted hover:text-ink hover:bg-surface inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          <Button
+            variant="ghost"
             :disabled="statsStore.isLoading || isAtCurrent"
-            @click="goNext"
+            class="!active:scale-100 text-muted hover:text-ink hover:bg-surface inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-normal disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             aria-label="下一周期"
+            @click="goNext"
           >
             下{{ unitLabel }}
             <svg
@@ -80,7 +80,7 @@
                 d="m8.25 4.5 7.5 7.5-7.5 7.5"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         <!-- Loading skeleton -->
@@ -101,13 +101,13 @@
           <p class="text-destructive mb-4 text-center text-sm">
             {{ statsStore.error }}
           </p>
-          <button
-            type="button"
-            class="bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-xl px-5 py-2 text-sm font-medium transition-colors"
+          <Button
+            variant="ghost"
+            class="!active:scale-100 !rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 px-5 py-2 text-sm font-normal"
             @click="reloadCurrent"
           >
             重试
-          </button>
+          </Button>
         </div>
 
         <!-- ── Empty (period has no data) ─────────────────────────── -->
@@ -230,6 +230,7 @@ import { usePreferenceView } from './composables/usePreferenceView';
 import { useRhythmView } from './composables/useRhythmView';
 import { useYearHeatmapView } from './composables/useYearHeatmapView';
 import { usePeriodNavigation } from './composables/usePeriodNavigation';
+import { Button } from '@/components';
 
 const MODES = [
   { key: 'weekly', label: '本周' },

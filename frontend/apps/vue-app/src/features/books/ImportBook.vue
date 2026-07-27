@@ -75,11 +75,12 @@
               "
               placeholder="wrk-xxxxxxxxxxxxxxxx"
             />
-            <button
-              type="button"
-              class="text-muted hover:text-ink focus:ring-ring absolute inset-y-0 right-2 my-auto flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus:ring-2 focus:outline-none"
+            <Button
+              variant="ghost"
+              size="icon"
               :aria-label="showKey ? '隐藏 API Key' : '显示 API Key'"
               :aria-pressed="showKey"
+              class="!active:scale-100 !rounded-lg text-muted hover:text-ink focus:ring-ring absolute inset-y-0 right-2 my-auto h-8 w-8 focus:ring-2"
               @click="toggleKeyVisibility"
             >
               <svg
@@ -117,7 +118,7 @@
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
           <FieldError
             :message="fieldError"

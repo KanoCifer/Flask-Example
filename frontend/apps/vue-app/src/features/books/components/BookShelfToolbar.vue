@@ -23,56 +23,57 @@
         role="group"
         aria-label="书架密度"
       >
-        <button
+        <Button
           v-for="opt in DENSITY_OPTIONS"
           :key="opt.key"
-          type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-          :class="
-            density === opt.key
-              ? 'bg-accent text-ink shadow-sm'
-              : 'text-muted hover:text-ink hover:bg-surface'
-          "
+          variant="ghost"
+          size="icon"
           :aria-pressed="density === opt.key"
           :aria-label="opt.label"
           :title="opt.label"
+          :class="[
+            '!active:scale-100 !rounded-lg',
+            density === opt.key
+              ? 'bg-accent text-ink shadow-sm'
+              : 'text-muted hover:text-ink hover:bg-surface',
+          ]"
           @click="$emit('update:density', opt.key)"
         >
           <component :is="opt.icon" class="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       <!-- 排序下拉 -->
       <div class="relative">
-        <button
-          type="button"
-          class="bg-page hover:bg-surface text-ink inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm transition-colors"
+        <Button
+          variant="outline"
           :aria-expanded="sortMenuOpen"
           aria-haspopup="menu"
+          class="bg-page hover:bg-surface text-ink h-9 gap-1.5 px-3 text-sm"
           @click="sortMenuOpen = !sortMenuOpen"
         >
           <ArrowUpDown class="h-4 w-4" />
           <span class="hidden sm:inline">{{ activeSortLabel }}</span>
           <ChevronDown class="h-3.5 w-3.5 opacity-60" />
-        </button>
+        </Button>
         <div
           v-if="sortMenuOpen"
           class="bg-page absolute top-full right-0 z-30 mt-1 w-36 overflow-hidden rounded-xl border shadow-lg"
           role="menu"
           @click.stop
         >
-          <button
+          <Button
             v-for="opt in SORT_OPTIONS"
             :key="opt.key"
-            type="button"
-            class="text-ink hover:bg-surface flex w-full items-center justify-between px-3 py-2 text-left text-sm"
+            variant="ghost"
+            class="!active:scale-100 !rounded-none text-ink hover:bg-surface flex w-full items-center justify-between px-3 py-2 text-sm font-normal"
             role="menuitemradio"
             :aria-checked="sort === opt.key"
             @click="onSelectSort(opt.key)"
           >
             <span>{{ opt.label }}</span>
             <Check v-if="sort === opt.key" class="text-ink h-3.5 w-3.5" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -83,16 +84,16 @@
       role="tablist"
       aria-label="书籍状态"
     >
-      <button
+      <Button
         v-for="chip in CHIPS"
         :key="chip.key"
-        type="button"
-        class="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors"
-        :class="
+        variant="ghost"
+        :class="[
+          '!active:scale-100 !rounded-full h-8 gap-1.5 px-3 text-xs',
           filter === chip.key
-            ? 'border-accent bg-accent text-ink'
-            : 'bg-page text-muted hover:border-ink/20 hover:text-ink'
-        "
+            ? 'border-accent bg-accent text-ink border'
+            : 'bg-page text-muted hover:border-ink/20 hover:text-ink border',
+        ]"
         role="tab"
         :aria-selected="filter === chip.key"
         @click="$emit('update:filter', chip.key)"
@@ -104,7 +105,7 @@
         >
           {{ countOf(chip.key) }}
         </span>
-      </button>
+      </Button>
     </div>
   </div>
 </template>
@@ -120,6 +121,7 @@ import {
   List,
   Search,
 } from '@lucide/vue';
+import { Button } from '@/components';
 import type {
   ShelfDensity,
   ShelfFilter,

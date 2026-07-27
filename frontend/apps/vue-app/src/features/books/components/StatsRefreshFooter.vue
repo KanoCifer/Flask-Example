@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type dayjs from 'dayjs';
+import { Button } from '@/components';
 
 defineProps<{
   lastRefreshedAt: dayjs.Dayjs | null;
@@ -17,10 +18,11 @@ defineEmits<{ refresh: [] }>();
       </template>
       <template v-else>—</template>
     </span>
-    <button
-      type="button"
-      class="hover:text-ink inline-flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+    <Button
+      variant="ghost"
+      size="sm"
       :disabled="loading"
+      class="!active:scale-100 hover:text-ink inline-flex items-center gap-1.5 text-xs font-normal"
       @click="$emit('refresh')"
     >
       <svg
@@ -39,6 +41,6 @@ defineEmits<{ refresh: [] }>();
         />
       </svg>
       刷新
-    </button>
+    </Button>
   </p>
 </template>

@@ -23,10 +23,11 @@
           </h2>
           <span class="text-muted text-xs">按你的偏好挑的</span>
         </div>
-        <button
-          type="button"
-          class="text-muted hover:text-ink inline-flex items-center gap-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40"
+        <Button
+          variant="ghost"
+          size="sm"
           :disabled="isLoading"
+          class="!active:scale-100 text-muted hover:text-ink inline-flex items-center gap-1 text-xs font-normal"
           @click="onRefresh"
           aria-label="换一批"
         >
@@ -35,14 +36,14 @@
             :class="{ 'animate-spin': isLoading && books.length > 0 }"
           />
           换一批
-        </button>
+        </Button>
       </header>
     </template>
 
     <template #card="{ book, open, ratingScore }">
-      <button
-        type="button"
-        class="group block w-28 flex-shrink-0 snap-start text-left sm:w-32 md:w-36"
+      <Button
+        variant="ghost"
+        class="!active:scale-100 !inline-flex group block w-28 flex-shrink-0 snap-start text-left text-sm font-normal sm:w-32 md:w-36"
         @click="open(book)"
       >
         <Motion
@@ -94,20 +95,20 @@
         >
           {{ book.reason }}
         </p>
-      </button>
+      </Button>
     </template>
 
     <template #load-more="{ loading: isLoading, onLoadMore }">
-      <button
-        type="button"
-        class="/60 text-muted hover:border-accent/40 hover:text-ink flex w-28 flex-shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-xs transition-colors disabled:opacity-50 sm:w-32 md:w-36"
+      <Button
+        variant="ghost"
         :disabled="isLoading"
+        class="!active:scale-100 !inline-flex /60 text-muted hover:border-accent/40 hover:text-ink flex w-28 flex-shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-xs font-normal transition-colors disabled:opacity-50 sm:w-32 md:w-36"
         @click="onLoadMore"
         aria-label="加载更多推荐"
       >
         <ArrowRight class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
         <span>{{ isLoading ? '加载中…' : '更多' }}</span>
-      </button>
+      </Button>
     </template>
   </BookRecommendGrid>
 </template>
@@ -116,6 +117,7 @@
 import type { BookRecommendItem } from '@/features/books/api';
 import { ArrowRight, RefreshCw, Star } from '@lucide/vue';
 import { Motion } from 'motion-v';
+import { Button } from '@/components';
 import BookRecommendGrid from '@/features/books/components/BookRecommendGrid.vue';
 import { RECOMMEND_COVER_LAYOUT_ID_PREFIX } from '@/features/books/lib/recommendLayoutId';
 

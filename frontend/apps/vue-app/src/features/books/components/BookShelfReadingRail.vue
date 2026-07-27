@@ -9,14 +9,15 @@
           {{ books.length }} 本
         </span>
       </div>
-      <button
+      <Button
         v-if="hasOverflow"
-        type="button"
-        class="text-muted hover:text-ink text-xs font-medium"
+        variant="ghost"
+        size="sm"
+        class="!active:scale-100 text-muted hover:text-ink"
         @click="scrollByPage(1)"
       >
         更多 →
-      </button>
+      </Button>
     </header>
 
     <div class="relative -mx-12">
@@ -58,6 +59,7 @@
 import type { WereadUserBook } from '@/features/books/api';
 import WereadBookCard from '@/features/books/components/WereadBookCard.vue';
 import { formatRelative } from '@/lib/dayjs';
+import { Button } from '@/components';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 defineProps<{

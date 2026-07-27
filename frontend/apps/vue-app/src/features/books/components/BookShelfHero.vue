@@ -7,18 +7,19 @@
     size="md"
   >
     <template #actions>
-      <button
-        type="button"
-        class="bg-page/60 hover:bg-secondary flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors disabled:opacity-50"
+      <Button
+        variant="ghost"
+        size="icon"
         :disabled="isSyncing"
-        @click="$emit('sync')"
         aria-label="同步书架"
+        class="bg-page/60 hover:bg-secondary text-ink !rounded-full h-10 w-10 border backdrop-blur-md"
+        @click="$emit('sync')"
       >
         <CloudSync
-          class="text-ink h-5 w-5"
+          class="h-5 w-5"
           :class="{ 'animate-breathe': isSyncing }"
         />
-      </button>
+      </Button>
     </template>
     <template #ribbon>
       <slot name="ribbon" />
@@ -29,7 +30,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { CloudSync } from '@lucide/vue';
-import { PageHero } from '@/components';
+import { Button, PageHero } from '@/components';
 
 const props = withDefaults(
   defineProps<{

@@ -3,7 +3,9 @@ import { computed, watch } from 'vue';
 import { BookOpen, Eye, EyeOff, RefreshCw, X } from '@lucide/vue';
 import { AnimatePresence, motion } from 'motion-v';
 import { FADE_FAST, FADE, SPRING_SNUG, EASE_SLOW } from '@/constants';
+import { Button } from '@/components';
 import type { WereadBookProgress, WereadUserBook } from '@/features/books/api';
+import { useWereadBookDetail } from '../composables/useWereadBookDetail';
 import { useWereadBookProgress } from '../composables/useWereadBookProgress';
 import {
   deterministicCoverGradient,
@@ -46,9 +48,44 @@ const {
   fetchProgress,
 } = useWereadBookProgress(bookIdRef);
 
+// 书籍元信息（简介 / 出版社 / 评分等，书架列表里没有的增强数据）
+const { detail: bookDetail, isLoading: detailLoading } =
+  useWereadBookDetail(bookIdRef);
+
 const liveProgress = computed<WereadBookProgress | null>(
   () => props.progress ?? internalProgress.value,
 );
+
+// 元信息标签（分类 / 出版社 / 出版时间 / 字数），仅展示有值的字段
+const metaItems = computed<string[]>(() => {
+  const d = bookDetail.value;
+  if (!d) return [];
+  const items: string[] = [];
+  if (d.category) items.push(d.category);
+  if (d.publisher) items.push(d.publisher);
+  if (d.publishTime) items.push(d.publishTime);
+  if (d.wordCount) {
+    items.push(
+      d.wordCount >= 10000
+        ? `${(d.wordCount / 10000).toFixed(1)} 万字`
+        : `${d.wordCount} 字`,
+    );
+  }
+  return items;
+});
+
+// 评分（微信读书 newRating 为 0-100，前端展示为 0-10）
+const ratingScore = computed<string | null>(() => {
+  const d = bookDetail.value;
+  if (!d || d.newRating == null) return null;
+  return (d.newRating / 10).toFixed(1);
+});
+
+const ratingCount = computed<number | null>(() => {
+  const d = bookDetail.value;
+  if (!d || d.newRatingCount == null) return null;
+  return d.newRatingCount;
+});
 
 const livePercent = computed(() => {
   const p = liveProgress.value?.progress;
@@ -121,14 +158,15 @@ const coverGradient = computed(() =>
           class="bg-card /60 relative w-full max-w-4xl overflow-hidden rounded-3xl border shadow-2xl"
         >
           <!-- 关闭按钮 -->
-          <button
-            type="button"
-            class="bg-page/80 text-ink hover:bg-page /40 absolute top-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-colors"
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="关闭"
+            class="!active:scale-100 !rounded-full bg-page/80 text-ink hover:bg-page /40 absolute top-4 right-4 z-20 h-9 w-9 border backdrop-blur-md"
             @click="emit('close')"
           >
             <X class="h-4 w-4" />
-          </button>
+          </Button>
 
           <div
             class="grid grid-cols-1 overflow-hidden md:grid-cols-[280px_1fr] md:items-stretch"
@@ -175,8 +213,72 @@ const coverGradient = computed(() =>
                 </h2>
                 <p class="text-muted text-base">
                   {{ book.author }}
+                  <span v-if="bookDetail?.translator" class="text-muted/70">
+                    · 译 {{ bookDetail.translator }}
+                  </span>
                 </p>
               </div>
+
+              <!-- 书籍元信息（简介 / 评分 / 出版信息，增强层） -->
+              <motion.div
+                v-if="bookDetail || detailLoading"
+                :initial="{ opacity: 0, y: 8 }"
+                :animate="{ opacity: 1, y: 0 }"
+                :transition="{ delay: 0.12, duration: 0.3 }"
+                class="space-y-3"
+              >
+                <!-- 加载中占位：与真实内容高度接近，避免布局抖动 -->
+                <div
+                  v-if="detailLoading && !bookDetail"
+                  class="space-y-2"
+                >
+                  <div class="bg-surface h-3.5 w-3/4 rounded-full" />
+                  <div class="bg-surface h-3.5 w-1/2 rounded-full" />
+                </div>
+
+                <template v-else-if="bookDetail">
+                  <!-- 简介（最多 3 行，悬停展开由行高自然承载） -->
+                  <p
+                    v-if="bookDetail.introduction"
+                    class="text-muted text-sm leading-relaxed line-clamp-3"
+                  >
+                    {{ bookDetail.introduction }}
+                  </p>
+
+                  <!-- 评分 -->
+                  <div
+                    v-if="ratingScore"
+                    class="flex items-baseline gap-1.5"
+                  >
+                    <span
+                      class="text-ink text-lg font-semibold tabular-nums"
+                    >
+                      {{ ratingScore }}
+                    </span>
+                    <span class="text-muted text-xs">分</span>
+                    <span
+                      v-if="ratingCount"
+                      class="text-muted text-xs"
+                    >
+                      · {{ ratingCount }} 人评价
+                    </span>
+                  </div>
+
+                  <!-- 出版信息标签行 -->
+                  <div
+                    v-if="metaItems.length"
+                    class="flex flex-wrap gap-x-3 gap-y-1 text-muted text-xs"
+                  >
+                    <span
+                      v-for="item in metaItems"
+                      :key="item"
+                      class="bg-surface/70 rounded px-1.5 py-0.5"
+                    >
+                      {{ item }}
+                    </span>
+                  </div>
+                </template>
+              </motion.div>
 
               <!-- 进度区块 (错峰渐入) -->
               <motion.div
@@ -189,10 +291,11 @@ const coverGradient = computed(() =>
                   <span class="text-ink text-3xl font-bold tabular-nums">
                     {{ formatProgressPercent(livePercent) }}
                   </span>
-                  <button
-                    type="button"
-                    class="text-muted hover:text-ink flex items-center gap-1.5 text-xs transition-colors"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     :disabled="progressLoading"
+                    class="!active:scale-100 text-muted hover:text-ink inline-flex items-center gap-1.5 text-xs font-normal"
                     @click="handleRefresh"
                   >
                     <RefreshCw
@@ -202,7 +305,7 @@ const coverGradient = computed(() =>
                       ]"
                     />
                     {{ progressLoading ? '刷新中' : '刷新进度' }}
-                  </button>
+                  </Button>
                 </div>
 
                 <!-- 进度条 -->
@@ -275,20 +378,21 @@ const coverGradient = computed(() =>
                   <BookOpen class="h-4 w-4" />
                   继续阅读
                 </a>
-                <button
-                  type="button"
-                  class="text-ink hover:bg-surface inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm transition-colors"
+                <Button
+                  variant="outline"
+                  class="!active:scale-100 !rounded-full text-ink hover:bg-surface inline-flex items-center gap-2 border px-4 py-2.5 text-sm font-normal"
                 >
                   <Eye class="h-4 w-4" />
                   标记读完
-                </button>
-                <button
-                  type="button"
-                  class="text-muted hover:text-ink inline-flex items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   :title="book.secret ? '取消隐藏' : '隐藏'"
+                  class="!active:scale-100 !rounded-full text-muted hover:text-ink inline-flex items-center gap-2 px-3 py-2.5 text-sm font-normal"
                 >
                   <component :is="book.secret ? Eye : EyeOff" class="h-4 w-4" />
-                </button>
+                </Button>
               </motion.div>
             </div>
           </div>

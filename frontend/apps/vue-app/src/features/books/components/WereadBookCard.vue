@@ -3,6 +3,7 @@ import { ChevronRight } from '@lucide/vue';
 import type { WereadUserBook } from '@/features/books/api';
 import dayjs from 'dayjs';
 import { computed } from 'vue';
+import { Button } from '@/components';
 import { deterministicCoverGradient } from '../lib/format';
 
 export type BookCardVariant = 'standard' | 'compact' | 'list';
@@ -95,9 +96,9 @@ function onImgError(e: Event) {
 </script>
 
 <template>
-  <button
-    type="button"
-    class="group focus-visible:ring-ring focus-visible:ring-offset-page block w-full cursor-pointer rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+  <Button
+    variant="ghost"
+    class="!active:scale-100 !inline-flex group focus-visible:ring-ring focus-visible:ring-offset-page block w-full cursor-pointer rounded-xl text-left text-sm font-normal focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
     @click="handleSelect"
   >
     <!-- ─── List variant: 横向单行 ────────────────────────────── -->
@@ -237,7 +238,7 @@ function onImgError(e: Event) {
         </p>
       </div>
     </div>
-  </button>
+  </Button>
 </template>
 
 <style scoped>
