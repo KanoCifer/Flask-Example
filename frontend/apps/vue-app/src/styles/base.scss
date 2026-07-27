@@ -3,6 +3,8 @@
  * Tailwind v4 指令（@import 'tailwindcss' / @plugin / @theme）放在 base.css，
  * 由 @tailwindcss/vite 处理；这里只放 font-face 与普通样式规则。
  */
+@use '@readinglist/brand/prose';
+
 @font-face {
   font-family: 'HarmonyOS Sans';
   font-style: normal;
@@ -91,8 +93,6 @@ a {
   overflow: hidden;
   pointer-events: none;
 }
-
-@import '@readinglist/brand/prose';
 
 :root[data-font='harmonyos'] {
   --default-font-family:
