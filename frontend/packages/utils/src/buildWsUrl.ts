@@ -3,7 +3,7 @@
  * - 若 apiBase 以 http/https 开头，直接替换协议为 ws/wss
  * - 否则根据当前页面协议推导 ws/wss，并拼接 host 与 apiBase
  */
-export function buildWsUrl(apiBase: string = import.meta.env.VITE_API_BASE || '/'): string {
+export function buildWsUrl(apiBase: string = import.meta.env.VITE_API_BASE || ''): string {
   if (apiBase.startsWith('http')) {
     return apiBase.replace(/^http/, 'ws') + '/v3/public/ws';
   }
