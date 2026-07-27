@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { BookRecommendItem } from '@/features/books/api';
 import { computed, ref } from 'vue';
-import { Button } from '@/components';
 import BookRecommendDetail from './BookRecommendDetail.vue';
 
 const props = withDefaults(
@@ -104,14 +103,13 @@ function ratingScore(v: number): string {
         class="/60 text-muted flex flex-col items-center justify-center rounded-2xl border border-dashed py-8 text-center text-sm"
       >
         <p class="text-destructive mb-3 text-xs">{{ error }}</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          class="!active:scale-100 !rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 px-3 py-1 text-xs font-normal"
+        <button
+          type="button"
+          class="bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg px-3 py-1 text-xs font-medium transition-colors"
           @click="emit('refresh')"
         >
           重试
-        </Button>
+        </button>
       </div>
     </slot>
 
@@ -142,15 +140,15 @@ function ratingScore(v: number): string {
         :loading="loading"
         :on-load-more="() => emit('loadMore')"
       >
-        <Button
-          variant="ghost"
+        <button
+          type="button"
+          class="/60 text-muted hover:border-accent/40 hover:text-ink flex w-28 flex-shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-xs transition-colors disabled:opacity-50 sm:w-32 md:w-36"
           :disabled="loading"
-          class="!active:scale-100 !inline-flex /60 text-muted hover:border-accent/40 hover:text-ink flex w-28 flex-shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-xs font-normal transition-colors disabled:opacity-50 sm:w-32 md:w-36"
           @click="emit('loadMore')"
           aria-label="加载更多推荐"
         >
           <span>{{ loading ? '加载中…' : '更多' }}</span>
-        </Button>
+        </button>
       </slot>
     </div>
 

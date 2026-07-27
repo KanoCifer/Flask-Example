@@ -26,7 +26,7 @@ function flattenItem(item: ReadDetailRawLongestItem): FlatLongestItem {
     author: (info.author as string) ?? null,
     cover: (info.cover as string) ?? null,
     readTime: item.readTime,
-    tags: item.tags,
+    tags: item.tags ?? [],
   };
 }
 

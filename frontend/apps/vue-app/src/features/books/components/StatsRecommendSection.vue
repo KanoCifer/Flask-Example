@@ -19,10 +19,10 @@
             接下来读什么
           </h2>
         </div>
-        <Button
-          variant="ghost"
+        <button
+          type="button"
+          class="text-muted hover:text-ink hover:bg-surface inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40"
           :disabled="isLoading"
-          class="!active:scale-100 text-muted hover:text-ink hover:bg-surface inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-normal"
           @click="onRefresh"
           aria-label="换一批"
         >
@@ -42,7 +42,7 @@
             />
           </svg>
           换一批
-        </Button>
+        </button>
       </div>
     </template>
 
@@ -64,9 +64,9 @@
     </template>
 
     <template #card="{ book, open, ratingScore }">
-      <Button
-        variant="ghost"
-        class="!active:scale-100 !inline-flex group bg-page hover:border-accent/40 flex w-56 flex-shrink-0 snap-start flex-col gap-3 rounded-2xl border border-transparent p-4 text-left text-sm font-normal transition-colors sm:w-60"
+      <button
+        type="button"
+        class="group bg-page hover:border-accent/40 flex w-56 flex-shrink-0 snap-start flex-col gap-3 rounded-2xl border border-transparent p-4 text-left transition-colors sm:w-60"
         @click="open(book)"
       >
         <Motion
@@ -120,14 +120,14 @@
         >
           {{ readingCountLabel(book.readingCount) }}
         </p>
-      </Button>
+      </button>
     </template>
 
     <template #load-more="{ loading: isLoading, onLoadMore }">
-      <Button
-        variant="ghost"
+      <button
+        type="button"
+        class="text-muted hover:text-ink hover:border-accent/40 flex w-40 flex-shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-sm transition-colors disabled:opacity-50 sm:w-44"
         :disabled="isLoading"
-        class="!active:scale-100 !inline-flex text-muted hover:text-ink hover:border-accent/40 flex w-40 flex-shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-sm font-normal transition-colors disabled:opacity-50 sm:w-44"
         @click="onLoadMore"
       >
         <svg
@@ -146,7 +146,7 @@
           />
         </svg>
         <span>{{ isLoading ? '加载中…' : '更多推荐' }}</span>
-      </Button>
+      </button>
     </template>
   </BookRecommendGrid>
 </template>
@@ -155,7 +155,6 @@
 import type { BookRecommendItem } from '@/features/books/api';
 import { Motion } from 'motion-v';
 import { computed } from 'vue';
-import { Button } from '@/components';
 import BookRecommendGrid from '@/features/books/components/BookRecommendGrid.vue';
 import { RECOMMEND_COVER_LAYOUT_ID_PREFIX } from '@/features/books/lib/recommendLayoutId';
 

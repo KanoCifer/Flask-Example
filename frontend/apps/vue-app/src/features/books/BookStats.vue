@@ -10,16 +10,15 @@
     <div class="flex-1 pb-12">
       <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 md:px-10 md:py-10">
         <!-- ── Mode Tabs ─────────────────────────────────────────────── -->
-        <div class="bg-secondary mb-4 flex gap-1 rounded-xl p-1">
+        <div class="mb-4 flex gap-1 rounded-xl p-1">
           <Button
             v-for="m in MODES"
             :key="m.key"
-            variant="ghost"
             :class="[
-              '!active:scale-100 !inline-flex !rounded-lg flex-1 px-4 py-2.5 text-sm',
+              '!active:scale-100 !inline-flex flex-1 !rounded-lg px-4 py-2.5 text-sm',
               activeMode === m.key
-                ? 'bg-accent text-ink shadow-sm'
-                : 'text-muted hover:bg-surface hover:text-ink',
+                ? 'bg-accent shadow-sm'
+                : 'text-muted bg-page hover:bg-surface hover:text-ink',
             ]"
             @click="switchMode(m.key)"
           >
@@ -103,7 +102,7 @@
           </p>
           <Button
             variant="ghost"
-            class="!active:scale-100 !rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 px-5 py-2 text-sm font-normal"
+            class="!active:scale-100 bg-destructive/10 text-destructive hover:bg-destructive/20 !rounded-xl px-5 py-2 text-sm font-normal"
             @click="reloadCurrent"
           >
             重试

@@ -26,7 +26,6 @@
         <Button
           v-for="opt in DENSITY_OPTIONS"
           :key="opt.key"
-          variant="ghost"
           size="icon"
           :aria-pressed="density === opt.key"
           :aria-label="opt.label"
@@ -34,8 +33,8 @@
           :class="[
             '!active:scale-100 !rounded-lg',
             density === opt.key
-              ? 'bg-accent text-ink shadow-sm'
-              : 'text-muted hover:text-ink hover:bg-surface',
+              ? 'bg-accent text-contrast shadow-sm'
+              : 'text-muted bg-page hover:text-ink hover:bg-surface',
           ]"
           @click="$emit('update:density', opt.key)"
         >
@@ -66,7 +65,7 @@
             v-for="opt in SORT_OPTIONS"
             :key="opt.key"
             variant="ghost"
-            class="!active:scale-100 !rounded-none text-ink hover:bg-surface flex w-full items-center justify-between px-3 py-2 text-sm font-normal"
+            class="!active:scale-100 text-ink hover:bg-surface flex w-full items-center justify-between !rounded-none px-3 py-2 text-sm font-normal"
             role="menuitemradio"
             :aria-checked="sort === opt.key"
             @click="onSelectSort(opt.key)"
@@ -87,11 +86,10 @@
       <Button
         v-for="chip in CHIPS"
         :key="chip.key"
-        variant="ghost"
         :class="[
-          '!active:scale-100 !rounded-full h-8 gap-1.5 px-3 text-xs',
+          '!active:scale-100 h-8 gap-1.5 !rounded-full px-3 text-xs',
           filter === chip.key
-            ? 'border-accent bg-accent text-ink border'
+            ? 'bg-accent text-contrast border'
             : 'bg-page text-muted hover:border-ink/20 hover:text-ink border',
         ]"
         role="tab"

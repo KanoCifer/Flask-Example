@@ -162,7 +162,7 @@ const coverGradient = computed(() =>
             variant="ghost"
             size="icon"
             aria-label="关闭"
-            class="!active:scale-100 !rounded-full bg-page/80 text-ink hover:bg-page /40 absolute top-4 right-4 z-20 h-9 w-9 border backdrop-blur-md"
+            class="!active:scale-100 bg-page/80 text-ink hover:bg-page /40 absolute top-4 right-4 z-20 h-9 w-9 !rounded-full border backdrop-blur-md"
             @click="emit('close')"
           >
             <X class="h-4 w-4" />
@@ -228,10 +228,7 @@ const coverGradient = computed(() =>
                 class="space-y-3"
               >
                 <!-- 加载中占位：与真实内容高度接近，避免布局抖动 -->
-                <div
-                  v-if="detailLoading && !bookDetail"
-                  class="space-y-2"
-                >
+                <div v-if="detailLoading && !bookDetail" class="space-y-2">
                   <div class="bg-surface h-3.5 w-3/4 rounded-full" />
                   <div class="bg-surface h-3.5 w-1/2 rounded-full" />
                 </div>
@@ -240,26 +237,18 @@ const coverGradient = computed(() =>
                   <!-- 简介（最多 3 行，悬停展开由行高自然承载） -->
                   <p
                     v-if="bookDetail.introduction"
-                    class="text-muted text-sm leading-relaxed line-clamp-3"
+                    class="text-muted line-clamp-3 text-sm leading-relaxed"
                   >
                     {{ bookDetail.introduction }}
                   </p>
 
                   <!-- 评分 -->
-                  <div
-                    v-if="ratingScore"
-                    class="flex items-baseline gap-1.5"
-                  >
-                    <span
-                      class="text-ink text-lg font-semibold tabular-nums"
-                    >
+                  <div v-if="ratingScore" class="flex items-baseline gap-1.5">
+                    <span class="text-ink text-lg font-semibold tabular-nums">
                       {{ ratingScore }}
                     </span>
                     <span class="text-muted text-xs">分</span>
-                    <span
-                      v-if="ratingCount"
-                      class="text-muted text-xs"
-                    >
+                    <span v-if="ratingCount" class="text-muted text-xs">
                       · {{ ratingCount }} 人评价
                     </span>
                   </div>
@@ -267,7 +256,7 @@ const coverGradient = computed(() =>
                   <!-- 出版信息标签行 -->
                   <div
                     v-if="metaItems.length"
-                    class="flex flex-wrap gap-x-3 gap-y-1 text-muted text-xs"
+                    class="text-muted flex flex-wrap gap-x-3 gap-y-1 text-xs"
                   >
                     <span
                       v-for="item in metaItems"
@@ -373,14 +362,14 @@ const coverGradient = computed(() =>
               >
                 <a
                   :href="`weread://reading?bId=${book.bookId}`"
-                  class="bg-accent text-ink hover:bg-accent/90 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-colors"
+                  class="bg-accent text-contrast hover:bg-accent/90 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-colors"
                 >
                   <BookOpen class="h-4 w-4" />
                   继续阅读
                 </a>
                 <Button
                   variant="outline"
-                  class="!active:scale-100 !rounded-full text-ink hover:bg-surface inline-flex items-center gap-2 border px-4 py-2.5 text-sm font-normal"
+                  class="!active:scale-100 text-ink hover:bg-surface inline-flex items-center gap-2 !rounded-full border px-4 py-2.5 text-sm font-normal"
                 >
                   <Eye class="h-4 w-4" />
                   标记读完
@@ -389,7 +378,7 @@ const coverGradient = computed(() =>
                   variant="ghost"
                   size="icon"
                   :title="book.secret ? '取消隐藏' : '隐藏'"
-                  class="!active:scale-100 !rounded-full text-muted hover:text-ink inline-flex items-center gap-2 px-3 py-2.5 text-sm font-normal"
+                  class="!active:scale-100 text-muted hover:text-ink inline-flex items-center gap-2 !rounded-full px-3 py-2.5 text-sm font-normal"
                 >
                   <component :is="book.secret ? Eye : EyeOff" class="h-4 w-4" />
                 </Button>

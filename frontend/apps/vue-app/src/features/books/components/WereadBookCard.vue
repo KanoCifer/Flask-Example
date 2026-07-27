@@ -98,7 +98,7 @@ function onImgError(e: Event) {
 <template>
   <Button
     variant="ghost"
-    class="!active:scale-100 !inline-flex group focus-visible:ring-ring focus-visible:ring-offset-page block w-full cursor-pointer rounded-xl text-left text-sm font-normal focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+    class="!active:scale-100 group focus-visible:ring-ring focus-visible:ring-offset-page !inline-flex block w-full cursor-pointer rounded-xl text-left text-sm font-normal focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
     @click="handleSelect"
   >
     <!-- ─── List variant: 横向单行 ────────────────────────────── -->
@@ -223,7 +223,7 @@ function onImgError(e: Event) {
       </div>
       <div :class="isCompact ? 'px-1 py-1.5' : 'px-1.5 py-2'">
         <p
-          class="text-ink line-clamp-2 font-serif leading-snug font-medium"
+          class="text-ink line-clamp-2 font-serif leading-snug font-bold"
           :class="titleSize"
           :title="book.title"
         >
