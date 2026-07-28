@@ -31,12 +31,7 @@ async def _noop_cm() -> AsyncGenerator[None]:
 # Router 层使用的入口（Phase 4 完成后可移除）----------------------------- #
 get_user_service = _noop_cm
 get_user_services = _noop_cm
-get_admin_service = _noop_cm
-get_blog_service = _noop_cm
-get_moment_service = _noop_cm
-get_system_service = _noop_cm
 get_public_service = _noop_cm
-get_devtask_service = _noop_cm
 get_weread_service = _noop_cm
 get_ai_service = _noop_cm
 get_sub_service = _noop_cm
@@ -71,9 +66,3 @@ def get_rss_service(_redis):  # 旧签名保留，不使用 redis（已注入 Ap
     from app.main import app
 
     return _ServiceProxy(app.state.services.rss_svc)
-
-
-def get_monitor_service():
-    from app.main import app
-
-    return _ServiceProxy(app.state.services.monitor_svc)

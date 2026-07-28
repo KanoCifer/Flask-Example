@@ -90,8 +90,8 @@ async def _on_worker_startup(state: TaskiqState) -> None:
 
     # 构造 AppState 单例并挂载到 app.state.services，对齐 web 进程
     # initialize_resources()（main.py:62）。scheduled task 通过
-    # container.get_rss_service() / get_monitor_service() 访问 service，
-    # 后者读取 app.state.services，若此处未挂载则报 AttributeError。
+    # container.get_rss_service() 访问 service，后者读取 app.state.services，
+    # 若此处未挂载则报 AttributeError。
     from app.appstate import new_app_state
     from app.main import app
 

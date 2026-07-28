@@ -207,14 +207,6 @@ export const wereadGateway = {
     return res.data;
   },
 
-  async syncMyBooks(): Promise<ApiResponse<{ imported_count: number }>> {
-    const res = await apiClient.get<ApiResponse<{ imported_count: number }>>(
-      'v2/weread/sync-my-books',
-      { timeout: 60000 },
-    );
-    return res.data;
-  },
-
   async getReadProgress(
     mode: ReadStatsMode,
     baseTime?: number | null,

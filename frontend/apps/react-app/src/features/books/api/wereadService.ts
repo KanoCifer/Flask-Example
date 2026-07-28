@@ -16,10 +16,6 @@ export const wereadService = {
     return wereadGateway.getBookInfo(bookId);
   },
 
-  async syncMyBooks() {
-    return wereadGateway.syncMyBooks();
-  },
-
   async getReadProgress(mode: ReadStatsMode, baseTime?: number | null) {
     return wereadGateway.getReadProgress(mode, baseTime);
   },

@@ -20,14 +20,8 @@ async def _noop_dep() -> AsyncGenerator[None]:
 
 user_service_dep = _noop_dep
 user_services_dep = _noop_dep
-admin_service_dep = _noop_dep
-blog_service_dep = _noop_dep
-moment_service_dep = _noop_dep
-monitor_service_dep = _noop_dep
-system_service_dep = _noop_dep
 public_service_dep = _noop_dep
 rss_service_dep = _noop_dep
-devtask_service_dep = _noop_dep
 weread_service_dep = _noop_dep
 ai_service_dep = _noop_dep
 sub_service_dep = _noop_dep

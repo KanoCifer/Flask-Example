@@ -56,7 +56,6 @@ export default function BookShelf() {
   const handleSync = useCallback(async () => {
     setIsSyncing(true);
     try {
-      await wereadService.syncMyBooks();
       await fetchBooks();
     } catch (err: unknown) {
       const error = err as {

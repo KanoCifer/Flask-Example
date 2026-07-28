@@ -5,10 +5,8 @@ packages:
 allowBuilds:
   '@parcel/watcher': true
 
-minimumReleaseAgeExclude:
-  - vite
-  - "@typescript"
-  - lucide-react
+# 依赖发布最短时间（分钟），防止供应链投毒
+minimumReleaseAge: 1440
 
 overrides:
   lottie-web: "5.13.0"

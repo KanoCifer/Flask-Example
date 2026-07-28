@@ -2,7 +2,6 @@
 
 from app.api.v2 import (
     device,
-    devtasks,
     fishing,
     friendlinks,
     llm,

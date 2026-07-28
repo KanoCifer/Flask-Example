@@ -26,14 +26,8 @@ if TYPE_CHECKING:
 def register_router(app: FastAPI):
     # Include routers
     # v1 版本API
-    # app.include_router(router=admin.router, prefix="/v1")
-    # app.include_router(router=auth.router, prefix="/v1")
-    # app.include_router(router=blog.router, prefix="/v1")
-    # app.include_router(router=moments.router, prefix="/v1")
     app.include_router(router=public.router, prefix="/v1")
     app.include_router(router=rss.router, prefix="/v1")
-    # app.include_router(router=monitor.router, prefix="/v1")
-    # app.include_router(router=publish.router, prefix="/v1")
 
     # v2 版本API
     app.include_router(router=subscriptions.router, prefix="/v2")
@@ -43,9 +37,7 @@ def register_router(app: FastAPI):
     # app.include_router(router=weather.router, prefix="/v2")
     app.include_router(router=public_v2.router, prefix="/v2")
     app.include_router(router=friendlinks.router, prefix="/v2")
-    # app.include_router(router=devtasks_v2.router, prefix="/v2")
     # app.include_router(router=weread_v2.router, prefix="/v2")
-    # app.include_router(router=system.router, prefix="/v2")
 
 
 def setup_media(app: FastAPI) -> None:
