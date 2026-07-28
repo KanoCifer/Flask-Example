@@ -19,12 +19,9 @@ from app.core import get_settings, register_exception_handlers
 from app.core import logger as app_logger
 from app.core.logger import drain_log_queue, start_log_worker
 from app.middleware import register_middleware
-from app.models.blog import Post
 from app.models.changelog import Changelog
-from app.models.devtask import DevTask
 from app.models.fishing import FishingModelMeta, FishingRecord
 from app.models.friendlink import FriendLinks
-from app.models.moment import Moment
 from app.models.rss import RssArticle
 from app.models.subscription import SubscriptionLog
 from app.plugins.cache import close_cache_redis
@@ -40,14 +37,11 @@ async def initialize_resources(app: FastAPI):
     await init_beanie(
         database=app.state.mongo,
         document_models=[
-            Moment,
-            Post,
             RssArticle,
             SubscriptionLog,
             FishingRecord,
             FishingModelMeta,
             FriendLinks,
-            DevTask,
             Changelog,
         ],
     )

@@ -73,14 +73,12 @@ async def _on_worker_startup(state: TaskiqState) -> None:
     state.mongo_client = AsyncMongoClient(get_settings().MONGO_URI)
     mongo_db = state.mongo_client["readinglist"]
 
-    from app.models.blog import Post
     from app.models.rss import RssArticle, RssFeed
     from app.models.subscription import SubscriptionLog
 
     await init_beanie(
         database=mongo_db,
         document_models=[
-            Post,
             RssArticle,
             RssFeed,
             SubscriptionLog,

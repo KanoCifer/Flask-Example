@@ -11,7 +11,6 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
-    Index,
     Integer,
     String,
     Text,
@@ -204,92 +203,6 @@ class Profile(Base):
 
     def __repr__(self):
         return f"<Profile {self.id} - User ID: {self.user_id}>"
-
-
-class Category(Base):
-    """
-    博客分类模型
-    注意: 文章数据已迁移到 MongoDB, 此模型仅保留用于分类管理
-    """
-
-    __tablename__ = "category"
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column(String(50), unique=True)
-
-    def __init__(self, name: str):
-        self.name = name
-
-    def __repr__(self):
-        return f"<Category {self.name}>"
-
-
-# VisitorTrack模型
-class VisitorTrack(Base):
-    __tablename__ = "visitor_track"
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    visitor_id: Mapped[str] = mapped_column(String(100), index=True)
-    page_url: Mapped[str] = mapped_column(String(200))
-    page_path: Mapped[str] = mapped_column(String(200))
-    referrer: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    browser: Mapped[str] = mapped_column(Text)  # User Agent 可能很长
-    screen_resolution: Mapped[str] = mapped_column(String(100))
-    language: Mapped[str] = mapped_column(String(50))
-    ip_address: Mapped[str] = mapped_column(String(100), index=True)
-    visit_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
-    )
-    browser_name: Mapped[str] = mapped_column(String(100), nullable=True)
-    browser_version: Mapped[str] = mapped_column(String(100), nullable=True)
-    os_name: Mapped[str] = mapped_column(String(100), nullable=True)
-    os_version: Mapped[str] = mapped_column(String(100), nullable=True)
-    cpu: Mapped[str] = mapped_column(String(length=50), nullable=True)
-    device_type: Mapped[str] = mapped_column(String(50), nullable=True)
-
-    # 联合索引：覆盖查询条件 + 分组字段
-    __table_args__ = (
-        Index(
-            "idx_visit_browser_stats",
-            "visit_time",
-            "browser_name",
-            "browser_version",
-        ),
-        Index(
-            "idx_visit_os_stats",
-            "visit_time",
-            "os_name",
-            "os_version",
-        ),
-        Index(
-            "idx_visit_time_page_path",
-            "visit_time",
-            "page_path",
-        ),
-        Index(
-            "idx_visit_time_device_type",
-            "visit_time",
-            "device_type",
-        ),
-        Index(
-            "idx_visit_time_visitor_id",
-            "visit_time",
-            "visitor_id",
-        ),
-        Index(
-            "idx_visit_time_ip_address",
-            "visit_time",
-            "ip_address",
-        ),
-    )
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def __repr__(self):
-        return f"<VisitorTrack {self.ip_address} at {self.visit_time}>"
 
 
 class RssInfo(Base):
