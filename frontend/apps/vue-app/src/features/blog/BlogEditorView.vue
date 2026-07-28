@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import MarkdownEditor from './components/MarkdownEditor.vue';
+import MetaRow from './components/MetaRow.vue';
 import { Button as UiButton, IconSave } from '@/components';
 import { blogGateway } from '@/features/blog/api/blogGateway';
-import { useOrigin } from '@readinglist/utils';
-import { useUpload } from '@/features/upload/composables';
 import { useNotificationStore } from '@/stores';
-import { ModalFadeTransition } from '@/components';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -23,13 +21,7 @@ const tags = ref<string[]>([]);
 const tagInput = ref('');
 const pin = ref(false);
 const loading = ref(false);
-const coverInputRef = ref<HTMLInputElement | null>(null);
 const error = ref('');
-
-// 封面上传：统一 useUpload 原语，保留 spinner + toast 行为
-const { upload: uploadCover, isUploading: coverUploading } = useUpload({
-  type: 'blog',
-});
 
 // Markdown state
 const markdownBody = ref('');
@@ -39,10 +31,10 @@ const markdownEditorRef = ref<InstanceType<typeof MarkdownEditor> | null>(null);
 // is the focal point, metadata is peek-on-demand.
 const metaOpen = ref(false);
 
-// 非 http(s) 开头的封面 src 用 https://api.kanocifer.chat 作为前缀（仅在 https 环境下生效）
-const coverPreviewSrc = computed(() =>
-  cover.value ? useOrigin(cover.value) : '',
-);
+// 封面上传失败回调：统一在父级展示 toast，组件本身保持纯粹
+const handleMetaUploadError = (message: string) => {
+  notification.error(message);
+};
 
 // Draft management
 const draftKey = computed(() => `blog-draft-${postId.value || 'new'}`);
@@ -148,22 +140,6 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 // Get current markdown content (stored as-is, no HTML conversion)
 const getCurrentContent = (): string => {
   return markdownBody.value;
-};
-
-const handleCoverUpload = async (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (!file) return;
-
-  try {
-    cover.value = await uploadCover(file);
-    notification.success('封面上传成功');
-  } catch (err) {
-    console.error(err);
-    notification.error('封面上传失败');
-  } finally {
-    target.value = '';
-  }
 };
 
 // Manual save draft (Cmd+S)
@@ -377,7 +353,7 @@ onBeforeUnmount(() => {
   <div class="bg-page min-h-dvh">
     <div class="mx-auto w-full max-w-6xl px-5 pt-8 pb-28 sm:px-8 sm:pt-10">
       <!-- ─── Top bar: wordmark · breadcrumb · status ─── -->
-      <header class="text-muted mb-7 flex items-center gap-3 text-xs">
+      <header class="text-muted mt-20 mb-7 flex items-center gap-3 text-xs">
         <button
           type="button"
           class="hover:text-ink -mx-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors"
@@ -632,92 +608,13 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- ─── Meta drawer: summary + cover ─── -->
-        <ModalFadeTransition>
-          <div
-            v-if="metaOpen"
-            id="meta-drawer"
-            class="bg-surface/60 space-y-4 rounded-2xl border p-5"
-          >
-            <!-- Summary -->
-            <div>
-              <label
-                class="text-muted mb-1.5 block font-serif text-[11px] tracking-wider uppercase italic"
-              >
-                摘要
-              </label>
-              <textarea
-                v-model="summary"
-                rows="2"
-                maxlength="200"
-                placeholder="两三行，写给读者的开场白…"
-                class="text-ink placeholder:text-muted/60 bg-surface focus:border-ink/40 focus:ring-ink/10 w-full resize-none rounded-lg border px-3 py-2 font-serif text-sm leading-relaxed outline-0 focus:ring-1"
-              />
-              <p class="text-muted/60 mt-1 text-right font-mono text-[10px]">
-                {{ summary.length }} / 200
-              </p>
-            </div>
-
-            <!-- Cover -->
-            <div>
-              <label
-                class="text-muted mb-1.5 block font-serif text-[11px] tracking-wider uppercase italic"
-              >
-                封面
-              </label>
-              <div class="flex gap-3">
-                <div class="min-w-0 flex-1 space-y-2">
-                  <input
-                    v-model="cover"
-                    type="text"
-                    placeholder="粘贴封面 URL"
-                    class="text-ink placeholder:text-muted/60 bg-surface focus:border-ink/40 focus:ring-ink/10 w-full rounded-lg border px-3 py-2 font-mono text-sm outline-0 focus:ring-1"
-                  />
-                  <div class="flex items-center gap-3 text-xs">
-                    <input
-                      ref="coverInputRef"
-                      type="file"
-                      accept="image/*"
-                      class="hidden"
-                      @change="handleCoverUpload"
-                    />
-                    <button
-                      type="button"
-                      :disabled="coverUploading"
-                      class="text-muted hover:text-ink transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                      @click="coverInputRef?.click()"
-                    >
-                      {{ coverUploading ? '上传中…' : '上传图片' }}
-                    </button>
-                    <button
-                      v-if="cover"
-                      type="button"
-                      class="text-muted/70 hover:text-ink transition-colors"
-                      @click="cover = ''"
-                    >
-                      清除
-                    </button>
-                  </div>
-                </div>
-                <div
-                  class="bg-surface h-20 w-28 shrink-0 overflow-hidden rounded-lg border"
-                >
-                  <img
-                    v-if="cover"
-                    :src="coverPreviewSrc"
-                    :alt="`${title || '文章'} 封面预览`"
-                    class="h-full w-full object-cover"
-                  />
-                  <div
-                    v-else
-                    class="text-muted/50 flex h-full w-full items-center justify-center font-serif text-[10px] italic"
-                  >
-                    无封面
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ModalFadeTransition>
+        <MetaRow
+          :open="metaOpen"
+          v-model:summary="summary"
+          v-model:cover="cover"
+          :title="title"
+          @upload-error="handleMetaUploadError"
+        />
 
         <!-- ─── The writing canvas ─── -->
         <!--
@@ -739,7 +636,7 @@ onBeforeUnmount(() => {
           用 sticky bottom 跟随滚动，bg-surface/85 backdrop-blur 与纸面对齐。
         -->
         <div
-          class="text-muted /70 bg-surface/85 sticky bottom-3 -mx-3 flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-xs shadow-sm backdrop-blur-md sm:mx-0"
+          class="text-muted bg-surface/70 sticky bottom-30 flex w-fit items-center gap-3 rounded-2xl border px-4 py-2.5 text-xs shadow-sm backdrop-blur-xs sm:mx-auto"
         >
           <!-- 计量 -->
           <span class="hidden items-center gap-2 font-serif sm:inline-flex">

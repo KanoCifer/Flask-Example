@@ -21,4 +21,8 @@ export type {
   ImageAlign,
 } from './runtime/markdownImageRuntime';
 
-export { UploadDropzone, UploadProgress } from './components';
+export {
+  UploadDropzone,
+  UploadProgress,
+  CoverUploader,
+} from './components';

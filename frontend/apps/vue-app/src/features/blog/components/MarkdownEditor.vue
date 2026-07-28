@@ -55,13 +55,7 @@ const {
 const dragCounter = ref(0);
 const isDraggingOver = ref(false);
 
-const isFocusMode = ref(false);
 const showPreview = ref(false);
-
-// 切换聚焦模式
-const toggleFocusMode = () => {
-  isFocusMode.value = !isFocusMode.value;
-};
 
 // 切换预览
 const togglePreview = () => {
@@ -121,12 +115,6 @@ const handleKeydown = (e: KeyboardEvent) => {
         if (e.shiftKey) {
           e.preventDefault();
           togglePreview();
-        }
-        break;
-      case 'f':
-        if (e.shiftKey) {
-          e.preventDefault();
-          toggleFocusMode();
         }
         break;
       case 's':
@@ -231,7 +219,7 @@ defineExpose({
 
       <!-- Toolbar -->
       <div
-        class="/50 flex h-10 shrink-0 items-center justify-between border-b px-4"
+        class="border-border flex h-10 shrink-0 items-center justify-between border-b px-4"
       >
         <div class="flex items-center gap-1">
           <button
@@ -314,19 +302,6 @@ defineExpose({
             type="button"
             :class="[
               'rounded-lg px-3 py-1.5 text-xs font-medium transition',
-              isFocusMode
-                ? 'bg-warning/10 text-warning'
-                : 'text-muted hover:bg-surface/50 hover:text-ink',
-            ]"
-            @click="toggleFocusMode"
-            title="聚焦模式 (Cmd+Shift+F)"
-          >
-            {{ isFocusMode ? '聚焦中' : '聚焦' }}
-          </button>
-          <button
-            type="button"
-            :class="[
-              'rounded-lg px-3 py-1.5 text-xs font-medium transition',
               showPreview
                 ? 'bg-accent/10 text-ink'
                 : 'text-muted hover:bg-surface/50 hover:text-ink',
@@ -340,19 +315,13 @@ defineExpose({
       </div>
 
       <div class="relative h-full flex-1">
-        <!-- Focus mode dimming overlay -->
-        <div
-          v-if="isFocusMode"
-          class="from-page/90 pointer-events-none absolute inset-x-0 top-0 z-10 h-1/4 bg-gradient-to-b to-transparent"
-        ></div>
-
         <textarea
           ref="textareaRef"
           v-model="markdownText"
           @keydown="handleKeydown"
           @paste="handlePaste"
           :class="[
-            'placeholder:text-muted/60 bg-surface field-sizing-content h-full min-h-80 w-full outline-none focus:ring-0',
+            'placeholder:text-muted/60 bg-surface field-sizing-content h-full min-h-80 w-full resize-none outline-none focus:ring-0',
             'px-8 py-6 text-lg leading-relaxed',
             'font-serif',
           ]"
