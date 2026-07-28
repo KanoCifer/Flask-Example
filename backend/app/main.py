@@ -27,7 +27,6 @@ from app.models.friendlink import FriendLinks
 from app.models.moment import Moment
 from app.models.rss import RssArticle
 from app.models.subscription import SubscriptionLog
-from app.models.weread import Archive, User, UserBook, WereadBook
 from app.plugins.cache import close_cache_redis
 from app.plugins.notification import Message, NotificationContext, notify
 from app.plugins.task import broker
@@ -49,10 +48,6 @@ async def initialize_resources(app: FastAPI):
             FishingModelMeta,
             FriendLinks,
             DevTask,
-            User,
-            WereadBook,
-            UserBook,
-            Archive,
             Changelog,
         ],
     )

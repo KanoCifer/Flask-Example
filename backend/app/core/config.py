@@ -50,7 +50,6 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_MAX_CONNECTIONS: int = 50
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
-    QWEATHER_BASE_URL: str = ""
     # Go 后端 base URL（v3 天气数据源）。Python 钓鱼指数端点通过它获取天气数据。
     GO_BACKEND_URL: str = "http://127.0.0.1:8001"
     ENABLE_TRACKING: bool = True
