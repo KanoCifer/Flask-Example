@@ -47,8 +47,8 @@ defineOptions({ name: 'UiModal' });
 const props = withDefaults(
   defineProps<{
     open: boolean;
-    /** sm: 420px, md: 560px (default), lg: 720px, xl: 880px */
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    /** sm: 420px, md: 560px (default), lg: 720px, xl: 880px, 2xl: 1100px（长文阅读） */
+    size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     /** 点遮罩是否关闭,默认 true */
     maskClosable?: boolean;
     /** Esc 是否关闭,默认 true */
@@ -73,6 +73,8 @@ const sizeClass = computed(() => {
       return 'sm:max-w-[720px]';
     case 'xl':
       return 'sm:max-w-[880px]';
+    case '2xl':
+      return 'sm:max-w-[1100px]';
     case 'md':
     default:
       return 'sm:max-w-[560px]';

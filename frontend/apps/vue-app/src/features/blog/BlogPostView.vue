@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { AiCompanion } from '@/features/ai';
 import { TwikooComments } from '@/components';
+import ArticlePreview from './components/ArticlePreview.vue';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +19,6 @@ import { useAuthStore } from '@/features/auth';
 import { useOrigin } from '@readinglist/utils';
 import { useNotificationStore } from '@/stores';
 import type { Post } from '@readinglist/types';
-import { formatDate } from '@/lib/dayjs';
 import { useHead } from '@vueuse/head';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/scss/rainbow.scss';
@@ -116,14 +116,6 @@ function readingStats(body: string): { minutes: number; count: number } {
 
 const stats = computed(() => readingStats(post.value?.body || ''));
 
-// 更新时间仅在与创建时间不同时才展示，避免噪音
-const hasUpdate = computed(
-  () =>
-    !!post.value?.updated_at &&
-    !!post.value?.created_at &&
-    post.value.updated_at !== post.value.created_at,
-);
-
 // 顶部阅读进度条：跟随窗口滚动
 const readProgress = ref(0);
 const updateProgress = () => {
@@ -173,11 +165,6 @@ const renderedBody = computed(() => {
     breaks: false,
   }) as string;
 });
-
-// 非 http(s) 开头的 src 用 https://api.kanocifer.chat 作为前缀（仅在 https 环境下生效）
-const coverSrc = computed(() =>
-  post.value?.cover ? useOrigin(post.value.cover) : '',
-);
 
 // 渲染正文中所有 <img src="...">，非 http(s) 开头的补上前缀
 const renderedBodyWithOrigin = computed(() => {
@@ -391,54 +378,27 @@ onUnmounted(() => {
     </div>
 
     <!-- Article -->
-    <article v-else-if="post" class="mx-auto max-w-4xl px-6 pt-24 pb-20">
-      <!-- 封面置顶：主视觉先行 -->
-      <figure v-if="post.cover" class="mb-10 overflow-hidden rounded-xl">
-        <div class="bg-surface aspect-[16/9] w-full overflow-hidden">
-          <img
-            :src="coverSrc"
-            :alt="`${post.title} 封面`"
-            class="h-full w-full object-cover"
-            loading="lazy"
-            style="
-              box-shadow: inset 0 0 0 1px oklch(from var(--ink) l c h / 0.08);
-            "
-          />
-        </div>
-        <figcaption class="text-muted mt-2.5 text-[11px] tracking-[0.04em]">
-          封面 · {{ post.tags?.[0] || 'ReadingList' }}
-        </figcaption>
-      </figure>
+    <div v-else-if="post">
+      <AiCompanion :title="post.title" :content="post.body || ''" />
 
-      <!-- 文章头：刊号带 → 眉标 → 大标题 → deck → byline -->
-      <header class="my-12">
-        <!-- 刊号式元信息带：出版物气质，mono 大字距 -->
-        <div
-          class="text-muted mb-6 flex items-center justify-between border-b pb-3 font-mono text-[10px] tracking-[0.18em] uppercase"
-        >
-          <span>Vol · 随笔录</span>
-          <span class="text-muted/70"
-            >No · {{ post._id?.slice(-6) || '——' }}</span
-          >
-        </div>
-
-        <!-- Eyebrow / kicker — accent 唯一一次正式出场 -->
-        <div
-          class="text-ink mb-5 flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] uppercase"
-        >
-          <span class="bg-accent h-px w-5"></span>
-          {{ post.tags?.[0] || '未分类' }}
-        </div>
-
-        <h1
-          class="text-ink flex items-center justify-between gap-2 font-serif text-[clamp(1.875rem,5vw,2.5rem)] leading-[1.18] font-medium tracking-[-0.02em] text-balance"
-        >
-          {{ post.title }}
-
-          <!-- 管理员操作 -->
+      <ArticlePreview
+        :post-id="post._id"
+        :title="post.title"
+        :cover="post.cover"
+        :author="post.author"
+        :tags="post.tags"
+        :created-at="post.created_at"
+        :updated-at="post.updated_at"
+        :minutes="stats.minutes"
+        :word-count="stats.count"
+        :body-html="renderedBodyWithOrigin"
+        @copy-link="handleCopyLink"
+      >
+        <!-- 标题右侧操作（仅管理员） -->
+        <template #header-actions>
           <div
             v-if="showEditButton"
-            class="mb-8 flex items-center justify-end gap-2"
+            class="mb-8 flex shrink-0 items-center justify-end gap-2"
           >
             <router-link
               :to="`/blog/${post._id}/edit`"
@@ -455,14 +415,10 @@ onUnmounted(() => {
               删除
             </button>
           </div>
-        </h1>
+        </template>
 
-        <!-- Deck / standfirst — 阅读时长 + 字数 + 阅读量 + 可点击喜欢 -->
-        <p
-          class="text-muted mt-5 text-[15px] leading-relaxed tracking-[0.01em] tabular-nums"
-        >
-          约 {{ stats.minutes }} 分钟阅读 ·
-          {{ stats.count.toLocaleString() }} 字
+        <!-- Deck 尾部：浏览量 + 点赞 -->
+        <template #deck-extras>
           <span
             v-if="post.views != null"
             class="inline-flex items-center gap-1"
@@ -490,68 +446,13 @@ onUnmounted(() => {
               {{ likesCount }}
             </button>
           </span>
-        </p>
+        </template>
 
-        <!-- Byline / dateline -->
-        <div
-          class="text-muted mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] tracking-[0.02em]"
-        >
-          <span v-if="post.author" class="text-ink/80 font-medium">
-            {{ post.author }}
-          </span>
-          <span
-            v-if="post.author && post.created_at"
-            class="bg-border h-3 w-px"
-          ></span>
-          <time v-if="post.created_at" :datetime="post.created_at">
-            {{ formatDate(post.created_at) }}
-          </time>
-          <template v-if="hasUpdate">
-            <span class="bg-border h-3 w-px"></span>
-            <span>更新于 {{ formatDate(post.updated_at) }}</span>
-          </template>
-        </div>
-      </header>
-
-      <!-- 正文 -->
-      <div class="prose prose-lg max-w-none">
-        <AiCompanion :title="post.title" :content="post.body || ''" />
-        <div
-          class="prose-body whitespace-pre-wrap"
-          v-if="post.body"
-          v-html="renderedBodyWithOrigin"
-        />
-        <div v-else class="text-muted italic">暂无内容</div>
-      </div>
-
-      <!-- 文章脚：作者署名块 + 复制链接 -->
-      <footer class="mt-14 pt-8">
-        <div class="flex flex-wrap items-start justify-between gap-5">
-          <div class="flex items-center gap-3.5">
-            <img
-              src="/images/animal-badge/fox.png"
-              alt="Kurroome"
-              class="ring-border h-11 w-11 shrink-0 rounded-full object-cover ring-1"
-              loading="lazy"
-            />
-            <div class="min-w-0">
-              <div class="text-ink text-[14px] font-medium tracking-wide">
-                {{ post.author || 'Kurroome' }}
-              </div>
-              <div class="text-muted mt-0.5 text-[12px] tracking-[0.02em]">
-                {{
-                  hasUpdate
-                    ? `最后更新于 ${formatDate(post.updated_at)}`
-                    : post.created_at
-                      ? `发布于 ${formatDate(post.created_at)}`
-                      : ''
-                }}
-              </div>
-            </div>
-          </div>
+        <!-- 署名块之后：复制链接 -->
+        <template #footer-extra="{ copyLink }">
           <button
             type="button"
-            @click="handleCopyLink"
+            @click="copyLink"
             class="text-muted hover:text-ink inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-medium tracking-[0.02em] transition-all duration-150 active:scale-[0.96]"
           >
             <svg
@@ -570,9 +471,9 @@ onUnmounted(() => {
             </svg>
             复制链接
           </button>
-        </div>
-      </footer>
-    </article>
+        </template>
+      </ArticlePreview>
+    </div>
 
     <TwikooComments
       v-if="post"

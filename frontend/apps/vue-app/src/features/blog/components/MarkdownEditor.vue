@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import ArticlePreview from './ArticlePreview.vue';
 import ImageEditorModal from './ImageEditorModal.vue';
 import { useMarkdownImage } from '@/features/upload/composables';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github-dark.css';
+import { Modal } from '@/components';
 import { renderMarkdown } from '@/composables';
 import TurndownService from 'turndown';
 import { computed, nextTick, ref, watch } from 'vue';
@@ -19,6 +21,20 @@ const emit = defineEmits<{
 
 const props = defineProps<{
   modelValue?: string;
+  /** 文章 ID（预览用，刊号带上的 No. 后缀） */
+  postId?: string;
+  /** 文章标题（预览用，未填时显示"无标题"） */
+  title?: string;
+  /** 文章封面 URL（预览用） */
+  cover?: string;
+  /** 文章作者（预览用） */
+  author?: string;
+  /** 标签（预览用，首项作为 kicker） */
+  tags?: string[];
+  /** 发布/创建时间（预览用） */
+  createdAt?: string;
+  /** 更新时间（预览用） */
+  updatedAt?: string;
 }>();
 
 // 检测字符串是否像 HTML
@@ -165,18 +181,33 @@ const handlePaste = (event: ClipboardEvent) => {
   }
 };
 
-const handlePreviewClick = (event: MouseEvent) => {
-  const target = event.target as HTMLElement | null;
-  if (!target || target.tagName !== 'IMG') return;
-  image.openImageEditor(target as HTMLImageElement);
-};
-
 const renderedMarkdown = computed<string>(() => {
   if (!markdownText.value) return '';
   return renderMarkdown(markdownText.value, {
     ADD_ATTR: ['data-md-id', 'data-align'],
     ALLOWED_URI_REGEXP: /^(?:(?:https?|blob):|[^a-z]*|[a-z0-9.+-]*$)/i,
   });
+});
+
+// 阅读统计（详情页风预览需要展示"X 分钟 · Y 字"）
+// 复用 BlogEditorView 的 CJK 词数计算口径，避免预览与发布后阅读时长不一致
+const stats = computed<{ minutes: number; count: number }>(() => {
+  const text = markdownText.value;
+  if (!text) return { minutes: 1, count: 0 };
+  const stripped = text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]*`/g, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/^#+\s+/gm, '')
+    .replace(/[*_>~-]+/g, ' ');
+  const cjk = (stripped.match(/[一-鿿㐀-䶿]/g) || []).length;
+  const words = (
+    stripped.replace(/[一-鿿㐀-䶿]/g, ' ').match(/[A-Za-z0-9]+/g) || []
+  ).length;
+  const count = cjk + words;
+  const minutes = Math.max(1, Math.round(count / 400));
+  return { minutes, count };
 });
 
 // Apply syntax highlighting after Vue renders the preview HTML
@@ -195,13 +226,10 @@ defineExpose({
 </script>
 
 <template>
-  <div class="flex h-full flex-col md:flex-row">
+  <div class="flex h-full flex-col">
     <!-- Editor -->
     <div
-      :class="[
-        'relative flex h-full flex-col transition-all duration-300',
-        showPreview ? 'md:w-1/2 md:border-r md:pr-4' : 'w-full',
-      ]"
+      class="relative flex h-full w-full flex-col"
       @dragover.prevent="dragCounter++"
       @dragleave.prevent="
         dragCounter--;
@@ -333,33 +361,42 @@ defineExpose({
       </div>
     </div>
 
-    <!-- Preview Panel (Slide-in) -->
-    <transition
-      enter-active-class="transition-all duration-300 ease-out"
-      enter-from-class="opacity-0 w-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-all duration-200 ease-out"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0 w-0"
+    <!-- Preview Modal -->
+    <Modal
+      :open="showPreview"
+      size="2xl"
+      :mask-closable="true"
+      :esc-closable="true"
+      @close="togglePreview"
     >
-      <div v-if="showPreview" class="/50 bg-page/50 border-l md:w-1/2 md:pl-4">
-        <div class="flex h-full flex-col">
-          <div class="flex h-10 shrink-0 items-center justify-between px-4">
-            <h2 class="text-muted text-xs font-medium">预览</h2>
-            <button
-              type="button"
-              class="text-muted hover:text-ink text-xs transition"
-              @click="togglePreview"
-            >
-              关闭
-            </button>
-          </div>
-          <div class="prose max-w-none flex-1 overflow-y-auto px-6 py-4">
-            <div v-html="renderedMarkdown" @click="handlePreviewClick"></div>
-          </div>
+      <div class="flex h-[min(85vh,920px)] flex-col">
+        <div class="flex shrink-0 items-center justify-between border-b px-6 py-3">
+          <h2 class="text-muted text-xs font-medium tracking-wide">预览</h2>
+          <button
+            type="button"
+            class="text-muted hover:text-ink rounded-full px-3 py-1 text-xs font-semibold transition hover:bg-surface"
+            @click="togglePreview"
+          >
+            关闭
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto bg-page">
+          <ArticlePreview
+            :post-id="postId"
+            :title="title || '无标题'"
+            :cover="cover || null"
+            :author="author"
+            :tags="tags"
+            :created-at="createdAt"
+            :updated-at="updatedAt"
+            :minutes="stats.minutes"
+            :word-count="stats.count"
+            :body-html="renderedMarkdown"
+            @image-click="image.openImageEditor"
+          />
         </div>
       </div>
-    </transition>
+    </Modal>
 
     <!-- Image Editor Modal -->
     <ImageEditorModal

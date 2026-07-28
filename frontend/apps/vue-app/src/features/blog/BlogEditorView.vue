@@ -625,7 +625,14 @@ onBeforeUnmount(() => {
           class="bg-surface /60 overflow-hidden rounded-2xl border shadow-[0_1px_0_0_oklch(from_var(--page)_l_c_h_/_0.6)_inset,0_2px_4px_-1px_oklch(from_var(--ink)_l_c_h_/_0.04),0_8px_24px_-8px_oklch(from_var(--ink)_l_c_h_/_0.12)]"
         >
           <div class="h-full">
-            <MarkdownEditor ref="markdownEditorRef" v-model="markdownBody" />
+            <MarkdownEditor
+              ref="markdownEditorRef"
+              v-model="markdownBody"
+              :post-id="postId ?? undefined"
+              :title="title"
+              :cover="cover"
+              :tags="tags"
+            />
           </div>
         </div>
 

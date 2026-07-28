@@ -2,6 +2,7 @@
 
 // 文章详情
 export { default as ArticleDetailLayout } from './ArticleDetailLayout.vue';
+export { default as ArticlePreview } from './ArticlePreview.vue';
 
 // 博客列表/视图
 export { default as BentoCategory } from './BentoCategory.vue';
