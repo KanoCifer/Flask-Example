@@ -128,14 +128,14 @@ func (h *BlogHandler) LikePost(c *gin.Context) {
 // 注意：/post 是 /blogs/:id 的双路由别名（前端 blogGateway 仍使用 v3/post?_id=xxx），
 // 不可删除。若前端迁移到 /blogs/:id 后可清理。
 func (h *BlogHandler) RegisterRoutes(r *gin.RouterGroup) {
-	cacheP5 := middleware.CacheController("public, max-age=300")  // 5 min — 列表
-	cacheP10 := middleware.CacheController("public, max-age=600") // 10 min — 详情
-	cacheH1 := middleware.CacheController("public, max-age=3600") // 1 h — 标签
+	// cacheP5 := middleware.CacheController("public, max-age=300")  // 5 min — 列表
+	// cacheP10 := middleware.CacheController("public, max-age=600") // 10 min — 详情
+	// cacheH1 := middleware.CacheController("public, max-age=3600") // 1 h — 标签
 
-	r.GET("/blogs", cacheP5, h.GetBlogs)
-	r.GET("/blogs/:id", cacheP10, h.GetBlogPost)
+	r.GET("/blogs", h.GetBlogs)
+	r.GET("/blogs/:id", h.GetBlogPost)
 	r.POST("/blogs/:id/like", h.LikePost)
-	r.GET("/post", cacheP10, h.GetBlogPost)
-	r.GET("/tags", cacheH1, h.GetTags)
-	r.GET("/tags/:tag/posts", cacheP10, h.GetPostsByTag)
+	r.GET("/post", h.GetBlogPost)
+	r.GET("/tags", h.GetTags)
+	r.GET("/tags/:tag/posts", h.GetPostsByTag)
 }

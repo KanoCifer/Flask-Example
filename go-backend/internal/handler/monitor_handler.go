@@ -10,7 +10,6 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
-	"github.com/KanoCifer/kuroome-blog/internal/middleware"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
@@ -200,7 +199,6 @@ func (h *MonitorHandler) GetStatusDetail(c *gin.Context) {
 // RegisterRoutes 挂载 monitor 端点。
 // 监控统计走 auth + admin 鉴权；访客追踪（/status/track）和状态详情（/status/detail）公开。
 func (h *MonitorHandler) RegisterRoutes(r *gin.RouterGroup, authMW gin.HandlerFunc, adminMW gin.HandlerFunc) {
-	cacheP5 := middleware.CacheController("public, max-age=300")
 
 	r.GET("/status/overview", authMW, adminMW, h.GetOverview)
 	r.GET("/status/visitors", authMW, adminMW, h.GetVisitors)
@@ -208,5 +206,5 @@ func (h *MonitorHandler) RegisterRoutes(r *gin.RouterGroup, authMW gin.HandlerFu
 	r.GET("/status/server/status", authMW, adminMW, h.ServerStatus)
 	r.GET("/status/server/status/stream", authMW, adminMW, h.ServerStatusStream)
 	r.POST("/status/track", h.TrackVisitor)
-	r.GET("/status/detail", cacheP5, h.GetStatusDetail)
+	r.GET("/status/detail", h.GetStatusDetail)
 }
