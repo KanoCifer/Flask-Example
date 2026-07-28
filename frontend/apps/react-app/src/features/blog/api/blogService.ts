@@ -58,7 +58,7 @@ export interface BlogService {
     body: string;
     tags: string[];
     cover?: string | null;
-    is_pinned: number;
+    is_pinned: boolean;
   }): Promise<{ _id: string }>;
   updateLegacyPost(payload: {
     _id: string;
@@ -66,7 +66,7 @@ export interface BlogService {
     body: string;
     tags: string[];
     cover?: string | null;
-    is_pinned: number;
+    is_pinned: boolean;
   }): Promise<{ _id: string }>;
   deleteLegacyPost(postId: string): Promise<void>;
 }

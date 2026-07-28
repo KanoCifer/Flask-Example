@@ -20,7 +20,7 @@ export interface BlogGateway {
     tags: string[];
     summary?: string | null;
     cover?: string | null;
-    is_pinned: number;
+    is_pinned: boolean;
   }): Promise<{ _id: string }>;
   updateLegacyPost(payload: {
     _id: string;
@@ -29,7 +29,7 @@ export interface BlogGateway {
     tags: string[];
     summary?: string | null;
     cover?: string | null;
-    is_pinned: number;
+    is_pinned: boolean;
   }): Promise<{ _id: string }>;
   deleteLegacyPost(postId: string): Promise<void>;
 }

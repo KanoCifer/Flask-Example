@@ -230,7 +230,7 @@ const handleSubmit = async () => {
       summary: summary.value,
       cover: cover.value.trim() || null,
       tags: tags.value,
-      is_pinned: pin.value ? 1 : 0,
+      is_pinned: pin.value,
     };
 
     if (isEdit.value && postId.value) {

@@ -45,7 +45,7 @@ export interface blogGateway {
     body: string;
     tags: string[];
     cover?: string | null;
-    is_pinned: number;
+    is_pinned: boolean;
   }): Promise<AxiosResponse<{ _id: string }>>;
   updateLegacyPost(payload: {
     _id: string;
@@ -53,7 +53,7 @@ export interface blogGateway {
     body: string;
     tags: string[];
     cover?: string | null;
-    is_pinned: number;
+    is_pinned: boolean;
   }): Promise<AxiosResponse<{ _id: string }>>;
   deleteLegacyPost(postId: string): Promise<AxiosResponse<void>>;
 }
