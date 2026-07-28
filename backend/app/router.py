@@ -34,10 +34,8 @@ def register_router(app: FastAPI):
     app.include_router(router=llm.router, prefix="/v2")
     app.include_router(router=device.router, prefix="/v2")
     app.include_router(router=fishing.router, prefix="/v2")
-    # app.include_router(router=weather.router, prefix="/v2")
     app.include_router(router=public_v2.router, prefix="/v2")
     app.include_router(router=friendlinks.router, prefix="/v2")
-    # app.include_router(router=weread_v2.router, prefix="/v2")
 
 
 def setup_media(app: FastAPI) -> None:

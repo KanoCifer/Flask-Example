@@ -23,7 +23,6 @@ from app.repositories import (
     PublicRepo,
     RssRepo,
     SubRepo,
-    WereadRepo,
 )
 from app.repositories.user import UserRepo
 from app.services.ai_service import AiService
@@ -35,7 +34,6 @@ from app.services.public_service import PublicService
 from app.services.rss_service import RssService
 from app.services.sub_service import SubService
 from app.services.user import GitHubAuthService, PasskeyService, UserService
-from app.services.weread import WereadService
 
 
 @dataclass
@@ -51,7 +49,6 @@ class AppState:
     github_svc: GitHubAuthService
     public_svc: PublicService
     rss_svc: RssService
-    weread_svc: WereadService
     sub_svc: SubService
     notification_svc: NotificationService
     device_svc: DeviceService
@@ -73,7 +70,6 @@ def new_app_state(redis: AsyncRedis) -> AppState:
     device_repo = DeviceRepo()
     fishing_repo = FishingRepo()
     friendlink_repo = FriendLinkRepo()
-    weread_repo = WereadRepo()
     log_repo = LogRepo()  # noqa: F841 — reserved for future use
 
     # -- services -------------------------------------------------------- #
@@ -88,7 +84,6 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         repo=public_repo, gallery_repo=gallery_repo, ai_agent=ai_agent
     )
     rss_svc = RssService(repo=rss_repo, redis=redis)
-    weread_svc = WereadService(repo=weread_repo)
     sub_svc = SubService(repo=sub_repo)
     notification_svc = NotificationService(
         plugin=NotificationPlugin(), repo=notification_repo
@@ -103,7 +98,6 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         github_svc=github_svc,
         public_svc=public_svc,
         rss_svc=rss_svc,
-        weread_svc=weread_svc,
         sub_svc=sub_svc,
         notification_svc=notification_svc,
         device_svc=device_svc,

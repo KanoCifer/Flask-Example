@@ -6,5 +6,4 @@ from app.api.v2 import (
     friendlinks,
     llm,
     subscriptions,
-    weather,
 )

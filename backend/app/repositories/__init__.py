@@ -8,7 +8,6 @@ from app.repositories.public_repo import PublicRepo
 from app.repositories.rss_repo import RssRepo
 from app.repositories.sub_repo import SubRepo
 from app.repositories.user import UserRepo
-from app.repositories.weread import WereadRepo
 
 __all__ = [
     "DeviceRepo",
@@ -21,5 +20,4 @@ __all__ = [
     "RssRepo",
     "SubRepo",
     "UserRepo",
-    "WereadRepo",
 ]

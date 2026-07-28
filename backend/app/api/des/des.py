@@ -22,7 +22,6 @@ user_service_dep = _noop_dep
 user_services_dep = _noop_dep
 public_service_dep = _noop_dep
 rss_service_dep = _noop_dep
-weread_service_dep = _noop_dep
 ai_service_dep = _noop_dep
 sub_service_dep = _noop_dep
 notification_service_dep = _noop_dep

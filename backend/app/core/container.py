@@ -32,7 +32,6 @@ async def _noop_cm() -> AsyncGenerator[None]:
 get_user_service = _noop_cm
 get_user_services = _noop_cm
 get_public_service = _noop_cm
-get_weread_service = _noop_cm
 get_ai_service = _noop_cm
 get_sub_service = _noop_cm
 get_notification_service = _noop_cm
