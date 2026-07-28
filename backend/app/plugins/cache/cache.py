@@ -4,7 +4,7 @@ from functools import wraps
 from typing import Any
 
 from cachetools.keys import hashkey
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from redis.asyncio import Redis as AsyncRedis
 
@@ -48,7 +48,7 @@ class AsyncCache:
                 cached = await self.get(key)
                 if cached is not None:
                     logger.info(f"Cache hit: {key}")
-                    return ORJSONResponse(
+                    return JSONResponse(
                         content=cached,
                         headers={"X-Cache": "HIT"},
                     )
@@ -57,7 +57,7 @@ class AsyncCache:
                 await self.set(key, result, ttl)
                 if isinstance(result, BaseModel):
                     return result
-                return ORJSONResponse(
+                return JSONResponse(
                     content=result,
                     headers={"X-Cache": "MISS"},
                 )
