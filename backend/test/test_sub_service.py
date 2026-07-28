@@ -127,4 +127,4 @@ async def test_delete_subscription(service, db_session, user):
     sub = await service.create_one_subscription(db_session, user.id, **_sub_data())
     result = await service.delete_subscription(db_session, sub.id)
     assert result is True
-    assert await service.get_subscription_by_id(db_session, sub.id) is None
+    assert await service.sub_repo.get_subscription_by_id(db_session, sub.id) is None

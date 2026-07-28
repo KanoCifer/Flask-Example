@@ -51,9 +51,6 @@ class FishingModelService:
     def _scaler_path(self) -> Path:
         return self.model_dir / "fishing_scaler.joblib"
 
-    def _meta_path(self) -> Path:
-        return self.model_dir / "fishing_meta.joblib"
-
     def _load_or_init(self) -> None:
         """加载已有模型或初始化新模型"""
         if self._model_path().exists():
@@ -138,46 +135,11 @@ class FishingModelService:
         # 保存
         self.save()
 
-        # 更新元数据
-        self._update_meta(len(residuals), r2)
-
         return {
             "n_samples": len(residuals),
             "r2": float(r2),
             "rmse": float(rmse),
         }
-
-    def train_incremental(
-        self,
-        record: dict,
-        expert_score: float,
-        actual_score: int,
-    ) -> dict:
-        """
-        增量训练（单条样本）
-
-        适用于用户提交反馈时累积触发
-
-        Args:
-            record: 钓鱼记录
-            expert_score: 专家评分
-            actual_score: 用户实际评分
-
-        Returns:
-            更新结果
-        """
-        residual = actual_score - expert_score
-
-        # 过滤异常残差
-        if abs(residual) > 50:
-            return {"skipped": True, "reason": "残差过大"}
-
-        if self.model is None or self.scaler is None:
-            self._init_model()
-
-        # SGDRegressor 不支持 partial_fit，改用滑动窗口
-        # 对于少量数据，直接全量训练更稳定
-        return {"skipped": True, "reason": "建议使用全量训练"}
 
     def predict_residual(self, record: dict) -> float:
         """
@@ -199,23 +161,6 @@ class FishingModelService:
         # 限制残差范围
         return np.clip(residual, -20, 20)
 
-    def predict_final_score(self, expert_score: float, record: dict) -> float:
-        """
-        预测最终钓鱼指数
-
-        Final_score = Expert_score + learned_residual
-
-        Args:
-            expert_score: 专家评分
-            record: 钓鱼记录
-
-        Returns:
-            最终评分 [0, 100]
-        """
-        residual = self.predict_residual(record)
-        final_score = expert_score + residual
-        return np.clip(final_score, 0, 100)
-
     def save(self) -> None:
         """保存模型到磁盘"""
         if self.model is None or self.scaler is None:
@@ -233,17 +178,6 @@ class FishingModelService:
         self.model = joblib.load(self._model_path())
         self.scaler = joblib.load(self._scaler_path())
 
-    def reset(self) -> None:
-        """重置模型"""
-        self._init_model()
-        for path in [
-            self._model_path(),
-            self._scaler_path(),
-            self._meta_path(),
-        ]:
-            if path.exists():
-                path.unlink()
-
     def get_weights(self) -> dict[str, float]:
         """获取特征权重"""
         if self.model is None:
@@ -257,20 +191,6 @@ class FishingModelService:
         return dict(
             zip(self.FEATURE_NAMES, self.model.coef_.tolist(), strict=False)
         )
-
-    def get_meta(self) -> dict:
-        """获取模型元数据"""
-        return {
-            "model_version": "v1.0",
-            "model_type": "Ridge",
-            "feature_names": self.FEATURE_NAMES,
-            "has_model": self.model is not None,
-        }
-
-    def _update_meta(self, n_samples: int, r2: float) -> None:
-        """更新元数据到 MongoDB"""
-        # 注意：这里只是更新本地缓存，实际保存由 save() 处理
-        pass
 
 
 # 全局实例

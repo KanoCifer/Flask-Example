@@ -5,11 +5,8 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.notification.context import context_from_config
-from app.notification.payloads import DevicePayload, SubscriptionPayload
-from app.notification.renderers import (
-    render_device_milestone,
-    render_subscription_reminder,
-)
+from app.notification.payloads import SubscriptionPayload
+from app.notification.renderers import render_subscription_reminder
 from app.plugins.notification import NotificationPlugin
 from app.repositories.notification_repo import NotificationRepo
 
@@ -28,14 +25,8 @@ class NotificationService:
         self._plugin = plugin
         self.repo = repo
 
-    async def get_all_subscriptions(self, session: AsyncSession):
-        return await self.repo.get_all_subscriptions_orm(session)
-
     async def get_all_active_subscriptions(self, session: AsyncSession):
         return await self.repo.get_all_active_subscriptions(session)
-
-    async def get_subscription(self, session: AsyncSession, user_id: int):
-        return await self.repo.get_subscription_by_user(session, user_id)
 
     async def send_reminder(
         self,
@@ -46,15 +37,4 @@ class NotificationService:
     ) -> dict[str, bool]:
         ctx = await context_from_config(user_id, config)
         message = render_subscription_reminder(payload)
-        return await self._plugin.notify(channels, message, ctx)
-
-    async def send_device_reminder(
-        self,
-        payload: DevicePayload,
-        config: dict,
-        user_id: int,
-        channels: list[str],
-    ) -> dict[str, bool]:
-        ctx = await context_from_config(user_id, config)
-        message = render_device_milestone(payload)
         return await self._plugin.notify(channels, message, ctx)

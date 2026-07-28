@@ -2,5 +2,4 @@
 
 from app.plugins.task.tasks import (
     scheduled,
-    subscription,
 )

@@ -11,7 +11,7 @@
 通知发送（原 send_feishu_message）已迁移到 :mod:`app.plugins.notification`：
 在 task 代码中直接调用 ``notify(channels=["feishu"], ...)``。
 
-定时任务（refresh_rss_feeds / send_todo / subscription_check_task）
+定时任务（refresh_rss_feeds）
 通过 @broker.task 装饰器自动注册，不在此层暴露。
 """
 
@@ -21,7 +21,6 @@ from app.plugins.task.task import broker
 # Trigger @broker.task registration for scheduled tasks (not in public API)
 from app.plugins.task.tasks import (
     scheduled,
-    subscription,
 )
 from app.plugins.task.tasks.email import send_code
 

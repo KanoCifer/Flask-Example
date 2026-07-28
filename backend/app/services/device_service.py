@@ -19,11 +19,6 @@ class DeviceService(BaseService):
         device = await self.repo.get_device_track_by_id(session, device_id)
         return self.get_owned(device, user_id, "设备不存在", "无权访问此设备")
 
-    async def get_device_by_id(
-        self, session: AsyncSession, device_id: int
-    ) -> DeviceTrack | None:
-        return await self.repo.get_device_track_by_id(session, device_id)
-
     async def get_user_devices(
         self, session: AsyncSession, user_id: int
     ) -> Sequence[DeviceTrack]:

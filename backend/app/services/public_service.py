@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-from xml.etree.ElementTree import Element, SubElement
 
 import httpx2
 from redis.asyncio import Redis as AsyncRedis
@@ -133,24 +132,6 @@ Allow: /
 
 Sitemap: {sitemap_url}
 """
-
-    @staticmethod
-    def _append_static_url(
-        urlset: Element,
-        loc_value: str,
-        lastmod_value: str,
-        changefreq_value: str,
-        priority_value: str,
-    ) -> None:
-        url = SubElement(urlset, "url")
-        loc = SubElement(url, "loc")
-        loc.text = loc_value
-        lastmod = SubElement(url, "lastmod")
-        lastmod.text = lastmod_value
-        changefreq = SubElement(url, "changefreq")
-        changefreq.text = changefreq_value
-        priority = SubElement(url, "priority")
-        priority.text = priority_value
 
     @staticmethod
     async def add_like(redis: AsyncRedis, likescounts: int) -> int:
@@ -294,28 +275,3 @@ Sitemap: {sitemap_url}
         """获取所有 changelog。"""
         docs = await self.repo.get_changelogs()
         return [d.model_dump(mode="json", exclude_none=True) for d in docs]
-
-    async def get_changelog_by_version(self, version: str) -> dict | None:
-        """根据版本号获取单条 changelog。"""
-        doc = await self.repo.get_changelog_by_version(version)
-        return doc.model_dump(mode="json") if doc else None
-
-    async def save_changelog(self, data: dict) -> dict:
-        """保存或更新 changelog。"""
-        doc = await self.repo.save_changelog(data)
-        return doc.model_dump(mode="json", exclude_none=True)
-
-    async def import_changelogs_from_json(self, items: list[dict]) -> dict:
-        """从 JSON 数据批量导入 changelog，返回统计信息。"""
-        inserted = await self.repo.save_changelogs(items)
-        total = len(items)
-        skipped = total - inserted
-        return {
-            "total": total,
-            "inserted": inserted,
-            "skipped": skipped,
-        }
-
-    async def delete_changelog(self, version: str) -> bool:
-        """根据版本号删除 changelog。"""
-        return await self.repo.delete_changelog(version)

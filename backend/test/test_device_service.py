@@ -98,7 +98,7 @@ async def test_delete_device(device_service, db_session, user):
     device = await device_service.create_device(db_session, user.id, **_device_data())
     result = await device_service.delete_device(db_session, device.id)
     assert result is True
-    assert await device_service.get_device_by_id(db_session, device.id) is None
+    assert await device_service.repo.get_device_track_by_id(db_session, device.id) is None
 
 
 @pytest.mark.asyncio

@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.models import Profile, Subscription
-from app.models.subscription import SubscriptionLog
 
 
 class SubRepo:
@@ -111,21 +110,6 @@ class SubRepo:
         stmt = select(Subscription).where(Subscription.status == "active")
         result = await session.execute(stmt)
         return list(result.scalars().all())
-
-    async def get_subscription_logs(
-        self,
-        session: AsyncSession,
-        user_id: int | None = None,
-        sub_id: int | None = None,
-    ) -> list[SubscriptionLog]:
-        """获取订阅通知日志"""
-        if user_id is not None:
-            logs = SubscriptionLog.find(SubscriptionLog.user_id == user_id)
-        elif sub_id is not None:
-            logs = SubscriptionLog.find(SubscriptionLog.sub_id == sub_id)
-        else:
-            return []
-        return await logs.to_list()
 
     async def get_global_notification_config(
         self, session: AsyncSession, user_id: int

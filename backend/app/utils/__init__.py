@@ -1,6 +1,5 @@
-from app.utils.redis_lock import dedup_guard, get_redis_lock
+from app.utils.redis_lock import dedup_guard
 
 __all__ = [
     "dedup_guard",
-    "get_redis_lock",
 ]

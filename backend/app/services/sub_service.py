@@ -23,11 +23,6 @@ class SubService(BaseService):
     ) -> list[Subscription]:
         return await self.sub_repo.get_all_subscriptions(session, user_id)
 
-    async def get_subscription_by_id(
-        self, session: AsyncSession, sub_id: int
-    ) -> Subscription | None:
-        return await self.sub_repo.get_subscription_by_id(session, sub_id)
-
     async def create_one_subscription(
         self, session: AsyncSession, user_id: int, **sub_data,
     ) -> Subscription:
@@ -51,16 +46,6 @@ class SubService(BaseService):
         self, session: AsyncSession, sub_id: int, new_status: str,
     ) -> Subscription | None:
         return await self.sub_repo.update_status(session, sub_id, new_status)
-
-    async def get_subscription_logs(
-        self,
-        session: AsyncSession,
-        user_id: int | None = None,
-        sub_id: int | None = None,
-    ) -> list:
-        return await self.sub_repo.get_subscription_logs(
-            session, user_id=user_id, sub_id=sub_id,
-        )
 
     async def update_reminder_config(
         self, session: AsyncSession, sub_id: int, config_data: dict,
