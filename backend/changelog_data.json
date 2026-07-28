@@ -1,5 +1,59 @@
 [
   {
+    "version": "5.0.0",
+    "date": "2026-07-28",
+    "title": "Monorepo 架构重构、微信读书全面迁移 Go 后端与新写作页面上线",
+    "changes": [
+      {
+        "type": "feature",
+        "content": "新写作页面上线；微信读书服务（DTO+Handler+不落库）、单本图书详情、read-progress/heatmap/recommend 全面迁移 Go 后端；书籍接口迁移 v3"
+      },
+      {
+        "type": "feature",
+        "content": "Monorepo 架构落地：创建 @readinglist/types 首个共享包并接入双端删除重复类型；packages/brand 改造为 proper workspace package；添加根 pnpm-workspace.yaml 与 monorepo 聚合脚本"
+      },
+      {
+        "type": "fix",
+        "content": "weread /shelf/sync 解析修复并对齐上游真实响应结构；weread API 路由对齐 v3；buildWsUrl 默认值修正；qweather 重试机制与异步缓存写入；清除 38 个 TS 构建错误；vite devDependency 修复"
+      },
+      {
+        "type": "refactor",
+        "content": "前端 monorepo 重构（apps/packages 移入 frontend/、共享配置 @readinglist/config 与双端工具函数 @readinglist/utils 抽取、双端目录 git mv 对齐）；weread Reader interface 去重与 helper/dto 抽取；blog ArticlePreview 组件抽出，编辑器预览与详情页共用版面"
+      },
+      {
+        "type": "performance",
+        "content": "并发缓存写入，不干扰主线程"
+      },
+      {
+        "type": "style",
+        "content": "book UI 微调与动画、多组件样式调整"
+      }
+    ]
+  },
+  {
+    "version": "4.9.0",
+    "date": "2026-07-26",
+    "title": "Go 后端全服务日志覆盖与天气服务迁移至 v3",
+    "changes": [
+      {
+        "type": "feature",
+        "content": "实现 QWeather 天气服务并迁移前端天气端点至 Go v3，双端统一调用"
+      },
+      {
+        "type": "fix",
+        "content": "fishing index 改用 Go 取天气数据并修复 logger nil panic；修复 moment/devtask ADR 错误；enriched 响应补透传 hourly 修复小时天气卡片永驻加载态；logger.Init 尊重 cfg 日志级别"
+      },
+      {
+        "type": "performance",
+        "content": "去掉天气数据重复请求，双端统一为一个调用"
+      },
+      {
+        "type": "refactor",
+        "content": "Go 后端全服务 INFO 日志覆盖（passkey / admin post / moment / fish / upload / WS visitor events）"
+      }
+    ]
+  },
+  {
     "version": "4.8.0",
     "date": "2026-07-16",
     "title": "钓点详情与新建表单上线、偏好设置双端重构、Go 后端接口扩展",
