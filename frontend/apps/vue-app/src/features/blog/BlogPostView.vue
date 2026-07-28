@@ -516,8 +516,6 @@ onUnmounted(() => {
 </template>
 
 <style>
-@import 'twikoo/dist/twikoo.css';
-
 .copy-btn::before {
   content: '复制';
   position: absolute;

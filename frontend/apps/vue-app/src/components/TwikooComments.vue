@@ -23,7 +23,7 @@ watch(
 
 <template>
   <div class="">
-    <div class="flex gap-2 px-1 py-5">
+    <div class="text-ink flex gap-2 px-1 py-5">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"
@@ -50,15 +50,13 @@ watch(
 </template>
 
 <style>
-@import 'twikoo/dist/twikoo.css';
-
 #tcomment {
   font-size: 0.9375rem;
 }
 
 #tcomment .el-input__inner,
 #tcomment .el-textarea__inner {
-  background: var(--card-bg);
+  background: var(--card);
   border-color: var(--secondary);
   border-radius: 0.75rem;
   color: var(--ink);
@@ -66,6 +64,11 @@ watch(
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
+}
+#tcomment .el-input__inner::placeholder,
+#tcomment .el-textarea__inner::placeholder {
+  color: var(--muted-text);
+  opacity: 1;
 }
 #tcomment .el-input__inner:focus,
 #tcomment .el-textarea__inner:focus {
@@ -88,7 +91,8 @@ watch(
 #tcomment .el-button--primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent);
+  /* 与 accent 翻转：暗模式 (accent 浅) → 文字深；亮模式 (accent 深) → 文字浅 */
+  color: color-mix(in oklch, var(--accent), var(--page) 85%);
 }
 #tcomment .el-button--primary:hover {
   opacity: 0.88;
@@ -104,7 +108,7 @@ watch(
   .el-button:not(.el-button--primary):not(.el-button--danger):not(
     .el-button--text
   ) {
-  background: var(--card-bg);
+  background: var(--card);
   border-color: var(--secondary);
   color: var(--ink);
 }
@@ -115,11 +119,11 @@ watch(
   ):hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: color-mix(in oklch, var(--accent) 8%, var(--card-bg));
+  background: color-mix(in oklch, var(--accent) 8%, var(--card));
 }
 
 #tcomment .el-button--text {
-  color: var(--muted);
+  color: var(--muted-text);
   padding: 0.25rem 0.5rem;
 }
 #tcomment .el-button--text:hover {
@@ -146,7 +150,7 @@ watch(
 }
 
 #tcomment .tk-time {
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: 0.8125rem;
 }
 
@@ -167,7 +171,7 @@ watch(
 }
 #tcomment .el-pager li.active {
   background: var(--accent);
-  color: var(--accent);
+  color: color-mix(in oklch, var(--accent), var(--page) 85%);
 }
 
 #tcomment .OwO {
@@ -179,6 +183,10 @@ watch(
 
 .dark #tcomment .el-input__inner,
 .dark #tcomment .el-textarea__inner {
-  background: color-mix(in oklch, var(--card-bg) 60%, var(--page));
+  background: color-mix(in oklch, var(--card) 80%, var(--page));
+}
+.dark #tcomment .el-input__inner::placeholder,
+.dark #tcomment .el-textarea__inner::placeholder {
+  color: var(--muted-text);
 }
 </style>

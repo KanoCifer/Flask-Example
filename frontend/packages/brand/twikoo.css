@@ -8,7 +8,12 @@
  *   - 输入区是一方安静的书写台；昵称用 serif，呼应书房字体语气。
  *   - 回复用 1px 发丝竖线串联（非 >1px 彩色侧条，那是明令禁止的）。
  * 作用域：所有规则前缀 .twikoo，不污染全局。主题随 [data-color-scheme] + .dark 自动切换。
+ *
+ * 上游库 CSS 集中入口：所有应用统一从这里拉取 twikoo/dist/twikoo.css，
+ * 避免在每个组件 / 页面里散落重复 @import。
  */
+
+@import 'twikoo/dist/twikoo.css';
 
 .twikoo {
     /* token 别名——集中映射，便于一处改全处变 */
@@ -19,16 +24,22 @@
     --tk-r-xl: calc(var(--radius) + 4px); /* rounded-xl */
     --tk-r-2xl: calc(var(--radius) + 8px); /* rounded-2xl */
 
-    --tk-text: var(--color-foreground);
-    --tk-muted: var(--color-muted-foreground);
+    /* 主题里 --color-primary / --color-foreground 等并不存在；映射到真实令牌 */
+    --tk-text: var(--color-ink);
+    --tk-muted: var(--color-muted);
     --tk-border: var(--color-border);
-    --tk-primary: var(--color-primary);
-    --tk-primary-contrast: var(--color-primary-foreground);
-    --tk-surface: var(--color-background);
+    --tk-primary: var(--color-accent);
+    /* 对比色随 accent 翻转：浅 accent → 深文字，深 accent → 浅文字 */
+    --tk-primary-contrast: color-mix(
+        in oklch,
+        var(--color-accent),
+        var(--color-page) 85%
+    );
+    --tk-surface: var(--color-page);
     --tk-secondary: var(--color-secondary);
     --tk-destructive: var(--color-destructive);
     --tk-success: var(--color-success);
-    --tk-ring: color-mix(in oklch, var(--color-primary) 32%, transparent);
+    --tk-ring: color-mix(in oklch, var(--color-accent) 32%, transparent);
 
     --tk-ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quint */
     --tk-dur: 200ms;
