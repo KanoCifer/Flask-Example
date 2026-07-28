@@ -43,7 +43,6 @@ type Client struct {
 	headers      map[string]string
 }
 
-// ClientOption 配置 Client（函数选项模式，便于测试注入）。
 type ClientOption func(*Client)
 
 // WithBaseURL 覆盖默认 baseURL（测试用）。
@@ -93,8 +92,6 @@ func (c *Client) BuildPayload(ctx context.Context, userID string, apiName string
 	return payload, authHeader
 }
 
-// InvalidateCache 删除一个缓存 key，用于 refresh=true 时强制下一次 SendRequest 走上游。
-// 空 key / nil redis 直接返回 nil 不报错。
 func (c *Client) InvalidateCache(ctx context.Context, cacheKey string) error {
 	if c.redis == nil || cacheKey == "" {
 		return nil
@@ -156,11 +153,15 @@ func (c *Client) SendRequest(ctx context.Context, cacheKey string, ttl time.Dura
 		return nil, fmt.Errorf("%w: read body: %w", ErrUpstream, err)
 	}
 
-	// 同步写回缓存:确保响应返回前缓存已落定,避免 ctx 取消 / 测试 rdb.Close() 导致丢写。
+	// 并发写回缓存:确保响应返回前缓存已落定,避免 ctx 取消 / 测试 rdb.Close() 导致丢写。
 	if c.redis != nil {
-		if err := c.redis.Set(ctx, cacheKey, body, ttl).Err(); err != nil {
-			slog.WarnContext(ctx, "weread cache write failed", "cache_key", cacheKey, "error", err)
-		}
+		go func() {
+			cacheCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if err := c.redis.Set(cacheCtx, cacheKey, body, ttl).Err(); err != nil {
+				slog.WarnContext(cacheCtx, "weread cache write failed", "cache_key", cacheKey, "error", err)
+			}
+		}()
 	}
 
 	return json.RawMessage(body), nil

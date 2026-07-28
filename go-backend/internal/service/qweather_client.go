@@ -127,9 +127,11 @@ func (c *qweatherClient) Get(
 	// 6. cache write
 	if c.redis != nil {
 		go func() {
-			err := c.redis.Set(ctx, cacheKey, body, ttl).Err()
+			cacheCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			err := c.redis.Set(cacheCtx, cacheKey, body, ttl).Err()
 			if err != nil {
-				slog.WarnContext(ctx, "qweather cache write failed", "cache_key", cacheKey, "error", err)
+				slog.WarnContext(cacheCtx, "qweather cache write failed", "cache_key", cacheKey, "error", err)
 			}
 		}()
 	}
