@@ -167,7 +167,7 @@ describe('blogService (React — tags migration)', () => {
         title: 'T',
         body: 'B',
         tags: ['x'],
-        is_pinned: 0,
+        is_pinned: false,
       });
 
       expect(gatewayMock.createLegacyPost).toHaveBeenCalledWith(
@@ -191,7 +191,7 @@ describe('blogService (React — tags migration)', () => {
         title: 'T',
         body: 'B',
         tags: ['y'],
-        is_pinned: 0,
+        is_pinned: false,
       });
 
       expect(gatewayMock.updateLegacyPost).toHaveBeenCalledWith(

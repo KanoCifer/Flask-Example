@@ -74,7 +74,7 @@ describe('blogGateway (React — tags migration)', () => {
         title: 'T',
         body: 'B',
         tags: ['x'],
-        is_pinned: 0,
+        is_pinned: false,
       });
 
       expect(apiClient.post).toHaveBeenCalledWith(
@@ -100,7 +100,7 @@ describe('blogGateway (React — tags migration)', () => {
         title: 'T',
         body: 'B',
         tags: ['y'],
-        is_pinned: 0,
+        is_pinned: false,
       });
 
       expect(apiClient.put).toHaveBeenCalledWith(
