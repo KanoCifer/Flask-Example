@@ -349,7 +349,7 @@ defineExpose({
           @keydown="handleKeydown"
           @paste="handlePaste"
           :class="[
-            'placeholder:text-muted/60 bg-surface field-sizing-content h-full min-h-80 w-full resize-none outline-none focus:ring-0',
+            'text-ink placeholder:text-muted/60 bg-surface field-sizing-content h-full min-h-80 w-full resize-none outline-none focus:ring-0',
             'px-8 py-6 text-lg leading-relaxed',
             'font-serif',
           ]"
