@@ -33,7 +33,7 @@ type mockWereader struct {
 	fetchRecommendFn    func(ctx context.Context, userID string, count, maxIdx int) ([]dto.BookRecommendItem, error)
 }
 
-var _ Wereader = (*mockWereader)(nil)
+var _ weread.Reader = (*mockWereader)(nil)
 
 func (m *mockWereader) FetchUserShelf(ctx context.Context, userID string) (*dto.WereadShelfResponse, error) {
 	if m.fetchFn != nil {
@@ -86,7 +86,7 @@ func (m *mockWereader) FetchBooksRecommend(ctx context.Context, userID string, c
 
 // ── helpers ─────────────────────────────────────────────────────────
 
-func newWereadTestRouter(svc Wereader) *gin.Engine {
+func newWereadTestRouter(svc weread.Reader) *gin.Engine {
 	h := NewWereadHandler(svc)
 	r := gin.New()
 	g := r.Group("/v3")

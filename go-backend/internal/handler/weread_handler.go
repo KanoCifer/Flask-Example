@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -14,24 +13,13 @@ import (
 	"github.com/KanoCifer/kuroome-blog/internal/service/weread"
 )
 
-// Wereader 定义 handler 依赖的 weread 业务接口。
-type Wereader interface {
-	CreateUserToken(ctx context.Context, userID string, token string) error
-	FetchUserShelf(ctx context.Context, userID string) (*dto.WereadShelfResponse, error)
-	FetchBookInfo(ctx context.Context, userID string, bookID string) (*dto.WereadBookResponse, error)
-	FetchBookProgress(ctx context.Context, userID string, bookID string, refresh bool) (*dto.WereadBookProgress, error)
-	FetchReadDetail(ctx context.Context, userID, mode string, baseTime *int) (*dto.ReadDetailSnapshot, error)
-	FetchYearlyHeatmap(ctx context.Context, userID string, year *int) (map[string]int, error)
-	FetchBooksRecommend(ctx context.Context, userID string, count, maxIdx int) ([]dto.BookRecommendItem, error)
-}
-
 // WereadHandler 处理微信读书相关请求。
 type WereadHandler struct {
-	svc Wereader
+	svc weread.Reader
 }
 
 // NewWereadHandler 构造 WereadHandler。
-func NewWereadHandler(svc Wereader) *WereadHandler {
+func NewWereadHandler(svc weread.Reader) *WereadHandler {
 	return &WereadHandler{svc: svc}
 }
 

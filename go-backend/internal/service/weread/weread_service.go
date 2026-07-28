@@ -89,11 +89,11 @@ func (s *Service) FetchBookInfo(ctx context.Context, userID string, bookID strin
 	if err != nil {
 		return nil, err
 	}
-	var rawResp wereadBookRaw
+	var rawResp dto.WereadBookRaw
 	if err := json.Unmarshal(raw, &rawResp); err != nil {
 		return nil, fmt.Errorf("%w: parse book response: %w", ErrUpstream, err)
 	}
-	return rawResp.toDTO(time.Now().UTC()), nil
+	return rawResp.ToDTO(time.Now().UTC()), nil
 }
 
 // FetchBookProgress 获取单本书阅读进度，Redis 10 分钟缓存，不写 Mongo。
@@ -271,75 +271,3 @@ func (s *Service) FetchBooksRecommend(ctx context.Context, userID string, count,
 	return out, nil
 }
 
-// strField 从 map 中取字符串字段，缺失返回空串。
-func strField(m map[string]any, key string) string {
-	if v, ok := m[key].(string); ok {
-		return v
-	}
-	return ""
-}
-
-// intField 从 map 中取整数字段，缺失/类型不符返回 0。
-func intField(m map[string]any, key string) int {
-	switch v := m[key].(type) {
-	case int:
-		return v
-	case int64:
-		return int(v)
-	case float64:
-		return int(v)
-	case json.Number:
-		n, _ := v.Int64()
-		return int(n)
-	default:
-		return 0
-	}
-}
-
-// optStrPtr 将空串转为 nil 指针，非空返回指针（用于 omitempty 字段）。
-func optStrPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
-
-// wereadBookRaw 是微信读书 /book/info 原生响应的字段结构。
-// 字段名与 API 返回一致，再经 toDTO 映射为前端/契约字段（对齐 Python map_book_info）。
-type wereadBookRaw struct {
-	BookId           string         `json:"bookId"`
-	Title            string         `json:"title"`
-	Author           string         `json:"author"`
-	Translator       string         `json:"translator"`
-	Cover            string         `json:"cover"`
-	Intro            string         `json:"intro"`
-	Category         string         `json:"category"`
-	Publisher        string         `json:"publisher"`
-	PublishTime      string         `json:"publishTime"`
-	ISBN             string         `json:"isbn"`
-	WordCount        int            `json:"wordCount"`
-	NewRating        float64        `json:"newRating"`
-	NewRatingCount   int            `json:"newRatingCount"`
-	NewRatingDetails map[string]int `json:"newRatingDetail"`
-}
-
-// toDTO 将原生响应映射为前端契约 DTO（bookId→id、intro→introduction、newRatingDetail→newRatingDetails）。
-func (r wereadBookRaw) toDTO(fetchedAt time.Time) *dto.WereadBookResponse {
-	return &dto.WereadBookResponse{
-		ID:               r.BookId,
-		Title:            r.Title,
-		Author:           r.Author,
-		Translator:       r.Translator,
-		Cover:            r.Cover,
-		Introduction:     r.Intro,
-		Category:         r.Category,
-		Publisher:        r.Publisher,
-		PublishTime:      r.PublishTime,
-		ISBN:             r.ISBN,
-		WordCount:        r.WordCount,
-		NewRating:        r.NewRating,
-		NewRatingCount:   r.NewRatingCount,
-		NewRatingDetails: r.NewRatingDetails,
-		FetchedAt:        fetchedAt,
-	}
-}
