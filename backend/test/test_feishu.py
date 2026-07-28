@@ -31,19 +31,19 @@ def test_feishu_webhook_config():
     print(f"\n{'=' * 50}")
     print("飞书 Webhook 配置检查")
     print(f"{'=' * 50}")
-    print(f"URL: {url or '❌ 未配置'}")
+    print(f"URL: {url or '未配置'}")
 
     if url:
         # 验证 URL 格式
         if url.startswith("https://open.feishu.cn/open-apis/bot/v2/hook/"):
-            print("✅ URL 格式正确")
+            print("URL 格式正确")
         else:
-            print("⚠️  URL 格式可能不正确，预期格式:")
+            print("URL 格式可能不正确，预期格式:")
             print(
                 "   https://open.feishu.cn/open-apis/bot/v2/hook/{webhook_id}"
             )
     else:
-        print("❌ 请在 .env 文件中配置 FEISHU_WEBHOOK_URL")
+        print("请在 .env 文件中配置 FEISHU_WEBHOOK_URL")
         print(
             "   示例: FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx"
         )
@@ -113,7 +113,7 @@ async def send_feishu_post_message(url: str, title: str, message: str) -> dict:
 async def test_send_text_message(feishu_webhook_url):
     """测试发送纯文本消息"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    text = f"🧪 测试消息 - 纯文本\n发送时间: {now}"
+    text = f"测试消息 - 纯文本\n发送时间: {now}"
 
     result = await send_feishu_text_message(feishu_webhook_url, text)
 
@@ -136,7 +136,7 @@ async def test_send_text_message(feishu_webhook_url):
 async def test_send_post_message(feishu_webhook_url):
     """测试发送富文本消息"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    title = "🧪 测试消息 - 富文本"
+    title = "测试消息 - 富文本"
     message = f"这是一条测试消息\n发送时间: {now}\n用于验证飞书 webhook 功能是否正常。"
 
     result = await send_feishu_post_message(feishu_webhook_url, title, message)
@@ -213,20 +213,20 @@ def generate_daily_summary_message(
     :return: 格式化的消息文本
     """
     lines = []
-    lines.append("📈 核心指标")
+    lines.append("核心指标")
     lines.append(f"• 总访问量: {total_visits} 次")
     lines.append(f"• 独立访客: {unique_visitors} 人")
     lines.append(f"• 独立IP: {unique_ips} 个\n")
 
     if top_pages:
-        lines.append("🔥 热门页面 Top 5")
+        lines.append("热门页面 Top 5")
         for page, count in top_pages:
             percentage = count / total_visits * 100 if total_visits > 0 else 0
             lines.append(f"• {page}: {count} 次 ({percentage:.1f}%)")
         lines.append("")
 
     if browser_stats:
-        lines.append("🌐 浏览器分布")
+        lines.append("浏览器分布")
         for browser, count in browser_stats:
             percentage = (
                 count / unique_visitors * 100 if unique_visitors > 0 else 0
@@ -237,7 +237,7 @@ def generate_daily_summary_message(
         lines.append("")
 
     if os_stats:
-        lines.append("💻 操作系统分布")
+        lines.append("操作系统分布")
         for os_name, count in os_stats:
             percentage = (
                 count / unique_visitors * 100 if unique_visitors > 0 else 0
@@ -248,7 +248,7 @@ def generate_daily_summary_message(
         lines.append("")
 
     if device_stats:
-        lines.append("📱 设备类型分布")
+        lines.append("设备类型分布")
         for device, count in device_stats:
             percentage = (
                 count / unique_visitors * 100 if unique_visitors > 0 else 0
@@ -259,7 +259,7 @@ def generate_daily_summary_message(
         lines.append("")
 
     lines.append("────────────────")
-    lines.append("📌 此消息由 BOT 自动发送")
+    lines.append("此消息由 BOT 自动发送")
     return "\n".join(lines)
 
 
@@ -308,17 +308,17 @@ def test_daily_summary_message_format():
     print(message)
 
     # 验证消息内容
-    assert "📈 核心指标" in message
+    assert "核心指标" in message
     assert "• 总访问量: 305 次" in message
     assert "• 独立访客: 275 人" in message
     assert "• 独立IP: 200 个" in message
-    assert "🔥 热门页面 Top 5" in message
+    assert "热门页面 Top 5" in message
     assert "/: 150 次 (49.2%)" in message
-    assert "🌐 浏览器分布" in message
+    assert "浏览器分布" in message
     assert "Chrome: 180 人 (65.5%)" in message
-    assert "💻 操作系统分布" in message
+    assert "操作系统分布" in message
     assert "Windows: 120 人 (43.6%)" in message
-    assert "📱 设备类型分布" in message
+    assert "设备类型分布" in message
     assert "desktop: 200 人 (72.7%)" in message
 
 
@@ -352,7 +352,7 @@ async def test_send_daily_summary_message(feishu_webhook_url):
 
     result = await send_feishu_post_message(
         feishu_webhook_url,
-        "📊 每日访问统计 - 2026-03-23",
+        "每日访问统计 - 2026-03-23",
         message,
     )
 
@@ -382,14 +382,14 @@ if __name__ == "__main__":
         url = settings.FEISHU_WEBHOOK_URL
 
         if not url:
-            print("❌ FEISHU_WEBHOOK_URL 未配置")
+            print("FEISHU_WEBHOOK_URL 未配置")
             print("请在 .env 文件中添加:")
             print(
                 "FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/your_webhook_id"
             )
             return
 
-        print(f"✅ Webhook URL: {url[:50]}...")
+        print(f"Webhook URL: {url[:50]}...")
 
         # 2. 发送测试消息
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -397,24 +397,24 @@ if __name__ == "__main__":
         print("\n--- 测试纯文本消息 ---")
         try:
             result = await send_feishu_text_message(
-                url, f"🧪 测试消息 - 纯文本\n发送时间: {now}"
+                url, f"测试消息 - 纯文本\n发送时间: {now}"
             )
             print(f"状态码: {result['status_code']}")
             print(f"响应: {result['response']}")
         except Exception as e:
-            print(f"❌ 发送失败: {e}")
+            print(f"发送失败: {e}")
 
         print("\n--- 测试富文本消息 ---")
         try:
             result = await send_feishu_post_message(
                 url,
-                "🧪 测试消息 - 富文本",
+                "测试消息 - 富文本",
                 f"这是一条测试消息\n发送时间: {now}",
             )
             print(f"状态码: {result['status_code']}")
             print(f"响应: {result['response']}")
         except Exception as e:
-            print(f"❌ 发送失败: {e}")
+            print(f"发送失败: {e}")
 
         # 3. 测试每日统计摘要消息
         print("\n--- 测试每日统计摘要消息 ---")
@@ -447,12 +447,12 @@ if __name__ == "__main__":
 
             result = await send_feishu_post_message(
                 url,
-                "📊 每日访问统计 - 2026-03-23",
+                "每日访问统计 - 2026-03-23",
                 message,
             )
             print(f"\n状态码: {result['status_code']}")
             print(f"响应: {result['response']}")
         except Exception as e:
-            print(f"❌ 发送失败: {e}")
+            print(f"发送失败: {e}")
 
     asyncio.run(main())

@@ -10,14 +10,18 @@ class Message(BaseModel):
 
     Attributes:
         title: 消息标题。
-        body: 纯文本正文（Bark / 飞书 等纯文本渠道使用）。
+        body: 纯文本正文（Bark / 飞书 markdown 渠道使用）。
         html: HTML 正文（Email 渠道使用）；为 ``None`` 时由渠道自行决定
             （如 Email 退化为转义后的 body）。
+        color: 飞书卡片 header 模板色（blue / green / red / orange / yellow /
+            violet / purple / indigo / turquoise / wathet / carmine / grey /
+            default）；为 ``None`` 时 FeishuChannel 默认 "green"。其它渠道忽略。
     """
 
     title: str
     body: str
     html: str | None = None
+    color: str | None = None
 
 
 class NotificationContext(BaseModel):

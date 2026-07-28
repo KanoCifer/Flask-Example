@@ -93,8 +93,8 @@ async def initialize_resources(app: FastAPI):
                 await notify(
                     channels=["feishu"],
                     message=Message(
-                        title="💻Kuroome Blog API 启动通知",
-                        body=f"✅Kuroome Blog API 已成功启动！当前时间：{now}",
+                        title="Kuroome Blog API 启动通知",
+                        body=f"Kuroome Blog API 已成功启动！当前时间：{now}",
                     ),
                     ctx=NotificationContext(
                         feishu_webhook_url=get_settings().FEISHU_WEBHOOK_URL

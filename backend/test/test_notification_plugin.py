@@ -100,10 +100,20 @@ async def test_module_level_notify_uses_injected_plugin(ctx, message):
 
 
 def test_message_and_context_are_pydantic():
-    msg = Message(title="t", body="b", html="<p>b</p>")
+    msg = Message(title="t", body="b", html="<p>b</p>", color="red")
     ctx = NotificationContext(email="a@b.com")
-    assert msg.model_dump() == {"title": "t", "body": "b", "html": "<p>b</p>"}
+    assert msg.model_dump() == {
+        "title": "t",
+        "body": "b",
+        "html": "<p>b</p>",
+        "color": "red",
+    }
     assert ctx.email == "a@b.com"
+
+
+def test_message_color_default_none():
+    msg = Message(title="t", body="b")
+    assert msg.color is None
 
 
 def test_fake_channel_satisfies_protocol():

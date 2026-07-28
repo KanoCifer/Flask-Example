@@ -28,13 +28,17 @@ def _feishu_ctx() -> NotificationContext:
 
 
 async def _send_notification(
-    title: str, body: str, ctx: NotificationContext | None = None
+    title: str,
+    body: str,
+    *,
+    color: str | None = None,
+    ctx: NotificationContext | None = None,
 ) -> None:
-    """Send a notification via the plugin, swallowing errors."""
+    """Send a notification via the plugin as a Feishu interactive card, swallowing errors."""
     try:
         await notify(
             channels=["feishu"],
-            message=Message(title=title, body=body),
+            message=Message(title=title, body=body, color=color),
             ctx=ctx or _feishu_ctx(),
         )
     except Exception as e:
@@ -52,55 +56,56 @@ def _build_daily_summary_message(
     device_stats: list[dict[str, int | str | None]],
 ) -> str:
     lines: list[str] = []
-    lines.append("📈 核心指标")
-    lines.append(f"• 总访问量: {total_visits} 次")
-    lines.append(f"• 独立访客: {unique_visitors} 人")
-    lines.append(f"• 独立IP: {unique_ips} 个\n")
+    lines.append("**核心指标**")
+    lines.append(f"- **总访问量**: {total_visits} 次")
+    lines.append(f"- **独立访客**: {unique_visitors} 人")
+    lines.append(f"- **独立 IP**: {unique_ips} 个")
+    lines.append("")
 
     if top_pages:
-        lines.append("🔥 热门页面 Top 5")
+        lines.append("**热门页面 Top 5**")
         for item in top_pages:
             count = int(item.get("count") or 0)
             page_path = str(item.get("page_path") or "未知页面")
             percentage = count / total_visits * 100 if total_visits > 0 else 0
-            lines.append(f"• {page_path}: {count} 次 ({percentage:.1f}%)")
+            lines.append(f"- {page_path}: {count} 次 ({percentage:.1f}%)")
         lines.append("")
 
     if browser_stats:
-        lines.append("🌐 浏览器分布")
+        lines.append("**浏览器分布**")
         for item in browser_stats:
             count = int(item.get("count") or 0)
             percentage = (
                 count / unique_visitors * 100 if unique_visitors > 0 else 0
             )
             browser_name = str(item.get("browser_name") or "未知")
-            lines.append(f"• {browser_name}: {count} 人 ({percentage:.1f}%)")
+            lines.append(f"- {browser_name}: {count} 人 ({percentage:.1f}%)")
         lines.append("")
 
     if os_stats:
-        lines.append("💻 操作系统分布")
+        lines.append("**操作系统分布**")
         for item in os_stats:
             count = int(item.get("count") or 0)
             percentage = (
                 count / unique_visitors * 100 if unique_visitors > 0 else 0
             )
             os_name = str(item.get("os_name") or "未知")
-            lines.append(f"• {os_name}: {count} 人 ({percentage:.1f}%)")
+            lines.append(f"- {os_name}: {count} 人 ({percentage:.1f}%)")
         lines.append("")
 
     if device_stats:
-        lines.append("📱 设备类型分布")
+        lines.append("**设备类型分布**")
         for item in device_stats:
             count = int(item.get("count") or 0)
             percentage = (
                 count / unique_visitors * 100 if unique_visitors > 0 else 0
             )
             device_type = str(item.get("device_type") or "未知")
-            lines.append(f"• {device_type}: {count} 人 ({percentage:.1f}%)")
+            lines.append(f"- {device_type}: {count} 人 ({percentage:.1f}%)")
         lines.append("")
 
-    lines.append("────────────────")
-    lines.append("📌 此消息由 BOT 自动发送")
+    lines.append("---")
+    lines.append("> 此消息由 BOT 自动发送")
     return "\n".join(lines)
 
 
@@ -138,18 +143,21 @@ async def refresh_rss_feeds(context: Context = TaskiqDepends()):
         )
 
         if stats["total_feeds"] == 0:
-            message = "RSS 刷新完成，但没有配置任何 RSS 源。请前往设置页面添加 RSS 源。"
+            message = (
+                "> 没有配置任何 RSS 源。\n\n请前往设置页面添加 RSS 源。"
+            )
         else:
             message = (
-                f"✅RSS 刷新完成！\n\n"
-                f"总 RSS 源: {stats['total_feeds']}\n"
-                f"成功刷新: {stats['success']}\n"
-                f"失败: {stats['failed']}\n"
-                f"新增文章: {stats['new_articles']}\n"
-                f"总耗时: {duration:.2f}秒"
+                f"**总 RSS 源**: {stats['total_feeds']}\n"
+                f"**成功刷新**: {stats['success']}\n"
+                f"**失败**: {stats['failed']}\n"
+                f"**新增文章**: {stats['new_articles']}\n\n"
+                f"> 耗时: {duration:.2f}s"
             )
 
-        await _send_notification(title="✅Rss 刷新完成通知", body=message)
+        await _send_notification(
+            title="RSS 刷新完成", body=message, color="green"
+        )
 
         return {
             "status": "success",
@@ -163,10 +171,10 @@ async def refresh_rss_feeds(context: Context = TaskiqDepends()):
         logger.exception(
             f"[RSSRefreshJob] job failed | duration={duration:.2f}s | error={error_msg}"
         )
-        message = (
-            f"❌RSS 刷新失败！\n错误信息: {error_msg}\n耗时: {duration:.2f}秒"
+        message = f"**错误信息**: `{error_msg}`\n\n> 耗时: {duration:.2f}s"
+        await _send_notification(
+            title="RSS 刷新失败", body=message, color="red"
         )
-        await _send_notification(title="❌Rss 刷新失败通知", body=message)
         return {
             "status": "failed",
             "error": str(e),
@@ -194,7 +202,7 @@ async def send_daily_summary(context: Context = TaskiqDepends()):
         return
 
     today_shanghai = datetime.now(SHANGHAI_TZ).replace(
-        hour=0, minute=0, second=0, microsecond=0
+        hour=0, minute=0, second=1
     )
     target_day_shanghai = today_shanghai - timedelta(days=1)
     target_day_utc = target_day_shanghai.astimezone(UTC)
@@ -234,64 +242,16 @@ async def send_daily_summary(context: Context = TaskiqDepends()):
             logger.warning("daily summary message empty, skip sending")
             return
 
-        title = f"📊 昨日访问统计 - {yesterday_str}"
+        title = f"昨日访问统计 - {yesterday_str}"
 
-        await _send_notification(title=title, body=message)
+        await _send_notification(title=title, body=message, color="blue")
 
     except Exception as e:
         error_msg = str(e)
         logger.error(f"daily summary notification failed: {error_msg}")
         await _send_notification(
-            title="❌每日访问统计失败通知",
-            body=f"❌每日访问统计发送失败！\n错误信息: {error_msg}",
+            title="每日访问统计失败",
+            body=f"**错误信息**: `{error_msg}`",
+            color="red",
         )
         raise
-
-
-@broker.task(
-    schedule=[
-        {
-            "cron": "0 9 * * *",
-            "schedule_id": "daily_todo_reminder",
-            "cron_offset": "Asia/Shanghai",
-        }
-    ]
-)
-async def send_todo(context: Context = TaskiqDepends()):
-    """每天早上9点发送待办事项提醒给用户"""
-    settings = get_settings()
-    if not settings.FEISHU_WEBHOOK_URL:
-        logger.warning(
-            "feishu webhook not configured, skip todo reminder notification"
-        )
-        return
-
-    redis = getattr(context.state, "redis", None)
-    if redis is None:
-        logger.warning(
-            "taskiq redis not initialized, skip todo reminder notification"
-        )
-        return
-
-    todos = await redis.get("todos:1")
-
-    uncompleted = (
-        [
-            todo
-            for todo in orjson.loads(todos)
-            if todo.get("completed") is False
-        ]
-        if todos
-        else []
-    )
-    if uncompleted:
-        body = (
-            f"您有 {len(uncompleted)} 个待办事项未完成，请及时处理！\n"
-            + "\n".join(
-                [
-                    f"- {todo['text']}- 截止日期: {todo['dueDate']}- 重要性: {todo['priority']}"
-                    for todo in uncompleted
-                ]
-            )
-        )
-        await _send_notification(title="📌 待办事项提醒", body=body)
