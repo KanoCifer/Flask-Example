@@ -316,7 +316,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="blog-post bg-page">
+  <div class="blog-post bg-page min-h-screen">
     <!-- 阅读进度条：跟随窗口滚动 -->
     <div
       class="bg-border/50 fixed inset-x-0 top-0 z-30 h-[2px] overflow-hidden"
@@ -379,7 +379,7 @@ onUnmounted(() => {
 
     <!-- Article -->
     <div v-else-if="post">
-      <AiCompanion :title="post.title" :content="post.body || ''" />
+      <div class="mx-auto max-w-2xl pt-30"></div>
 
       <ArticlePreview
         :post-id="post._id"
@@ -392,8 +392,17 @@ onUnmounted(() => {
         :minutes="stats.minutes"
         :word-count="stats.count"
         :body-html="renderedBodyWithOrigin"
+        :show-ai-card="true"
         @copy-link="handleCopyLink"
       >
+        <!-- AI 阅读伴侣：内嵌到正文之前 -->
+        <template #ai-companion>
+          <AiCompanion
+            class="mx-auto max-w-2xl"
+            :title="post.title"
+            :content="post.body || ''"
+          />
+        </template>
         <!-- 标题右侧操作（仅管理员） -->
         <template #header-actions>
           <div

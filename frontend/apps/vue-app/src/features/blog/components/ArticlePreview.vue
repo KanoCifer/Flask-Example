@@ -51,6 +51,11 @@ const props = defineProps<{
    *   - 'compact': 去掉刊号带/kicker/署名 footer，适合编辑器侧栏（半宽空间）
    */
   variant?: 'detail' | 'compact';
+  /**
+   * 是否在正文前渲染 AI 阅读伴侣卡片。
+   * 详情页展示；编辑器预览模式传 false 关闭。
+   */
+  showAiCard?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -161,6 +166,12 @@ const onBodyClick = (event: MouseEvent) => {
         </template>
       </div>
     </header>
+
+    <!-- AI 阅读伴侣：详情页展示，编辑器预览由 showAiCard=false 关闭 -->
+    <slot
+      v-if="showAiCard !== false"
+      name="ai-companion"
+    />
 
     <!-- 正文 -->
     <div class="prose prose-lg max-w-none">

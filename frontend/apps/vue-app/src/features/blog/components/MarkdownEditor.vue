@@ -392,6 +392,7 @@ defineExpose({
             :minutes="stats.minutes"
             :word-count="stats.count"
             :body-html="renderedMarkdown"
+            :show-ai-card="false"
             @image-click="image.openImageEditor"
           />
         </div>

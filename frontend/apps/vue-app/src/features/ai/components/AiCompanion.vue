@@ -117,7 +117,7 @@ function toggleReasoning(msg: AiMessage) {
 
 <template>
   <section
-    class="from-card/70 via-card/50 to-accent/[0.04] shadow-accent/[0.06] ring-accent/[0.08] mb-6 overflow-hidden rounded-2xl bg-gradient-to-br shadow-sm ring-1 backdrop-blur-md motion-reduce:backdrop-blur-none"
+    class="from-card/70 via-card/50 to-accent/[0.04] shadow-accent/[0.06] ring-accent/[0.08] mb-6 overflow-hidden rounded-3xl bg-gradient-to-br shadow-sm ring-1 backdrop-blur-xs motion-reduce:backdrop-blur-none"
   >
     <!-- 辉光层：icon 背后的呼吸光晕，生成时脉冲加速 -->
     <div class="relative">
@@ -198,7 +198,7 @@ function toggleReasoning(msg: AiMessage) {
           :initial="{ opacity: 0, scale: 0.96, y: 8 }"
           :animate="{ opacity: 1, scale: 1, y: 0 }"
           :transition="SPRING_BOUNCE"
-          class="border-accent/20 bg-surface/30 min-h-80 rounded-2xl border-t-2 px-5 py-4"
+          class="bg-accent/10 min-h-80 rounded-2xl px-5 py-4"
         >
           <div class="mb-3 flex items-center gap-2">
             <span
@@ -316,7 +316,7 @@ function toggleReasoning(msg: AiMessage) {
 
             <div
               v-if="msg.role === 'assistant'"
-              class="prose prose-sm max-w-none"
+              class="prose prose-sm bg-secondary max-w-none rounded-2xl px-3.5 py-2.5"
               v-html="rendered(msg)"
             />
             <span v-else>{{ msg.content }}</span>
