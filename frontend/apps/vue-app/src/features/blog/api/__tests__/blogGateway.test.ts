@@ -75,7 +75,7 @@ describe('blogGateway (tags migration)', () => {
         title: 'Hello',
         body: 'World',
         tags: ['a', 'b'],
-        is_pinned: 0,
+        is_pinned: false,
       });
 
       expect(apiClient.post).toHaveBeenCalledWith(
@@ -84,7 +84,7 @@ describe('blogGateway (tags migration)', () => {
           title: 'Hello',
           body: 'World',
           tags: ['a', 'b'],
-          is_pinned: 0,
+          is_pinned: false,
         }),
       );
       // category_id must NOT be in the payload
@@ -107,7 +107,7 @@ describe('blogGateway (tags migration)', () => {
         title: 'New',
         body: 'Body',
         tags: ['new-tag'],
-        is_pinned: 1,
+        is_pinned: true,
       });
 
       expect(apiClient.put).toHaveBeenCalledWith(
