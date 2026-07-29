@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from fastapi import Request
 from redis.asyncio import Redis as AsyncRedis
 
 from app.core.agent import AiAgent
-from app.plugins.cache import redis_cache
 from app.plugins.notification import NotificationPlugin
 from app.repositories import (
     DeviceRepo,
@@ -28,11 +28,14 @@ from app.services.ai_service import AiService
 from app.services.device_service import DeviceService
 from app.services.fishing.fishing_service import FishingService
 from app.services.friendlink_service import FriendLinkService
+from app.services.gallery_service import GalleryService
 from app.services.notification_service import NotificationService
 from app.services.public_service import PublicService
 from app.services.rss_service import RssService
+from app.services.status_service import StatusService
 from app.services.sub_service import SubService
 from app.services.user import GitHubAuthService, PasskeyService, UserService
+from app.services.weather_analysis_service import WeatherAnalysisService
 
 
 @dataclass
@@ -47,6 +50,9 @@ class AppState:
     passkey_svc: PasskeyService
     github_svc: GitHubAuthService
     public_svc: PublicService
+    status_svc: StatusService
+    gallery_svc: GalleryService
+    weather_analysis_svc: WeatherAnalysisService
     rss_svc: RssService
     sub_svc: SubService
     notification_svc: NotificationService
@@ -78,9 +84,10 @@ def new_app_state(redis: AsyncRedis) -> AppState:
 
     ai_agent = AiAgent(expert_weights=FishingExpertScorer.WEIGHTS)
     ai_svc = AiService(agent=ai_agent)
-    public_svc = PublicService(
-        repo=public_repo, gallery_repo=gallery_repo, ai_agent=ai_agent
-    )
+    public_svc = PublicService(repo=public_repo)
+    status_svc = StatusService(repo=public_repo)
+    gallery_svc = GalleryService(gallery_repo=gallery_repo)
+    weather_analysis_svc = WeatherAnalysisService(ai_agent=ai_agent)
     rss_svc = RssService(repo=rss_repo, redis=redis)
     sub_svc = SubService(repo=sub_repo)
     notification_svc = NotificationService(
@@ -95,6 +102,9 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         passkey_svc=passkey_svc,
         github_svc=github_svc,
         public_svc=public_svc,
+        status_svc=status_svc,
+        gallery_svc=gallery_svc,
+        weather_analysis_svc=weather_analysis_svc,
         rss_svc=rss_svc,
         sub_svc=sub_svc,
         notification_svc=notification_svc,
@@ -103,3 +113,8 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         friendlink_svc=friendlink_svc,
         ai_svc=ai_svc,
     )
+
+
+async def get_app_state(request: Request) -> AppState:
+    """Return the AppState singleton mounted on ``app.state.services`` by lifespan."""
+    return request.app.state.services

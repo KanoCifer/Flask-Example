@@ -5,10 +5,9 @@ from collections.abc import AsyncIterable
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.sse import EventSourceResponse
 
-from app.api.des.appstate import get_app_state
 from app.api.des.auth import optional_user
 from app.api.des.limiter import check_mode_rate_limit, client_key, limiter
-from app.appstate import AppState
+from app.appstate import AppState, get_app_state
 from app.schemas.aiagent import ThreadRequest, WeatherAnalysisInput
 
 router = APIRouter(prefix="/llm", tags=["llm"])
@@ -61,7 +60,7 @@ async def analyze_weather(
     state: AppState = Depends(get_app_state),
 ):
     """根据天气数据进行分析并生成报告。"""
-    async for chunk in state.public_svc.analyze_weather(
+    async for chunk in state.weather_analysis_svc.analyze_weather(
         weather_data, model_id=weather_data.model_id
     ):
         yield chunk

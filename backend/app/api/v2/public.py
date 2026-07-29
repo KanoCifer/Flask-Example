@@ -19,11 +19,10 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.des.appstate import get_app_state
 from app.api.des.db import get_session
 from app.api.des.limiter import limiter
 from app.api.des.redis import get_redis
-from app.appstate import AppState
+from app.appstate import AppState, get_app_state
 from app.core.config import get_settings
 from app.core.exceptions import APIError
 from app.core.logger import logger
@@ -74,7 +73,7 @@ async def get_api_status(
 ):
     """获取 API 运行状态。"""
     return APIResponse(
-        data=state.public_svc.get_api_status(),
+        data=state.status_svc.get_api_status(),
         message="API is running",
     )
 
@@ -86,7 +85,7 @@ async def get_status_detail(
     session: AsyncSession = Depends(get_session),
 ) -> APIResponse:
     """获取详细状态信息（版本、服务指标、系统信息）。"""
-    data = await state.public_svc.get_status_detail(session)
+    data = await state.status_svc.get_status_detail(session)
 
     return APIResponse(
         data=data,
@@ -199,7 +198,7 @@ async def set_pic_gallery(
 ) -> APIResponse:
     """设置图片墙数据。"""
     try:
-        await state.public_svc.set_pic_gallery(session, images=images)
+        await state.gallery_svc.set_pic_gallery(session, images=images)
         await _safe_invalidate("get_pic_gallery")
         return APIResponse(
             message="Picture gallery updated successfully",
@@ -220,7 +219,7 @@ async def get_pic_gallery(
 ):
     """获取图片墙图片列表。"""
     try:
-        images = await state.public_svc.get_pic_gallery(session)
+        images = await state.gallery_svc.get_pic_gallery(session)
         return APIResponse(
             data={"images": images},
             message="Picture gallery retrieved successfully",

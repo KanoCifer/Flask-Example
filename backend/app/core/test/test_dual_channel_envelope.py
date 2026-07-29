@@ -356,7 +356,7 @@ class TestAiServiceEnvelope:
 # ── service 层：public_service.analyze_weather 去 dict-塞-content bug ── #
 
 
-class TestPublicServiceEnvelope:
+class TestWeatherAnalysisServiceEnvelope:
     @pytest.mark.asyncio
     async def test_analyze_weather_passes_through(
         self, mock_factory, api_key_set
@@ -369,9 +369,9 @@ class TestPublicServiceEnvelope:
 
         _attach_arun(mock_factory, _arun)
 
-        # 构建不带 _on_index_calculated 依赖链的 PublicService:
+        # 构建不带 _on_index_calculated 依赖链的 WeatherAnalysisService:
         # 直接短路 save_ai_analysis_feedback,免得触达 Mongo。
-        from app.services.public_service import PublicService
+        from app.services.weather_analysis_service import WeatherAnalysisService
 
         agent = AiAgent(db=_make_db())
         # 不要走真实 _on_index_calculated:把它的副作用 stub 掉
@@ -383,11 +383,7 @@ class TestPublicServiceEnvelope:
         # （在没有 callback 时本来就不会触发 Mongo 路径）。
         weather_input = WeatherAnalysisInput(weather_data={})
 
-        svc = PublicService(
-            repo=MagicMock(),
-            gallery_repo=MagicMock(),
-            ai_agent=agent,
-        )
+        svc = WeatherAnalysisService(ai_agent=agent)
 
         frames = []
         async for f in svc.analyze_weather(weather_input):
