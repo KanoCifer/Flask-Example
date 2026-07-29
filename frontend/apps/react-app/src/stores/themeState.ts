@@ -1,10 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { playThemeTransition, isColorScheme, safeScheme } from '@readinglist/utils';
-import type { ColorScheme } from '@readinglist/utils';
+import {
+  playThemeTransition,
+  applyThemeToDocument,
+  applyFontToDocument,
+  applySchemeToDocument,
+  isColorScheme,
+} from '@readinglist/utils';
+import type { ColorScheme, Theme as UtilsTheme, FontFamily as UtilsFontFamily } from '@readinglist/utils';
 
-type Theme = 'light' | 'dark' | 'system';
-type FontFamily = 'default' | 'harmonyos';
+type Theme = UtilsTheme;
+type FontFamily = UtilsFontFamily;
 
 interface ThemeState {
   theme: Theme;
@@ -34,33 +40,6 @@ const BG_DEFAULTS = { blur: 8, brightness: 1.0, scale: 1.05 } as const;
 export type { Theme, FontFamily };
 export type { ColorScheme } from '@readinglist/utils';
 
-const applyTheme = (newTheme: Theme) => {
-  const root = document.documentElement;
-  root.classList.remove('light', 'dark');
-  if (newTheme === 'system') {
-    const prefersDark = window.matchMedia(
-      '(prefers-color-scheme: dark)',
-    ).matches;
-    root.classList.add(prefersDark ? 'dark' : 'light');
-  } else {
-    root.classList.add(newTheme);
-  }
-};
-
-const applyFont = (newFont: FontFamily) => {
-  const root = document.documentElement;
-  if (newFont === 'harmonyos') {
-    root.setAttribute('data-font', 'harmonyos');
-  } else {
-    root.removeAttribute('data-font');
-  }
-};
-
-const applyScheme = (newScheme: ColorScheme) => {
-  if (!isColorScheme(newScheme)) return;
-  document.documentElement.setAttribute('data-color-scheme', newScheme);
-};
-
 export const useThemeState = create<ThemeState>()(
   persist(
     (set, get) => ({
@@ -74,18 +53,18 @@ export const useThemeState = create<ThemeState>()(
       cardIndex: Number(localStorage.getItem('card-image-index')) || 0,
 
       setTheme: (theme) => {
-        applyTheme(theme);
+        applyThemeToDocument(theme);
         set({ theme });
       },
 
       setFont: (font) => {
-        applyFont(font);
+        applyFontToDocument(font);
         set({ font });
       },
 
       setScheme: (scheme) => {
         if (!isColorScheme(scheme)) return;
-        applyScheme(scheme);
+        applySchemeToDocument(scheme);
         set({ scheme });
       },
 
@@ -137,12 +116,14 @@ export const useThemeState = create<ThemeState>()(
 
       onRehydrateStorage: () => (state) => {
         if (state?.theme) {
-          applyTheme(state.theme);
+          applyThemeToDocument(state.theme);
         }
         if (state?.font) {
-          applyFont(state.font);
+          applyFontToDocument(state.font);
         }
-        applyScheme(safeScheme(state?.scheme));
+        if (state?.scheme) {
+          applySchemeToDocument(state.scheme);
+        }
       },
 
       partialize: (state) => ({
@@ -154,18 +135,6 @@ export const useThemeState = create<ThemeState>()(
         bgScale: state.bgScale,
         cardIndex: state.cardIndex,
       }),
-
-      // Storage written by older versions may contain a removed scheme
-      // (e.g. sky-blue, autumn). Coerce it back to the new default so the
-      // rehydrated value always lands in the current union.
-      merge: (persisted, current) => {
-        const p = (persisted ?? {}) as Partial<ThemeState>;
-        return {
-          ...current,
-          ...p,
-          scheme: safeScheme(p.scheme ?? current.scheme),
-        };
-      },
     },
   ),
 );

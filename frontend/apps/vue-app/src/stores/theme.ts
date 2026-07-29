@@ -2,56 +2,60 @@ import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import {
   playThemeTransition,
+  applyThemeToDocument,
+  applyFontToDocument,
+  applySchemeToDocument,
   isColorScheme,
+  STORAGE_KEYS,
 } from '@readinglist/utils';
-import type { ColorScheme } from '@readinglist/utils';
+import type { ColorScheme, Theme as UtilsTheme, FontFamily as UtilsFontFamily } from '@readinglist/utils';
 
 // 供仍从 @/stores 导入的模块保持兼容
 export { COLOR_SCHEMES, isColorScheme } from '@readinglist/utils';
 
-export type Theme = 'light' | 'dark' | 'system';
-export type FontFamily = 'default' | 'harmonyos';
-export type { ColorScheme } from '@readinglist/utils';
+export type Theme = UtilsTheme;
+export type FontFamily = UtilsFontFamily;
+export type { ColorScheme };
 
 export const useThemeStore = defineStore('theme', () => {
   const theme = ref<Theme>(
-    (localStorage.getItem('theme') as Theme) || 'system',
+    (localStorage.getItem(STORAGE_KEYS.theme) as Theme) || 'system',
   );
 
-  const stored = localStorage.getItem('color-scheme');
+  const stored = localStorage.getItem(STORAGE_KEYS.scheme);
   const scheme = ref<ColorScheme>(isColorScheme(stored) ? stored : 'paper');
 
   const showFooter = ref<string>(localStorage.getItem('show-footer') || 'true');
 
   const font = ref<FontFamily>(
-    (localStorage.getItem('font') as FontFamily) || 'default',
+    (localStorage.getItem(STORAGE_KEYS.font) as FontFamily) || 'default',
   );
 
   // 背景模糊值（px），兼容旧版 blur-* 字符串存储
-  const storedBlur = localStorage.getItem('bg-blur');
+  const storedBlur = localStorage.getItem(STORAGE_KEYS.bgBlur);
   const bgBlur = ref<number>(
     storedBlur && !storedBlur.startsWith('blur-') ? Number(storedBlur) : 0,
   );
 
   const saveBgBlur = (newBlur: number) => {
     bgBlur.value = newBlur;
-    localStorage.setItem('bg-blur', String(newBlur));
+    localStorage.setItem(STORAGE_KEYS.bgBlur, String(newBlur));
   };
 
   const bgBrightness = ref<number>(
-    Number(localStorage.getItem('bg-brightness') || 1.0),
+    Number(localStorage.getItem(STORAGE_KEYS.bgBrightness) || 1.0),
   );
 
   const saveBgBrightness = (val: number) => {
     bgBrightness.value = val;
-    localStorage.setItem('bg-brightness', String(val));
+    localStorage.setItem(STORAGE_KEYS.bgBrightness, String(val));
   };
 
-  const bgScale = ref<number>(Number(localStorage.getItem('bg-scale') || 1.05));
+  const bgScale = ref<number>(Number(localStorage.getItem(STORAGE_KEYS.bgScale) || 1.05));
 
   const saveBgScale = (val: number) => {
     bgScale.value = val;
-    localStorage.setItem('bg-scale', String(val));
+    localStorage.setItem(STORAGE_KEYS.bgScale, String(val));
   };
 
   const toggleFooter = () => {
@@ -61,39 +65,23 @@ export const useThemeStore = defineStore('theme', () => {
 
   const applyFont = (newFont: FontFamily) => {
     font.value = newFont;
-    const root = document.documentElement;
-    if (newFont === 'harmonyos') {
-      root.setAttribute('data-font', 'harmonyos');
-    } else {
-      root.removeAttribute('data-font');
-    }
-    localStorage.setItem('font', newFont);
+    applyFontToDocument(newFont);
+    localStorage.setItem(STORAGE_KEYS.font, newFont);
   };
 
   const applyTheme = (newTheme: Theme) => {
-    const root = document.documentElement;
-    const isDark =
-      newTheme === 'dark' ||
-      (newTheme === 'system' &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-    if (isDark) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    applyThemeToDocument(newTheme);
 
     if (newTheme === 'system') {
-      localStorage.removeItem('theme');
+      localStorage.removeItem(STORAGE_KEYS.theme);
     } else {
-      localStorage.setItem('theme', newTheme);
+      localStorage.setItem(STORAGE_KEYS.theme, newTheme);
     }
   };
 
   const applyScheme = (newScheme: ColorScheme) => {
-    if (!isColorScheme(newScheme)) return;
-    document.documentElement.setAttribute('data-color-scheme', newScheme);
-    localStorage.setItem('color-scheme', newScheme);
+    applySchemeToDocument(newScheme);
+    localStorage.setItem(STORAGE_KEYS.scheme, newScheme);
   };
 
   // Watch for theme changes

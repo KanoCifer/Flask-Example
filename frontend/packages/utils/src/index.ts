@@ -9,7 +9,7 @@ export { getVisitorId } from './visitorId';
 export { collectVisitorData } from './visitorTrack';
 export type { VisitorData } from './visitorTrack';
 export { buildWsUrl } from './buildWsUrl';
-export { COLOR_SCHEMES, isColorScheme, safeScheme } from './colorScheme';
+export { COLOR_SCHEMES, isColorScheme } from './colorScheme';
 export type { ColorScheme } from './colorScheme';
 export { getCssVar, playThemeTransition } from './themeTransition';
 export type { ThemeMode } from './themeTransition';
@@ -24,3 +24,10 @@ export type { SequencedResult } from './sequencedTask';
 export { SHIMMER_TIPS } from './shimmerTips';
 export { ToastQueue } from './toastQueue';
 export type { ToastType, ToastItem, ToastListener } from './toastQueue';
+export {
+  applyThemeToDocument,
+  applyFontToDocument,
+  applySchemeToDocument,
+  STORAGE_KEYS,
+} from './theme';
+export type { Theme, FontFamily } from './theme';
