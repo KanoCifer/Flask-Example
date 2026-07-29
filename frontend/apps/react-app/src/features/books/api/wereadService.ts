@@ -1,7 +1,5 @@
-import {
-  wereadGateway,
-  type ReadStatsMode,
-} from '@/features/books/api/wereadGateway';
+import { wereadGateway } from '@readinglist/api';
+import type { ReadStatsMode } from '@readinglist/types';
 
 export const wereadService = {
   async saveUserInfo(apiKey: string) {

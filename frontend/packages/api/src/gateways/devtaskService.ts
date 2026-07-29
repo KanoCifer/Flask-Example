@@ -1,5 +1,5 @@
-import devtaskRequest from './devtaskRequest.ts';
-import apiClient, { extractData } from '@/api/apiClient.ts';
+import devtaskRequest from '../devtaskRequest';
+import { apiClient, extractData } from '../apiClient';
 import type {
   CreateDevTaskPayload,
   DevTask,
@@ -7,7 +7,9 @@ import type {
   ListDevTasksParams,
   McpTokenResult,
   UpdateDevTaskPayload,
-} from './types';
+} from '@readinglist/types';
+
+// ── React 端 devtask service —— 对 gateway 的薄封装（自动 extractData） ──
 
 export interface DevTaskService {
   list(params?: ListDevTasksParams): Promise<DevTaskListResponse>;
@@ -23,7 +25,7 @@ export interface DevTaskService {
 export const devTaskService = (): DevTaskService => ({
   async list(params): Promise<DevTaskListResponse> {
     const res = await devtaskRequest.get<{ data: DevTaskListResponse }>(
-      'v3/dev-tasks',
+      'v3-dev-tasks',
       {
         params,
       },

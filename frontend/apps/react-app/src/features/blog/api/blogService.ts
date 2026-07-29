@@ -1,6 +1,4 @@
-import { blogGateway } from '@/features/blog/api/blogGateway';
-import { extractData } from '@/api/apiClient';
-import type { ApiResponse } from '@/api/apiClient';
+import { blogGateway } from '@readinglist/api';
 import type {
   BlogPost,
   BlogPagination,
@@ -71,96 +69,80 @@ export interface BlogService {
   deleteLegacyPost(postId: string): Promise<void>;
 }
 
-export const blogService = (): BlogService => {
-  const gateway = blogGateway();
-
+// 将 BlogPost 映射为 React 侧展示用的 BlogListItem
+function toListItem(post: BlogPost): BlogListItem {
   return {
-    async getBlogs(query) {
-      const res = await gateway.getBlogs(query);
-      const raw = extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as {
-        posts: BlogPost[];
-        tags: TagItem[];
-        pagination: BlogPagination;
-      };
-
-      const posts: BlogListItem[] = raw.posts.map((post) => ({
-        _id: post._id,
-        title: post.title,
-        body: post.body,
-        summary: post.summary || '',
-        cover: post.cover,
-        tags: post.tags || [],
-        is_pinned: post.is_pinned || false,
-        views: post.views,
-        created_at: post.created_at,
-        updated_at: post.updated_at,
-      }));
-
-      return {
-        posts,
-        tags: raw.tags,
-        pagination: raw.pagination,
-      };
-    },
-
-    async getBlogPost(postId: string) {
-      const res = await gateway.getBlogPost(postId);
-      return extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as BlogDetail;
-    },
-
-    async likePost(postId: string) {
-      const res = await gateway.likePost(postId);
-      const data = extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as { likes: number };
-      return data.likes;
-    },
-
-    async getTags() {
-      const res = await gateway.getTags();
-      const data = extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      );
-      // gateway 返回 { data: { tags: [...] } } — unwrap
-      return (data as unknown as { tags: TagItem[] }).tags ?? [];
-    },
-
-    async getPostsByTag(tag: string) {
-      const res = await gateway.getPostsByTag(tag);
-      return extractData(res as unknown as { data: ApiResponse<unknown> }) as {
-        posts: BlogPost[];
-        tag: string;
-        total: number;
-      };
-    },
-
-    async getLegacyPost(postId) {
-      const res = await gateway.getLegacyPost(postId);
-      return extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as BlogDetail;
-    },
-
-    async createLegacyPost(payload) {
-      const res = await gateway.createLegacyPost(payload);
-      return extractData(res as unknown as { data: ApiResponse<unknown> }) as {
-        _id: string;
-      };
-    },
-
-    async updateLegacyPost(payload) {
-      const res = await gateway.updateLegacyPost(payload);
-      return extractData(res as unknown as { data: ApiResponse<unknown> }) as {
-        _id: string;
-      };
-    },
-
-    async deleteLegacyPost(postId) {
-      await gateway.deleteLegacyPost(postId);
-    },
+    _id: post._id,
+    title: post.title,
+    body: post.body,
+    summary: post.summary || '',
+    cover: post.cover,
+    tags: post.tags || [],
+    is_pinned: post.is_pinned || false,
+    views: post.views,
+    created_at: post.created_at,
+    updated_at: post.updated_at,
   };
-};
+}
+
+function toDetail(post: BlogPost): BlogDetail {
+  return {
+    _id: post._id,
+    title: post.title,
+    body: post.body,
+    cover: post.cover,
+    tags: post.tags || [],
+    is_pinned: post.is_pinned || false,
+    views: post.views,
+    likes: post.likes,
+    created_at: post.created_at,
+    updated_at: post.updated_at,
+    summary: post.summary || undefined,
+  };
+}
+
+export const blogService = (): BlogService => ({
+  async getBlogs(query) {
+    const raw = await blogGateway.getBlogs(query);
+    const posts: BlogListItem[] = raw.posts.map(toListItem);
+    return {
+      posts,
+      tags: raw.tags,
+      pagination: raw.pagination,
+    };
+  },
+
+  async getBlogPost(postId: string) {
+    const raw = await blogGateway.getBlogPost(postId);
+    return toDetail(raw);
+  },
+
+  async likePost(postId: string) {
+    return blogGateway.likePost(postId);
+  },
+
+  async getTags() {
+    return blogGateway.getTags();
+  },
+
+  async getPostsByTag(tag: string) {
+    return blogGateway.getPostsByTag(tag);
+  },
+
+  async getLegacyPost(postId) {
+    const raw = await blogGateway.getLegacyPost(postId);
+    return toDetail(raw);
+  },
+
+  async createLegacyPost(payload) {
+    return blogGateway.createLegacyPost(payload);
+  },
+
+  async updateLegacyPost(payload) {
+    return blogGateway.updateLegacyPost(payload);
+  },
+
+  async deleteLegacyPost(postId) {
+    await blogGateway.deleteLegacyPost(postId);
+  },
+});

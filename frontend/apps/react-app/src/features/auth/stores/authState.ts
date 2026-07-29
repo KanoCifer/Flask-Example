@@ -7,8 +7,10 @@ import { tokenService } from '@readinglist/utils';
 import { refreshAccessToken } from '@readinglist/api';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { create } from 'zustand';
+import { useNotificationStore } from '@/stores/notificationState';
 
 const authGateway = createAuthGateway();
+const notification = useNotificationStore.getState();
 let isLoggingOut = false;
 let hydrationPromise: Promise<void> | null = null;
 
@@ -84,14 +86,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   login: async (username, password) => {
-    const result = await authGateway.login(username, password);
-    // 登录成功后更新状态、保存 access token 和 userCache
-    if (result.accessToken) {
-      tokenService.save(result.accessToken);
+    let result;
+    try {
+      result = await authGateway.login(username, password);
+    } catch (err) {
+      notification.error('登录失败，请检查用户名和密码');
+      throw err;
     }
+    if (!result.accessToken) {
+      notification.error('登录失败，请检查用户名和密码');
+      return;
+    }
+    // 登录成功后更新状态、保存 access token 和 userCache
+    tokenService.save(result.accessToken);
     if (result.user) {
       userCache.set(result.user);
     }
+    notification.success('登录成功');
     set({
       isAuthenticated: true,
       user: result.user,
@@ -112,6 +123,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           isAuthenticated: false,
           user: null,
         });
+        notification.success('已退出登录');
       })
       .catch(() => {
         isLoggingOut = false;
@@ -119,14 +131,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   loginWithPasskey: async (assertion: unknown) => {
-    const result = await authGateway.loginWithPasskey(assertion);
-    // 登录成功后更新状态、保存 access token 和 userCache
-    if (result.accessToken) {
-      tokenService.save(result.accessToken);
+    let result;
+    try {
+      result = await authGateway.loginWithPasskey(assertion);
+    } catch (err) {
+      notification.error('Passkey 登录失败，请重试');
+      throw err;
     }
+    if (!result.accessToken) {
+      notification.error('Passkey 登录失败，请重试');
+      return;
+    }
+    // 登录成功后更新状态、保存 access token 和 userCache
+    tokenService.save(result.accessToken);
     if (result.user) {
       userCache.set(result.user);
     }
+    notification.success('登录成功');
     set({
       isAuthenticated: true,
       user: result.user,

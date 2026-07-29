@@ -1,4 +1,4 @@
-import { authGateway } from '@/features/auth/api/authGateway';
+import { authGateway } from '@/features/auth/api';
 import { useAuthStore } from '@/features/auth';
 import type { ProfileForm } from '@readinglist/types';
 import { ref } from 'vue';

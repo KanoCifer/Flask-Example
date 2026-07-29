@@ -40,7 +40,7 @@ devtaskRequest.interceptors.response.use(
       return devtaskRequest(cfg);
     }
 
-    // 友好错误消息（与 request.ts 一致）
+    // 友好错误消息（与 apiClient 一致）
     if (error.response?.data?.message) {
       error.message = error.response.data.message;
     } else if (error.code === 'ERR_NETWORK') {

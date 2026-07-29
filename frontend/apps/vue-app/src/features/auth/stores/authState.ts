@@ -1,4 +1,4 @@
-import { createAuthGateway } from '@/features/auth/api/authGateway';
+import { createAuthGateway } from '@/features/auth/api';
 import { registerTokenRefresher } from '@/lib';
 import { refreshAccessToken } from '@/features/auth/lib/refresh';
 import { tokenService } from '@readinglist/utils';

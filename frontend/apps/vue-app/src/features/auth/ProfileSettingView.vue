@@ -96,9 +96,7 @@ const handleAddPasskey = async () => {
   passkeyMessage.value = '';
 
   try {
-    const optionsRes = await authGateway.getPasskeyRegistrationOptions();
-    const options = optionsRes.data.data;
-    if (!options) throw new Error('Failed to get passkey registration options');
+    const options = await authGateway.getPasskeyRegistrationOptions();
 
     const credential = await startRegistration({ optionsJSON: options });
 

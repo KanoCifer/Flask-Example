@@ -1,59 +1,56 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Single stable mock instance so beforeEach + tests share fns
-const gatewayMock = {
-  getBlogs: vi.fn(),
-  getBlogPost: vi.fn(),
-  getTags: vi.fn(),
-  getPostsByTag: vi.fn(),
-  getLegacyPost: vi.fn(),
-  createLegacyPost: vi.fn(),
-  updateLegacyPost: vi.fn(),
-  deleteLegacyPost: vi.fn(),
-};
-
-vi.mock('@/features/blog/api/blogGateway', () => ({
-  blogGateway: () => gatewayMock,
+// gatewayMock 需在 vi.mock 工厂中引用，用 vi.hoisted 提升到 mock 之上
+const { gatewayMock } = vi.hoisted(() => ({
+  gatewayMock: {
+    getBlogs: vi.fn(),
+    getBlogPost: vi.fn(),
+    getTags: vi.fn(),
+    getPostsByTag: vi.fn(),
+    getLegacyPost: vi.fn(),
+    createLegacyPost: vi.fn(),
+    updateLegacyPost: vi.fn(),
+    deleteLegacyPost: vi.fn(),
+    likePost: vi.fn(),
+  },
 }));
 
-vi.mock('@/api/request', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/api/apiClient')>();
-  return {
-    ...actual,
-    // Real extractData does res.data.data (AxiosResponse → ApiResponse).
-    // Our mocks return { data: { data: T } } to match that shape.
-    extractData: <T>(res: unknown): T =>
-      (res as { data: { data: T } }).data.data as T,
-  };
-});
+vi.mock('@readinglist/api', () => ({
+  blogGateway: gatewayMock,
+}));
 
-// Import AFTER mocks so blogService picks up mocked request module
+// Import AFTER mocks so blogService picks up mocked gateway
 import { blogService } from '@/features/blog/api/blogService';
 
 describe('blogService (React — tags migration)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // Default mocks so individual tests only override what they exercise
+    // Default mocks so individual tests only override what they exercise.
+    // 共享 gateway 返回解包后的领域数据（不再包 { data: { data: T } }）。
     gatewayMock.getBlogs.mockResolvedValue({
-      data: { data: { posts: [], tags: [], pagination: {} } },
+      posts: [],
+      tags: [],
+      pagination: {},
     } as never);
-    gatewayMock.getTags.mockResolvedValue({
-      data: { data: { tags: [] } },
-    } as never);
+    gatewayMock.getTags.mockResolvedValue([] as never);
     gatewayMock.getPostsByTag.mockResolvedValue({
-      data: { data: { posts: [], tag: '', total: 0 } },
+      posts: [],
+      tag: '',
+      total: 0,
     } as never);
     gatewayMock.getLegacyPost.mockResolvedValue({
-      data: { data: { _id: '', title: '', body: '', tags: [] } },
+      _id: '',
+      title: '',
+      body: '',
+      tags: [],
     } as never);
-    gatewayMock.createLegacyPost.mockResolvedValue({
-      data: { data: { _id: '' } },
-    } as never);
-    gatewayMock.updateLegacyPost.mockResolvedValue({
-      data: { data: { _id: '' } },
-    } as never);
+    gatewayMock.createLegacyPost.mockResolvedValue({ _id: '' } as never);
+    gatewayMock.updateLegacyPost.mockResolvedValue({ _id: '' } as never);
     gatewayMock.getBlogPost.mockResolvedValue({
-      data: { _id: '', title: '', body: '', tags: [] },
+      _id: '',
+      title: '',
+      body: '',
+      tags: [],
     } as never);
   });
 
@@ -64,30 +61,26 @@ describe('blogService (React — tags migration)', () => {
   describe('getBlogs', () => {
     it('returns posts with tags array (no category)', async () => {
       vi.mocked(gatewayMock.getBlogs).mockResolvedValue({
-        data: {
-          data: {
-            posts: [
-              {
-                _id: '1',
-                title: 'A',
-                body: 'B',
-                summary: 'S',
-                tags: ['python'],
-                is_pinned: false,
-                created_at: '2026-01-01',
-                updated_at: '2026-01-01',
-              },
-            ],
-            tags: [{ name: 'python', count: 1 }],
-            pagination: {
-              page: 1,
-              per_page: 10,
-              total: 1,
-              pages: 1,
-              has_prev: false,
-              has_next: false,
-            },
+        posts: [
+          {
+            _id: '1',
+            title: 'A',
+            body: 'B',
+            summary: 'S',
+            tags: ['python'],
+            is_pinned: false,
+            created_at: '2026-01-01',
+            updated_at: '2026-01-01',
           },
+        ],
+        tags: [{ name: 'python', count: 1 }],
+        pagination: {
+          page: 1,
+          per_page: 10,
+          total: 1,
+          pages: 1,
+          has_prev: false,
+          has_next: false,
         },
       });
 
@@ -103,17 +96,11 @@ describe('blogService (React — tags migration)', () => {
   });
 
   describe('getTags', () => {
-    it('unwraps { tags: [...] } envelope', async () => {
-      vi.mocked(gatewayMock.getTags).mockResolvedValue({
-        data: {
-          data: {
-            tags: [
-              { name: 'a', count: 1 },
-              { name: 'b', count: 2 },
-            ],
-          },
-        },
-      } as never);
+    it('returns the tags array', async () => {
+      vi.mocked(gatewayMock.getTags).mockResolvedValue([
+        { name: 'a', count: 1 },
+        { name: 'b', count: 2 },
+      ] as never);
 
       const svc = blogService();
       const tags = await svc.getTags();
@@ -128,24 +115,20 @@ describe('blogService (React — tags migration)', () => {
   describe('getPostsByTag', () => {
     it('posts carry tags, not category', async () => {
       vi.mocked(gatewayMock.getPostsByTag).mockResolvedValue({
-        data: {
-          data: {
-            posts: [
-              {
-                _id: '1',
-                title: 'A',
-                body: 'B',
-                tags: ['vue'],
-                is_pinned: false,
-                created_at: '2026-01-01',
-                updated_at: '2026-01-01',
-              },
-            ],
-            tag: 'vue',
-            total: 1,
+        posts: [
+          {
+            _id: '1',
+            title: 'A',
+            body: 'B',
+            tags: ['vue'],
+            is_pinned: false,
+            created_at: '2026-01-01',
+            updated_at: '2026-01-01',
           },
-        },
-      } as never);
+        ],
+        tag: 'vue',
+        total: 1,
+      });
 
       const svc = blogService();
       const result = await svc.getPostsByTag('vue');
@@ -159,7 +142,7 @@ describe('blogService (React — tags migration)', () => {
   describe('createLegacyPost', () => {
     it('forwards tags, not category_id', async () => {
       vi.mocked(gatewayMock.createLegacyPost).mockResolvedValue({
-        data: { data: { _id: 'new' } },
+        _id: 'new',
       } as never);
 
       const svc = blogService();
@@ -182,7 +165,7 @@ describe('blogService (React — tags migration)', () => {
   describe('updateLegacyPost', () => {
     it('forwards tags, not category_id', async () => {
       vi.mocked(gatewayMock.updateLegacyPost).mockResolvedValue({
-        data: { data: { _id: 'existing' } },
+        _id: 'existing',
       } as never);
 
       const svc = blogService();
@@ -206,17 +189,13 @@ describe('blogService (React — tags migration)', () => {
   describe('getLegacyPost', () => {
     it('returns tags, no category field', async () => {
       vi.mocked(gatewayMock.getLegacyPost).mockResolvedValue({
-        data: {
-          data: {
-            _id: '1',
-            title: 'T',
-            body: 'B',
-            tags: ['z'],
-            is_pinned: false,
-            created_at: '2026-01-01',
-            updated_at: '2026-01-01',
-          },
-        },
+        _id: '1',
+        title: 'T',
+        body: 'B',
+        tags: ['z'],
+        is_pinned: false,
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
       } as never);
 
       const svc = blogService();

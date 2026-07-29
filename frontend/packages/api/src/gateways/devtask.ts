@@ -1,5 +1,5 @@
-import devtaskRequest from './devtaskRequest';
-
+import devtaskRequest from '../devtaskRequest';
+import { apiClient } from '../apiClient';
 import type {
   CreateDevTaskPayload,
   DevTask,
@@ -62,7 +62,6 @@ export const devTaskGateway: DevTaskGateway = {
 
   async issueMcpToken(days: number): Promise<McpTokenResult> {
     // 走用户 JWT 的 apiClient（非 service-token），因为这是 admin 身份换长期 token
-    const { apiClient } = await import('@/api/request');
     const res = await apiClient.get<{ data: McpTokenResult }>(
       'v3/dev-task/token',
       {

@@ -1,37 +1,15 @@
-import apiClient, { extractData } from '@/api/apiClient';
+import {
+  galleryGateway,
+  type ExifInfo,
+  type GalleryData,
+  type GalleryImage,
+  type SaveGalleryPayload,
+} from '@readinglist/api';
 
-export interface ExifInfo {
-  camera?: string;
-  lens?: string;
-  iso?: number;
-  exposure?: string;
-  aperture?: string;
-  focalLength?: string;
-  focalLength35?: string;
-  takenAt?: string;
-  gps?: { lat: number; lng: number };
-}
+// 照片墙服务 —— 委托给共享 @readinglist/api galleryGateway，保留工厂形态以兼容旧消费方
 
-export interface Picture {
-  id: string;
-  uploadedAt?: string;
-  url: string;
-  description: string;
-  exif?: ExifInfo | null;
-}
-
-export interface GalleryData {
-  images: Picture[];
-}
-
-export interface SaveGalleryPayload {
-  images: Array<{
-    id: string;
-    url: string;
-    description: string;
-    uploadedAt?: string;
-  }>;
-}
+export type { ExifInfo, GalleryData, GalleryImage };
+export type Picture = GalleryImage;
 
 export interface GalleryService {
   getGallery(): Promise<GalleryData>;
@@ -41,25 +19,14 @@ export interface GalleryService {
 
 export const galleryService = (): GalleryService => ({
   async getGallery() {
-    const res = await apiClient.get('v2/publicv2/pic-gallery');
-    const data = extractData(res) as { images?: Picture[] } | undefined;
-    return {
-      images: data?.images ?? [],
-    };
+    return galleryGateway.getGallery();
   },
 
   async uploadGalleryImage(formData: FormData) {
-    const res = await apiClient.post('v3/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    const data = extractData(res) as { url?: string } | undefined;
-    if (!data?.url) {
-      throw new Error('上传成功但未返回图片地址');
-    }
-    return data.url;
+    return galleryGateway.uploadGalleryImage(formData);
   },
 
   async saveGallery(payload) {
-    await apiClient.post('v2/publicv2/set-pic-gallery', payload);
+    return galleryGateway.saveGallery(payload);
   },
 });

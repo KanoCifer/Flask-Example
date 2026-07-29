@@ -3,4 +3,4 @@ export type {
   BookRecommendItem,
   ReadStatsMode,
   ReadDetailSnapshot,
-} from './api/wereadGateway';
+} from '@readinglist/types';

@@ -1,4 +1,4 @@
-import { apiClient } from '@/api/request';
+import { apiClient } from './apiClient';
 import { tokenService } from '@readinglist/utils';
 
 // ── devtask service-JWT 缓存 ──

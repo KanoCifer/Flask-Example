@@ -1,5 +1,6 @@
-export { devTaskGateway } from './devtaskGateway';
-export type { DevTaskGateway } from './devtaskGateway';
+// 过渡期 re-export — devtask API 已迁移到 @readinglist/api
+export { devTaskGateway } from '@readinglist/api';
+export type { DevTaskGateway } from '@readinglist/api';
 
 // DevTask 领域类型 —— 真源在 @readinglist/types，桶重新导出以保持兼容
 export type {

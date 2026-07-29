@@ -1,11 +1,7 @@
-import type { AxiosResponse } from 'axios';
-
 import {
   momentsGateway,
   type MomentsGateway,
-} from '@/features/moments/api/momentsGateway';
-import type { ApiResponse } from '@/api/apiClient';
-import { extractData } from '@/api/apiClient';
+} from '@readinglist/api';
 import type {
   Moment,
   MomentCreatePayload,
@@ -37,40 +33,35 @@ export interface MomentsService {
 }
 
 export const momentsService = (): MomentsService => {
-  const gateway: MomentsGateway = momentsGateway();
-
-  const unwrap = <T>(res: AxiosResponse<unknown>): T =>
-    extractData(res as unknown as { data: ApiResponse<unknown> }) as T;
+  const gateway: MomentsGateway = momentsGateway;
 
   return {
     async listPublic(params) {
-      const res = await gateway.listPublic(params);
-      return unwrap<MomentListResponse>(res);
+      return gateway.listPublic(params);
     },
 
     async listAdmin(params) {
-      const res = await gateway.listAdmin(params);
-      return unwrap<MomentListResponse>(res);
+      return gateway.listAdmin(params);
     },
 
     async get(id) {
-      const res = await gateway.get(id);
-      return unwrap<{ moment: Moment }>(res).moment;
+      const { moment } = await gateway.get(id);
+      return moment;
     },
 
     async getAdmin(id) {
-      const res = await gateway.getAdmin(id);
-      return unwrap<{ moment: Moment }>(res).moment;
+      const { moment } = await gateway.getAdmin(id);
+      return moment;
     },
 
     async create(payload) {
-      const res = await gateway.create(payload);
-      return unwrap<{ moment: Moment }>(res).moment;
+      const { moment } = await gateway.create(payload);
+      return moment;
     },
 
     async update(id, payload) {
-      const res = await gateway.update(id, payload);
-      return unwrap<{ moment: Moment }>(res).moment;
+      const { moment } = await gateway.update(id, payload);
+      return moment;
     },
 
     async remove(id) {

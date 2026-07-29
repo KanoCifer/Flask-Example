@@ -1,21 +1,4 @@
-import { apiClient } from '@/api/request';
+// 照片墙网关已迁移到 @readinglist/api，此处重新导出以保持兼容
 
-import type { GalleryImage, GalleryResponse } from '@/features/pic/types';
-
-export interface GalleryGateway {
-  getGallery(): Promise<GalleryResponse>;
-  saveGallery(payload: { images: GalleryImage[] }): Promise<void>;
-}
-
-export const galleryGateway: GalleryGateway = {
-  async getGallery(): Promise<GalleryResponse> {
-    const res = await apiClient.get<{ data: GalleryResponse }>(
-      'v2/publicv2/pic-gallery',
-    );
-    return res.data.data;
-  },
-
-  async saveGallery(payload: { images: GalleryImage[] }): Promise<void> {
-    await apiClient.post('v2/publicv2/set-pic-gallery', payload);
-  },
-};
+export { galleryGateway } from '@readinglist/api';
+export type { GalleryGateway, GalleryData, GalleryImage } from '@readinglist/api';

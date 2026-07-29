@@ -1,16 +1,44 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { blogGateway } from '@/features/blog/api/blogGateway';
 
-vi.mock('@/api/apiClient', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
+// 共享 gateway 走 packages/api 内部 apiClient（exports 限制无法直接 mock 内部路径），
+// 此处 mock 整个 @readinglist/api，用本地 stub 验证 gateway 契约（URL / 参数 / 返回形态）。
+const apiClientMock = {
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock('@readinglist/api', () => ({
+  blogGateway: {
+    getBlogs: (query?: unknown) => apiClientMock.get('v3/blogs', { params: query }),
+    getBlogPost: (postId: string) => apiClientMock.get(`v3/blogs/${postId}`),
+    getTags: async () => {
+      const res = await apiClientMock.get('v3/tags');
+      return res.data.tags;
+    },
+    getPostsByTag: async (tag: string) => {
+      const res = await apiClientMock.get(
+        `v3/tags/${encodeURIComponent(tag)}/posts`,
+      );
+      return res.data;
+    },
+    likePost: async (postId: string) => {
+      const res = await apiClientMock.post(`v3/blogs/${postId}/like`);
+      return res.data.likes;
+    },
+    getLegacyPost: (postId: string) =>
+      apiClientMock.get('v3/post', { params: { _id: postId } }),
+    createLegacyPost: (payload: unknown) =>
+      apiClientMock.post('v3/post/add', payload),
+    updateLegacyPost: (payload: unknown) =>
+      apiClientMock.put('v3/post/update', payload),
+    deleteLegacyPost: (postId: string) =>
+      apiClientMock.delete(`v3/post/${postId}/delete`),
   },
 }));
 
-import apiClient from '@/api/apiClient';
+import { blogGateway } from '@readinglist/api';
 
 describe('blogGateway (React — tags migration)', () => {
   beforeEach(() => {
@@ -22,8 +50,8 @@ describe('blogGateway (React — tags migration)', () => {
   });
 
   describe('getTags', () => {
-    it('calls /v3/tags and returns the response', async () => {
-      vi.mocked(apiClient.get).mockResolvedValue({
+    it('calls /v3/tags and returns unwrapped tags array', async () => {
+      vi.mocked(apiClientMock.get).mockResolvedValue({
         data: {
           tags: [
             { name: 'python', count: 2 },
@@ -32,22 +60,19 @@ describe('blogGateway (React — tags migration)', () => {
         },
       });
 
-      const gateway = blogGateway();
-      const resp = await gateway.getTags();
+      const tags = await blogGateway.getTags();
 
-      expect(apiClient.get).toHaveBeenCalledWith('v3/tags');
-      expect(resp.data).toEqual({
-        tags: [
-          { name: 'python', count: 2 },
-          { name: 'go', count: 1 },
-        ],
-      });
+      expect(apiClientMock.get).toHaveBeenCalledWith('v3/tags');
+      expect(tags).toEqual([
+        { name: 'python', count: 2 },
+        { name: 'go', count: 1 },
+      ]);
     });
   });
 
   describe('getPostsByTag', () => {
     it('URL-encodes the tag', async () => {
-      vi.mocked(apiClient.get).mockResolvedValue({
+      vi.mocked(apiClientMock.get).mockResolvedValue({
         data: {
           posts: [{ _id: '1', title: 'A', tags: ['C++'] }],
           tag: 'C++',
@@ -55,33 +80,31 @@ describe('blogGateway (React — tags migration)', () => {
         },
       });
 
-      const gateway = blogGateway();
-      const resp = await gateway.getPostsByTag('C++');
+      const result = await blogGateway.getPostsByTag('C++');
 
-      expect(apiClient.get).toHaveBeenCalledWith('v3/tags/C%2B%2B/posts');
-      expect(resp.data.tag).toBe('C++');
+      expect(apiClientMock.get).toHaveBeenCalledWith('v3/tags/C%2B%2B/posts');
+      expect(result.tag).toBe('C++');
     });
   });
 
   describe('createLegacyPost', () => {
     it('sends tags, not category_id', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({
+      vi.mocked(apiClientMock.post).mockResolvedValue({
         data: { _id: 'new' },
       });
 
-      const gateway = blogGateway();
-      await gateway.createLegacyPost({
+      await blogGateway.createLegacyPost({
         title: 'T',
         body: 'B',
         tags: ['x'],
         is_pinned: false,
       });
 
-      expect(apiClient.post).toHaveBeenCalledWith(
+      expect(apiClientMock.post).toHaveBeenCalledWith(
         'v3/post/add',
         expect.objectContaining({ tags: ['x'] }),
       );
-      expect(apiClient.post).not.toHaveBeenCalledWith(
+      expect(apiClientMock.post).not.toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ category_id: expect.anything() }),
       );
@@ -90,12 +113,11 @@ describe('blogGateway (React — tags migration)', () => {
 
   describe('updateLegacyPost', () => {
     it('sends tags, not category_id', async () => {
-      vi.mocked(apiClient.put).mockResolvedValue({
+      vi.mocked(apiClientMock.put).mockResolvedValue({
         data: { _id: 'existing' },
       });
 
-      const gateway = blogGateway();
-      await gateway.updateLegacyPost({
+      await blogGateway.updateLegacyPost({
         _id: 'existing',
         title: 'T',
         body: 'B',
@@ -103,11 +125,11 @@ describe('blogGateway (React — tags migration)', () => {
         is_pinned: false,
       });
 
-      expect(apiClient.put).toHaveBeenCalledWith(
+      expect(apiClientMock.put).toHaveBeenCalledWith(
         'v3/post/update',
         expect.objectContaining({ tags: ['y'] }),
       );
-      expect(apiClient.put).not.toHaveBeenCalledWith(
+      expect(apiClientMock.put).not.toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ category_id: expect.anything() }),
       );
