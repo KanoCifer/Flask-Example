@@ -1,19 +1,10 @@
 import { create } from 'zustand';
-
-interface Notification {
-  id: number;
-  message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  timeout?: number;
-}
+import { ToastQueue } from '@readinglist/utils';
+import type { ToastItem, ToastType } from '@readinglist/utils';
 
 interface NotificationState {
-  notifications: Notification[];
-  push: (
-    message: string,
-    type: 'success' | 'error' | 'info' | 'warning',
-    timeout?: number,
-  ) => number;
+  notifications: ToastItem[];
+  push: (message: string, type: ToastType, timeout?: number) => number;
   success: (message: string, timeout?: number) => number;
   error: (message: string, timeout?: number) => number;
   info: (message: string, timeout?: number) => number;
@@ -22,37 +13,22 @@ interface NotificationState {
   clear: () => void;
 }
 
-let idCounter = 0;
+const queue = new ToastQueue();
 
-export const useNotificationStore = create<NotificationState>((set, get) => ({
+export const useNotificationStore = create<NotificationState>(() => ({
   notifications: [],
 
-  // 改变通知array的方法
-  push: (
-    message: string,
-    type: 'success' | 'error' | 'info' | 'warning',
-    timeout: number = 3000,
-  ) => {
-    const id = idCounter++;
-
-    set((state) => ({
-      notifications: [...state.notifications, { id, message, type, timeout }],
-    }));
-    return id;
-  },
-
-  success: (message, timeout) =>
-    get().push(message, 'success', timeout ?? 3000),
-  error: (message, timeout) => get().push(message, 'error', timeout ?? 10000),
-  info: (message, timeout) => get().push(message, 'info', timeout ?? 3000),
-  warning: (message, timeout) =>
-    get().push(message, 'warning', timeout ?? 4000),
-
-  dismiss: (id) =>
-    set((state) => ({
-      notifications: state.notifications.filter(
-        (notification) => notification.id !== id,
-      ),
-    })),
-  clear: () => set(() => ({ notifications: [] })),
+  push: (message: string, type: ToastType = 'info', timeout = 3000) =>
+    queue.push(message, type, timeout),
+  success: (message, timeout) => queue.success(message, timeout),
+  error: (message, timeout) => queue.error(message, timeout),
+  info: (message, timeout) => queue.info(message, timeout),
+  warning: (message, timeout) => queue.warning(message, timeout),
+  dismiss: (id) => queue.dismiss(id),
+  clear: () => queue.clear(),
 }));
+
+// 桥接：queue 变化 → 更新 Zustand state（auto-dismiss 由 queue 核心驱动）
+queue.subscribe((items) => {
+  useNotificationStore.setState({ notifications: [...items] });
+});

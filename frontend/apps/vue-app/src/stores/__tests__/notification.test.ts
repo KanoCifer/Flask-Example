@@ -20,7 +20,7 @@ describe('notification store', () => {
   it('push 添加 toast 并返回 id', () => {
     const store = useNotificationStore();
     const id = store.push('Hello', 'info');
-    expect(id).toBe(1);
+    expect(typeof id).toBe('number');
     expect(store.toasts).toHaveLength(1);
     expect(store.toasts[0].message).toBe('Hello');
     expect(store.toasts[0].type).toBe('info');

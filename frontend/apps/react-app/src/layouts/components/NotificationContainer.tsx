@@ -4,7 +4,6 @@ import { useNotificationStore } from '@/stores/notificationState';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLottie } from 'lottie-react';
 import { X } from 'lucide-react';
-import { useEffect } from 'react';
 
 const AnimationLayer = ({ type }: { type: string }) => {
   const animationData =
@@ -23,17 +22,6 @@ export function Notifier() {
   const notificationStore = useNotificationStore();
 
   const notifications = notificationStore.notifications;
-
-  useEffect(() => {
-    notifications.forEach((n) => {
-      if (n.timeout) {
-        const timer = setTimeout(() => {
-          notificationStore.dismiss(n.id);
-        }, n.timeout);
-        return () => clearTimeout(timer); // 清理
-      }
-    });
-  }, [notifications, notificationStore]);
 
   const toast = notifications.map((n, i) => {
     const offset = i * 20; // 每条通知向下偏移20px，形成堆叠效果
