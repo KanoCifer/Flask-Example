@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { consumeSseStream, parseSseChunk } from '../useSseStream';
+import { consumeSseStream, parseSseChunk } from '@readinglist/api';
 
 /**
  * 构造一个按 chunks 顺序产出 Uint8Array 的 mock reader，

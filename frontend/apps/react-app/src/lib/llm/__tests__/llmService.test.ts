@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@/api/apiClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/api/apiClient')>();
+vi.mock('@readinglist/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@readinglist/api')>();
   return {
     default: {
       post: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock('@/api/apiClient', async (importOriginal) => {
   };
 });
 
-import apiClient from '@/api/apiClient';
+import apiClient from '@readinglist/api';
 import { llmService } from '../llmService';
 
 /**

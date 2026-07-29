@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { blogGateway } from '@/features/blog/api/blogGateway';
+import { blogGateway } from '@readinglist/api';
 
 // Mock the underlying apiClient module
-vi.mock('@/api/request', () => ({
+vi.mock('@readinglist/api', () => ({
   apiClient: {
     get: vi.fn(),
     post: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('@/api/request', () => ({
   },
 }));
 
-import { apiClient } from '@/api/request';
+import { apiClient } from '@readinglist/api';
 
 describe('blogGateway (tags migration)', () => {
   beforeEach(() => {

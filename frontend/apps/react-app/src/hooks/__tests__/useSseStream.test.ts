@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { consumeSseStream } from '../useSseStream';
+import { consumeSseStream } from '@readinglist/api';
 
 function makeReader(chunks: (string | Uint8Array)[]) {
   let idx = 0;

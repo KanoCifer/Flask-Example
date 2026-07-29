@@ -3,7 +3,7 @@ export { fishingGateway } from '@readinglist/api';
 export type { FishingGateway } from '@readinglist/api';
 export { fishingSpotsGateway } from '@readinglist/api';
 export type {
-  FishingSpotsGateway,
+  FishingSpotGateway,
   DeleteFishingSpotOptions,
 } from '@readinglist/api';
 

@@ -85,7 +85,7 @@ function readingCountLabel(n: number): string {
 }
 
 interface RecommendSectionProps {
-  books: import('@/features/books/api/wereadGateway').BookRecommendItem[];
+  books: import('@/features/books').BookRecommendItem[];
   loading: boolean;
   hasMore: boolean;
   error: string;
