@@ -1,23 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useSequencedTask } from '../useSequencedTask';
+import { createSequencedTask } from '../sequencedTask';
 
 /** 简易 sleep，让出微任务队列 */
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-describe('useSequencedTask', () => {
+describe('createSequencedTask', () => {
   beforeEach(() => {
     vi.useRealTimers();
   });
 
   it('begin() 每次返回递增序号', () => {
-    const seq = useSequencedTask();
+    const seq = createSequencedTask();
     const a = seq.begin();
     const b = seq.begin();
     expect(b).toBeGreaterThan(a);
   });
 
   it('isActive() 只对当前序号返回 true', () => {
-    const seq = useSequencedTask();
+    const seq = createSequencedTask();
     const first = seq.begin();
     seq.begin();
     expect(seq.isActive(first)).toBe(false);
@@ -25,14 +25,14 @@ describe('useSequencedTask', () => {
   });
 
   it('run() 正常返回结果', async () => {
-    const seq = useSequencedTask();
+    const seq = createSequencedTask();
     const r = await seq.run(async () => 42);
     expect(r.outdated).toBe(false);
     expect(r.result).toBe(42);
   });
 
   it('run() 旧的调用标记为 outdated', async () => {
-    const seq = useSequencedTask();
+    const seq = createSequencedTask();
 
     const slow = seq.run(() => delay(30).then(() => 'slow'));
     const fast = seq.run(() => delay(10).then(() => 'fast'));
@@ -45,7 +45,7 @@ describe('useSequencedTask', () => {
   });
 
   it('run() 多个并发调用：最后发起的（index 最大）胜出', async () => {
-    const seq = useSequencedTask();
+    const seq = createSequencedTask();
     // 先发 slow 后发 fast —— 但「最新调用胜出」只看 begin 顺序
     const delays = [50, 20, 40];
 
@@ -61,7 +61,7 @@ describe('useSequencedTask', () => {
   });
 
   it('run() fn 抛错时如果已过期返回 outdated，否则抛出', async () => {
-    const seq = useSequencedTask();
+    const seq = createSequencedTask();
 
     // 先启动一个慢任务
     const slow = seq.run(() =>
@@ -79,7 +79,7 @@ describe('useSequencedTask', () => {
   });
 
   it('run() fn 抛错且仍活跃时抛出错误', async () => {
-    const seq = useSequencedTask();
+    const seq = createSequencedTask();
     await expect(
       seq.run(async () => {
         throw new Error('fail');
