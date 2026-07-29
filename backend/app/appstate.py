@@ -81,21 +81,34 @@ def new_app_state(redis: AsyncRedis) -> AppState:
     passkey_svc = PasskeyService(user_service=user_svc)
     github_svc = GitHubAuthService(user_service=user_svc)
     from app.services.fishing.fishing_expert import FishingExpertScorer
+    from app.services.fishing.fishing_model_service import FishingModelService
 
     ai_agent = AiAgent(expert_weights=FishingExpertScorer.WEIGHTS)
     ai_svc = AiService(agent=ai_agent)
     public_svc = PublicService(repo=public_repo)
     status_svc = StatusService(repo=public_repo)
     gallery_svc = GalleryService(gallery_repo=gallery_repo)
-    weather_analysis_svc = WeatherAnalysisService(ai_agent=ai_agent)
     rss_svc = RssService(repo=rss_repo, redis=redis)
     sub_svc = SubService(repo=sub_repo)
     notification_svc = NotificationService(
         plugin=NotificationPlugin(), repo=notification_repo
     )
     device_svc = DeviceService(repo=device_repo)
-    fishing_svc = FishingService(repo=fishing_repo)
     friendlink_svc = FriendLinkService(repo=friendlink_repo)
+
+    # 钓鱼模块：expert + model_svc 在此构造一次，注入到 FishingService
+    # 和 WeatherAnalysisService，消除模块级单例（架构评审 issue#4）。
+    fishing_expert = FishingExpertScorer()
+    fishing_model_svc = FishingModelService()
+    fishing_svc = FishingService(
+        repo=fishing_repo,
+        expert=fishing_expert,
+        model_svc=fishing_model_svc,
+    )
+    weather_analysis_svc = WeatherAnalysisService(
+        ai_agent=ai_agent,
+        fishing_svc=fishing_svc,
+    )
 
     return AppState(
         user_svc=user_svc,

@@ -3,13 +3,25 @@ from __future__ import annotations
 from app.core.agent import AiAgent
 from app.core.logger import logger
 from app.schemas.aiagent import WeatherAnalysisInput
+from app.services.fishing.fishing_service import FishingService
 
 
 class WeatherAnalysisService:
-    """AI 流式天气分析。"""
+    """AI 流式天气分析。
 
-    def __init__(self, ai_agent: AiAgent) -> None:
+    依赖：
+    - ``ai_agent``: Agno AI agent（含 LLM + Redis session store）。
+    - ``fishing_svc``: 可选；天气分析完成后用于保存反馈记录 + 触发模型训练。
+      由组合根 :func:`new_app_state` 注入，避免回调内联构造绕过 DI。
+    """
+
+    def __init__(
+        self,
+        ai_agent: AiAgent,
+        fishing_svc: FishingService | None = None,
+    ) -> None:
         self._ai_agent: AiAgent = ai_agent
+        self._fishing_svc = fishing_svc
 
     async def analyze_weather(
         self, weather_data: WeatherAnalysisInput, model_id: str | None = None
@@ -18,14 +30,16 @@ class WeatherAnalysisService:
         from app.services.fishing.fishing_index import parse_tide_info
 
         async def _on_index_calculated(data: dict, ai_score: int) -> None:
-            """训练回调：AI 分析完成后保存反馈并触发自动训练"""
-            # FishingService uses Mongo-backed repo (no session needed);
-            # use a lightweight module-level-style instance for this callback.
-            from app.repositories import FishingRepo
-            from app.services.fishing.fishing_service import FishingService
+            """训练回调：AI 分析完成后保存反馈并触发自动训练。
 
-            svc = FishingService(repo=FishingRepo())
-            await svc.save_ai_analysis_feedback(
+            使用注入的 fishing_svc（来自 app_state），不再内联构造。
+            """
+            if self._fishing_svc is None:
+                logger.warning(
+                    "[天气分析] fishing_svc 未注入，跳过反馈保存"
+                )
+                return
+            await self._fishing_svc.save_ai_analysis_feedback(
                 data, ai_score, parse_tide_info
             )
 

@@ -9,33 +9,30 @@ from collections.abc import Callable
 
 from app.core.logger import logger
 from app.repositories.fishing_repo import FishingRepo
-from app.services.fishing.fishing_expert import (
-    FishingExpertScorer,
-    fishing_expert,
-)
+from app.services.fishing.fishing_expert import FishingExpertScorer
 from app.services.fishing.fishing_index import (
     FishingRecord,
     TideInfo,
     record_to_dict,
 )
-from app.services.fishing.fishing_model_service import (
-    FishingModelService,
-    fishing_model_service,
-)
+from app.services.fishing.fishing_model_service import FishingModelService
 
 
 class FishingService:
-    """钓鱼服务编排器——仅负责 repo I/O 和模型训练调度"""
+    """钓鱼服务编排器——仅负责 repo I/O 和模型训练调度。
+
+    所有依赖通过构造函数注入；组合根 :func:`new_app_state` 负责组装。
+    """
 
     def __init__(
         self,
         repo: FishingRepo,
-        expert: FishingExpertScorer = fishing_expert,
-        model_svc: FishingModelService = fishing_model_service,
+        expert: FishingExpertScorer | None = None,
+        model_svc: FishingModelService | None = None,
     ) -> None:
         self.repo = repo
-        self.expert = expert
-        self.model_svc = model_svc
+        self.expert = expert or FishingExpertScorer()
+        self.model_svc = model_svc or FishingModelService()
 
     def calculate_fishing_index(
         self, record: FishingRecord

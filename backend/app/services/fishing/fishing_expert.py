@@ -230,7 +230,3 @@ class FishingExpertScorer:
             "w8_tide_range": self.score_tide_range(tide_range),
             "w9_indices": self.score_indices(indices),
         }
-
-
-# 全局实例
-fishing_expert = FishingExpertScorer()

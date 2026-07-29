@@ -191,7 +191,3 @@ class FishingModelService:
         return dict(
             zip(self.FEATURE_NAMES, self.model.coef_.tolist(), strict=False)
         )
-
-
-# 全局实例
-fishing_model_service = FishingModelService()
