@@ -28,6 +28,7 @@ func Setup(r *gin.Engine, state *app.AppState, redis *redis.Client) {
 	// 限流
 	loginLimiter := middleware.NewRateLimiter(redis, "login", 5, 60*time.Second)
 	registerLimiter := middleware.NewRateLimiter(redis, "register", 5, 60*time.Second)
+	likeLimiter := middleware.NewRateLimiter(redis, "like", 25, 24*time.Hour)
 
 	userH := handler.NewUserHandler(state.UserSvc(), state.Cfg())
 	userH.RegisterRoutes(v3, middleware.AuthMiddleware(), loginLimiter.Middleware(), registerLimiter.Middleware())
@@ -58,6 +59,12 @@ func Setup(r *gin.Engine, state *app.AppState, redis *redis.Client) {
 
 	systemH := handler.NewSystemHandler(state.SystemSvc())
 	systemH.RegisterRoutes(v3)
+
+	socialH := handler.NewSocialHandler(redis)
+	socialH.RegisterRoutes(v3, likeLimiter.Middleware())
+
+	amapH := handler.NewAmapHandler(state.Cfg())
+	amapH.RegisterRoutes(v3)
 
 	wsH := handler.NewWSHandler(state.WSSvc())
 	wsH.RegisterRoutes(v3)

@@ -93,7 +93,7 @@ export const fishingGateway: FishingGateway = {
 
   async getSecurityKey(): Promise<{ securityJsCode: string }> {
     const res = await apiClient.get<{ data: { securityJsCode: string } }>(
-      'v2/publicv2/amap/security-key',
+      'v3/amap/security-key',
     );
     return res.data.data;
   },

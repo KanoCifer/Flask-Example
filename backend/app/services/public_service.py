@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import base64
 import time
 
 import httpx2
-from redis.asyncio import Redis as AsyncRedis
 
 from app.core.config import get_settings
 from app.repositories.public_repo import PublicRepo
@@ -52,22 +50,6 @@ Sitemap: {sitemap_url}
             lines.append("  </url>")
         lines.append("</urlset>")
         return "\n".join(lines)
-
-    @staticmethod
-    async def add_like(redis: AsyncRedis, likescounts: int) -> int:
-        like_key = "site:total_likes"
-        return await redis.incrby(like_key, likescounts)
-
-    @staticmethod
-    async def get_likes(redis: AsyncRedis) -> int:
-        likes = await redis.get("site:total_likes")
-        return int(likes) if likes is not None else 0
-
-    @staticmethod
-    def get_amap_security_key() -> str:
-        settings = get_settings()
-        security_code = settings.AMAP_SECURITY_CODE
-        return base64.b64encode(security_code.encode()).decode()
 
     @staticmethod
     async def reverse_geocode(location: str, extensions: str) -> dict:

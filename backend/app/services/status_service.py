@@ -23,10 +23,6 @@ class StatusService:
     def __init__(self, repo: PublicRepo) -> None:
         self.repo: PublicRepo = repo
 
-    @staticmethod
-    def get_api_status() -> dict[str, str]:
-        return {"status": "ok"}
-
     async def get_status_detail(self, session: AsyncSession) -> dict:
         """Collect version, service, and system health metrics."""
 
