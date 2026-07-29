@@ -4,7 +4,7 @@ import {
   type UserInfo,
 } from '@/features/auth';
 import { tokenService } from '@readinglist/utils';
-import { refreshAccessToken } from '@/api/refresh';
+import { refreshAccessToken } from '@readinglist/api';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { create } from 'zustand';
 

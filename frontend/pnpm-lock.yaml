@@ -415,6 +415,22 @@ importers:
         specifier: ^3.3.8
         version: 3.3.8(typescript@6.0.3)
 
+  packages/api:
+    dependencies:
+      '@readinglist/utils':
+        specifier: workspace:*
+        version: link:../utils
+      axios:
+        specifier: ^1.7.0
+        version: 1.18.1(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
+    devDependencies:
+      typescript:
+        specifier: ^7.0.0
+        version: 7.0.2
+      vite:
+        specifier: ^8.0.0
+        version: 8.1.5(@types/node@26.1.2)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.102.0)(terser@5.49.0)(yaml@2.9.0)
+
   packages/brand: {}
 
   packages/config:
@@ -6229,7 +6245,7 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 26.1.1
+      '@types/node': 26.1.2
       '@types/yargs': 16.0.11
       chalk: 4.0.0
 

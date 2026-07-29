@@ -12,6 +12,7 @@
       "@/*": ["./src/*"],
       "@readinglist/types": ["../../packages/types/src/index.ts"],
       "@readinglist/utils": ["../../packages/utils/src/index.ts"],
+      "@readinglist/api": ["../../packages/api/src/index.ts"],
       "@readinglist/config/*": ["../../packages/config/src/*"],
     },
   },
