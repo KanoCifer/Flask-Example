@@ -24,6 +24,37 @@ export type { SequencedResult } from './sequencedTask';
 export { SHIMMER_TIPS } from './shimmerTips';
 export { ToastQueue } from './toastQueue';
 export type { ToastType, ToastItem, ToastListener } from './toastQueue';
+// ── 领域纯函数（框架无关，按域聚合）──────────────────────────────────────────
+export {
+  cycleOptions,
+  statusOptions,
+  channelOptions,
+  reminderPointOptions,
+  currencySuggestions,
+  getDefaultNextBillingDate,
+  toDateInputValue,
+  getMonthlyEstimate,
+  getDaysUntil,
+  getCycleLabel,
+  formatPrice,
+  upsertSubscription,
+  toStringArray,
+} from './domain/subscription';
+export {
+  exampleFeeds,
+  truncateSummary,
+  getFeedHost,
+  getFeedProtocol,
+  getSubscriptionTitle,
+} from './domain/rss';
+export type { ExampleFeed } from './domain/rss';
+export { weatherIcon, formatDistance, formatDuration } from './domain/fishing';
+// ── 订阅领域 DTO（真源 @readinglist/types，供表单映射函数引用）────────────────
+export type {
+  Subscription,
+  CreateSubscriptionPayload,
+  UpdateSubscriptionPayload,
+} from '@readinglist/types';
 export {
   applyThemeToDocument,
   applyFontToDocument,

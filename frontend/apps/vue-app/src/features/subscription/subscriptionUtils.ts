@@ -2,84 +2,30 @@ import type {
   CreateSubscriptionPayload,
   Subscription,
   UpdateSubscriptionPayload,
-} from '@/features/rss/api';
-import type {
-  ReminderFormState,
-  SubscriptionFormState,
-  SubscriptionStatusMeta,
-} from './types';
+} from '@readinglist/utils';
+import type { ReminderFormState, SubscriptionFormState } from './types';
+import {
+  toStringArray,
+  getDefaultNextBillingDate,
+  toDateInputValue,
+} from '@readinglist/utils';
 
-/**
- * 默认周期选项
- */
-export const cycleOptions = [
-  { value: 'monthly', label: '月付' },
-  { value: 'quarterly', label: '季付' },
-  { value: 'yearly', label: '年付' },
-  { value: 'weekly', label: '周付' },
-  { value: 'daily', label: '日付' },
-];
-
-/**
- * 默认状态选项
- */
-export const statusOptions = [
-  { value: 'active', label: '进行中' },
-  { value: 'paused', label: '已暂停' },
-  { value: 'canceled', label: '已取消' },
-  { value: 'expired', label: '已过期' },
-];
-
-/**
- * 默认通知渠道选项
- */
-export const channelOptions = [
-  { value: 'email', label: '邮件' },
-  { value: 'feishu', label: '飞书' },
-  { value: 'bark', label: 'Bark' },
-];
-
-/**
- * 默认提醒时间点选项
- */
-export const reminderPointOptions = [
-  { key: 'days_30', label: '提前 30 天' },
-  { key: 'days_7', label: '提前 7 天' },
-  { key: 'days_3', label: '提前 3 天' },
-  { key: 'days_1', label: '提前 1 天' },
-  { key: 'day_of', label: '当天提醒' },
-] as const;
-
-/**
- * 默认币种建议
- */
-export const currencySuggestions = ['USD', 'CNY', 'EUR', 'JPY', 'HKD', 'GBP'];
-
-/**
- * 获取默认下次扣费日期（30天后）
- */
-export function getDefaultNextBillingDate(): string {
-  const nextMonth = new Date();
-  nextMonth.setDate(nextMonth.getDate() + 30);
-  const year = nextMonth.getFullYear();
-  const month = String(nextMonth.getMonth() + 1).padStart(2, '0');
-  const day = String(nextMonth.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-/**
- * 将任意日期字符串规范为 yyyy-mm-dd
- */
-export function toDateInputValue(value: string): string {
-  const match = /^\d{4}-\d{2}-\d{2}/.exec(value);
-  if (match) return match[0];
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, '0');
-  const day = String(parsed.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+// ── 领域纯函数已迁移到 @readinglist/utils/domain/subscription.ts ─────────────
+// 重新导出以保持现有 import 路径兼容。
+export {
+  cycleOptions,
+  statusOptions,
+  channelOptions,
+  reminderPointOptions,
+  currencySuggestions,
+  getDefaultNextBillingDate,
+  toDateInputValue,
+  getMonthlyEstimate,
+  getDaysUntil,
+  getCycleLabel,
+  formatPrice,
+  upsertSubscription,
+} from '@readinglist/utils';
 
 /**
  * 创建订阅表单默认值
@@ -115,14 +61,6 @@ export function createDefaultReminderForm(): ReminderFormState {
 }
 
 /**
- * 类型安全地将 unknown 转为 string[]
- */
-export function toStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === 'string');
-}
-
-/**
  * 把 reminder_config 映射为表单状态
  */
 export function createReminderFormState(
@@ -152,47 +90,13 @@ export function createReminderFormState(
 }
 
 /**
- * 计算订阅月度成本估算
- */
-export function getMonthlyEstimate(subscription: Subscription): number {
-  const price = Number(subscription.price) || 0;
-  switch (subscription.billing_cycle) {
-    case 'yearly':
-      return price / 12;
-    case 'quarterly':
-      return price / 3;
-    case 'weekly':
-      return (price * 52) / 12;
-    case 'daily':
-      return price * 30;
-    default:
-      return price;
-  }
-}
-
-/**
- * 计算距离目标日期还剩天数
- */
-export function getDaysUntil(dateValue: string): number {
-  const target = new Date(dateValue);
-  if (Number.isNaN(target.getTime())) return 0;
-  const now = new Date();
-  const diff = target.getTime() - now.getTime();
-  return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
-}
-
-/**
- * 获取周期文案
- */
-export function getCycleLabel(cycle: string): string {
-  const matched = cycleOptions.find((option) => option.value === cycle);
-  return matched?.label ?? cycle;
-}
-
-/**
  * 获取状态样式元数据
  */
-export function getStatusMeta(status: string): SubscriptionStatusMeta {
+export function getStatusMeta(status: string): {
+  label: string;
+  dotClass: string;
+  badgeClass: string;
+} {
   switch (status) {
     case 'paused':
       return {
@@ -223,23 +127,6 @@ export function getStatusMeta(status: string): SubscriptionStatusMeta {
           'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
       };
   }
-}
-
-/**
- * 价格格式化
- */
-export function formatPrice(price: number, currency: string): string {
-  const upperCurrency = currency.toUpperCase();
-  if (upperCurrency === 'CNY' || upperCurrency === 'RMB') {
-    return `¥${price.toFixed(2)}`;
-  }
-  if (upperCurrency === 'USD') {
-    return `$${price.toFixed(2)}`;
-  }
-  if (upperCurrency === 'EUR') {
-    return `€${price.toFixed(2)}`;
-  }
-  return `${currency} ${price.toFixed(2)}`;
 }
 
 /**
@@ -421,14 +308,4 @@ export function mapSubscriptionToForm(
     status: subscription.status,
     notes: subscription.notes ?? '',
   };
-}
-
-/**
- * 更新数组中的订阅项
- */
-export function upsertSubscription(
-  items: Subscription[],
-  updated: Subscription,
-): Subscription[] {
-  return items.map((item) => (item.id === updated.id ? updated : item));
 }
