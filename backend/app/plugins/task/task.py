@@ -87,9 +87,7 @@ async def _on_worker_startup(state: TaskiqState) -> None:
     state.mongo = mongo_db
 
     # 构造 AppState 单例并挂载到 app.state.services，对齐 web 进程
-    # initialize_resources()（main.py:62）。scheduled task 通过
-    # container.get_rss_service() 访问 service，后者读取 app.state.services，
-    # 若此处未挂载则报 AttributeError。
+    # initialize_resources()（main.py:62）。
     from app.appstate import new_app_state
     from app.main import app
 

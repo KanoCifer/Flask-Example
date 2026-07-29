@@ -22,11 +22,14 @@ dotenv_path: Path = Path(__file__).resolve().parent.parent / ".env"
 if dotenv_path.exists():
     load_dotenv(dotenv_path)
 
-database_url: str | None = os.getenv("DATABASE_URL")
-if not database_url:
-    raise RuntimeError("DATABASE_URL environment variable is not set.")
-"""将数据库 URL 配置到 Alembic 中"""
-config.set_main_option("sqlalchemy.url", database_url)
+# 仅在未通过命令行/set_main_option 显式配置 URL 时，才从 .env 读取。
+# 这样 pytest conftest 传入的测试库 URL 不会被 .env 的 DATABASE_URL 覆盖。
+if not config.get_main_option("sqlalchemy.url"):
+    database_url: str | None = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL environment variable is not set.")
+    """将数据库 URL 配置到 Alembic 中"""
+    config.set_main_option("sqlalchemy.url", database_url)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -96,8 +99,19 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+    import concurrent.futures
 
-    asyncio.run(run_async_migrations())
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop — safe to use asyncio.run().
+        asyncio.run(run_async_migrations())
+    else:
+        # Already inside a running loop (e.g. pytest-asyncio) — run in a
+        # dedicated thread with its own event loop to avoid
+        # "asyncio.run() cannot be called from a running event loop".
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            pool.submit(asyncio.run, run_async_migrations()).result()
 
 
 if context.is_offline_mode():

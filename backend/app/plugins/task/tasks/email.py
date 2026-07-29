@@ -73,13 +73,12 @@ async def save_to_mongo(
     :param user_id: 当前用户 ID
     """
     try:
-        from app.core.container import get_rss_service
+        from app.main import app
 
-        async with get_rss_service(redis=context.state.redis) as rss_service:
-            saved_count = await rss_service.save_entries_to_mongo(
-                feed_url=feed_url,
-                entries=entries,
-            )
+        saved_count = await app.state.services.rss_svc.save_entries_to_mongo(
+            feed_url=feed_url,
+            entries=entries,
+        )
         logger.info(
             f"Background task: RSS {feed_url} saved {saved_count} new articles for user {user_id}"
         )

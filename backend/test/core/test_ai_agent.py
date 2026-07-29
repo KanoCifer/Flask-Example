@@ -330,7 +330,7 @@ class TestAnalyzeWeather:
         async for _ in agent.analyze_weather_stream(weather_data=weather_input):
             pass
         mock_factory["create_llm_model"].assert_called_once_with(
-            model_id="Ling-2.6-1T", temperature=1, timeout=30
+            model_id="Ling-3.0-flash"
         )
 
     @pytest.mark.asyncio
@@ -342,7 +342,7 @@ class TestAnalyzeWeather:
         ):
             pass
         mock_factory["create_llm_model"].assert_called_once_with(
-            model_id="Ling-3.0-flash", temperature=1, timeout=30
+            model_id="Ling-3.0-flash"
         )
 
 

@@ -54,16 +54,14 @@ async def db_engine():
 
 @pytest_asyncio.fixture(scope="session")
 async def tables(db_engine):
-    """Apply Alembic migrations to bring the test DB to HEAD."""
-    from alembic import command
-    from alembic.config import Config
+    """Create all tables from ORM models (test DB is ephemeral).
 
-    alembic_cfg = Config("alembic.ini")
-    alembic_cfg.set_main_option(
-        "sqlalchemy.url",
-        "postgresql+psycopg://liudetao:root@localhost/postgres_test",
-    )
-    command.upgrade(alembic_cfg, "head")
+    使用 ``Base.metadata.create_all`` 而非 Alembic migration，因为
+    init migration 是空操作（pass），migration 链假设表已由外部创建。
+    测试库每次都是全新的，直接建表更可靠。
+    """
+    async with db_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
     async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
