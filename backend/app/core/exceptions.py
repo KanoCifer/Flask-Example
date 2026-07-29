@@ -64,13 +64,6 @@ class ValidationError(APIError):
         super().__init__(message=message, code=422, errors=errors, **kwargs)
 
 
-class TodoLockError(APIError):
-    def __init__(
-        self, message: str = "Server busy, please retry.", **kwargs: Any
-    ) -> None:
-        super().__init__(message=message, code=423, **kwargs)
-
-
 class GitHubAuthError(Exception):
     """GitHub OAuth flow error — carries an error_code for the frontend redirect."""
 
@@ -84,23 +77,11 @@ class GitHubAuthError(Exception):
 # ============================================================================
 
 
-class MessageDomainError(APIError):
-    pass
-
-
 class WeatherDomainError(APIError):
     pass
 
 
-class AdminDomainError(APIError):
-    pass
-
-
 class RssDomainError(APIError):
-    pass
-
-
-class BlogDomainError(APIError):
     pass
 
 

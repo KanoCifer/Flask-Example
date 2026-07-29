@@ -5,14 +5,10 @@ from __future__ import annotations
 import pytest
 
 from app.core.exceptions import (
-    AdminDomainError,
     APIError,
-    BlogDomainError,
     ForbiddenError,
-    MessageDomainError,
     NotFoundError,
     RssDomainError,
-    TodoLockError,
     UnauthorizedError,
     ValidationError,
     WeatherDomainError,
@@ -40,7 +36,6 @@ def test_apierror_custom_code_and_errors():
         (ForbiddenError, 403),
         (NotFoundError, 404),
         (ValidationError, 422),
-        (TodoLockError, 423),
     ],
 )
 def test_http_semantic_errors_default_code(cls, expected_code):
@@ -52,9 +47,6 @@ def test_http_semantic_errors_default_code(cls, expected_code):
 @pytest.mark.parametrize(
     "cls",
     [
-        AdminDomainError,
-        BlogDomainError,
-        MessageDomainError,
         RssDomainError,
         WeatherDomainError,
     ],

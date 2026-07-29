@@ -18,7 +18,6 @@ from app.repositories import (
     FishingRepo,
     FriendLinkRepo,
     GalleryRepo,
-    LogRepo,
     NotificationRepo,
     PublicRepo,
     RssRepo,
@@ -70,7 +69,6 @@ def new_app_state(redis: AsyncRedis) -> AppState:
     device_repo = DeviceRepo()
     fishing_repo = FishingRepo()
     friendlink_repo = FriendLinkRepo()
-    log_repo = LogRepo()  # noqa: F841 — reserved for future use
 
     # -- services -------------------------------------------------------- #
     user_svc = UserService(repo=user_repo)
