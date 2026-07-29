@@ -35,7 +35,7 @@ export interface fishingMapGateway {
 export const fishingMapGateway = (): fishingMapGateway => {
   return {
     async getSecurityKey() {
-      return apiClient.get('v1/amap/security-key') as Promise<
+      return apiClient.get('v2/publicv2/amap/security-key') as Promise<
         AxiosResponse<ApiEnvelope<SecurityKeyResponse>>
       >;
     },

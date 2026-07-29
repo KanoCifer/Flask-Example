@@ -58,11 +58,3 @@ def register_middleware(app: FastAPI) -> None:
         response.headers["X-Process-Time"] = f"{process_time}s"
         response.headers["X-Trace-Id"] = trace_id
         return response
-
-    @app.middleware("http")
-    async def add_media_cache(request: Request, call_next):
-        cc = "public, max-age=604800"
-        response = await call_next(request)
-        if request.url.path.startswith("/v1/media"):
-            response.headers["Cache-Control"] = cc
-        return response

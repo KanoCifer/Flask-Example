@@ -7,7 +7,7 @@ export interface MapGateway {
 export const mapGateway: MapGateway = {
   async getSecurityKey(): Promise<{ securityJsCode: string }> {
     const res = await apiClient.get<{ data: { securityJsCode: string } }>(
-      'v1/amap/security-key',
+      'v2/publicv2/amap/security-key',
     );
     return res.data.data;
   },

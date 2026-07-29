@@ -117,8 +117,8 @@ def setup_csrf(app: FastAPI) -> None:
             return await call_next(request)
 
         skip_paths = [
-            "/v1/public/like",
-            "/v1/public/set-pic-gallery",
+            "/v2/publicv2/like",
+            "/v2/publicv2/set-pic-gallery",
             "/v2/fishing/feedback",
         ]
 

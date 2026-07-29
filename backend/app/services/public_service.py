@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import time
 
 import httpx2
 from redis.asyncio import Redis as AsyncRedis
@@ -124,7 +125,6 @@ class PublicService:
     def get_robots_txt() -> str:
         sitemap_url = f"{_FRONTEND_URL}/sitemap.xml"
         return f"""User-agent: *
-Disallow: /v1/
 Disallow: /v2/
 Disallow: /v3/
 Disallow: /admin/
@@ -132,6 +132,31 @@ Allow: /
 
 Sitemap: {sitemap_url}
 """
+
+    @staticmethod
+    def build_sitemap_xml() -> str:
+        """生成基础 sitemap.xml，列出站点主要公开路径。"""
+        base = _FRONTEND_URL
+        today = time.strftime("%Y-%m-%d")
+        urls = [
+            ("/", "1.0", "daily"),
+            ("/changelogs", "0.5", "weekly"),
+            ("/friends", "0.5", "monthly"),
+            ("/about", "0.5", "monthly"),
+        ]
+        lines = ['<?xml version="1.0" encoding="UTF-8"?>']
+        lines.append(
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        )
+        for path, priority, changefreq in urls:
+            lines.append("  <url>")
+            lines.append(f"    <loc>{base}{path}</loc>")
+            lines.append(f"    <lastmod>{today}</lastmod>")
+            lines.append(f"    <changefreq>{changefreq}</changefreq>")
+            lines.append(f"    <priority>{priority}</priority>")
+            lines.append("  </url>")
+        lines.append("</urlset>")
+        return "\n".join(lines)
 
     @staticmethod
     async def add_like(redis: AsyncRedis, likescounts: int) -> int:

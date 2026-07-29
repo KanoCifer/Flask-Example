@@ -41,7 +41,7 @@ export interface GalleryService {
 
 export const galleryService = (): GalleryService => ({
   async getGallery() {
-    const res = await apiClient.get('v1/pic-gallery');
+    const res = await apiClient.get('v2/publicv2/pic-gallery');
     const data = extractData(res) as { images?: Picture[] } | undefined;
     return {
       images: data?.images ?? [],
@@ -60,6 +60,6 @@ export const galleryService = (): GalleryService => ({
   },
 
   async saveGallery(payload) {
-    await apiClient.post('v1/set-pic-gallery', payload);
+    await apiClient.post('v2/publicv2/set-pic-gallery', payload);
   },
 });

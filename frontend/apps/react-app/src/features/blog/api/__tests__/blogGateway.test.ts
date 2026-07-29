@@ -22,7 +22,7 @@ describe('blogGateway (React — tags migration)', () => {
   });
 
   describe('getTags', () => {
-    it('calls /v1/tags and returns the response', async () => {
+    it('calls /v3/tags and returns the response', async () => {
       vi.mocked(apiClient.get).mockResolvedValue({
         data: {
           tags: [

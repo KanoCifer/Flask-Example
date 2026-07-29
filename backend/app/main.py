@@ -27,7 +27,7 @@ from app.models.subscription import SubscriptionLog
 from app.plugins.cache import close_cache_redis
 from app.plugins.notification import Message, NotificationContext, notify
 from app.plugins.task import broker
-from app.router import register_router, setup_media
+from app.router import register_router
 from app.services.event_service import record_event
 
 
@@ -136,4 +136,3 @@ app.state.limiter = limiter
 register_middleware(app=app)
 register_exception_handlers(app=app)
 register_router(app=app)
-setup_media(app=app)

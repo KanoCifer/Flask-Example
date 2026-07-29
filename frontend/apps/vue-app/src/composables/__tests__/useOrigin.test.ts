@@ -17,8 +17,8 @@ describe('rewriteMediaUrl', () => {
   });
 
   it('相对路径拼上 API_ORIGIN', () => {
-    const result = rewriteMediaUrl('/v1/media/abc.png');
-    expect(result).toBe(`${API_ORIGIN}/v1/media/abc.png`);
+    const result = rewriteMediaUrl('/v3/media/abc.png');
+    expect(result).toBe(`${API_ORIGIN}/v3/media/abc.png`);
   });
 
   it('无前导 / 的相对路径也能正确拼接', () => {
@@ -27,7 +27,7 @@ describe('rewriteMediaUrl', () => {
   });
 
   it('已是当前 API 域的 URL 原样返回', () => {
-    const url = `${API_ORIGIN}/v1/media/abc.png`;
+    const url = `${API_ORIGIN}/v3/media/abc.png`;
     expect(rewriteMediaUrl(url)).toBe(url);
   });
 

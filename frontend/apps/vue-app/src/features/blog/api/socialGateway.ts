@@ -8,12 +8,12 @@ export interface SocialGateway {
 export const socialGateway: SocialGateway = {
   async getLikes(): Promise<{ likes_count: number }> {
     const res = await apiClient.get<{ data: { likes_count: number } }>(
-      'v1/likes',
+      'v2/publicv2/likes',
     );
     return res.data.data;
   },
 
   async likeOnce(payload: { likes_count: number }): Promise<void> {
-    await apiClient.post('v1/like', payload);
+    await apiClient.post('v2/publicv2/like', payload);
   },
 };

@@ -5,5 +5,7 @@ from app.api.v2 import (
     fishing,
     friendlinks,
     llm,
+    public,
+    rss,
     subscriptions,
 )

@@ -10,12 +10,12 @@ export interface GalleryGateway {
 export const galleryGateway: GalleryGateway = {
   async getGallery(): Promise<GalleryResponse> {
     const res = await apiClient.get<{ data: GalleryResponse }>(
-      'v1/pic-gallery',
+      'v2/publicv2/pic-gallery',
     );
     return res.data.data;
   },
 
   async saveGallery(payload: { images: GalleryImage[] }): Promise<void> {
-    await apiClient.post('v1/set-pic-gallery', payload);
+    await apiClient.post('v2/publicv2/set-pic-gallery', payload);
   },
 };

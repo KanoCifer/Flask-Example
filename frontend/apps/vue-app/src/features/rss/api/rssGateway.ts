@@ -28,7 +28,7 @@ export interface RssGateway {
 export const rssGateway: RssGateway = {
   async parseRss(payload: ParseRssPayload): Promise<ParseRssResponse> {
     const res = await apiClient.post<{ data: ParseRssResponse }>(
-      'v1/rss/parse-rss',
+      'v2/rss/parse-rss',
       payload,
     );
     return res.data.data;
@@ -41,7 +41,7 @@ export const rssGateway: RssGateway = {
     search?: string;
   }): Promise<RssArticleListResponse> {
     const res = await apiClient.get<{ data: RssArticleListResponse }>(
-      'v1/rss/articles',
+      'v2/rss/articles',
       { params },
     );
     return res.data.data;
@@ -49,14 +49,14 @@ export const rssGateway: RssGateway = {
 
   async getArticle(articleId: string): Promise<RssArticle> {
     const res = await apiClient.get<{ data: RssArticle }>(
-      `v1/rss/articles/${articleId}`,
+      `v2/rss/articles/${articleId}`,
     );
     return res.data.data;
   },
 
   async getSubscriptions(): Promise<SubscriptionItem[]> {
     const res = await apiClient.get<{ data: RssSubscription[] }>(
-      'v1/rss/subscriptions',
+      'v2/rss/subscriptions',
     );
     return res.data.data.map((sub) => ({
       id: sub.id,
@@ -73,20 +73,20 @@ export const rssGateway: RssGateway = {
 
   async refreshSubscription(subscriptionId: number): Promise<RefreshResult> {
     const res = await apiClient.post<{ data: RefreshResult }>(
-      `v1/rss/subscriptions/${subscriptionId}/refresh`,
+      `v2/rss/subscriptions/${subscriptionId}/refresh`,
     );
     return res.data.data;
   },
 
   async deleteSubscription(subscriptionId: number): Promise<void> {
-    await apiClient.delete(`v1/rss/subscriptions/${subscriptionId}`);
+    await apiClient.delete(`v2/rss/subscriptions/${subscriptionId}`);
   },
 
   async markArticleRead(articleId: string): Promise<void> {
-    await apiClient.post(`v1/rss/articles/${articleId}/read`);
+    await apiClient.post(`v2/rss/articles/${articleId}/read`);
   },
 
   async markArticleUnread(articleId: string): Promise<void> {
-    await apiClient.delete(`v1/rss/articles/${articleId}/read`);
+    await apiClient.delete(`v2/rss/articles/${articleId}/read`);
   },
 };
