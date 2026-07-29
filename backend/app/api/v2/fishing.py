@@ -11,10 +11,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis as AsyncRedis
 
-from app.api.des.appstate import get_app_state
 from app.api.des.auth import manager
 from app.api.des.redis import get_redis
-from app.appstate import AppState
+from app.appstate import AppState, get_app_state
 from app.core.exceptions import APIError
 from app.core.response import APIResponse
 from app.plugins.cache import redis_cache

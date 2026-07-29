@@ -4,10 +4,9 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.des.appstate import get_app_state
 from app.api.des.auth import manager
 from app.api.des.db import get_session
-from app.appstate import AppState
+from app.appstate import AppState, get_app_state
 from app.core.exceptions import APIError, NotFoundError
 from app.core.response import APIResponse
 from app.models.models import DeviceTrack

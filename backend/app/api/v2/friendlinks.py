@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, status
 
-from app.api.des.appstate import get_app_state
 from app.api.des.auth import get_admin_user
-from app.appstate import AppState
+from app.appstate import AppState, get_app_state
 from app.core.exceptions import APIError
 from app.core.logger import logger
 from app.core.response import APIResponse

@@ -66,10 +66,9 @@ async def refresh_rss_feeds(context: Context = TaskiqDepends()):
         )
 
     try:
-        from app.core.container import get_rss_service
+        from app.main import app
 
-        async with get_rss_service(context.state.redis) as rss_service:
-            stats = await rss_service.refresh_all_feeds()
+        stats = await app.state.services.rss_svc.refresh_all_feeds()
 
         duration = time.perf_counter() - start_time
         logger.info(
