@@ -1,4 +1,4 @@
-import { galleryGateway } from '@/features/pic/api/galleryGateway';
+import { galleryGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import { rewriteMediaUrl } from '@/composables';
 import dayjs from 'dayjs';

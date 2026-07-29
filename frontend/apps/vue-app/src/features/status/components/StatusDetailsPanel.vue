@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { StatusDetailData } from '@/features/status/types';
-import type { EventItem } from '@/features/status/api/logGateway';
+import type { EventItem } from '@readinglist/types';
 
 type Tone = 'success' | 'warning' | 'destructive';
 

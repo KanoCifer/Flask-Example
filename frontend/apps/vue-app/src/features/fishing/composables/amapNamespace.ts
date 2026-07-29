@@ -16,7 +16,7 @@
  * 拥有 AMapWithPlugins 类型 (谁拥有 SDK namespace 谁导出,消费方 fishingMapRuntime
  * 不再自己拼)。
  */
-import { mapGateway } from '@/features/fishing/api';
+import { mapGateway } from '@readinglist/api';
 import AMapLoader from '@amap/amap-jsapi-loader';
 
 // ---- AMap 安全密钥全局声明 ----

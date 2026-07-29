@@ -6,7 +6,7 @@
  *
  * panelTideSpotName 也会被 useFishingAnalysis 透传给 WeatherAnalysis 作展示。
  */
-import { weatherGateway } from '@/features/fishing/api';
+import { weatherGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import type { TideData } from '@readinglist/types';
 import dayjs from 'dayjs';

@@ -3,6 +3,6 @@
 export { default as PicGallery } from './PicGallery.vue';
 export * from './components';
 export * from './composables';
-export { galleryGateway } from './api/galleryGateway';
-export type { GalleryGateway } from './api/galleryGateway';
+export { galleryGateway } from '@readinglist/api';
+export type { GalleryGateway } from '@readinglist/api';
 export * from './types';

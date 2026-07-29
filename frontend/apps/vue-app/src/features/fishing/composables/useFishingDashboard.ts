@@ -3,7 +3,7 @@ import {
   useFishingMapStore,
 } from '@/features/fishing/stores/fishingMap';
 import { useNotificationStore } from '@/stores';
-import { fishingSpotsGateway } from '@/features/fishing/api';
+import { fishingSpotsGateway } from '@readinglist/api';
 import type { FishingIndexData, MapMarker } from '@readinglist/types';
 import { toMapMarker, toMapMarkers } from '@/features/fishing/types';
 import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';

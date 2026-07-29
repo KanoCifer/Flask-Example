@@ -1,4 +1,4 @@
-import type { WereadUserBook } from '@/features/books/api/wereadGateway';
+import type { WereadUserBook } from '@readinglist/types';
 import {
   useReadStatsStore,
   selectWeeklySnapshot,

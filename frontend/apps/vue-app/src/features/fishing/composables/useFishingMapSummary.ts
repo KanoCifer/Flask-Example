@@ -8,7 +8,7 @@
  *
  * 模板只消费字符串 / 数字，不再碰 gateway / store / derive 逻辑。
  */
-import { fishingGateway, fishingSpotsGateway } from '@/features/fishing/api';
+import { fishingGateway, fishingSpotsGateway } from '@readinglist/api';
 import {
   DEFAULT_MAP_CENTER,
   useFishingMapStore,

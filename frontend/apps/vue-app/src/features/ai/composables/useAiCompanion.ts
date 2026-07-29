@@ -1,5 +1,5 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
-import { aiGateway } from '@/features/ai/api/aiGateway';
+import { aiGateway } from '@readinglist/api';
 import { useTypewriter } from '@/composables/useTypewriter';
 import { stripHtml } from '@/features/ai/lib/stripHtml';
 

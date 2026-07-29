@@ -1,4 +1,4 @@
-import apiClient from '@/api/apiClient';
+import apiClient from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
 import type { ProfileForm } from '@readinglist/types';
 import { startRegistration } from '@simplewebauthn/browser';

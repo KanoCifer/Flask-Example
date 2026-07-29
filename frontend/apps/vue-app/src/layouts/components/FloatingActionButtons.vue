@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { socialGateway } from '@/features/blog';
+import { socialGateway } from '@readinglist/api';
 import { useCardLayoutStore } from '@/features/entry';
 import { useNotificationStore } from '@/stores';
 import { AxiosError } from 'axios';

@@ -9,5 +9,5 @@ export type {
   AiMessage,
 } from './composables/useAiCompanion';
 
-export { aiGateway } from './api/aiGateway';
-export type { AiGateway } from './api/aiGateway';
+export { aiGateway } from '@readinglist/api';
+export type { AiGateway } from '@readinglist/api';

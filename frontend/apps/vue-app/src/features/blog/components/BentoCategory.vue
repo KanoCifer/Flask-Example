@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { BentoCard } from '@/components';
 import { IconTags } from '@/components';
-import { blogGateway } from '@/features/blog/api/blogGateway';
+import { blogGateway } from '@readinglist/api';
 import type { BlogPost, Post, TagItem } from '@readinglist/types';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';

@@ -1,11 +1,11 @@
 // upload 域入口（deep module public surface）
 
-export { uploadGateway } from './api/uploadGateway';
+export { uploadGateway } from '@readinglist/api';
 export type {
   UploadGateway,
   UploadType,
   UploadConfig,
-} from './api/uploadGateway';
+} from '@readinglist/api';
 
 export { useUpload } from './composables/useUpload';
 export type {

@@ -18,8 +18,8 @@ import {
 import SpotMiniMap from '@/features/fishing/components/SpotMiniMap.vue';
 import SpotPhotoLightbox from '@/features/fishing/components/SpotPhotoLightbox.vue';
 import type { MapMarker, SpotDetail } from '@readinglist/types';
-import type { UpdateFishingSpotPayload } from '@/features/fishing/api';
-import { fishingSpotsGateway } from '@/features/fishing/api';
+import type { UpdateFishingSpotPayload } from '@readinglist/types';
+import { fishingSpotsGateway } from '@readinglist/api';
 import { useUpload } from '@/features/upload/composables';
 import { UploadDropzone, UploadProgress } from '@/features/upload/components';
 import { rewriteMediaUrl } from '@/composables';

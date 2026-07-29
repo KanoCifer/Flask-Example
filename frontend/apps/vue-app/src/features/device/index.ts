@@ -2,6 +2,6 @@
 
 export { default as DeviceTracker } from './DeviceTracker.vue';
 export * from './components';
-export { deviceGateway } from './api/deviceGateway';
-export type { DeviceGateway } from './api/deviceGateway';
+export { deviceGateway } from '@readinglist/api';
+export type { DeviceGateway } from '@readinglist/api';
 export * from './types';

@@ -451,7 +451,7 @@ import {
   IconAnalytics,
   SkeletonCrossfadeTransition,
 } from '@/components';
-import { analyticsGateway } from '@/features/analytics/api/analyticsGateway';
+import { analyticsGateway } from '@readinglist/api';
 import type { PostViewData } from '@/features/analytics/types';
 import { useAuthStore } from '@/features/auth';
 import dayjs from 'dayjs';

@@ -2,7 +2,7 @@
 import MarkdownEditor from './components/MarkdownEditor.vue';
 import MetaRow from './components/MetaRow.vue';
 import { Button as UiButton, IconSave } from '@/components';
-import { blogGateway } from '@/features/blog/api/blogGateway';
+import { blogGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';

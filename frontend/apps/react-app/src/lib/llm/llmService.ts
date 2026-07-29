@@ -1,5 +1,4 @@
-import apiClient, { extractData } from '@/api/apiClient';
-import { consumeSseStream } from '@/hooks/useSseStream';
+import apiClient, { extractData, consumeSseStream } from '@readinglist/api';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,10 +1,10 @@
-export { rssGateway } from './rssGateway';
-export type { RssGateway } from './rssGateway';
+// RSS / 订阅网关 —— 真源 @readinglist/api
+export { rssGateway } from '@readinglist/api';
+export type { RssGateway } from '@readinglist/api';
+export { subscriptionGateway } from '@readinglist/api';
+export type { SubscriptionGateway } from '@readinglist/api';
 
-export { subscriptionGateway } from './subscriptionGateway';
-export type { SubscriptionGateway } from './subscriptionGateway';
-
-// RSS 解析 / 订阅条目领域类型 —— 真源在 @readinglist/types，桶重新导出以保持兼容
+// RSS 解析 / 订阅条目领域类型 —— 真源在 @readinglist/types
 export type {
   ParseRssPayload,
   ParseRssResponse,
@@ -13,7 +13,7 @@ export type {
   SubscriptionItem,
 } from '@readinglist/types';
 
-// 订阅领域类型 —— 真源在 @/features/subscription/types，桶重新导出以保持兼容
+// 订阅领域类型 —— 真源在 @/features/subscription/types
 export type {
   CreateSubscriptionPayload,
   Subscription,

@@ -1,7 +1,5 @@
-import {
-  fetchRecentEvents,
-  type EventItem,
-} from '@/features/status/api/logGateway';
+import { fetchRecentEvents } from '@readinglist/api';
+import type { EventItem } from '@readinglist/types';
 import { onMounted, onUnmounted, ref, type Ref } from 'vue';
 
 export interface UseLogStreamReturn {

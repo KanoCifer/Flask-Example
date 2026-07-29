@@ -1,5 +1,5 @@
-import { createAuthGateway } from '@/features/auth/api';
-import { registerTokenRefresher } from '@/lib';
+import { createAuthGateway } from '@readinglist/api';
+import { registerTokenRefresher } from '@readinglist/api';
 import { refreshAccessToken } from '@/features/auth/lib/refresh';
 import { tokenService } from '@readinglist/utils';
 import { reconnectWs } from '@/lib';

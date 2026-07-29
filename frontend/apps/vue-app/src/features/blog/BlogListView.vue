@@ -403,7 +403,7 @@
 
 <script setup lang="ts">
 import { BasicDetail } from '@/components';
-import { blogGateway } from '@/features/blog/api/blogGateway';
+import { blogGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import type { BlogPagination, Post } from '@readinglist/types';
 import { BentoCalendar, BentoProfileCard } from '@/components';
@@ -567,14 +567,14 @@ const heroSubtitle = computed(() => {
 
 useHead(() => ({
   title: activeTag.value
-    ? `${activeTag.value} - ReadingList 随笔录`
-    : 'ReadingList 随笔录 - 阅读 · 思考 · 慢时光',
+    ? `${activeTag.value} - 随笔录`
+    : '随笔录 - 阅读 · 思考 · 慢时光',
   meta: [
     {
       name: 'description',
       content: activeTag.value
         ? `阅读 ${activeTag.value} 标签下的所有文章 - 个人阅读心得、技术分享、读书笔记`
-        : 'ReadingList 随笔录 - 分享个人阅读心得、技术文章、读书笔记，记录阅读的美好时光',
+        : '随笔录 - 分享个人阅读心得、技术文章、读书笔记，记录阅读的美好时光',
     },
     {
       name: 'keywords',
@@ -585,14 +585,14 @@ useHead(() => ({
     {
       property: 'og:title',
       content: activeTag.value
-        ? `${activeTag.value} 标签文章 - ReadingList 随笔录`
-        : 'ReadingList 随笔录',
+        ? `${activeTag.value} 标签文章 - 随笔录`
+        : '随笔录',
     },
     {
       property: 'og:description',
       content: activeTag.value
         ? `探索 ${activeTag.value} 标签下的所有文章`
-        : 'ReadingList 随笔录 - 分享个人阅读心得、技术文章、读书笔记',
+        : '随笔录 - 分享个人阅读心得、技术文章、读书笔记',
     },
     {
       property: 'og:type',
@@ -608,13 +608,13 @@ useHead(() => ({
       name: 'twitter:title',
       content: activeTag.value
         ? `${activeTag.value} 标签文章 - ReadingList`
-        : 'ReadingList 随笔录',
+        : '随笔录',
     },
     {
       name: 'twitter:description',
       content: activeTag.value
         ? `探索 ${activeTag.value} 标签下的所有文章`
-        : 'ReadingList 随笔录 - 分享个人阅读心得、技术文章、读书笔记',
+        : '随笔录 - 分享个人阅读心得、技术文章、读书笔记',
     },
   ],
 }));

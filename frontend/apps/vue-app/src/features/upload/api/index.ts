@@ -1,4 +1,3 @@
-// upload API 网关桶导出
-
-export { uploadGateway } from './uploadGateway';
-export type { UploadGateway, UploadType, UploadConfig } from './uploadGateway';
+// 上传网关 —— 真源 @readinglist/api
+export { uploadGateway } from '@readinglist/api';
+export type { UploadGateway, UploadType, UploadConfig } from '@readinglist/api';

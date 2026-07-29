@@ -191,7 +191,7 @@
 
 <script setup lang="ts">
 import type { Device, DeviceInput } from '@/features/device/types';
-import { deviceGateway } from '@/features/device/api/deviceGateway';
+import { deviceGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import { ref } from 'vue';
 

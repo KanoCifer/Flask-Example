@@ -1,4 +1,4 @@
-import { fishingGateway } from '@/features/fishing/api';
+import { fishingGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import { useSequencedTask } from '@/composables';
 import type {

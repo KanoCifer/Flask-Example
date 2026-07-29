@@ -1,4 +1,4 @@
-import { rssGateway } from '@/features/rss/api';
+import { rssGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import { useStorage } from '@vueuse/core';
 import { ref } from 'vue';

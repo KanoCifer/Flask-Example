@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 
-vi.mock('@/features/ai/api/aiGateway', () => ({
+vi.mock('@readinglist/api', () => ({
   aiGateway: {
     streamThread: vi.fn(),
     weatherAnalysis: vi.fn(),
@@ -36,7 +36,7 @@ import {
   MODEL_OPTIONS,
   type AiContext,
 } from '../useAiCompanion';
-import { aiGateway } from '@/features/ai/api/aiGateway';
+import { aiGateway } from '@readinglist/api';
 
 describe('useAiCompanion', () => {
   beforeEach(() => {

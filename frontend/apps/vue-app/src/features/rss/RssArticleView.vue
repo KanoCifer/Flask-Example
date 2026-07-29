@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { rssGateway } from '@/features/rss/api';
+import { rssGateway } from '@readinglist/api';
 import { BasicDetail } from '@/components';
 import { AiCompanion } from '@/features/ai';
 import { useNotificationStore } from '@/stores';

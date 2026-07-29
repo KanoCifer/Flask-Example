@@ -14,7 +14,7 @@ import {
 } from '@/components';
 import { DelIcon, EditIcon } from '@/components';
 import { Eye, Heart } from '@lucide/vue';
-import { blogGateway } from '@/features/blog/api/blogGateway';
+import { blogGateway } from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
 import { useOrigin } from '@readinglist/utils';
 import { useNotificationStore } from '@/stores';
@@ -180,8 +180,8 @@ const renderedBodyWithOrigin = computed(() => {
 
 useHead(() => {
   const title = post.value
-    ? `${post.value.title} - ReadingList`
-    : '文章未找到 - ReadingList';
+    ? `${post.value.title} - 随笔录`
+    : '文章未找到 - 随笔录';
   const desc = post.value
     ? post.value.summary || `阅读 ${post.value.title} 的完整内容`
     : '抱歉，您请求的文章不存在或已被删除';
@@ -196,7 +196,7 @@ useHead(() => {
       ]
         .filter(Boolean)
         .join(', ')
-    : '文章未找到, 阅读清单, ReadingList';
+    : '文章未找到, 阅读清单';
 
   const imageMeta = post.value?.cover
     ? [

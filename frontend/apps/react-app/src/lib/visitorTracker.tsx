@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { collectVisitorData } from '@readinglist/utils';
-import apiClient from '../api/apiClient';
+import apiClient from '@readinglist/api';
 
 // 上报追踪数据到后端
 const reportVisitorData = async () => {

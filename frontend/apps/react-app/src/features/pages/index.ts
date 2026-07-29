@@ -1,2 +1,2 @@
-export { changelogGateway } from './changelog/api/changelogGateway';
-export type { Changelog } from './changelog/api/changelogGateway';
+export { changelogGateway } from '@readinglist/api';
+export type { Changelog } from '@readinglist/types';

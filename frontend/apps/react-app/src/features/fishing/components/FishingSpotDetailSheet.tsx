@@ -31,7 +31,7 @@ import {
 import { BottomSheet } from '@/components';
 import { useNotificationStore } from '@/stores/notificationState';
 
-import { fishingSpotsGateway } from '../api/fishingSpotsGateway';
+import { fishingSpotsGateway } from '@readinglist/api';
 import type { MapMarker } from '@readinglist/types';
 import type { SpotDetail, UpdateFishingSpotPayload } from '@readinglist/types';
 

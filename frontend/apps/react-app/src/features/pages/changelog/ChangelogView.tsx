@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import {
-  changelogGateway,
-  type Changelog,
-} from '@/features/pages/changelog/api/changelogGateway';
+import { changelogGateway } from '@readinglist/api';
+import type { Changelog } from '@readinglist/types';
 import { motion } from 'framer-motion';
 
 const getTypeLabel = (type: string): string => {

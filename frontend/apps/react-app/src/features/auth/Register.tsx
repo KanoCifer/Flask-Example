@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldUser } from 'lucide-react';
 import { useEffect } from 'react';
 import axios from 'axios';
-import apiClient from '@/api/apiClient';
+import apiClient from '@readinglist/api';
 
 function IconCloud({ className }: { className?: string }) {
   return (

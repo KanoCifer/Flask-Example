@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { uploadGateway } from '@/features/upload/api/uploadGateway';
-import type { UploadType } from '@/features/upload/api/uploadGateway';
+import { uploadGateway, type UploadType } from '@readinglist/api';
 
 export interface UseUploadOptions {
   /** 上传类型 —— 决定后端存储路径与校验策略。 */

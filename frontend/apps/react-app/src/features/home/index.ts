@@ -1,5 +1,5 @@
-export { socialGateway } from './api/socialGateway';
-export type { SocialGateway } from './api/socialGateway';
+export { socialGateway } from '@readinglist/api';
+export type { SocialGateway } from '@readinglist/api';
 export { BentoWeb } from './components/BentoWeb';
 export { BentoCalendar } from './components/BentoCalendar';
 export { BentoGreeting } from './components/BentoGreeting';

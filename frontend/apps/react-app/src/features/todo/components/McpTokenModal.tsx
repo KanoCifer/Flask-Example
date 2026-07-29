@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { devTaskService, type DevTaskService } from '@/features/todo/api';
+import { devTaskService, type DevTaskService } from '@readinglist/api';
 import { TodoModal } from './TodoModal';
 
 const DAY_OPTIONS = [

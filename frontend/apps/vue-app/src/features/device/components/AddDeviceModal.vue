@@ -154,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { deviceGateway } from '@/features/device/api/deviceGateway';
+import { deviceGateway } from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import type { DeviceInput } from '@/features/device/types';
 import { reactive, ref, watch } from 'vue';

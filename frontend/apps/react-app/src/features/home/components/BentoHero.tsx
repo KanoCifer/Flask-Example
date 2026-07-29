@@ -1,4 +1,4 @@
-import { socialGateway } from '@/features/home/api/socialGateway';
+import { socialGateway } from '@readinglist/api';
 import animationData from '@/assets/Success Micro Interaction.json';
 import { useNotificationStore } from '@/stores/notificationState';
 import dayjs from 'dayjs';

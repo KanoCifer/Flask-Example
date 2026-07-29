@@ -49,7 +49,7 @@ export async function refreshToken(): Promise<void> {
   }
 }
 
-export function isrefreshTokenRequest(config: {
+export function isRefreshTokenRequest(config: {
   _isRefreshToken?: boolean;
 }): boolean {
   return !!config._isRefreshToken;

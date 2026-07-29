@@ -11,8 +11,8 @@
  * 与 SpotDetailPanel / AnalysisPanel 三者互斥(父组件 useFishingDashboard 保证)。
  */
 import SpotMiniMap from '@/features/fishing/components/SpotMiniMap.vue';
-import type { CreateFishingSpotPayload } from '@/features/fishing/api';
-import { fishingSpotsGateway } from '@/features/fishing/api';
+import type { CreateFishingSpotPayload } from '@readinglist/types';
+import { fishingSpotsGateway } from '@readinglist/api';
 import { DEFAULT_MAP_CENTER } from '@/features/fishing/stores/fishingMap';
 import { useUpload } from '@/features/upload/composables';
 import { UploadDropzone, UploadProgress } from '@/features/upload/components';

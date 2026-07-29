@@ -110,7 +110,7 @@
 <script setup lang="ts">
 import { getSubscriptionTitle, getFeedProtocol } from '../rssUtils';
 import { formatDate } from '@/lib/dayjs';
-import type { SubscriptionItem } from '@/features/rss/api';
+import type { SubscriptionItem } from '@readinglist/types';
 
 defineProps<{
   subscriptions: SubscriptionItem[];
