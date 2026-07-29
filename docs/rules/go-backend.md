@@ -96,3 +96,12 @@ type UserHandler struct { svc UserService }
 ## GitHub OAuth
 
 `handler/github.go` + `service/github.go` 实现 GitHub 登录/绑定/解绑，需 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_REDIRECT_URI`。
+
+## Social & Amap（从 Python 后端迁移）
+
+commit `39bc9b9e` 将 likes / amap 从 Python `backend/` 迁移到 Go：
+
+- `handler/social_handler.go` — 点赞（likes），Redis 滑动窗口限速 `like:25/24h`
+- `handler/amap_handler.go` — 高德地图天气，需 `AMAP_SECURITY_CODE` / `AMAP_WEB_KEY`
+
+对应 Python 端已删除 `ws_visitor_service.py`，`public.py` 中 likes / amap 端点已移除。

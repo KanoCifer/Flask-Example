@@ -3,6 +3,8 @@
 - Backend: `backend/` — FastAPI
 - Desktop: `frontend/apps/vue-app/`
 - Mobile: `frontend/apps/react-app/`
+- Shared API layer: `frontend/packages/api/` — `@readinglist/api`（apiClient + 拦截器 + 所有 gateway）
+- Shared utils: `frontend/packages/utils/` — `@readinglist/utils`（框架无关纯工具 + 领域纯函数）
 - Brand themes: `frontend/packages/brand/themes/` — shared CSS variables (4 schemes: paper / sage / mist / blush)
 - Brand prose: `frontend/packages/brand/prose.css` — `.prose` article styles (shared across both frontends)
 - Go backend: `go-backend/` — Python 后端的 Go 重构。

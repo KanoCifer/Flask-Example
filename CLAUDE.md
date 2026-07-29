@@ -9,7 +9,7 @@
 ## 2) Project Overview
 
 - kanocifer.chat 个人网站（"kuro neko" / 黑猫）。
-- **双前端 + 双后端架构**：Vue (`frontend/apps/vue-app/` + Pinia) + React (`frontend/apps/react-app/` + Zustand)，各自独立状态 Store；Python FastAPI (`backend/`, `/v1`·`/v2`) + Go Gin (`go-backend/`, `/v3`)。pnpm monorepo (Tailwind v4，workspace 根在 `frontend/`)，共享包 `frontend/packages/`（`@readinglist/types`·`utils`·`config`·`brand`）。
+- **双前端 + 双后端架构**：Vue (`frontend/apps/vue-app/` + Pinia) + React (`frontend/apps/react-app/` + Zustand)，各自独立状态 Store；Python FastAPI (`backend/`, `/v2`) + Go Gin (`go-backend/`, `/v3`)。pnpm monorepo (Tailwind v4，workspace 根在 `frontend/`)，共享包 `frontend/packages/`（`@readinglist/api`·`types`·`utils`·`config`·`brand`）。
 
 ## 3) Documentation Index
 

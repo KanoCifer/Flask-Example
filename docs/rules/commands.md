@@ -74,6 +74,17 @@ pnpm run format                     # prettier
 pnpm run test:unit                  # vitest run
 ```
 
+## 共享包（packages/）
+
+```bash
+cd frontend/packages/utils
+pnpm run test                # @readinglist/utils 单测（vitest）
+pnpm run type-check          # @readinglist/utils 类型检查
+
+cd frontend/packages/api
+pnpm run type-check          # @readinglist/api 类型检查
+```
+
 ## 跨端快捷命令（在 frontend/ 下执行）
 
 ```bash
