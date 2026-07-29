@@ -146,8 +146,7 @@ const onBodyClick = (event: MouseEvent) => {
         class="text-muted mt-5 text-[15px] leading-relaxed tracking-[0.01em] tabular-nums"
       >
         <template v-if="minutes != null">
-          约 {{ minutes }} 分钟阅读 ·
-          {{ (wordCount ?? 0).toLocaleString() }} 字
+          约 {{ minutes }} 分钟阅读 · {{ (wordCount ?? 0).toLocaleString() }} 字
         </template>
         <slot name="deck-extras" />
       </p>
@@ -171,10 +170,7 @@ const onBodyClick = (event: MouseEvent) => {
     </header>
 
     <!-- AI 阅读伴侣：详情页展示，编辑器预览由 showAiCard=false 关闭 -->
-    <slot
-      v-if="showAiCard !== false"
-      name="ai-companion"
-    />
+    <slot v-if="showAiCard !== false" name="ai-companion" />
 
     <!-- 正文 -->
     <div class="prose prose-lg max-w-none">
@@ -188,6 +184,13 @@ const onBodyClick = (event: MouseEvent) => {
       <div v-else class="text-muted italic">暂无内容</div>
     </div>
 
+    <!-- 杂志结尾 CTA：文末"如果觉得有用，欢迎转发"行动卡片
+         compact 模式省略（编辑器半宽侧栏里视觉噪音太大） -->
+    <aside v-if="!isCompact" class="article-share-cta" aria-label="分享提示">
+      <span class="article-share-cta__text">如果觉得有用，欢迎转发</span>
+      <span class="article-share-cta__arrow" aria-hidden="true">↗</span>
+    </aside>
+
     <!-- 文章脚：作者署名块 + 复制链接（compact 模式省略署名块） -->
     <footer v-if="!isCompact" class="mt-14 pt-8">
       <div class="flex flex-wrap items-start justify-between gap-5">
@@ -195,7 +198,7 @@ const onBodyClick = (event: MouseEvent) => {
           <img
             src="/images/animal-badge/fox.png"
             :alt="author || 'Kurroome'"
-            class="ring-border h-11 w-11 shrink-0 rounded-full object-cover ring-1"
+            class="size-15 shrink-0"
             loading="lazy"
           />
           <div class="min-w-0">
@@ -215,17 +218,16 @@ const onBodyClick = (event: MouseEvent) => {
         </div>
 
         <!-- footer 扩展（详情页放"复制链接"按钮） -->
-        <slot
-          name="footer-extra"
-          :copy-link="() => emit('copy-link')"
-        />
+        <slot name="footer-extra" :copy-link="() => emit('copy-link')" />
       </div>
     </footer>
   </article>
 </template>
 
 <style scoped>
-/* Compact 模式：在编辑器半宽侧栏里缩小节奏，避免正文首段 drop-cap 撑爆版面 */
+/* Compact 模式：在编辑器半宽侧栏里缩小节奏，关闭 prose-magazine 的 drop-cap。
+   base.scss 引入的 @readinglist/brand/prose-magazine 给所有 .prose-body 都加了
+   首段 drop cap；编辑器半宽栏里 3.4em 浮字会撑爆版面，需要在这里反向覆盖。 */
 .prose-body--compact > p:first-of-type::first-letter {
   float: none;
   font-size: 1em;

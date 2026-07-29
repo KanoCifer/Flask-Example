@@ -7,11 +7,7 @@ export type {
   DeleteFishingSpotOptions,
 } from '@readinglist/api';
 
-export { fishingGateway as weatherGateway } from '@readinglist/api';
-export type { FishingGateway as WeatherGateway } from '@readinglist/api';
 
-export { fishingGateway as mapGateway } from '@readinglist/api';
-export type { FishingGateway as MapGateway } from '@readinglist/api';
 
 // 钓点 / 天气领域类型 —— 真源在 @readinglist/types
 export type {

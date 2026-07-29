@@ -53,14 +53,20 @@ export type {
   SaveGalleryPayload,
 } from './gateways/pic';
 
-// ── fishing / weather ─────────────────────────────────────────────────
+// ── fishing / weather / map ─────────────────────────────────────────────
 export { fishingGateway } from './gateways/fishing';
 export type { FishingGateway } from './gateways/fishing';
 export { fishingSpotGateway } from './gateways/fishingSpot';
+export { fishingSpotGateway as fishingSpotsGateway } from './gateways/fishingSpot';
 export type {
   FishingSpotGateway,
   DeleteFishingSpotOptions,
 } from './gateways/fishingSpot';
+
+export { fishingGateway as mapGateway } from './gateways/fishing';
+export type { FishingGateway as MapGateway } from './gateways/fishing';
+export { fishingGateway as weatherGateway } from './gateways/fishing';
+export type { FishingGateway as WeatherGateway } from './gateways/fishing';
 
 // ── social / likes ────────────────────────────────────────────────────
 export { socialGateway } from './gateways/social';

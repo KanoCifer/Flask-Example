@@ -4,6 +4,7 @@
  * 由 @tailwindcss/vite 处理；这里只放 font-face 与普通样式规则。
  */
 @use '@readinglist/brand/prose';
+@use '@readinglist/brand/prose-magazine';
 
 @font-face {
   font-family: 'HarmonyOS Sans';

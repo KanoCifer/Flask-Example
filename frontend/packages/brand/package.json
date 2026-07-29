@@ -8,6 +8,7 @@
     "./themes": "./themes/index.css",
     "./themes/*": "./themes/*.css",
     "./prose": "./prose.css",
+    "./prose-magazine": "./prose-magazine.css",
     "./twikoo": "./twikoo.css"
   },
   "style": "./themes/index.css"

@@ -1,0 +1,110 @@
+/* =========================================================================
+   .prose-magazine — 长文 editorial 签名（huashu-md-html inspired）
+   -------------------------------------------------------------------------
+   配套 .prose 使用，专给"blog 长文"场景叠一层杂志模板的视觉签名。
+   此前散在两端的重复实现（vue-app BlogPostView.vue scoped + react-app
+   base.css）一并收敛到这里，两个 app 共用一份事实。
+
+   触发条件：消费方在 article body 的 wrapper 上加 .prose-body 类名
+   （与 .prose 同级，承载 markdown 渲染产物）。本文件只对 .prose-body
+   内的元素生效，不影响 ai 摘要 / 气象分析 / rss 转存等其他 prose 场景。
+
+   视觉 token 全走主题变量（--accent / --ink / --muted-text / --border），
+   与 .prose 同源，跨 10 主题切换。
+   ========================================================================= */
+
+/* —— ① 首段 drop cap：editorial 签名时刻，accent 第 2 次出场 —— */
+.prose-body > p:first-of-type::first-letter {
+  float: left;
+  font-family: ui-serif, Georgia, 'Times New Roman', serif;
+  font-size: 3.4em;
+  line-height: 0.82;
+  font-weight: 600;
+  margin: 0.08em 0.12em 0 0;
+  color: var(--accent);
+}
+
+/* Drop cap rag guard: < 30rem the 3.4em float crushes 1-2 char opening lines */
+@media (max-width: 30rem) {
+  .prose-body > p:first-of-type::first-letter {
+    float: none;
+    font-size: 1em;
+    font-weight: inherit;
+    margin: 0;
+    color: inherit;
+  }
+}
+
+/* —— ② § 章节编号：CSS counter，长文目录感 —— */
+.prose-body {
+  counter-reset: h2-section;
+}
+.prose-body h2::before {
+  counter-increment: h2-section;
+  content: '§ ' counter(h2-section) '  ';
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.62em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+  vertical-align: 0.18em;
+}
+
+/* —— ③ 自定义 bullet：默认 disc 换成 accent 小方块，杂志列表 marker —— */
+.prose-body ul {
+  list-style: square;
+  padding-left: 1.5rem;
+}
+.prose-body ul li::marker {
+  color: var(--accent);
+  font-size: 0.85em;
+}
+
+/* —— ④ 章节间分隔：中央居中的小 ornament，替换默认 1px flat line —— */
+.prose-body hr {
+  border: 0;
+  height: auto;
+  background: transparent;
+  margin: 2.25rem auto;
+  text-align: center;
+  overflow: visible;
+}
+.prose-body hr::before {
+  content: '* * *';
+  display: inline-block;
+  color: var(--muted-text);
+  font-size: 0.8125rem;
+  font-family: ui-serif, Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.6em;
+  /* 让 inline-block 内部也居中，避免 letter-spacing 把视觉中心拽偏 */
+  text-align: center;
+}
+
+/* —— ⑤ 杂志结尾 CTA：如果觉得有用，欢迎转发 ——
+   消费方在 body 与 footer 之间渲染一个 <aside class="article-share-cta">。
+   结构是：左边 muted 文字 + 右边 accent ↗ 圆形徽章，上下 hairline 收边。 */
+.article-share-cta {
+  margin-top: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-text);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+}
+.article-share-cta__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-size: 0.75rem;
+  line-height: 1;
+}

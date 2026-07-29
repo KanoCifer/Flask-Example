@@ -245,6 +245,7 @@ footer {
 }
 
 @import '@readinglist/brand/prose';
+@import '@readinglist/brand/prose-magazine';
 
 /* ── 書房設定滑塊 ── driven by --track-fill custom prop ── */
 .slider {
@@ -384,43 +385,8 @@ footer {
 }
 
 /* ── 文章阅读体验 ── */
-
-/* ① 首段 drop cap：editorial 签名时刻 */
-.prose-body > p:first-of-type::first-letter {
-  float: left;
-  font-family: ui-serif, Georgia, 'Times New Roman', serif;
-  font-size: 3.4em;
-  line-height: 0.82;
-  font-weight: 600;
-  margin: 0.08em 0.12em 0 0;
-  color: var(--accent);
-}
-
-/* Drop cap rag guard: below 30rem the 3.4em float crushes 1-2 char opening lines */
-@media (max-width: 30rem) {
-  .prose-body > p:first-of-type::first-letter {
-    float: none;
-    font-size: 1em;
-    font-weight: inherit;
-    margin: 0;
-    color: inherit;
-  }
-}
-
-/* ④ 章节编号：CSS counter，长文目录感 */
-.prose-body {
-  counter-reset: h2-section;
-}
-.prose-body h2::before {
-  counter-increment: h2-section;
-  content: '§ ' counter(h2-section) ' ';
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.62em;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--muted-text);
-  vertical-align: 0.18em;
-}
+/* drop cap / § 编号 / 列表 bullet / ornament hr / 分享 CTA
+   已迁至 @readinglist/brand/prose-magazine，与 vue-app 共享同一份 */
 
 /* 代码块复制按钮 tooltip */
 .copy-btn {

@@ -37,6 +37,7 @@ const errorMessage = ref('');
 // 点赞：一次性表态。服务端不做重复判定（匿名），
 // 故「是否已赞」由 localStorage 在客户端持久化，避免重复提交。
 const isLiked = ref(false);
+const commentsExpanded = ref(false);
 const likesCount = ref(0);
 const isLiking = ref(false);
 const LIKED_KEY = (id: string) => `readinglist:liked:${id}`;
@@ -378,140 +379,161 @@ onUnmounted(() => {
     </div>
 
     <!-- Article -->
-    <div v-else-if="post">
-      <div class="mx-auto max-w-2xl pt-30"></div>
+    <div v-else-if="post" class="grid grid-rows-[auto_0fr_0fr]">
+      <!-- grid-row 1: 文章主体 -->
+      <div class="contents">
+        <div class="mx-auto max-w-2xl pt-30"></div>
 
-      <ArticlePreview
-        :post-id="post._id"
-        :title="post.title"
-        :cover="post.cover"
-        :author="post.author"
-        :tags="post.tags"
-        :created-at="post.created_at"
-        :updated-at="post.updated_at"
-        :minutes="stats.minutes"
-        :word-count="stats.count"
-        :body-html="renderedBodyWithOrigin"
-        :show-ai-card="true"
-        @copy-link="handleCopyLink"
-      >
-        <!-- AI 阅读伴侣：内嵌到正文之前 -->
-        <template #ai-companion>
-          <AiCompanion
-            class="mx-auto max-w-2xl"
-            :title="post.title"
-            :content="post.body || ''"
-          />
-        </template>
-        <!-- 标题右侧操作（仅管理员） -->
-        <template #header-actions>
-          <div
-            v-if="showEditButton"
-            class="flex shrink-0 items-center justify-end gap-2"
-          >
-            <router-link
-              :to="`/blog/${post._id}/edit`"
-              class="bg-surface text-ink hover:bg-surface/80 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
+        <ArticlePreview
+          :post-id="post._id"
+          :title="post.title"
+          :cover="post.cover"
+          :author="post.author"
+          :tags="post.tags"
+          :created-at="post.created_at"
+          :updated-at="post.updated_at"
+          :minutes="stats.minutes"
+          :word-count="stats.count"
+          :body-html="renderedBodyWithOrigin"
+          :show-ai-card="true"
+          @copy-link="handleCopyLink"
+        >
+          <!-- AI 阅读伴侣：内嵌到正文之前 -->
+          <template #ai-companion>
+            <AiCompanion
+              class="mx-auto max-w-2xl"
+              :title="post.title"
+              :content="post.body || ''"
+            />
+          </template>
+          <!-- 标题右侧操作（仅管理员） -->
+          <template #header-actions>
+            <div
+              v-if="showEditButton"
+              class="flex shrink-0 items-center justify-end gap-2"
             >
-              <EditIcon />
-              编辑
-            </router-link>
-            <button
-              @click="showDeleteDialog = true"
-              class="bg-destructive/10 text-destructive hover:bg-destructive/15 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
-            >
-              <DelIcon />
-              删除
-            </button>
-          </div>
-        </template>
+              <router-link
+                :to="`/blog/${post._id}/edit`"
+                class="bg-surface text-ink hover:bg-surface/80 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
+              >
+                <EditIcon />
+                编辑
+              </router-link>
+              <button
+                @click="showDeleteDialog = true"
+                class="bg-destructive/10 text-destructive hover:bg-destructive/15 inline-flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.96]"
+              >
+                <DelIcon />
+                删除
+              </button>
+            </div>
+          </template>
 
-        <!-- Deck 尾部：浏览量 + 点赞 -->
-        <template #deck-extras>
-          <span
-            v-if="post.views != null"
-            class="inline-flex items-center gap-1"
-          >
-            · <Eye class="h-3.5 w-3.5" /> {{ post.views }}
-          </span>
-          <span v-if="post.likes != null" class="inline-flex items-center">
-            ·
+          <!-- Deck 尾部：浏览量 + 点赞 -->
+          <template #deck-extras>
+            <span
+              v-if="post.views != null"
+              class="inline-flex items-center gap-1"
+            >
+              · <Eye class="h-3.5 w-3.5" /> {{ post.views }}
+            </span>
+            <span v-if="post.likes != null" class="inline-flex items-center">
+              ·
+              <button
+                type="button"
+                :aria-label="
+                  isLiked
+                    ? `已喜欢 · 当前 ${likesCount}`
+                    : `喜欢 · 当前 ${likesCount}`
+                "
+                :disabled="isLiked || isLiking"
+                class="inline-flex cursor-pointer items-center gap-1 rounded transition-colors duration-150 active:scale-[0.96] disabled:cursor-default"
+                :class="isLiked ? 'text-ink' : 'text-muted hover:text-ink'"
+                @click="handleLike"
+              >
+                <Heart
+                  class="h-3.5 w-3.5 transition-all duration-150"
+                  :class="isLiked ? 'fill-accent' : ''"
+                />
+                {{ likesCount }}
+              </button>
+            </span>
+          </template>
+
+          <!-- 署名块之后：复制链接 -->
+          <template #footer-extra="{ copyLink }">
             <button
               type="button"
-              :aria-label="
-                isLiked
-                  ? `已喜欢 · 当前 ${likesCount}`
-                  : `喜欢 · 当前 ${likesCount}`
-              "
-              :disabled="isLiked || isLiking"
-              class="inline-flex cursor-pointer items-center gap-1 rounded transition-colors duration-150 active:scale-[0.96] disabled:cursor-default"
-              :class="isLiked ? 'text-ink' : 'text-muted hover:text-ink'"
-              @click="handleLike"
+              @click="copyLink"
+              class="text-muted hover:text-ink inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-medium tracking-[0.02em] transition-all duration-150 active:scale-[0.96]"
             >
-              <Heart
-                class="h-3.5 w-3.5 transition-all duration-150"
-                :class="isLiked ? 'fill-accent' : ''"
-              />
-              {{ likesCount }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.8"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+                />
+              </svg>
+              复制链接
             </button>
-          </span>
-        </template>
+          </template>
+        </ArticlePreview>
 
-        <!-- 署名块之后：复制链接 -->
-        <template #footer-extra="{ copyLink }">
+        <!-- 展开按钮：文章正文之后 -->
+        <div class="mx-auto max-w-2xl px-6 pb-8">
           <button
+            v-if="post"
             type="button"
-            @click="copyLink"
-            class="text-muted hover:text-ink inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-medium tracking-[0.02em] transition-all duration-150 active:scale-[0.96]"
+            class="text-muted hover:text-ink cursor-pointer text-sm transition-colors duration-150"
+            @click="commentsExpanded = !commentsExpanded"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.8"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
-              />
-            </svg>
-            复制链接
+            {{ commentsExpanded ? '▲ 收起评论' : '▼ 展开评论' }}
           </button>
-        </template>
-      </ArticlePreview>
+        </div>
+
+        <!-- 评论区折叠/展开 -->
+        <div
+          class="mx-auto grid max-w-2xl grid-rows-[0fr] transition-[grid-template-rows] duration-300"
+          :class="commentsExpanded ? 'grid-rows-[1fr]' : ''"
+        >
+          <div class="min-h-0 overflow-hidden px-6 pb-24">
+            <TwikooComments v-if="post" :path="`/blog/${postId}`" />
+          </div>
+        </div>
+      </div>
+
+      <Teleport to="body">
+        <AlertDialog
+          :open="showDeleteDialog"
+          @update:open="showDeleteDialog = $event"
+        >
+          <AlertDialogContent class="sm:max-w-[425px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认删除这篇文章？</AlertDialogTitle>
+              <AlertDialogDescription>
+                此操作无法撤销。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                class="bg-destructive hover:bg-destructive/90 text-white"
+                @click="confirmDelete"
+              >
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Teleport>
     </div>
-
-    <TwikooComments
-      v-if="post"
-      :path="`/blog/${postId}`"
-      class="mx-auto max-w-4xl px-6 pb-24"
-    />
-
-    <Teleport to="body">
-      <AlertDialog
-        :open="showDeleteDialog"
-        @update:open="showDeleteDialog = $event"
-      >
-        <AlertDialogContent class="sm:max-w-[425px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认删除这篇文章？</AlertDialogTitle>
-            <AlertDialogDescription> 此操作无法撤销。 </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              class="bg-destructive hover:bg-destructive/90 text-white"
-              @click="confirmDelete"
-            >
-              删除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Teleport>
   </div>
 </template>
 
@@ -539,44 +561,9 @@ onUnmounted(() => {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
-/* 文章阅读体验由 .prose（base.scss）统一提供。 */
-
-/* —— ① 首段 drop cap：editorial 签名时刻，accent 第 2 次出场 —— */
-.prose-body > p:first-of-type::first-letter {
-  float: left;
-  font-family: ui-serif, Georgia, 'Times New Roman', serif;
-  font-size: 3.4em;
-  line-height: 0.82;
-  font-weight: 600;
-  margin: 0.08em 0.12em 0 0;
-  color: var(--accent);
-}
-
-/* Drop cap rag guard: below 30rem the 3.4em float crushes 1-2 char opening lines */
-@media (max-width: 30rem) {
-  .prose-body > p:first-of-type::first-letter {
-    float: none;
-    font-size: 1em;
-    font-weight: inherit;
-    margin: 0;
-    color: inherit;
-  }
-}
-
-/* —— ④ 章节编号：CSS counter，长文目录感 —— */
-.prose-body {
-  counter-reset: h2-section;
-}
-.prose-body h2::before {
-  counter-increment: h2-section;
-  content: '§ ' counter(h2-section) '  ';
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.62em;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--muted-text);
-  vertical-align: 0.18em;
-}
+/* 文章阅读体验由 .prose（base.scss）统一提供。
+   杂志模板签名（drop cap / § 编号 / ornament hr / 列表 bullet / share CTA）
+   已迁至 @readinglist/brand/prose-magazine，双前端共享。 */
 
 /* —— Skeleton pulse —— */
 .skeleton-pulse {
