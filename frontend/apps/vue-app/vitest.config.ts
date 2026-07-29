@@ -1,9 +1,12 @@
+import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import { baseVitestConfig } from '@readinglist/config/vitest.config';
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [vue()],
+  resolve: {
+    tsconfigPaths: true,
+  },
   ...baseVitestConfig(),
   test: {
     ...baseVitestConfig().test,
