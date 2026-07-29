@@ -94,21 +94,15 @@ async def db_session(db_engine, tables) -> AsyncGenerator[AsyncSession]:
 # ─────────────────────────────────────────────────────────────────
 
 
-@asynccontextmanager
-async def _test_lifespan(app):
-    """Minimal lifespan: construct AppState without Redis/Mongo/Taskiq."""
-    from app.appstate import new_app_state
-
-    app.state.services = new_app_state(None)  # type: ignore[arg-type]
-    yield
-
-
 @pytest_asyncio.fixture
 async def api_app(db_session) -> AsyncGenerator:
     """Lightweight FastAPI app for API tests — Phase 5 AppState 模式.
 
     不经过 main.py lifespan（无 Mongo/Redis/Taskiq 依赖），
-    用 _test_lifespan 手动构造 AppState 单例。
+    手动构造 AppState 单例并挂载到 ``app.state.services``。
+
+    注意：httpx ASGITransport 在当前版本不触发 FastAPI lifespan，
+    因此直接在 fixture 中设置 ``services``，而非依赖 lifespan 回调。
     router 通过 ``Depends(get_app_state)`` 获取 ``state``、
     通过 ``Depends(get_session)`` 获取请求级 session —— 这里覆盖
     ``get_session`` 让它始终返回 rollback-isolated ``db_session``。
@@ -117,10 +111,12 @@ async def api_app(db_session) -> AsyncGenerator:
 
     from app.api.des.db import get_session
     from app.api.des.auth import manager
+    from app.appstate import new_app_state
     from app.core import register_exception_handlers
     from app.router import register_router
 
-    test_app = FastAPI(lifespan=_test_lifespan)
+    test_app = FastAPI()
+    test_app.state.services = new_app_state(None)  # type: ignore[arg-type]
     register_router(test_app)
     register_exception_handlers(test_app)
 

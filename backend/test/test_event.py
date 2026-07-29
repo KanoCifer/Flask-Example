@@ -21,6 +21,7 @@ async def startup_event(db_session):
         message="boot complete",
         source="boot",
         extra={"version": "2.0"},
+        session=db_session,
     )
 
 
@@ -39,7 +40,9 @@ async def test_record_event_persists_fields(db_session, startup_event):
 
 async def test_record_event_default_extra(db_session):
     """extra 缺省为空 dict，而非 NULL。"""
-    event = await record_event("deploy", "后端服务升级", source="webhook_admin")
+    event = await record_event(
+        "deploy", "后端服务升级", source="webhook_admin", session=db_session
+    )
     assert event.extra == {}
 
     result = await db_session.execute(select(Event).where(Event.id == event.id))
@@ -48,8 +51,8 @@ async def test_record_event_default_extra(db_session):
 
 async def test_record_event_orders_by_timestamp(db_session):
     """多次写入按时间倒序可排列。"""
-    first = await record_event("startup", "first", source="boot")
-    second = await record_event("deploy", "second", source="admin")
+    first = await record_event("startup", "first", source="boot", session=db_session)
+    second = await record_event("deploy", "second", source="admin", session=db_session)
 
     result = await db_session.execute(
         select(Event).where(Event.id.in_([first.id, second.id])).order_by(Event.timestamp.desc())

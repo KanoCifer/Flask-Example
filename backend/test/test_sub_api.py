@@ -64,7 +64,7 @@ async def test_list_subscriptions_requires_auth(db_session):
     async with AsyncClient(
         transport=transport, base_url="http://test"
     ) as client:
-        resp = await client.get("/api/v2/subscriptions")
+        resp = await client.get("/v2/subscriptions")
         assert resp.status_code == 401
 
 
@@ -73,7 +73,7 @@ async def test_list_subscriptions_requires_auth(db_session):
 
 @pytest.mark.asyncio
 async def test_list_subscriptions_empty(api_client, api_user):
-    resp = await api_client.get("/api/v2/subscriptions")
+    resp = await api_client.get("/v2/subscriptions")
     assert resp.status_code == 200
     body = resp.json()
     assert body["message"] == "获取订阅列表成功"
@@ -95,7 +95,7 @@ async def test_list_subscriptions_returns_user_subs(
         db_session, other_user.id, **_sub_payload(name="Other")
     )
 
-    resp = await api_client.get("/api/v2/subscriptions")
+    resp = await api_client.get("/v2/subscriptions")
     assert resp.status_code == 200
     names = {s["name"] for s in resp.json()["data"]["subscriptions"]}
     assert names == {"U1", "U2"}
@@ -113,7 +113,7 @@ async def test_get_subscription_by_id(
         db_session, api_user.id, **_sub_payload(name="FindMe")
     )
 
-    resp = await api_client.get(f"/api/v2/subscriptions/{sub.id}")
+    resp = await api_client.get(f"/v2/subscriptions/{sub.id}")
     assert resp.status_code == 200
     data = resp.json()["data"]["subscription"]
     assert data["name"] == "FindMe"
@@ -122,21 +122,21 @@ async def test_get_subscription_by_id(
 
 @pytest.mark.asyncio
 async def test_get_subscription_not_found(api_client, api_user):
-    resp = await api_client.get("/api/v2/subscriptions/99999")
+    resp = await api_client.get("/v2/subscriptions/99999")
     assert resp.status_code == 404
     assert "不存在" in resp.json()["message"]
 
 
 @pytest.mark.asyncio
 async def test_get_subscription_forbidden(
-    api_client, other_user, db_session
+    api_client, api_user, other_user, db_session
 ):
     svc = SubService(SubRepo())
     sub = await svc.create_one_subscription(
         db_session, other_user.id, **_sub_payload(name="Private")
     )
 
-    resp = await api_client.get(f"/api/v2/subscriptions/{sub.id}")
+    resp = await api_client.get(f"/v2/subscriptions/{sub.id}")
     assert resp.status_code == 403
     assert "无权访问" in resp.json()["message"]
 
@@ -147,7 +147,7 @@ async def test_get_subscription_forbidden(
 @pytest.mark.asyncio
 async def test_create_subscription(api_client, api_user):
     resp = await api_client.post(
-        "/api/v2/subscriptions", json=_sub_payload(name="Spotify")
+        "/v2/subscriptions", json=_sub_payload(name="Spotify")
     )
     assert resp.status_code == 201
     data = resp.json()["data"]["subscription"]
@@ -160,7 +160,7 @@ async def test_create_subscription(api_client, api_user):
 async def test_create_subscription_validation_error(api_client, api_user):
     """Missing required fields → 422."""
     resp = await api_client.post(
-        "/api/v2/subscriptions", json={"name": "Incomplete"}
+        "/v2/subscriptions", json={"name": "Incomplete"}
     )
     assert resp.status_code == 422
 
@@ -178,7 +178,7 @@ async def test_update_subscription(
     )
 
     resp = await api_client.put(
-        f"/api/v2/subscriptions/{sub.id}",
+        f"/v2/subscriptions/{sub.id}",
         json={"name": "NewName", "price": 20.0},
     )
     assert resp.status_code == 200
@@ -190,7 +190,7 @@ async def test_update_subscription(
 @pytest.mark.asyncio
 async def test_update_subscription_not_found(api_client, api_user):
     resp = await api_client.put(
-        "/api/v2/subscriptions/99999", json={"name": "X"}
+        "/v2/subscriptions/99999", json={"name": "X"}
     )
     assert resp.status_code == 404
 
@@ -207,18 +207,18 @@ async def test_delete_subscription(
         db_session, api_user.id, **_sub_payload(name="ToDelete")
     )
 
-    resp = await api_client.delete(f"/api/v2/subscriptions/{sub.id}")
+    resp = await api_client.delete(f"/v2/subscriptions/{sub.id}")
     assert resp.status_code == 200
     assert resp.json()["message"] == "删除订阅成功"
 
     # Verify it's gone
-    resp2 = await api_client.get(f"/api/v2/subscriptions/{sub.id}")
+    resp2 = await api_client.get(f"/v2/subscriptions/{sub.id}")
     assert resp2.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_delete_subscription_not_found(api_client, api_user):
-    resp = await api_client.delete("/api/v2/subscriptions/99999")
+    resp = await api_client.delete("/v2/subscriptions/99999")
     assert resp.status_code == 404
 
 
@@ -235,7 +235,7 @@ async def test_update_subscription_status(
     )
 
     resp = await api_client.patch(
-        f"/api/v2/subscriptions/{sub.id}/status",
+        f"/v2/subscriptions/{sub.id}/status",
         params={"new_status": "paused"},
     )
     assert resp.status_code == 200
@@ -270,7 +270,7 @@ async def test_get_upcoming_subscriptions(
         ),
     )
 
-    resp = await api_client.get("/api/v2/subscriptions/upcoming")
+    resp = await api_client.get("/v2/subscriptions/upcoming")
     assert resp.status_code == 200
     names = {s["name"] for s in resp.json()["data"]["subscriptions"]}
     assert names == {"Due"}

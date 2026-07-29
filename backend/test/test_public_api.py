@@ -20,7 +20,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.asyncio
 async def test_api_status(api_client):
     """Lightweight health check, no auth required."""
-    resp = await api_client.get("/api/v2/publicv2/status")
+    resp = await api_client.get("/v2/publicv2/status")
     assert resp.status_code == 200
     body = resp.json()
     assert body["data"]["status"] == "ok"
@@ -31,7 +31,7 @@ async def test_api_status(api_client):
 
 @pytest.mark.asyncio
 async def test_public_status(api_client):
-    resp = await api_client.get("/api/v2/publicv2/status")
+    resp = await api_client.get("/v2/publicv2/status")
     assert resp.status_code == 200
     body = resp.json()
     assert "data" in body
@@ -42,7 +42,7 @@ async def test_public_status(api_client):
 
 @pytest.mark.asyncio
 async def test_public_status_detail(api_client):
-    resp = await api_client.get("/api/v2/publicv2/status-detail")
+    resp = await api_client.get("/v2/publicv2/status-detail")
     assert resp.status_code == 200
     body = resp.json()
     assert "data" in body
@@ -53,7 +53,7 @@ async def test_public_status_detail(api_client):
 
 @pytest.mark.asyncio
 async def test_robots_txt(api_client):
-    resp = await api_client.get("/api/v2/publicv2/robots.txt")
+    resp = await api_client.get("/v2/publicv2/robots.txt")
     assert resp.status_code == 200
     assert "User-agent" in resp.text
 
