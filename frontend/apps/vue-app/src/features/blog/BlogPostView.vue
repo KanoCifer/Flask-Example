@@ -407,7 +407,7 @@ onUnmounted(() => {
         <template #header-actions>
           <div
             v-if="showEditButton"
-            class="mb-8 flex shrink-0 items-center justify-end gap-2"
+            class="flex shrink-0 items-center justify-end gap-2"
           >
             <router-link
               :to="`/blog/${post._id}/edit`"

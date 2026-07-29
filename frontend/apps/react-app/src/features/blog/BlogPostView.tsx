@@ -295,7 +295,7 @@ export default function BlogPostView() {
           <ErrorState message={error} onRetry={fetchPost} />
         </div>
       ) : post ? (
-        <article className="mx-auto max-w-4xl px-6 pt-8 pb-20 sm:pt-10">
+        <article className="mx-auto max-w-2xl px-6 pt-8 pb-20 sm:pt-10">
           {/* Admin actions — delete only; editor has been removed */}
           {showEditButton && (
             <div className="mb-8 flex items-center justify-end gap-2">

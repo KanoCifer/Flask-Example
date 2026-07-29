@@ -6,7 +6,7 @@
     互相穿插。pt-24 给浮动 nav 留出净空。
   -->
   <header
-    class="flex flex-wrap items-end justify-between gap-3 px-5 pt-20 pb-3 sm:px-8"
+    class="flex flex-wrap items-end justify-between gap-3 px-5 pt-10 pb-3 sm:px-10"
   >
     <div>
       <h1

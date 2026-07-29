@@ -89,7 +89,7 @@ const onBodyClick = (event: MouseEvent) => {
 </script>
 
 <template>
-  <article class="mx-auto max-w-4xl px-6 pt-10 pb-14">
+  <article class="mx-auto max-w-2xl px-6 pt-10 pb-14">
     <!-- 封面置顶：主视觉先行 -->
     <figure v-if="coverSrc" class="mb-10 overflow-hidden rounded-xl">
       <div class="bg-surface aspect-[16/9] w-full overflow-hidden">
@@ -128,15 +128,18 @@ const onBodyClick = (event: MouseEvent) => {
         {{ primaryTag }}
       </div>
 
-      <!-- 大标题 -->
-      <h1
-        class="text-ink flex items-center justify-between gap-2 font-serif text-[clamp(1.875rem,5vw,2.5rem)] leading-[1.18] font-medium tracking-[-0.02em] text-balance"
-      >
-        <span>{{ title || '无标题' }}</span>
+      <!-- 大标题 + 标题右侧操作（编辑/删除）
+           操作 slot 放在 h1 外部，避免屏幕阅读器把按钮当作标题文本朗读 -->
+      <div class="flex items-start justify-between gap-4">
+        <h1
+          class="text-ink min-w-0 font-serif text-[clamp(1.875rem,5vw,2.5rem)] leading-[1.18] font-medium tracking-[-0.02em] text-balance"
+        >
+          {{ title || '无标题' }}
+        </h1>
 
         <!-- 标题右侧的操作（编辑/删除，仅详情页用） -->
         <slot name="header-actions" />
-      </h1>
+      </div>
 
       <!-- Deck: 阅读时长 + 字数 + 扩展（浏览量/点赞，仅详情页用） -->
       <p
@@ -176,7 +179,7 @@ const onBodyClick = (event: MouseEvent) => {
     <!-- 正文 -->
     <div class="prose prose-lg max-w-none">
       <div
-        class="prose-body whitespace-pre-wrap"
+        class="prose-body"
         :class="isCompact ? 'prose-body--compact' : null"
         v-if="bodyHtml"
         v-html="bodyHtml"

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterable
-
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.sse import EventSourceResponse
 

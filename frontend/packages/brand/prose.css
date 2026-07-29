@@ -54,11 +54,13 @@
 /* —— 段落 —— */
 .prose p {
     margin: 0 0 0.125em;
-    text-wrap: pretty;
 }
 
 /* —— 标题 —— */
 .prose :where(h1, h2, h3, h4, h5, h6) {
+    /* system serif (ui-serif → Georgia/Times) 只带 400/700 两个真身，
+       600 由浏览器合成；层级靠字号落差维持，视觉上仍可区分。
+       若未来引入自定义 serif 可变字体，可回落到真身 600。 */
     font-family: ui-serif, Georgia, "Times New Roman", serif;
     color: var(--ink);
     font-weight: 600;
@@ -477,6 +479,7 @@
     vertical-align: top;
     white-space: normal;
     border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
 }
 
 /* 第一行 th/td 顶角随容器圆角裁切 */

@@ -73,7 +73,7 @@ export default function RssArticleView() {
   return (
     <div className="bg-page min-h-dvh pb-28">
       <header className="bg-page/85 sticky top-0 z-10 h-15 px-4 py-3 backdrop-blur-md"></header>
-      <main className="mx-auto w-full max-w-dvw px-4 py-4">
+      <main className="mx-auto w-full max-w-2xl px-4 py-4">
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.p
