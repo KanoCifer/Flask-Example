@@ -10,7 +10,7 @@
     >
       <!-- badges -->
       <span class="mb-2 flex flex-wrap items-center gap-1">
-        <CircleCheckBig class="text-ink size-5" />
+        <CircleCheckBig class="text-ink size-5" aria-hidden="true" />
         <TypeBadge :type="task.type" />
         <PriorityBadge :priority="task.priority" />
         <KindBadge :kind="task.kind" />

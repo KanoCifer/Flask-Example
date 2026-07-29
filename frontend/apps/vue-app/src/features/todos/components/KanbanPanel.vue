@@ -74,10 +74,14 @@
               v-for="task in lane.tasks"
               :key="task.slug"
               :task="task"
+              :columns="MOVABLE_COLUMNS"
               :is-dragging="draggedSlug === task.slug"
+              :move-menu-open="openMoveMenuSlug === task.slug"
               @open="$emit('open', $event)"
               @cycle="$emit('cycle', $event)"
               @delete="$emit('delete', $event)"
+              @move="handleMove"
+              @toggle-move-menu="toggleMoveMenu(task.slug)"
               @dragstart="onDragStart(task.slug)"
               @dragend="onDragEnd"
             />
@@ -117,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
 import type {
   DevTask,
@@ -183,6 +187,16 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   },
 ];
 
+// 键盘可访问的"移动到"菜单所需的最简列信息（不含展示用的 dotClass）。
+export interface MovableColumn {
+  id: KanbanColumnId;
+  label: string;
+  targetStatus: DevTaskStatus;
+}
+export const MOVABLE_COLUMNS: MovableColumn[] = KANBAN_COLUMNS.map(
+  ({ id, label, targetStatus }) => ({ id, label, targetStatus }),
+);
+
 const store = useV3DevTaskStore();
 
 const filterType = ref<Set<DevTaskType>>(new Set());
@@ -193,6 +207,36 @@ const searchTerm = ref('');
 // ── 拖拽状态 ──
 const draggedSlug = ref<string | null>(null);
 const dragOverColumn = ref<KanbanColumnId | null>(null);
+
+// ── 键盘"移动到"菜单：当前打开菜单的卡片 slug（null 表示无） ──
+const openMoveMenuSlug = ref<string | null>(null);
+function toggleMoveMenu(slug: string) {
+  openMoveMenuSlug.value = openMoveMenuSlug.value === slug ? null : slug;
+}
+function closeMoveMenu() {
+  openMoveMenuSlug.value = null;
+}
+async function handleMove(slug: string, targetStatus: DevTaskStatus) {
+  openMoveMenuSlug.value = null;
+  const task = store.tasks.find((t) => t.slug === slug);
+  if (!task || task.status === targetStatus) return;
+  await store.updateTask(slug, { status: targetStatus });
+}
+
+// 点击菜单外部区域时关闭菜单（避免菜单打开后悬停在卡片上）。
+watch(openMoveMenuSlug, (slug) => {
+  if (!slug) return;
+  const onDocClick = (e: MouseEvent) => {
+    const menu = document.querySelector(
+      `#move-menu-${CSS.escape(slug)}`,
+    );
+    const target = e.target as Node;
+    if (menu && !menu.contains(target)) closeMoveMenu();
+  };
+  // 延迟到下一拍绑定，避免触发 toggle 的点击立即把菜单关掉。
+  setTimeout(() => document.addEventListener('click', onDocClick, true), 0);
+  return () => document.removeEventListener('click', onDocClick, true);
+});
 
 function onDragStart(slug: string) {
   draggedSlug.value = slug;

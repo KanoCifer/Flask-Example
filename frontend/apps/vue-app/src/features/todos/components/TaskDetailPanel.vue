@@ -68,6 +68,7 @@
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
@@ -210,8 +211,7 @@
                 </span>
                 <span
                   v-if="task.blocked_by && task.blocked_by.length"
-                  class="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                  style="background: var(--warning); color: oklch(0.2 0.02 50)"
+                  class="flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning"
                 >
                   ⛔ 依赖 {{ task.blocked_by.length }} 项
                 </span>

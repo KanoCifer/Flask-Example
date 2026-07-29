@@ -29,6 +29,8 @@
           d="M8 6h2M8 12h2M8 18h2M14 6h2M14 12h2M14 18h2"
         />
       </svg>
+      <!-- 拖动仅作指针用户的视觉提示；键盘用户通过"移动到"菜单操作，
+           故整个卡片不依赖拖拽可达 -->
       <span
         class="text-ink line-clamp-2 flex-1 text-sm font-medium"
         :class="{ 'text-muted line-through': done }"
@@ -80,6 +82,32 @@
       <div
         class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
       >
+        <!-- 键盘可访问的"移动到"菜单触发器（键盘用户唯一入口） -->
+        <button
+          v-if="columns.length > 1"
+          type="button"
+          class="text-muted hover:bg-surface hover:text-ink focus-visible:ring-ring relative cursor-pointer rounded-md p-1 transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
+          title="移动到…"
+          aria-label="移动到…"
+          :aria-expanded="moveMenuOpen"
+          :aria-controls="`move-menu-${task.slug}`"
+          @click="$emit('toggle-move-menu', task.slug)"
+        >
+          <svg
+            class="h-3.5 w-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 12h16m-6-6l6 6-6 6"
+            />
+          </svg>
+        </button>
         <button
           v-if="!done"
           type="button"
@@ -93,6 +121,7 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -114,6 +143,7 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -125,26 +155,58 @@
         </button>
       </div>
     </div>
+
+    <!-- 键盘"移动到"菜单：点击触发器以外区域或选完后关闭 -->
+    <div
+      v-if="moveMenuOpen"
+      :id="`move-menu-${task.slug}`"
+      class="border-border bg-page absolute right-2 bottom-full z-10 mb-1 min-w-[8rem] rounded-lg border p-1 shadow-lg"
+      role="menu"
+      :aria-label="`将「${task.title}」移动到`"
+    >
+      <button
+        v-for="col in columns.filter((c) => c.targetStatus !== task.status)"
+        :key="col.id"
+        type="button"
+        role="menuitem"
+        class="focus-visible:ring-ring block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none hover:bg-surface"
+        @click="$emit('move', task.slug, col.targetStatus)"
+      >
+        移动到「{{ col.label }}」
+      </button>
+    </div>
   </article>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { DevTask } from '@/features/todos/api';
+import type { DevTask, DevTaskStatus } from '@/features/todos/api';
+import type { MovableColumn } from './KanbanPanel.vue';
 import TypeBadge from './TypeBadge.vue';
 import PriorityBadge from './PriorityBadge.vue';
 import KindBadge from './KindBadge.vue';
 import MemberAvatar from './MemberAvatar.vue';
 
-const props = defineProps<{
-  task: DevTask;
-  isDragging?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    task: DevTask;
+    columns?: MovableColumn[];
+    isDragging?: boolean;
+    moveMenuOpen?: boolean;
+  }>(),
+  {
+    columns: () => [],
+    isDragging: false,
+    moveMenuOpen: false,
+  },
+);
 
 const emit = defineEmits<{
   open: [slug: string];
   cycle: [slug: string];
   delete: [slug: string];
+  move: [slug: string, targetStatus: DevTaskStatus];
+  'toggle-move-menu': [slug: string];
   dragstart: [slug: string];
   dragend: [];
 }>();
