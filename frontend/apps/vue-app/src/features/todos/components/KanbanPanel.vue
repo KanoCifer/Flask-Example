@@ -120,19 +120,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
-import type {
-  DevTask,
-  DevTaskPriority,
-  DevTaskStatus,
-  DevTaskType,
-} from '@/features/todos/api';
-import KanbanCard from './KanbanCard.vue';
-import MemberAvatar from './MemberAvatar.vue';
-import TodoFilterBar, { type MemberChip } from './TodoFilterBar.vue';
-
+<script lang="ts">
 // ── 看板列定义（与后端 DevTaskStatus 一一对应，仅"待办"合并两个未启动状态） ──
 //
 // 后端状态机 5 段，看板 4 列：
@@ -143,9 +131,9 @@ import TodoFilterBar, { type MemberChip } from './TodoFilterBar.vue';
 //
 // 这层映射只在 UI 视图层做，不改 store 的真实 status 字段 —— 拖拽落列时再回写
 // 真实 status，保证数据契约稳定。
-type KanbanColumnId = 'todo' | 'doing' | 'paused' | 'done';
+export type KanbanColumnId = 'todo' | 'doing' | 'paused' | 'done';
 
-interface KanbanColumn {
+export interface KanbanColumn {
   id: KanbanColumnId;
   label: string;
   /** 该列覆盖的真实 DevTaskStatus（用于数据过滤）。 */
@@ -156,7 +144,7 @@ interface KanbanColumn {
   dotClass: string;
 }
 
-const KANBAN_COLUMNS: KanbanColumn[] = [
+export const KANBAN_COLUMNS: KanbanColumn[] = [
   {
     id: 'todo',
     label: '待办',
@@ -193,9 +181,24 @@ export interface MovableColumn {
   label: string;
   targetStatus: DevTaskStatus;
 }
+
 export const MOVABLE_COLUMNS: MovableColumn[] = KANBAN_COLUMNS.map(
   ({ id, label, targetStatus }) => ({ id, label, targetStatus }),
 );
+</script>
+
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
+import type {
+  DevTask,
+  DevTaskPriority,
+  DevTaskStatus,
+  DevTaskType,
+} from '@/features/todos/api';
+import KanbanCard from './KanbanCard.vue';
+import MemberAvatar from './MemberAvatar.vue';
+import TodoFilterBar, { type MemberChip } from './TodoFilterBar.vue';
 
 const store = useV3DevTaskStore();
 
@@ -227,9 +230,7 @@ async function handleMove(slug: string, targetStatus: DevTaskStatus) {
 watch(openMoveMenuSlug, (slug) => {
   if (!slug) return;
   const onDocClick = (e: MouseEvent) => {
-    const menu = document.querySelector(
-      `#move-menu-${CSS.escape(slug)}`,
-    );
+    const menu = document.querySelector(`#move-menu-${CSS.escape(slug)}`);
     const target = e.target as Node;
     if (menu && !menu.contains(target)) closeMoveMenu();
   };

@@ -1,24 +1,27 @@
 <template>
   <span
-    class="rounded-full border px-1.5 py-px text-[10px] font-medium"
-    :class="cls"
+    :class="[
+      'inline-flex h-5 items-center rounded-full border px-2 text-xs font-medium tracking-[0.01em] whitespace-nowrap',
+      cls,
+    ]"
   >
-    {{ props.kind === 'subtask' ? 'subtask' : 'spec' }}
+    {{ label }}
   </span>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { DevTaskKind } from '@/features/todos/api';
 
 const props = defineProps<{ kind?: DevTaskKind | '' | null }>();
 
-// spec 用中性色（默认，弱化）；subtask 用 primary 强调它是可执行单元
-const KIND_CLASS: Record<DevTaskKind, string> = {
-  spec: ' text-muted bg-warning/20',
-  subtask: 'border-accent/30 bg-accent/5 text-ink',
+// C-ring.html 1:1 配色：spec/chart-3 · subtask/chart-2
+const KIND_MAP: Record<DevTaskKind, { label: string; cls: string }> = {
+  spec: { label: 'spec', cls: 'border-chart-3/40 bg-chart-3/10 text-chart-3' },
+  subtask: { label: 'subtask', cls: 'border-chart-2/40 bg-chart-2/10 text-chart-2' },
 };
 
-// console.log('props.kind', props.kind);
-
-const cls = KIND_CLASS[props.kind === 'subtask' ? 'subtask' : 'spec'];
+const entry = computed(() => KIND_MAP[props.kind === 'subtask' ? 'subtask' : 'spec']);
+const label = computed(() => entry.value.label);
+const cls = computed(() => entry.value.cls);
 </script>

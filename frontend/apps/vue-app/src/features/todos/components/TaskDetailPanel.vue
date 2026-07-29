@@ -19,14 +19,14 @@
         :animate="{ x: 0 }"
         :exit="{ x: '100%' }"
         :transition="SPRING_SNUG"
-        class="bg-page fixed top-0 right-0 z-[9999] flex h-full w-full max-w-[min(640px,52vw)] flex-col border-l shadow-[0_12px_32px_color-mix(in_oklch,var(--ink)_10%,transparent)] max-sm:max-w-full"
+        class="bg-page fixed top-0 right-0 z-[9999] flex h-full w-full max-w-[min(640px,52vw)] flex-col shadow-[0_12px_32px_color-mix(in_oklch,var(--ink)_10%,transparent)] max-sm:max-w-full"
         role="dialog"
         aria-modal="true"
         aria-labelledby="detail-title"
       >
         <!-- header -->
         <header
-          class="flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4"
+          class="flex shrink-0 items-start justify-between gap-3 px-5 py-4"
         >
           <h2
             id="detail-title"
@@ -93,24 +93,22 @@
                   class="relative flex flex-1 flex-col items-center"
                 >
                   <!-- 连接线 -->
-                  <!-- <span
+                  <span
                     v-if="i > 0"
                     class="absolute top-3.5 right-1/2 w-full"
-                    :class="
-                      i <= statusIndex ? 'border-success' : ''
-                    "
+                    :class="i <= statusIndex ? 'border-success' : ''"
                     style="border-top-width: 1px; transform: translateY(-50%)"
                     aria-hidden="true"
-                  /> -->
+                  />
                   <button
                     type="button"
-                    class="focus-visible:ring-ring flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
+                    class="focus-visible:ring-ring bg-page z-10 flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
                     :class="
                       i < statusIndex
-                        ? 'border-success bg-success/10 text-success'
+                        ? 'border-success text-success'
                         : i === statusIndex
-                          ? 'border-accent/40 bg-accent/10 text-ink'
-                          : 'text-muted opacity-60'
+                          ? 'border-warning/40 text-ink'
+                          : 'text-muted border-secondary'
                     "
                     :aria-pressed="task.status === s"
                     @click="
@@ -166,13 +164,13 @@
                 <KindBadge :kind="task.kind" />
                 <span
                   v-if="task.scope"
-                  class="text-muted rounded-full border px-1.5 py-px text-[10px]"
+                  class="border-chart-5/40 bg-secondary/40 rounded-full px-1.5 py-px text-[10px] font-medium"
                 >
                   {{ task.scope }}
                 </span>
                 <span
                   v-if="task.slug"
-                  class="bg-accent/10 text-ink rounded-full px-1.5 py-px text-[10px] font-medium"
+                  class="bg-accent/10 border-chart-5/40 *:text-ink rounded-full px-1.5 py-px text-[10px] font-medium"
                 >
                   {{ task.slug }}
                 </span>
@@ -211,7 +209,7 @@
                 </span>
                 <span
                   v-if="task.blocked_by && task.blocked_by.length"
-                  class="flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning"
+                  class="bg-warning/15 text-warning flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
                 >
                   ⛔ 依赖 {{ task.blocked_by.length }} 项
                 </span>
@@ -291,27 +289,20 @@
 
         <!-- footer -->
         <footer
-          class="flex shrink-0 items-center justify-between gap-2 border-t px-5 py-3"
+          class="flex shrink-0 items-center justify-between gap-2 px-5 py-3"
         >
-          <button
-            class="text-destructive hover:bg-destructive/10 focus-visible:ring-destructive/30 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          <Button
+            variant="ghost"
+            class="text-destructive! hover:bg-destructive/10! focus-visible:ring-destructive/30! cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             @click="$emit('delete', task!.slug)"
           >
             永久删除
-          </button>
+          </Button>
           <div class="flex items-center gap-2">
-            <button
-              class="text-muted hover:bg-surface focus-visible:ring-ring cursor-pointer rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              @click="$emit('close')"
-            >
+            <Button size="sm" variant="ghost" @click="$emit('close')">
               关闭
-            </button>
-            <button
-              class="bg-accent text-ink hover:bg-accent/90 focus-visible:ring-ring cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              @click="$emit('edit', task!.slug)"
-            >
-              编辑
-            </button>
+            </Button>
+            <Button size="sm" @click="$emit('edit', task!.slug)"> 编辑 </Button>
           </div>
         </footer>
       </motion.aside>
@@ -328,6 +319,7 @@ import { renderMarkdown } from '@/composables';
 import TypeBadge from './TypeBadge.vue';
 import PriorityBadge from './PriorityBadge.vue';
 import KindBadge from './KindBadge.vue';
+import { Button } from '@/components';
 
 // 主线状态流转（有顺序）：已搁置是旁路，不开进主线
 const STATUSES: DevTaskStatus[] = ['待评估', '待排期', '进行中', '已完成'];

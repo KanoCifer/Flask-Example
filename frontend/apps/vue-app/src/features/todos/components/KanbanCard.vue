@@ -1,6 +1,6 @@
 <template>
   <article
-    class="bg-surface/80 group hover:bg-surface flex flex-col gap-2 rounded-xl border p-3 transition-[background-color,transform,opacity] duration-200"
+    class="bg-card/30 group border-border block w-full rounded-3xl border p-3 text-left transition-[background-color,translate,opacity] duration-200"
     :class="[
       isDragging ? 'cursor-grabbing opacity-50' : 'cursor-grab',
       done ? 'opacity-70' : '',
@@ -9,92 +9,28 @@
     @dragstart="onDragStart"
     @dragend="onDragEnd"
   >
-    <!-- 拖拽手柄 + 标题（点击打开，拖拽手柄触发 drag） -->
-    <button
-      type="button"
-      class="focus-visible:ring-ring flex w-full items-start gap-2 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-      @click="$emit('open', task.slug)"
-    >
-      <svg
-        class="text-muted/50 group-hover:text-muted mt-0.5 h-3.5 w-3.5 shrink-0 transition-colors"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M8 6h2M8 12h2M8 18h2M14 6h2M14 12h2M14 18h2"
+    <div class="grid grid-cols-[auto_1fr] items-start gap-3">
+      <!-- LEFT: animal guardian. No ring, no halo — same C-ring style as FrontierCard. -->
+      <div class="relative shrink-0 pt-0.5">
+        <img
+          :src="animalSrc"
+          :alt="''"
+          class="animal-avatar h-[80px] w-[80px] object-cover select-none"
+          draggable="false"
+          loading="lazy"
         />
-      </svg>
-      <!-- 拖动仅作指针用户的视觉提示；键盘用户通过"移动到"菜单操作，
-           故整个卡片不依赖拖拽可达 -->
-      <span
-        class="text-ink line-clamp-2 flex-1 text-sm font-medium"
-        :class="{ 'text-muted line-through': done }"
-        >{{ task.title }}</span
-      >
-    </button>
-
-    <!-- 标签行 -->
-    <div class="flex flex-wrap items-center gap-1">
-      <TypeBadge :type="task.type" />
-      <PriorityBadge :priority="task.priority" />
-      <KindBadge v-if="task.kind === 'subtask'" :kind="task.kind" />
-      <span
-        v-if="task.scope"
-        class="text-muted rounded-full border px-1.5 py-px text-[10px]"
-      >
-        {{ task.scope }}
-      </span>
-      <span
-        v-if="task.slug"
-        class="bg-accent/10 text-ink rounded-full px-1.5 py-px text-[10px] font-medium tabular-nums"
-      >
-        {{ task.slug }}
-      </span>
-    </div>
-
-    <!-- 底部：截止日 + 头像 + 动作 -->
-    <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <MemberAvatar :user-id="task.user_id" size="sm" />
-        <span
-          v-if="task.due_date"
-          class="flex items-center gap-1 text-[10px]"
-          :class="
-            overdue(task.due_date) && !done ? 'text-destructive' : 'text-muted'
-          "
-        >
-          <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fill-rule="evenodd"
-              d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          {{ task.due_date }}
-        </span>
       </div>
 
-      <div
-        class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-      >
-        <!-- 键盘可访问的"移动到"菜单触发器（键盘用户唯一入口） -->
+      <!-- RIGHT: title + chips + (optional desc) + footer -->
+      <div class="flex min-w-0 flex-col gap-1.5">
+        <!-- title row: 6-dot grip (visual drag cue) + clickable title -->
         <button
-          v-if="columns.length > 1"
           type="button"
-          class="text-muted hover:bg-surface hover:text-ink focus-visible:ring-ring relative cursor-pointer rounded-md p-1 transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
-          title="移动到…"
-          aria-label="移动到…"
-          :aria-expanded="moveMenuOpen"
-          :aria-controls="`move-menu-${task.slug}`"
-          @click="$emit('toggle-move-menu', task.slug)"
+          class="focus-visible:ring-ring flex w-full items-start gap-1.5 rounded-md text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          @click="$emit('open', task.slug)"
         >
           <svg
-            class="h-3.5 w-3.5"
+            class="text-muted/50 group-hover:text-muted mt-0.5 h-3.5 w-3.5 shrink-0 transition-colors"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -104,59 +40,139 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M4 12h16m-6-6l6 6-6 6"
+              d="M8 6h2M8 12h2M8 18h2M14 6h2M14 12h2M14 18h2"
             />
           </svg>
-        </button>
-        <button
-          v-if="!done"
-          type="button"
-          class="text-muted hover:bg-surface hover:text-ink focus-visible:ring-ring cursor-pointer rounded-md p-1 transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
-          title="推进状态"
-          aria-label="推进状态"
-          @click="$emit('cycle', task.slug)"
-        >
-          <svg
-            class="h-3.5 w-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            aria-hidden="true"
+          <!-- 拖动仅作指针用户的视觉提示；键盘用户通过"移动到"菜单操作 -->
+          <span
+            class="text-ink line-clamp-2 flex-1 text-sm leading-snug"
+            :class="done ? 'text-muted line-through' : 'font-medium'"
+            >{{ task.title }}</span
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 7l5 5m0 0l-5 5m5-5H6"
-            />
-          </svg>
         </button>
-        <button
-          type="button"
-          class="text-muted hover:bg-destructive/10 hover:text-destructive focus-visible:ring-ring cursor-pointer rounded-md p-1 transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
-          title="删除"
-          aria-label="删除"
-          @click="$emit('delete', task.slug)"
+
+        <!-- chips: type / priority / kind (English labels via the shared chip components) -->
+        <div class="flex flex-wrap items-center gap-1">
+          <StatusChip :type="task.type" />
+          <PriorityBadge :priority="task.priority" />
+          <KindBadge v-if="task.kind" :kind="task.kind" />
+        </div>
+
+        <p
+          v-if="task.description"
+          class="text-muted line-clamp-2 text-xs leading-relaxed"
         >
-          <svg
-            class="h-3.5 w-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            aria-hidden="true"
+          {{ task.description }}
+        </p>
+
+        <!-- footer: avatar + due_date (left) · actions (right, hover-revealed) -->
+        <div class="mt-1 flex items-center justify-between gap-2">
+          <div
+            class="text-muted flex items-center gap-1.5 font-mono text-[11px] tabular-nums"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-        </button>
+            <span
+              v-if="task.due_date"
+              class="flex items-center gap-1"
+              :class="overdue(task.due_date) && !done ? 'text-destructive' : ''"
+            >
+              <svg
+                class="h-[11px] w-[11px] shrink-0"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="2" y="3" width="12" height="11" rx="1.5" />
+                <path d="M2 6.5h12" />
+                <path d="M5.5 1.5v3M10.5 1.5v3" />
+              </svg>
+              <span>{{ dueLabel }}</span>
+            </span>
+          </div>
+
+          <!-- actions (reveal on hover) -->
+          <div class="fc-actions flex items-center gap-1">
+            <button
+              v-if="columns.length > 1"
+              type="button"
+              class="text-muted hover:bg-surface hover:text-ink border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
+              title="移动到…"
+              aria-label="移动到…"
+              :aria-expanded="moveMenuOpen"
+              :aria-controls="`move-menu-${task.slug}`"
+              @click.stop="$emit('toggle-move-menu', task.slug)"
+            >
+              <svg
+                class="h-[11px] w-[11px]"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 8h10" />
+                <path d="M9.5 4.5L13 8l-3.5 3.5" />
+              </svg>
+            </button>
+            <button
+              v-if="!done"
+              type="button"
+              class="text-muted hover:bg-surface hover:text-ink border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
+              title="推进状态"
+              aria-label="推进状态"
+              @click.stop="$emit('cycle', task.slug)"
+            >
+              <svg
+                class="h-[11px] w-[11px]"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 8a5 5 0 0 1 8.5-3.5L13 6" />
+                <path d="M13 3v3h-3" />
+                <path d="M13 8a5 5 0 0 1-8.5 3.5L3 10" />
+                <path d="M3 13v-3h3" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="text-muted hover:text-destructive border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
+              title="删除"
+              aria-label="删除"
+              @click.stop="$emit('delete', task.slug)"
+            >
+              <svg
+                class="h-[11px] w-[11px]"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 4.5h10" />
+                <path d="M6.5 4.5V3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1" />
+                <path
+                  d="M4.5 4.5l.7 8a1 1 0 0 0 1 .9h3.6a1 1 0 0 0 1-.9l.7-8"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 键盘"移动到"菜单：点击触发器以外区域或选完后关闭 -->
+    <!-- keyboard "move to" menu: closes on outside click or selection. Sibling of the grid. -->
     <div
       v-if="moveMenuOpen"
       :id="`move-menu-${task.slug}`"
@@ -169,7 +185,7 @@
         :key="col.id"
         type="button"
         role="menuitem"
-        class="focus-visible:ring-ring block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none hover:bg-surface"
+        class="focus-visible:ring-ring hover:bg-surface block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
         @click="$emit('move', task.slug, col.targetStatus)"
       >
         移动到「{{ col.label }}」
@@ -182,10 +198,9 @@
 import { computed } from 'vue';
 import type { DevTask, DevTaskStatus } from '@/features/todos/api';
 import type { MovableColumn } from './KanbanPanel.vue';
-import TypeBadge from './TypeBadge.vue';
+import StatusChip from './StatusChip.vue';
 import PriorityBadge from './PriorityBadge.vue';
 import KindBadge from './KindBadge.vue';
-import MemberAvatar from './MemberAvatar.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -213,10 +228,50 @@ const emit = defineEmits<{
 
 const done = computed(() => props.task.status === '已完成');
 
+// ── Animal routing (same as FrontierCard, C-ring character-based) ────────────
+function pickAnimal(task: DevTask): string {
+  if (task.due_date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(task.due_date);
+    if (!Number.isNaN(due.getTime())) {
+      if (due < today) return 'fox';
+      const days = (due.getTime() - today.getTime()) / 86400000;
+      if (days <= 3) return 'penguin';
+    }
+  } else {
+    return 'cat';
+  }
+  return task.kind === 'subtask' ? 'rabbit' : 'deer';
+}
+
+// ── Due-date label formatting (same as FrontierCard) ─────────────────────────
+function formatDue(due: string | null | undefined): {
+  text: string;
+  overdue: boolean;
+} {
+  if (!due) return { text: '—', overdue: false };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueDate = new Date(due);
+  if (Number.isNaN(dueDate.getTime())) return { text: due, overdue: false };
+  if (dueDate < today) {
+    const days = Math.floor((today.getTime() - dueDate.getTime()) / 86400000);
+    return { text: `overdue ${days}d`, overdue: true };
+  }
+  const m = dueDate.getMonth() + 1;
+  const d = String(dueDate.getDate()).padStart(2, '0');
+  return { text: `${m}月 ${d}`, overdue: false };
+}
+
+const animalSrc = computed(
+  () => `/images/animal-badge/${pickAnimal(props.task)}.png`,
+);
+const dueLabel = computed(() => formatDue(props.task.due_date).text);
+
 function onDragStart(e: DragEvent) {
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move';
-    // 用 task slug 作为拖拽 payload；备用纯文本保证 Firefox 也能起拖。
     e.dataTransfer.setData('text/plain', props.task.slug);
   }
   emit('dragstart', props.task.slug);
@@ -231,3 +286,21 @@ function overdue(dateStr: string): boolean {
   return new Date(dateStr) < today;
 }
 </script>
+
+<style scoped>
+/* Animal PNG crispness + subtle white drop-shadow (same as FrontierCard). */
+.animal-avatar {
+  image-rendering: -webkit-optimize-contrast;
+  filter: drop-shadow(0 1px 0 oklch(1 0 0 / 0.4));
+}
+
+/* Reveal action buttons on group hover. */
+.fc-actions {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.group:hover .fc-actions,
+.group:focus-within .fc-actions {
+  opacity: 1;
+}
+</style>

@@ -1,7 +1,7 @@
 <template>
   <aside
     :class="[
-      'sidebar-collapse-transition bg-secondary/70 top-20 hidden shrink-0 space-y-1 self-start rounded-tr-xl px-4 py-6 lg:sticky lg:block lg:h-[calc(100vh-5rem)]',
+      'sidebar-collapse-transition bg-secondary/70 top-20 hidden shrink-0 space-y-1 self-start rounded-tr-3xl px-4 py-6 lg:sticky lg:block lg:h-[calc(100vh-5rem)]',
       collapsed ? 'lg:w-14' : 'lg:w-60',
     ]"
   >
@@ -24,7 +24,7 @@
         :aria-label="collapsed ? '展开工作台' : '收起工作台'"
         :aria-expanded="!collapsed"
         aria-controls="todo-sidebar-nav"
-        class="text-muted hover:bg-surface hover:text-ink focus-visible:ring-ring rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        class="text-muted hover:bg-accent/10 hover:text-ink focus-visible:ring-ring rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         @click="collapsed = !collapsed"
       >
         <ChevronLeft v-if="!collapsed" class="h-4 w-4" aria-hidden="true" />

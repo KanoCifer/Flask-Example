@@ -100,7 +100,7 @@
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <span class="text-muted mb-1.5 block text-xs font-medium"
-                >范围
+                >范围 <span class="text-destructive">*</span>
                 <span class="text-muted/60 font-normal"
                   >（自由格式 — 例: 前端-React, 后端-Go, AI-LangChain）</span
                 ></span
@@ -238,19 +238,12 @@
         </button>
         <span v-else></span>
         <div class="flex items-center gap-2">
-          <button
-            @click="emit('close')"
-            class="text-muted hover:bg-surface focus-visible:ring-ring cursor-pointer rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
+          <Button variant="ghost" size="sm" @click="emit('close')">
             取消
-          </button>
-          <button
-            @click="handleSave"
-            :disabled="!form.title.trim()"
-            class="bg-accent text-ink hover:bg-accent/90 focus-visible:ring-ring cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          </Button>
+          <Button size="sm" @click="handleSave" :disabled="!form.title.trim()">
             {{ form.slug ? '保存' : '创建' }}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -271,7 +264,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue';
-import { Modal as UiModal } from '@/components';
+import { Button, Modal as UiModal } from '@/components';
 import { ConfirmDialog } from '@/components';
 import type {
   CreateDevTaskPayload,
