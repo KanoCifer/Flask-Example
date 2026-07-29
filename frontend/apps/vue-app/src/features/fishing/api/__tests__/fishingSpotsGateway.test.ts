@@ -1,20 +1,50 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock the underlying apiClient module —— 与 blogGateway.test.ts 同模式。
-vi.mock('@/api/request', () => ({
-  apiClient: {
-    get: vi.fn(),
-    post: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  },
+// Mock 底层 apiClient —— 网关已迁移到 @readinglist/api。
+// 使用 vi.hoisted 确保 mock 函数在 vi.mock 工厂之前初始化。
+const { mockGet, mockPost, mockPatch, mockDelete } = vi.hoisted(() => ({
+  mockGet: vi.fn(),
+  mockPost: vi.fn(),
+  mockPatch: vi.fn(),
+  mockDelete: vi.fn(),
 }));
 
-import { apiClient } from '@/api/request';
-import { fishingSpotsGateway } from '@/features/fishing/api/fishingSpotsGateway';
-import type { FishingSpot } from '@readinglist/types';
+vi.mock('@readinglist/api', () => {
+  const apiClient = {
+    get: mockGet,
+    post: mockPost,
+    patch: mockPatch,
+    delete: mockDelete,
+  };
 
-const mockedRequest = vi.mocked(apiClient);
+  return {
+    apiClient,
+    fishingSpotGateway: {
+      async list() {
+        const res = await apiClient.get('v3/fish/spots');
+        return res.data.data;
+      },
+      async getByID(id: string) {
+        const res = await apiClient.get(`v3/fish/spots/${id}`);
+        return res.data.data;
+      },
+      async create(payload: unknown) {
+        await apiClient.post('v3/fish/spots', payload);
+      },
+      async update(id: string, payload: unknown) {
+        await apiClient.patch(`v3/fish/spots/${id}`, payload);
+      },
+      async remove(id: string, options: { hard?: boolean } = {}) {
+        await apiClient.delete(`v3/fish/spots/${id}`, {
+          params: { hard: options.hard ? 'true' : undefined },
+        });
+      },
+    },
+  };
+});
+
+import { fishingSpotGateway } from '@readinglist/api';
+import type { FishingSpot } from '@readinglist/types';
 
 const sampleSpot: FishingSpot = {
   id: '64b8',
@@ -39,41 +69,41 @@ describe('fishingSpotsGateway', () => {
 
   describe('list', () => {
     it('GET v3/fish/spots 并解包 data', async () => {
-      mockedRequest.get.mockResolvedValue({
+      mockGet.mockResolvedValue({
         data: { data: [sampleSpot] },
-      });
+      } as never);
 
-      const result = await fishingSpotsGateway.list();
+      const result = await fishingSpotGateway.list();
 
-      expect(mockedRequest.get).toHaveBeenCalledWith('v3/fish/spots');
+      expect(mockGet).toHaveBeenCalledWith('v3/fish/spots');
       expect(result).toEqual([sampleSpot]);
     });
   });
 
   describe('getByID', () => {
     it('GET v3/fish/spots/:id 并解包 data', async () => {
-      mockedRequest.get.mockResolvedValue({
+      mockGet.mockResolvedValue({
         data: { data: sampleSpot },
-      });
+      } as never);
 
-      const result = await fishingSpotsGateway.getByID('64b8');
+      const result = await fishingSpotGateway.getByID('64b8');
 
-      expect(mockedRequest.get).toHaveBeenCalledWith('v3/fish/spots/64b8');
+      expect(mockGet).toHaveBeenCalledWith('v3/fish/spots/64b8');
       expect(result).toEqual(sampleSpot);
     });
   });
 
   describe('create', () => {
     it('POST v3/fish/spots 携带 payload', async () => {
-      mockedRequest.post.mockResolvedValue({ data: { data: null } });
+      mockPost.mockResolvedValue({ data: { data: null } } as never);
 
-      await fishingSpotsGateway.create({
+      await fishingSpotGateway.create({
         name: 'New Spot',
         location: [113.4, 23.06],
         tags: ['lake'],
       });
 
-      expect(mockedRequest.post).toHaveBeenCalledWith('v3/fish/spots', {
+      expect(mockPost).toHaveBeenCalledWith('v3/fish/spots', {
         name: 'New Spot',
         location: [113.4, 23.06],
         tags: ['lake'],
@@ -83,11 +113,11 @@ describe('fishingSpotsGateway', () => {
 
   describe('update', () => {
     it('PATCH v3/fish/spots/:id 携带部分 payload', async () => {
-      mockedRequest.patch.mockResolvedValue({ data: { data: null } });
+      mockPatch.mockResolvedValue({ data: { data: null } } as never);
 
-      await fishingSpotsGateway.update('64b8', { rating: 5 });
+      await fishingSpotGateway.update('64b8', { rating: 5 });
 
-      expect(mockedRequest.patch).toHaveBeenCalledWith('v3/fish/spots/64b8', {
+      expect(mockPatch).toHaveBeenCalledWith('v3/fish/spots/64b8', {
         rating: 5,
       });
     });
@@ -95,21 +125,21 @@ describe('fishingSpotsGateway', () => {
 
   describe('remove', () => {
     it('DELETE v3/fish/spots/:id 默认软删（无 hard 参数）', async () => {
-      mockedRequest.delete.mockResolvedValue({ data: { data: null } });
+      mockDelete.mockResolvedValue({ data: { data: null } } as never);
 
-      await fishingSpotsGateway.remove('64b8');
+      await fishingSpotGateway.remove('64b8');
 
-      expect(mockedRequest.delete).toHaveBeenCalledWith('v3/fish/spots/64b8', {
+      expect(mockDelete).toHaveBeenCalledWith('v3/fish/spots/64b8', {
         params: { hard: undefined },
       });
     });
 
     it('DELETE v3/fish/spots/:id?hard=true 物理删除', async () => {
-      mockedRequest.delete.mockResolvedValue({ data: { data: null } });
+      mockDelete.mockResolvedValue({ data: { data: null } } as never);
 
-      await fishingSpotsGateway.remove('64b8', { hard: true });
+      await fishingSpotGateway.remove('64b8', { hard: true });
 
-      expect(mockedRequest.delete).toHaveBeenCalledWith('v3/fish/spots/64b8', {
+      expect(mockDelete).toHaveBeenCalledWith('v3/fish/spots/64b8', {
         params: { hard: 'true' },
       });
     });

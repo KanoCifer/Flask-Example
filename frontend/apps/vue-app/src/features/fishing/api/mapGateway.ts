@@ -1,14 +1,4 @@
-import { apiClient } from '@/api/request';
+// 地图安全密钥网关已迁移到 @readinglist/api（合并进 fishingGateway），此处重新导出以保持兼容
 
-export interface MapGateway {
-  getSecurityKey(): Promise<{ securityJsCode: string }>;
-}
-
-export const mapGateway: MapGateway = {
-  async getSecurityKey(): Promise<{ securityJsCode: string }> {
-    const res = await apiClient.get<{ data: { securityJsCode: string } }>(
-      'v2/publicv2/amap/security-key',
-    );
-    return res.data.data;
-  },
-};
+export { fishingGateway } from '@readinglist/api';
+export type { FishingGateway } from '@readinglist/api';

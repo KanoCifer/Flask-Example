@@ -12,6 +12,13 @@ export {
   isRefreshTokenRequest,
 } from './refresh';
 
+// ── SSE 流消费工具 ──────────────────────────────────────────────────────
+export {
+  consumeSseStream,
+  parseSseChunk,
+} from './sse';
+export type { SseHandlers, SseRequestOptions } from './sse';
+
 // ── devtask ──────────────────────────────────────────────────────────────
 export { default as devtaskRequest } from './devtaskRequest';
 export { getDevTaskToken, clearDevTaskToken } from './serviceToken';
@@ -45,3 +52,49 @@ export type {
   ExifInfo,
   SaveGalleryPayload,
 } from './gateways/pic';
+
+// ── fishing / weather ─────────────────────────────────────────────────
+export { fishingGateway } from './gateways/fishing';
+export type { FishingGateway } from './gateways/fishing';
+export { fishingSpotGateway } from './gateways/fishingSpot';
+export type {
+  FishingSpotGateway,
+  DeleteFishingSpotOptions,
+} from './gateways/fishingSpot';
+
+// ── social / likes ────────────────────────────────────────────────────
+export { socialGateway } from './gateways/social';
+export type { SocialGateway } from './gateways/social';
+
+// ── changelog ─────────────────────────────────────────────────────────
+export { changelogGateway } from './gateways/changelog';
+export type { ChangelogGateway } from './gateways/changelog';
+
+// ── upload ────────────────────────────────────────────────────────────
+export { uploadGateway } from './gateways/upload';
+export type { UploadGateway, UploadType, UploadConfig } from './gateways/upload';
+
+// ── status / system ───────────────────────────────────────────────────
+export { statusGateway, fetchRecentEvents } from './gateways/status';
+export type { StatusGateway, FetchRecentEventsOptions } from './gateways/status';
+
+// ── device ────────────────────────────────────────────────────────────
+export { deviceGateway } from './gateways/device';
+export type { DeviceGateway } from './gateways/device';
+
+// ── analytics ─────────────────────────────────────────────────────────
+export { analyticsGateway } from './gateways/analytics';
+export type { AnalyticsGateway } from './gateways/analytics';
+
+// ── subscription ──────────────────────────────────────────────────────
+export { subscriptionGateway } from './gateways/subscription';
+export type { SubscriptionGateway } from './gateways/subscription';
+
+// ── rss ──────────────────────────────────────────────────────────────
+export { rssGateway } from './gateways/rss';
+export type { RssGateway } from './gateways/rss';
+export type { SubscriptionItem } from '@readinglist/types';
+
+// ── ai / LLM ─────────────────────────────────────────────────────────
+export { aiGateway } from './gateways/ai';
+export type { AiGateway } from './gateways/ai';

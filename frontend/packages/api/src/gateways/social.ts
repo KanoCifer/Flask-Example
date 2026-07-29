@@ -1,0 +1,21 @@
+import { apiClient } from '../apiClient';
+
+// ── 社交点赞网关（Vue / React 共享）──
+
+export interface SocialGateway {
+  getLikes(): Promise<{ likes_count: number }>;
+  likeOnce(payload: { likes_count: number }): Promise<void>;
+}
+
+export const socialGateway: SocialGateway = {
+  async getLikes(): Promise<{ likes_count: number }> {
+    const res = await apiClient.get<{ data: { likes_count: number } }>(
+      'v2/publicv2/likes',
+    );
+    return res.data.data;
+  },
+
+  async likeOnce(payload: { likes_count: number }): Promise<void> {
+    await apiClient.post('v2/publicv2/like', payload);
+  },
+};

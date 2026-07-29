@@ -1,20 +1,46 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { aiGateway } from '@/features/ai/api/aiGateway';
 
-vi.mock('@/api/request', () => ({
-  apiClient: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
+// Mock 底层 consumeSseStream —— 网关已迁移到 @readinglist/api。
+const { mockConsumeSse } = vi.hoisted(() => ({
+  mockConsumeSse: vi.fn(),
 }));
 
-vi.mock('@/composables/useSseStream', () => ({
-  consumeSseStream: vi.fn(),
-}));
+vi.mock('@readinglist/api', () => {
+  const API_BASE = (() => {
+    const envBase = import.meta.env.VITE_API_BASE || '';
+    if (envBase.startsWith('http://') || envBase.startsWith('https://')) {
+      return envBase;
+    }
+    return `${window.location.protocol}//${window.location.host}${envBase}`;
+  })();
 
-import { consumeSseStream } from '@/composables/useSseStream';
+  const stream = (
+    path: string,
+    body: unknown,
+    handlers: unknown,
+    signal?: AbortSignal,
+  ) =>
+    mockConsumeSse(
+      {
+        url: `${API_BASE}${path}`,
+        body,
+        ...(signal ? { signal } : {}),
+      },
+      handlers,
+    );
+
+  return {
+    consumeSseStream: mockConsumeSse,
+    aiGateway: {
+      streamThread: (body: unknown, handlers: unknown, signal?: AbortSignal) =>
+        stream('/v2/llm/thread/stream', body, handlers, signal),
+      weatherAnalysis: (body: unknown, handlers: unknown, signal?: AbortSignal) =>
+        stream('/v2/llm/weather-analysis', body, handlers, signal),
+    },
+  };
+});
+
+import { aiGateway, consumeSseStream } from '@readinglist/api';
 
 describe('aiGateway', () => {
   beforeEach(() => {

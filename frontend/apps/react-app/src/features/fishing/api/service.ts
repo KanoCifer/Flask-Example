@@ -1,7 +1,10 @@
 import { llmService } from '@/lib';
 import type { StreamFrameType } from '@/lib/llm';
-import { fishingMapGateway } from './gateway';
-import type { AnalysisPayload, SecurityKeyResponse } from '../types';
+import {
+  fishingGateway,
+  type FishingGateway,
+} from '@readinglist/api';
+import type { AnalysisPayload } from '../types';
 import type {
   FishingFeedbackPayload,
   FishingFeedbackResponse,
@@ -50,26 +53,26 @@ export interface FishingMapService {
   ): Promise<FishingFeedbackResponse>;
 }
 
+/**
+ * 钓鱼地图服务 —— 委托给共享 @readinglist/api fishingGateway，
+ * 保留工厂形态以兼容旧消费方。
+ */
 export const fishingMapService = (): FishingMapService => {
-  const gateway = fishingMapGateway();
+  const gateway: FishingGateway = fishingGateway;
 
   return {
     async getTide(payload: {
       harbor: string;
       date: string;
     }): Promise<TideData> {
-      const res = await gateway.getTide(payload);
-      // res: AxiosResponse<ApiEnvelope<TideApiEnvelope>>
-      // envelope.data.data 取最里层 raw TideData
-      return res.data.data.data;
+      // shared gateway 返回 TideApiEnvelope（含 fromCache 元数据），取 .data 得到 raw TideData
+      const envelope = await gateway.getTide(payload);
+      return envelope.data;
     },
 
     async getSecurityJsCode(): Promise<string> {
-      const securityResponse = await gateway.getSecurityKey();
-      const encodedKey =
-        (securityResponse.data.data as SecurityKeyResponse | undefined)
-          ?.securityJsCode ?? '';
-      return encodedKey ? atob(encodedKey) : '';
+      const { securityJsCode } = await gateway.getSecurityKey();
+      return securityJsCode ? atob(securityJsCode) : '';
     },
 
     async generateAnalysis(
@@ -93,9 +96,9 @@ export const fishingMapService = (): FishingMapService => {
       indices: WeatherIndex[];
       tideData: TideData | null;
     }> {
-      const weatherRes = await gateway.getWeatherFull(payload);
-
-      const data = weatherRes.data.data as WeatherFullResponse | undefined;
+      const data = (await gateway.getWeatherFull(
+        payload,
+      )) as WeatherFullResponse | undefined;
       const now = data?.current?.now;
       const daily = data?.daily?.daily;
       const hourly = data?.hourly?.hourly as WeatherHourly[] | undefined;
@@ -119,15 +122,13 @@ export const fishingMapService = (): FishingMapService => {
       location: [number, number];
       enriched?: boolean;
     }): Promise<FishingIndexData> {
-      const res = await gateway.getFishingIndex(payload);
-      return res.data.data;
+      return gateway.getFishingIndex(payload);
     },
 
     async submitFishingFeedback(
       payload: FishingFeedbackPayload,
     ): Promise<FishingFeedbackResponse> {
-      const res = await gateway.postFishingFeedback(payload);
-      return res.data.data;
+      return gateway.postFishingFeedback(payload);
     },
   };
 };

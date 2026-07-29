@@ -1,10 +1,4 @@
-import { apiClient } from '@/api/request';
+// 变更日志网关已迁移到 @readinglist/api，此处重新导出以保持兼容
 
-import type { Changelog } from '@readinglist/types';
-
-export const changelogGateway = {
-  getChangelogs: async (): Promise<Changelog[]> => {
-    const response = await apiClient.get('v2/publicv2/changelogs');
-    return response.data.data;
-  },
-};
+export { changelogGateway } from '@readinglist/api';
+export type { ChangelogGateway } from '@readinglist/api';

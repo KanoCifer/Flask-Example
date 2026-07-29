@@ -1,19 +1,4 @@
-import { apiClient } from '@/api/request';
+// 社交点赞网关已迁移到 @readinglist/api，此处重新导出以保持兼容
 
-export interface SocialGateway {
-  getLikes(): Promise<{ likes_count: number }>;
-  likeOnce(payload: { likes_count: number }): Promise<void>;
-}
-
-export const socialGateway: SocialGateway = {
-  async getLikes(): Promise<{ likes_count: number }> {
-    const res = await apiClient.get<{ data: { likes_count: number } }>(
-      'v2/publicv2/likes',
-    );
-    return res.data.data;
-  },
-
-  async likeOnce(payload: { likes_count: number }): Promise<void> {
-    await apiClient.post('v2/publicv2/like', payload);
-  },
-};
+export { socialGateway } from '@readinglist/api';
+export type { SocialGateway } from '@readinglist/api';

@@ -1,10 +1,9 @@
-import { apiClient } from '@/api/request';
-import { type ApiResponse } from '@/lib';
+// 服务状态网关已迁移到 @readinglist/api，此处重新导出以保持兼容
 
-import type { StatusDetailData } from '@/features/status/types';
+import { statusGateway } from '@readinglist/api';
 
-export async function fetchStatusDetail(): Promise<StatusDetailData> {
-  const res =
-    await apiClient.get<ApiResponse<StatusDetailData>>('v3/status/detail');
-  return res.data.data;
-}
+export { statusGateway };
+export type { StatusGateway } from '@readinglist/api';
+
+// 兼容旧函数名 fetchStatusDetail
+export const fetchStatusDetail = statusGateway.fetchStatusDetail;

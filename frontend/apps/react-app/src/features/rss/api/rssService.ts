@@ -1,13 +1,15 @@
-import type { AxiosResponse } from 'axios';
-
-import { rssGateway } from '@/features/rss/api/rssGateway';
-import { extractData } from '@/api/apiClient';
-import type { ApiResponse } from '@/api/apiClient';
+import {
+  rssGateway,
+  type RssGateway,
+} from '@readinglist/api';
 import type {
   RssArticle,
   RssArticleListResponse,
-  RssSubscription,
+  RefreshResult,
+  SubscriptionItem,
 } from '@readinglist/types';
+
+export type { SubscriptionItem };
 
 // 解析 RSS 响应（解析后未保存到数据库）
 export interface ParsedRssFeed {
@@ -30,26 +32,6 @@ export interface RssEntry {
   author: string | null;
 }
 
-// 刷新订阅结果
-export interface RefreshResult {
-  subscription_id: number;
-  rss_url: string;
-  saved_count: number;
-}
-
-// 订阅列表项（处理后的）
-export interface SubscriptionItem {
-  id: number;
-  rssUrl: string;
-  feedTitle: string | null;
-  feedLink: string | null;
-  feedDescription: string | null;
-  feedPublishedAt: string | null;
-  entryCount: number;
-  lastFetchedAt: string | null;
-  createdAt: string | null;
-}
-
 export interface RssService {
   parseRss(rssUrl: string, saveToDb: boolean): Promise<ParsedRssFeed>;
   getArticles(params: {
@@ -66,18 +48,19 @@ export interface RssService {
   markArticleUnread(articleId: string): Promise<void>;
 }
 
+/**
+ * RSS 服务 —— 委托给共享 @readinglist/api rssGateway，
+ * 保留工厂形态以兼容旧消费方。
+ */
 export const rssService = (): RssService => {
-  const gateway = rssGateway();
+  const gateway: RssGateway = rssGateway;
 
   return {
     async parseRss(rssUrl: string, saveToDb: boolean): Promise<ParsedRssFeed> {
-      const res: AxiosResponse<ParsedRssFeed> = await gateway.parseRss({
+      return gateway.parseRss({
         rss_url: rssUrl,
         save_to_db: saveToDb,
       });
-      return extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as ParsedRssFeed;
     },
 
     async getArticles(params: {
@@ -86,63 +69,31 @@ export const rssService = (): RssService => {
       feed_url?: string;
       search?: string;
     }): Promise<RssArticleListResponse> {
-      const res: AxiosResponse<RssArticleListResponse> =
-        await gateway.getArticles(params);
-      return extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as RssArticleListResponse;
+      return gateway.getArticles(params);
     },
 
     async getArticle(articleId: string): Promise<RssArticle> {
-      const res: AxiosResponse<RssArticle> =
-        await gateway.getArticle(articleId);
-      return extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as RssArticle;
+      return gateway.getArticle(articleId);
     },
 
     async getSubscriptions(): Promise<SubscriptionItem[]> {
-      const res: AxiosResponse<RssSubscription[]> =
-        await gateway.getSubscriptions();
-      const subscriptions = extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as RssSubscription[];
-      return subscriptions.map((sub) => ({
-        id: sub.id,
-        rssUrl: sub.rss_url,
-        feedTitle: sub.feed_title ?? null,
-        feedLink: sub.feed_link ?? null,
-        feedDescription: sub.feed_description ?? null,
-        feedPublishedAt: sub.feed_published_at ?? null,
-        entryCount: sub.entry_count ?? 0,
-        lastFetchedAt: sub.last_fetched_at ?? null,
-        createdAt: sub.created_at ?? null,
-      }));
+      return gateway.getSubscriptions();
     },
 
     async refreshSubscription(subscriptionId: number): Promise<RefreshResult> {
-      const res: AxiosResponse<RefreshResult> =
-        await gateway.refreshSubscription(subscriptionId);
-      const payload = extractData(
-        res as unknown as { data: ApiResponse<unknown> },
-      ) as RefreshResult;
-      return {
-        subscription_id: payload.subscription_id,
-        rss_url: payload.rss_url,
-        saved_count: payload.saved_count,
-      };
+      return gateway.refreshSubscription(subscriptionId);
     },
 
     async deleteSubscription(subscriptionId: number): Promise<void> {
-      await gateway.deleteSubscription(subscriptionId);
+      return gateway.deleteSubscription(subscriptionId);
     },
 
     async markArticleRead(articleId: string): Promise<void> {
-      await gateway.markArticleRead(articleId);
+      return gateway.markArticleRead(articleId);
     },
 
     async markArticleUnread(articleId: string): Promise<void> {
-      await gateway.markArticleUnread(articleId);
+      return gateway.markArticleUnread(articleId);
     },
   };
 };
