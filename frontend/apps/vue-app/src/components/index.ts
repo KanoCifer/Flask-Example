@@ -25,4 +25,5 @@ export { default as BentoCard } from './BentoCard.vue';
 export { default as BentoProfileCard } from './BentoProfileCard.vue';
 export { default as BentoTech } from './BentoTech.vue';
 export { default as FieldError } from './FieldError.vue';
+export { default as ImageViewer } from './ImageViewer.vue';
 export { default as TwikooComments } from './TwikooComments.vue';

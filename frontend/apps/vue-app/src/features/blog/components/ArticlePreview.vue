@@ -21,6 +21,7 @@
  *   - copy-link: footer 上的"复制链接"被点击
  */
 import { formatDate } from '@/lib/dayjs';
+import { ImageViewer } from '@/components';
 import { useOrigin } from '@readinglist/utils';
 import { computed } from 'vue';
 
@@ -80,10 +81,12 @@ const primaryTag = computed(() => props.tags?.[0] || '未分类');
 // 仅在编辑器预览里关闭"刊号带 + kicker + 署名 footer"等装饰，避免窄栏拥挤
 const isCompact = computed(() => props.variant === 'compact');
 
-// 正文中的 <img> 点击事件透传给父组件（编辑器用来打开图片编辑器）
+// 正文中的 <img> 点击事件透传给父组件。
+// 仅在编辑器模式（compact）下使用：详情页由 <ImageViewer> 接管放大行为。
 const onBodyClick = (event: MouseEvent) => {
+  if (isCompact.value) return;
   const target = event.target as HTMLElement | null;
-  if (!target || target.tagName !== 'IMG') return;
+  if (!target || target.tagName !== 'img') return;
   emit('image-click', target as HTMLImageElement);
 };
 </script>
@@ -174,13 +177,14 @@ const onBodyClick = (event: MouseEvent) => {
 
     <!-- 正文 -->
     <div class="prose prose-lg max-w-none">
-      <div
-        class="prose-body"
-        :class="isCompact ? 'prose-body--compact' : null"
-        v-if="bodyHtml"
-        v-html="bodyHtml"
-        @click="onBodyClick"
-      />
+      <ImageViewer v-if="bodyHtml" :enabled="!isCompact">
+        <div
+          class="prose-body"
+          :class="isCompact ? 'prose-body--compact' : null"
+          v-html="bodyHtml"
+          @click="onBodyClick"
+        />
+      </ImageViewer>
       <div v-else class="text-muted italic">暂无内容</div>
     </div>
 
