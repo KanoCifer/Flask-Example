@@ -189,6 +189,6 @@ function readingCountLabel(n: number): string {
 /** 宽卡片场景的 carousel 容器:gap-4 + 滚动 snap 留 1rem padding */
 const listClass = computed(
   () =>
-    '-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10 [scroll-padding-inline:1rem]',
+    '-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto contain-[layout_paint_scroll_style] px-4 pb-2 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10 [scroll-padding-inline:1rem]',
 );
 </script>

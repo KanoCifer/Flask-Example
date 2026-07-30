@@ -24,7 +24,7 @@ const props = withDefaults(
     skeletonCount: 6,
     sectionClass: 'mb-8',
     listClass:
-      '-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:gap-4 sm:px-6 md:-mx-10 md:px-10 [&::-webkit-scrollbar]:hidden',
+      '-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto contain-[layout_paint_scroll_style] px-4 pb-2 sm:-mx-6 sm:gap-4 sm:px-6 md:-mx-10 md:px-10 [&::-webkit-scrollbar]:hidden',
     error: undefined,
     hideWhenEmpty: false,
   },

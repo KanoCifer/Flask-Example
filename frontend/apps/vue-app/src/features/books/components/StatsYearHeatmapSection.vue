@@ -89,7 +89,7 @@ function onCellLeave() {
     </p>
 
     <div
-      class="bg-page/50 overflow-x-auto rounded-lg border p-3 sm:p-4"
+      class="bg-page/50 overflow-x-auto rounded-lg border p-3 contain-[layout_paint_scroll_style] sm:p-4"
       role="img"
       :aria-label="`${year}年阅读足迹,共${totalActiveDays}天有阅读`"
     >
