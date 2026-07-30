@@ -415,6 +415,7 @@ import { AnimatePresence, motion } from 'motion-v';
 import { EASE_INOUT } from '@/constants';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/features/auth';
 import BentoCategory from './components/BentoCategory.vue';
 import BlogListItem from './components/BlogListItem.vue';
 import { Button as UiButton } from '@/components';
@@ -427,11 +428,12 @@ const isLoading = ref(false);
 const errorMessage = ref('');
 const searchQuery = ref<string>('');
 
-const user = ref({
-  isAuthenticated: true,
-  id: 1,
-  isAdmin: false,
-});
+const auth = useAuthStore();
+const user = computed(() => ({
+  id: auth.user?.id ?? 0,
+  isAdmin: auth.isAdmin,
+  isAuthenticated: auth.isAuthenticated,
+}));
 
 const activeTag = ref<string | null>(null);
 

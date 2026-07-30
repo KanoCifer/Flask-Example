@@ -31,6 +31,7 @@ export const sharedBuildConfig = {
   minify: 'oxc',
   cssMinify: true,
   sourcemap: false,
+  cssCodeSplit:true,
   // chunk 超过此大小时发出警告（twikoo 评论组件近 1MB，适度放宽）
   chunkSizeWarningLimit: 1200,
 } as const;

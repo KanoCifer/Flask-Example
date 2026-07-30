@@ -174,26 +174,26 @@ const sites: Website[] = websitesData.sites as Website[];
 // 分类顺序按数据原序去重（保持JSON顺序），并把"全部"作为首位
 const filterOptions = computed<Array<CategoryOption & { count: number }>>(
   () => {
-    const seen = new Map<string, { label: string; order: number }>();
+    const counts = new Map<string, number>();
+    const order = new Map<string, number>();
     sites.forEach((s, i) => {
-      if (!seen.has(s.category)) {
-        seen.set(s.category, { label: s.category, order: i });
+      counts.set(s.category, (counts.get(s.category) ?? 0) + 1);
+      if (!order.has(s.category)) {
+        order.set(s.category, i);
       }
     });
-    const ordered = Array.from(seen.entries())
-      .sort(([, a], [, b]) => a.order - b.order)
-      .map(([category, { label }]) => ({
+    const ordered = Array.from(order.entries())
+      .sort(([, a], [, b]) => a - b)
+      .map(([category]) => ({
         slug: slugify(category),
-        label,
+        label: category,
         category,
+        count: counts.get(category)!,
       }));
 
     return [
       { slug: 'all', label: '全部', category: 'all', count: sites.length },
-      ...ordered.map((o) => ({
-        ...o,
-        count: sites.filter((s) => s.category === o.category).length,
-      })),
+      ...ordered,
     ];
   },
 );

@@ -1,5 +1,4 @@
 import { createHead } from '@vueuse/head';
-import 'highlight.js/styles/atom-one-dark.css';
 import { createPinia, setActivePinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './App.vue';
