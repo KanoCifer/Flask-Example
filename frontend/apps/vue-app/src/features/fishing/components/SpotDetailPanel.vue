@@ -9,6 +9,9 @@
  *
  * 数据流:FishingSpot 经 toMapMarker 拆为 position + extraData,
  * 本组件同时消费两者(详情字段 + 迷你地图 / 路线规划都需要)。
+ *
+ * 编辑模式下的草稿 / 图片 / 上传 / 校验 全部由 useSpotEditor seam 接管(edit 分支),
+ * 模板只做单向绑定 + 触发 startEdit/cancelEdit/saveEdit。
  */
 import {
   ConfirmDialog,
@@ -17,13 +20,11 @@ import {
 } from '@/components';
 import SpotMiniMap from '@/features/fishing/components/SpotMiniMap.vue';
 import SpotPhotoLightbox from '@/features/fishing/components/SpotPhotoLightbox.vue';
-import type { MapMarker, SpotDetail } from '@readinglist/types';
-import type { UpdateFishingSpotPayload } from '@readinglist/types';
+import { useSpotEditor } from '@/features/fishing/composables';
+import type { MapMarker, SpotDetail, UpdateFishingSpotPayload } from '@readinglist/types';
+import { SPOT_MAX_PICTURES } from '@readinglist/types';
 import { fishingSpotsGateway } from '@readinglist/api';
-import { useUpload } from '@/features/upload/composables';
 import { UploadDropzone, UploadProgress } from '@/features/upload/components';
-import { rewriteMediaUrl } from '@/composables';
-import { useNotificationStore } from '@/stores';
 import {
   ImageOff,
   ImagePlus,
@@ -37,7 +38,6 @@ import {
   X,
 } from '@lucide/vue';
 import dayjs from 'dayjs';
-import { v4 as uuidv4 } from 'uuid';
 import { computed, nextTick, ref, watch } from 'vue';
 
 /*
@@ -107,209 +107,73 @@ function openInAmap(): void {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-// ── 编辑模式 ──
-const editing = ref(false);
-const editName = ref('');
-const editDescription = ref('');
-const editTags = ref('');
-const editRating = ref(0);
+// ── 编辑器 seam(edit 模式) ──
+const editor = useSpotEditor({
+  mode: 'edit',
+  initial: spot.value,
+});
+const {
+  draft,
+  pictures,
+  pendingError,
+  isUploading,
+  progress,
+  previewUrl,
+  isDragging,
+  fileInputRef,
+  canAddMore,
+  isEditing,
+  triggerFileInput,
+  handleFileSelect,
+  handleDrop,
+  handleDropzoneSelect,
+  removePicture,
+  clearPreview,
+  retryUpload,
+  startEdit,
+  cancelEdit,
+  buildPayload,
+  resetFrom,
+} = editor;
+
 const saving = ref(false);
-
-// ── 编辑模式 · 图片上传 ──
-// 与 SpotFormPanel 同套交互(最多 9 张,5MB,串行上传),但还要叠加「保留/移除已有图片」。
-// 引入 isExisting 标记,save 时把整张列表提交,后端按整列替换语义覆盖。
-interface EditPicture {
-  id: string;
-  url: string;
-  uploadedAt: string;
-  description: string;
-  isExisting: boolean;
-}
-const MAX_PICTURES = 9;
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const editPictures = ref<EditPicture[]>([]);
-const pendingError = ref<string | null>(null);
-
-const { upload, isUploading, progress } = useUpload({
-  type: 'gallery',
-  maxSize: MAX_UPLOAD_BYTES,
-  allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-});
-
-// 文件选择 / 预览状态
-const fileInputRef = ref<HTMLInputElement | null>(null);
-const selectedFile = ref<File | null>(null);
-const previewUrl = ref<string | null>(null);
-const isDragging = ref(false);
-
-const triggerFileInput = () => fileInputRef.value?.click();
-
-const processFile = (file: File) => {
-  if (!file.type.startsWith('image/')) {
-    useNotificationStore().error('请选择图片文件');
-    return;
-  }
-  if (file.size > MAX_UPLOAD_BYTES) {
-    useNotificationStore().error('图片大小不能超过 5MB');
-    return;
-  }
-  selectedFile.value = file;
-  previewUrl.value = URL.createObjectURL(file);
-};
-
-const handleFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  if (target.files && target.files.length > 0) {
-    processFile(target.files[0]);
-  }
-};
-
-const handleDrop = (event: DragEvent) => {
-  isDragging.value = false;
-  if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-    processFile(event.dataTransfer.files[0]);
-  }
-};
-
-const handleDropzoneSelect = (files: File[]) => {
-  const f = files[0];
-  if (f) processFile(f);
-};
-
-watch(previewUrl, (_, prev) => {
-  if (prev) URL.revokeObjectURL(prev);
-});
-
-const canAddMore = computed(() => editPictures.value.length < MAX_PICTURES);
-
-function resetEditPictures(): void {
-  editPictures.value = [];
-  pendingError.value = null;
-  selectedFile.value = null;
-  previewUrl.value = null;
-}
-
-function startEdit(): void {
-  editName.value = spot.value?.name ?? '';
-  editDescription.value = spot.value?.description ?? '';
-  editTags.value = (spot.value?.tags ?? []).join(', ');
-  editRating.value = spot.value?.rating ?? 0;
-  editPictures.value = (spot.value?.images ?? []).map((url) => ({
-    id: uuidv4().slice(0, 8),
-    url,
-    uploadedAt: '',
-    description: '',
-    isExisting: true,
-  }));
-  pendingError.value = null;
-  selectedFile.value = null;
-  previewUrl.value = null;
-  editing.value = true;
-}
-
-function cancelEdit(): void {
-  resetEditPictures();
-  editing.value = false;
-}
-
-async function saveEdit(): Promise<void> {
-  if (!spot.value) return;
-  saving.value = true;
-  try {
-    const tags = editTags.value
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
-    const images = editPictures.value.map((p) => p.url);
-    const payload: UpdateFishingSpotPayload = {
-      name: editName.value.trim(),
-      description: editDescription.value.trim(),
-      tags,
-      rating: editRating.value,
-      images,
-    };
-    await fishingSpotsGateway.update(spot.value.id, payload);
-    editing.value = false;
-    // 通知父组件同步 marker.extraData
-    const updated: MapMarker = {
-      ...props.marker!,
-      extraData: {
-        ...spot.value,
-        ...payload,
-        tags,
-        images,
-        updated_at: new Date().toISOString(),
-      },
-    };
-    emit('spot-updated', updated);
-    // 提交成功后再清理临时预览/upload 状态;editPictures 列表本身已固化到 spot.images
-    resetEditPictures();
-  } catch (err: unknown) {
-    useNotificationStore().error(
-      err instanceof Error ? err.message : '更新钓点失败',
-    );
-  } finally {
-    saving.value = false;
-  }
-}
-
-// ── 上传流:选中文件后立刻触发 upload(串行) ──
-watch(selectedFile, async (file) => {
-  if (!file) return;
-  if (!canAddMore.value) {
-    selectedFile.value = null;
-    previewUrl.value = null;
-    return;
-  }
-  pendingError.value = null;
-  try {
-    const url = await upload(file);
-    editPictures.value.push({
-      id: uuidv4().slice(0, 8),
-      uploadedAt: dayjs().toISOString(),
-      url: rewriteMediaUrl(url),
-      description: '',
-      isExisting: false,
-    });
-    selectedFile.value = null;
-    previewUrl.value = null;
-  } catch {
-    pendingError.value = '图片上传失败,请重试';
-  }
-});
-
-async function retryUpload(): Promise<void> {
-  if (!selectedFile.value || isUploading.value) return;
-  pendingError.value = null;
-  try {
-    const url = await upload(selectedFile.value);
-    editPictures.value.push({
-      id: uuidv4().slice(0, 8),
-      uploadedAt: dayjs().toISOString(),
-      url: rewriteMediaUrl(url),
-      description: '',
-      isExisting: false,
-    });
-    selectedFile.value = null;
-    previewUrl.value = null;
-  } catch {
-    pendingError.value = '图片上传失败,请重试';
-  }
-}
-
-function removePicture(p: EditPicture): void {
-  editPictures.value = editPictures.value.filter((x) => x.id !== p.id);
-}
-
-function removeFailed(): void {
-  selectedFile.value = null;
-  previewUrl.value = null;
-  pendingError.value = null;
-}
+// fileInputRef 是 template ref,仅在 <input ref="fileInputRef"> 用到 —— 解构后 TS 看不到引用,显式 void 一下避免 TS6133
+void fileInputRef;
 
 function onPickerChange(event: Event): void {
   handleFileSelect(event);
   (event.target as HTMLInputElement).value = '';
+}
+
+async function saveEdit(): Promise<void> {
+  const id = spot.value?.id;
+  if (!id) return;
+  saving.value = true;
+  try {
+    const payload = buildPayload() as UpdateFishingSpotPayload;
+    await fishingSpotsGateway.update(id, payload);
+    // update 不返回实体 —— 用 patch 后的字段 + 父组件 marker 复用,手工构造新 marker
+    const tagsArr = draft.value.tags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const updated: MapMarker = {
+      ...props.marker!,
+      extraData: {
+        ...spot.value!,
+        ...payload,
+        tags: tagsArr,
+        images: pictures.value.map((p) => p.url),
+        updated_at: new Date().toISOString(),
+      },
+    };
+    emit('spot-updated', updated);
+    // 父组件 watch(marker.extraData) 会触发 resetFrom 重派生 + 退到只读
+  } catch (err: unknown) {
+    console.error('更新钓点失败:', err);
+  } finally {
+    saving.value = false;
+  }
 }
 
 // ── 删除 ──
@@ -356,12 +220,21 @@ function trapFocus(e: KeyboardEvent): void {
   }
 }
 
+// marker 切换:从新 initial 重派生 + 退到只读
+watch(
+  () => props.marker?.extraData,
+  (next) => {
+    if (next) resetFrom(next);
+  },
+);
+
+// 打开时:清空编辑态 + focus
 watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) {
       triggerEl = (document.activeElement as HTMLElement) ?? null;
-      editing.value = false;
+      cancelEdit();
       await nextTick();
       const first = panelRef.value?.querySelector<HTMLElement>(FOCUSABLE);
       first?.focus();
@@ -456,7 +329,7 @@ watch(
           </p>
 
           <!-- 编辑模式 -->
-          <div v-if="editing" class="space-y-4">
+          <div v-if="isEditing" class="space-y-4">
             <div>
               <label
                 class="text-ink mb-1.5 block text-sm font-medium"
@@ -465,7 +338,7 @@ watch(
               >
               <input
                 id="edit-name"
-                v-model="editName"
+                v-model="draft.name"
                 type="text"
                 class="bg-surface text-ink focus:ring-accent/30 w-full rounded-xl border-0 px-4 py-3 text-sm focus:ring-2 focus:outline-none"
               />
@@ -478,7 +351,7 @@ watch(
               >
               <textarea
                 id="edit-desc"
-                v-model="editDescription"
+                v-model="draft.description"
                 rows="4"
                 class="bg-surface text-ink focus:ring-accent/30 w-full resize-none rounded-xl border-0 px-4 py-3 text-sm leading-relaxed focus:ring-2 focus:outline-none"
               />
@@ -491,7 +364,7 @@ watch(
               >
               <input
                 id="edit-tags"
-                v-model="editTags"
+                v-model="draft.tags"
                 type="text"
                 class="bg-surface text-ink focus:ring-accent/30 w-full rounded-xl border-0 px-4 py-3 text-sm focus:ring-2 focus:outline-none"
               />
@@ -507,19 +380,19 @@ watch(
                   type="button"
                   class="p-0.5"
                   :aria-label="`${i} 星`"
-                  @click="editRating = i"
+                  @click="draft.rating = i"
                 >
                   <Star
                     class="h-5 w-5"
                     :class="
-                      i <= editRating
+                      i <= draft.rating
                         ? 'fill-warning text-warning'
                         : 'text-muted/30'
                     "
                   />
                 </button>
                 <span class="text-muted ml-2 text-xs tabular-nums">
-                  {{ editRating.toFixed(1) }}
+                  {{ draft.rating.toFixed(1) }}
                 </span>
               </div>
             </div>
@@ -542,14 +415,14 @@ watch(
               <!-- 空态:通用 UploadDropzone -->
               <UploadDropzone
                 v-if="
-                  editPictures.length === 0 &&
+                  pictures.length === 0 &&
                   !previewUrl &&
                   !spot?.images.length
                 "
                 accept="image/*"
                 :disabled="isUploading"
                 prompt="点击或拖拽图片到此处"
-                :hint="`最多 ${MAX_PICTURES} 张,单张 ≤5MB`"
+                :hint="`最多 ${SPOT_MAX_PICTURES} 张,单张 ≤5MB`"
                 @select="handleDropzoneSelect"
               />
 
@@ -557,16 +430,16 @@ watch(
               <div v-else class="grid grid-cols-3 gap-2">
                 <!-- 已有 / 新增图片(均支持移除) -->
                 <div
-                  v-for="p in editPictures"
+                  v-for="p in pictures"
                   :key="p.id"
                   class="group bg-surface relative aspect-square overflow-hidden rounded-xl"
-                  :class="{ 'opacity-60': !p.isExisting && !pendingError }"
+                  :class="{ 'opacity-60': !!p.uploadedAt && !pendingError }"
                 >
                   <img :src="p.url" alt="" class="h-full w-full object-cover" />
                   <button
                     type="button"
                     class="bg-page/80 text-ink hover:bg-page absolute top-1.5 right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full opacity-0 shadow-sm backdrop-blur-md transition-opacity group-hover:opacity-100"
-                    :aria-label="p.isExisting ? '移除旧图片' : '移除新图片'"
+                    aria-label="移除图片"
                     @click="removePicture(p)"
                   >
                     <X class="h-3.5 w-3.5" />
@@ -624,7 +497,7 @@ watch(
                       <button
                         type="button"
                         class="bg-surface text-ink hover:bg-surface/70 rounded-md px-2 py-1 text-xs font-medium"
-                        @click="removeFailed"
+                        @click="clearPreview"
                       >
                         移除
                       </button>
@@ -639,7 +512,7 @@ watch(
                   class="bg-surface hover:bg-surface/70 group relative aspect-square overflow-hidden rounded-xl border-2 border-dashed transition-colors"
                   :class="{ 'border-ink': isDragging }"
                   :aria-label="'添加图片'"
-                  :title="`还可上传 ${MAX_PICTURES - editPictures.length} 张`"
+                  :title="`还可上传 ${SPOT_MAX_PICTURES - pictures.length} 张`"
                   @click="triggerFileInput"
                   @dragover.prevent
                   @dragleave.prevent="isDragging = false"
@@ -658,7 +531,7 @@ watch(
               </div>
 
               <p class="text-muted mt-1.5 text-xs tabular-nums">
-                {{ editPictures.length }} / {{ MAX_PICTURES }}
+                {{ pictures.length }} / {{ SPOT_MAX_PICTURES }}
               </p>
             </div>
 
@@ -741,7 +614,7 @@ watch(
           <!-- 管理操作 -->
           <div class="flex items-center justify-end gap-1">
             <button
-              v-if="!editing"
+              v-if="!isEditing"
               type="button"
               class="text-muted hover:bg-surface hover:text-ink inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
               @click="startEdit"
@@ -750,7 +623,7 @@ watch(
               编辑
             </button>
             <button
-              v-if="!editing"
+              v-if="!isEditing"
               type="button"
               class="text-muted hover:bg-destructive/10 hover:text-destructive inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
               @click="confirmDelete"

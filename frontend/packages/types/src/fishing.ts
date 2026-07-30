@@ -75,6 +75,46 @@ export type UpdateFishingSpotPayload = Partial<CreateFishingSpotPayload>;
 export type SpotDetail = Omit<FishingSpot, 'location'>;
 
 // ---------------------------------------------------------------------------
+// 钓点编辑器(view 层契约，与 useSpotEditor seam 配套)
+// ---------------------------------------------------------------------------
+
+/**
+ * 编辑器内的"图片条目" view-model —— 来自 initial.images(edit 模式)或本地新增上传(create 模式)。
+ *
+ * 与 DTO `images: string[]` 区别:组件层需要在选片/上传过程中维护每个条目的 id / uploadedAt / description,
+ * 所以 seam 的 picture 列表是 `{id, url, ...}` 而不是纯字符串数组,提交时再 .map(p => p.url) 拍平。
+ */
+export interface SpotPicture {
+  id: string;
+  uploadedAt: string;
+  url: string;
+  description: string;
+}
+
+/**
+ * 编辑器草稿 —— create 与 edit 共用同一份字段结构,行为差异由 seam 内部分支。
+ *
+ * - create 模式:全字段必填(name 必填;kind/coordinate 后置必填,canSubmit 守住)
+ * - edit 模式:location 不在草稿里(交给 marker / 后端),kind 可回填;pictures 走单独 ref。
+ */
+export interface SpotEditorDraft {
+  name: string;
+  description: string;
+  /** 编辑器内用逗号分隔的字符串;提交时 split → trim → filter(Boolean) → tags: string[] */
+  tags: string;
+  rating: number;
+  /** create 模式下必填(null = 未选);edit 模式下可空字符串,与后端保持一致。 */
+  kind: FishingSpotKind | null;
+  /** [lng, lat] —— create 模式必填;edit 模式始终 null,坐标编辑走其他 seam。 */
+  coordinate: [number, number] | null;
+}
+
+/** 单钓点图片上限 9 —— 与 SpotFormPanel / SpotDetailPanel 既有 MAX_PICTURES 对齐。 */
+export const SPOT_MAX_PICTURES = 9;
+/** 单张图片字节上限 5MB —— 与 SpotFormPanel / SpotDetailPanel 既有 MAX_UPLOAD_BYTES 对齐。 */
+export const SPOT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+// ---------------------------------------------------------------------------
 // 潮汐
 // ---------------------------------------------------------------------------
 

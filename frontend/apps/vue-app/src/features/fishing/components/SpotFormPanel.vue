@@ -9,22 +9,20 @@
  * - 内容堆叠:顶交互迷你地图选点 + 下方表单(480px 内放弃两栏)
  *
  * 与 SpotDetailPanel / AnalysisPanel 三者互斥(父组件 useFishingDashboard 保证)。
+ *
+ * 草稿 / 图片 / 上传 / 校验 全部由 useSpotEditor seam 接管 —— 模板只做单向绑定。
  */
 import SpotMiniMap from '@/features/fishing/components/SpotMiniMap.vue';
-import type {
-  CreateFishingSpotPayload,
-  FishingSpotKind,
-} from '@readinglist/types';
+import { useSpotEditor } from '@/features/fishing/composables';
+import type { CreateFishingSpotPayload } from '@readinglist/types';
 import {
   FISHING_SPOT_KINDS,
   FISHING_SPOT_KIND_LABELS,
+  SPOT_MAX_PICTURES,
 } from '@readinglist/types';
 import { fishingSpotsGateway } from '@readinglist/api';
 import { DEFAULT_MAP_CENTER } from '@/features/fishing/stores/fishingMap';
-import { useUpload } from '@/features/upload/composables';
 import { UploadDropzone, UploadProgress } from '@/features/upload/components';
-import { rewriteMediaUrl } from '@/composables';
-import { useNotificationStore } from '@/stores';
 import {
   ImagePlus,
   ImageOff,
@@ -34,8 +32,6 @@ import {
   Star,
   X,
 } from '@lucide/vue';
-import dayjs from 'dayjs';
-import { v4 as uuidv4 } from 'uuid';
 import { computed, nextTick, ref, watch } from 'vue';
 import { SlideFadeTransitionX, Button as UiButton } from '@/components';
 
@@ -65,168 +61,74 @@ const CARD_SHADOW = [
   'inset 0 1px 0 0 oklch(from var(--page) l c h / 0.6)',
 ].join(', ');
 
-// ── 表单字段 ──
-const name = ref('');
-const description = ref('');
-const tags = ref('');
-const rating = ref(0);
-const coordinate = ref<[number, number] | null>(null);
-/** 水体类型 — 新建必填。selecting null 表示尚未选择,提交被拦截。 */
-const kind = ref<FishingSpotKind | null>(null);
-/** 提交时若 kind 未选,聚焦到 chip 组并展示错误;UI 用 shake 反馈,但不抖动。仅用一个标记位去重防止重复滚动。 */
-const kindTouched = ref(false);
+// ── 草稿 seam(create 模式):负责 draft / pictures / pendingError / 上传 / 校验 / 提交流 ──
+const editor = useSpotEditor({
+  mode: 'create',
+  initialLocation: props.initialCenter,
+});
+// 解构到 setup 顶层,模板里直接写 draft.xxx / pictures(自动解包),不再 editor.xxx.value
+const {
+  draft,
+  pictures,
+  pendingError,
+  isUploading,
+  progress,
+  previewUrl,
+  isDragging,
+  fileInputRef,
+  kindTouched,
+  canAddMore,
+  canSubmit: editorCanSubmit,
+  triggerFileInput,
+  handleFileSelect,
+  handleDrop,
+  handleDropzoneSelect,
+  removePicture,
+  clearPreview,
+  retryUpload,
+  buildPayload,
+  resetAfterSubmit,
+} = editor;
+
+const submitting = ref(false);
+const error = ref('');
+// fileInputRef 是 template ref,仅在 <input ref="fileInputRef"> 用到 —— 解构后 TS 看不到引用,显式 void 一下避免 TS6133
+void fileInputRef;
 
 const kinds = FISHING_SPOT_KINDS;
 
-// ── 钓点图片 ──
-// 与照片墙 Picture 同形,但本地定义(避免跨域 import @/features/pic 类型)。
-interface SpotPicture {
-  id: string;
-  uploadedAt: string;
-  url: string;
-  description: string;
+const canSubmit = computed(() => editorCanSubmit.value && !submitting.value);
+
+/** radiogroup 键处理 —— 与 ARIA radiogroup pattern 一致: ← / → / ↑ / ↓ 切换选中。 */
+function onKindKeydown(event: KeyboardEvent): void {
+  const k = event.key;
+  if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') {
+    return;
+  }
+  event.preventDefault();
+  const idx = draft.value.kind === null ? 0 : kinds.indexOf(draft.value.kind);
+  const dir = k === 'ArrowLeft' || k === 'ArrowUp' ? -1 : 1;
+  const nextIdx = (idx + dir + kinds.length) % kinds.length;
+  draft.value.kind = kinds[nextIdx]!;
+  kindTouched.value = true;
 }
 
-// ── 图片上传:useUpload + 本地文件选择/预览,串行上传,单钓点最多 9 张 ──
-const MAX_PICTURES = 9;
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const pictures = ref<SpotPicture[]>([]);
-const pendingError = ref<string | null>(null);
-
-const { upload, isUploading, progress } = useUpload({
-  type: 'gallery',
-  maxSize: MAX_UPLOAD_BYTES,
-  allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-});
-
-// 文件选择 / 预览状态(原 useGalleryUpload 职责,现由组件自管)
-const fileInputRef = ref<HTMLInputElement | null>(null);
-const selectedFile = ref<File | null>(null);
-const previewUrl = ref<string | null>(null);
-const isDragging = ref(false);
-
-const triggerFileInput = () => fileInputRef.value?.click();
-
-// 校验 + 生成预览(对齐旧 useGalleryUpload.processFile 的 toast 行为)
-const processFile = (file: File) => {
-  if (!file.type.startsWith('image/')) {
-    useNotificationStore().error('请选择图片文件');
-    return;
-  }
-  if (file.size > MAX_UPLOAD_BYTES) {
-    useNotificationStore().error('图片大小不能超过 5MB');
-    return;
-  }
-  selectedFile.value = file;
-  previewUrl.value = URL.createObjectURL(file);
-};
-
-const handleFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  if (target.files && target.files.length > 0) {
-    processFile(target.files[0]);
-  }
-};
-
-const handleDrop = (event: DragEvent) => {
-  isDragging.value = false;
-  if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-    processFile(event.dataTransfer.files[0]);
-  }
-};
-
-// 通用 UploadDropzone `@select` 适配：取首个文件走原有校验/预览/自动上传链。
-const handleDropzoneSelect = (files: File[]) => {
-  const f = files[0];
-  if (f) processFile(f);
-};
-
-// 释放旧预览 object URL,避免内存泄漏(对齐旧 useGalleryUpload 的 watch)
-watch(previewUrl, (_, prev) => {
-  if (prev) URL.revokeObjectURL(prev);
-});
-
-const canAddMore = computed(() => pictures.value.length < MAX_PICTURES);
-
-// ── 提交状态 ──
-const submitting = ref(false);
-const error = ref('');
-
-// ── 校验 ──
-const canSubmit = computed(
-  () =>
-    name.value.trim().length > 0 &&
-    coordinate.value !== null &&
-    kind.value !== null &&
-    !isUploading.value,
-);
-
-// ── 上传流:选中文件后立刻触发 upload(串行) ──
-watch(selectedFile, async (file) => {
-  if (!file) return;
-  if (!canAddMore.value) {
-    // 防御性:上限后不应再有 selectedFile(+ 瓦片已隐藏),清空避免残留预览
-    selectedFile.value = null;
-    previewUrl.value = null;
-    return;
-  }
-  pendingError.value = null;
-  try {
-    const url = await upload(file);
-    pictures.value.push({
-      id: uuidv4().slice(0, 8),
-      uploadedAt: dayjs().toISOString(),
-      url: rewriteMediaUrl(url),
-      description: '',
-    });
-    selectedFile.value = null;
-    previewUrl.value = null;
-  } catch {
-    pendingError.value = '图片上传失败,请重试';
-  }
-});
-
-/** 打开时重置草稿 */
-watch(
-  () => props.open,
-  (isOpen) => {
-    if (isOpen) {
-      name.value = '';
-      description.value = '';
-      tags.value = '';
-      rating.value = 0;
-      coordinate.value = null;
-      error.value = '';
-      pictures.value = [];
-      pendingError.value = null;
-      selectedFile.value = null;
-      previewUrl.value = null;
-    }
-  },
-);
+function onPickerChange(event: Event): void {
+  handleFileSelect(event);
+  // 重置 input value,使再次选择同一文件能触发 change
+  (event.target as HTMLInputElement).value = '';
+}
 
 async function handleSubmit(): Promise<void> {
-  if (!canSubmit.value) {
+  if (!editorCanSubmit.value) {
     // canSubmit 为 false 时若 kind 仍未选,标记 touched 触发红边错误态
-    if (kind.value === null) kindTouched.value = true;
+    if (draft.value.kind === null) kindTouched.value = true;
     return;
   }
   submitting.value = true;
   error.value = '';
   try {
-    const tagsArr = tags.value
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
-    const payload: CreateFishingSpotPayload = {
-      name: name.value.trim(),
-      location: coordinate.value!,
-      kind: kind.value!,
-      description: description.value.trim(),
-      tags: tagsArr,
-      rating: rating.value,
-      images: pictures.value.map((p) => p.url),
-    };
+    const payload = buildPayload() as CreateFishingSpotPayload;
     await fishingSpotsGateway.create(payload);
     emit('created', payload.name);
     emit('close');
@@ -236,67 +138,6 @@ async function handleSubmit(): Promise<void> {
   } finally {
     submitting.value = false;
   }
-}
-
-// 弹窗每次新打开,清空 kind 与 touched;表单其他字段由父组件决定是否保留
-watch(
-  () => props.open,
-  (isOpen) => {
-    if (isOpen) {
-      kind.value = null;
-      kindTouched.value = false;
-    }
-  },
-);
-
-/** radiogroup 键处理 —— 与 ARIA radiogroup pattern 一致: ← / → / ↑ / ↓ 切换选中。 */
-function onKindKeydown(event: KeyboardEvent): void {
-  const k = event.key;
-  if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') {
-    return;
-  }
-  event.preventDefault();
-  const idx = kind.value === null ? 0 : kinds.indexOf(kind.value);
-  const dir =
-    k === 'ArrowLeft' || k === 'ArrowUp' ? -1 : 1;
-  const nextIdx = (idx + dir + kinds.length) % kinds.length;
-  kind.value = kinds[nextIdx];
-  kindTouched.value = true;
-}
-
-// ── 图片操作 ──
-async function retryUpload(): Promise<void> {
-  if (!selectedFile.value || isUploading.value) return;
-  pendingError.value = null;
-  try {
-    const url = await upload(selectedFile.value);
-    pictures.value.push({
-      id: uuidv4().slice(0, 8),
-      uploadedAt: dayjs().toISOString(),
-      url: rewriteMediaUrl(url),
-      description: '',
-    });
-    selectedFile.value = null;
-    previewUrl.value = null;
-  } catch {
-    pendingError.value = '图片上传失败,请重试';
-  }
-}
-
-function removePicture(p: SpotPicture): void {
-  pictures.value = pictures.value.filter((x) => x.id !== p.id);
-}
-
-function removeFailed(): void {
-  selectedFile.value = null;
-  previewUrl.value = null;
-  pendingError.value = null;
-}
-
-function onPickerChange(event: Event): void {
-  handleFileSelect(event);
-  // 重置 input value,使再次选择同一文件能触发 change
-  (event.target as HTMLInputElement).value = '';
 }
 
 // ── 无障碍:focus trap + Esc + restore focus ──
@@ -320,6 +161,18 @@ function trapFocus(e: KeyboardEvent): void {
   }
 }
 
+// 打开时:重置草稿(沿用 seam 暴露的 resetAfterSubmit — create 分支全清)。
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      resetAfterSubmit();
+      error.value = '';
+    }
+  },
+);
+
+// 焦点 trap + restore
 watch(
   () => props.open,
   async (isOpen) => {
@@ -393,9 +246,9 @@ watch(
             </div>
             <SpotMiniMap
               :center="initialCenter"
-              :position="coordinate ?? undefined"
+              :position="draft.coordinate ?? undefined"
               interactive
-              @update:position="coordinate = $event"
+              @update:position="draft.coordinate = $event"
             />
             <div
               class="bg-surface flex items-center justify-between rounded-xl px-4 py-2.5"
@@ -403,11 +256,11 @@ watch(
               <span class="text-muted text-xs">坐标</span>
               <span
                 class="text-ink font-mono text-xs tabular-nums"
-                :class="{ 'text-muted/50': !coordinate }"
+                :class="{ 'text-muted/50': !draft.coordinate }"
               >
                 {{
-                  coordinate
-                    ? `${coordinate[0].toFixed(6)}, ${coordinate[1].toFixed(6)}`
+                  draft.coordinate
+                    ? `${draft.coordinate[0].toFixed(6)}, ${draft.coordinate[1].toFixed(6)}`
                     : '点击右侧地图选点'
                 }}
               </span>
@@ -425,7 +278,7 @@ watch(
               >
               <input
                 id="spot-form-name"
-                v-model="name"
+                v-model="draft.name"
                 type="text"
                 placeholder="例如:南沙天后宫矶钓位"
                 class="bg-surface text-ink placeholder:text-muted/60 focus:ring-accent/30 w-full rounded-xl border-0 px-4 py-3 text-sm focus:ring-2 focus:outline-none"
@@ -441,7 +294,7 @@ watch(
               >
               <textarea
                 id="spot-form-desc"
-                v-model="description"
+                v-model="draft.description"
                 rows="3"
                 placeholder="水情、目标鱼、最佳出钓时段..."
                 class="bg-surface text-ink placeholder:text-muted/60 focus:ring-accent/30 w-full resize-none rounded-xl border-0 px-4 py-3 text-sm leading-relaxed focus:ring-2 focus:outline-none"
@@ -458,12 +311,12 @@ watch(
               <div
                 :class="[
                   'flex gap-2 rounded-2xl p-1',
-                  kindTouched && kind === null ? 'ring-2 ring-offset-1 ring-offset-[var(--page)] ring-[color:var(--destructive)]/40' : '',
+                  kindTouched && draft.kind === null ? 'ring-2 ring-offset-1 ring-offset-[var(--page)] ring-[color:var(--destructive)]/40' : '',
                 ]"
                 role="radiogroup"
                 aria-labelledby="spot-form-kind-label"
-                :aria-invalid="kindTouched && kind === null ? 'true' : 'false'"
-                :aria-describedby="kindTouched && kind === null ? 'spot-form-kind-error' : undefined"
+                :aria-invalid="kindTouched && draft.kind === null ? 'true' : 'false'"
+                :aria-describedby="kindTouched && draft.kind === null ? 'spot-form-kind-error' : undefined"
                 @keydown="onKindKeydown"
               >
                 <button
@@ -471,18 +324,18 @@ watch(
                   :key="k"
                   type="button"
                   role="radio"
-                  :aria-checked="kind === k"
+                  :aria-checked="draft.kind === k"
                   :aria-label="FISHING_SPOT_KIND_LABELS[k]"
-                  :tabindex="kind === k || (kind === null && k === kinds[0]) ? 0 : -1"
+                  :tabindex="draft.kind === k || (draft.kind === null && k === kinds[0]) ? 0 : -1"
                   class="bg-surface text-ink hover:border-accent/60 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
                   :class="
-                    kind === k
+                    draft.kind === k
                       ? 'bg-accent text-ink border-accent font-medium'
                       : 'border-border'
                   "
                   @click="
                     () => {
-                      kind = k;
+                      draft.kind = k;
                       kindTouched = true;
                     }
                   "
@@ -492,7 +345,7 @@ watch(
                 </button>
               </div>
               <p
-                v-if="kindTouched && kind === null"
+                v-if="kindTouched && draft.kind === null"
                 id="spot-form-kind-error"
                 class="text-destructive mt-1.5 text-xs"
                 role="alert"
@@ -510,7 +363,7 @@ watch(
               >
               <input
                 id="spot-form-tags"
-                v-model="tags"
+                v-model="draft.tags"
                 type="text"
                 placeholder="矶钓, 海鲈, 夜钓(逗号分隔)"
                 class="bg-surface text-ink placeholder:text-muted/60 focus:ring-accent/30 w-full rounded-xl border-0 px-4 py-3 text-sm focus:ring-2 focus:outline-none"
@@ -530,22 +383,22 @@ watch(
                   type="button"
                   class="p-0.5"
                   :aria-label="`${i} 星`"
-                  @click="rating = i"
+                  @click="draft.rating = i"
                 >
                   <Star
                     class="h-5 w-5 transition-colors"
                     :class="
-                      i <= rating
+                      i <= draft.rating
                         ? 'fill-warning text-warning'
                         : 'text-muted/30'
                     "
                   />
                 </button>
                 <span
-                  v-if="rating > 0"
+                  v-if="draft.rating > 0"
                   class="text-muted ml-2 text-xs tabular-nums"
                 >
-                  {{ rating.toFixed(1) }}
+                  {{ draft.rating.toFixed(1) }}
                 </span>
               </div>
             </div>
@@ -571,7 +424,7 @@ watch(
                 accept="image/*"
                 :disabled="isUploading"
                 prompt="点击或拖拽图片到此处"
-                :hint="`最多 ${MAX_PICTURES} 张,单张 ≤5MB`"
+                :hint="`最多 ${SPOT_MAX_PICTURES} 张,单张 ≤5MB`"
                 @select="handleDropzoneSelect"
               />
 
@@ -645,7 +498,7 @@ watch(
                       <button
                         type="button"
                         class="bg-surface text-ink hover:bg-surface/70 rounded-md px-2 py-1 text-xs font-medium"
-                        @click="removeFailed"
+                        @click="clearPreview"
                       >
                         移除
                       </button>
@@ -660,7 +513,7 @@ watch(
                   class="bg-surface hover:bg-surface/70 group relative aspect-square overflow-hidden rounded-xl border-2 border-dashed transition-colors"
                   :class="{ 'border-ink': isDragging }"
                   :aria-label="'添加图片'"
-                  :title="`还可上传 ${MAX_PICTURES - pictures.length} 张`"
+                  :title="`还可上传 ${SPOT_MAX_PICTURES - pictures.length} 张`"
                   @click="triggerFileInput"
                   @dragover.prevent
                   @dragleave.prevent="isDragging = false"
@@ -679,7 +532,7 @@ watch(
               </div>
 
               <p class="text-muted mt-1.5 text-xs tabular-nums">
-                {{ pictures.length }} / {{ MAX_PICTURES }}
+                {{ pictures.length }} / {{ SPOT_MAX_PICTURES }}
               </p>
             </div>
           </div>
@@ -699,7 +552,7 @@ watch(
           </button>
           <UiButton
             size="md"
-            :disabled="!canSubmit || submitting"
+            :disabled="!canSubmit"
             @click="handleSubmit"
           >
             <Loader2 v-if="submitting" class="h-4 w-4 animate-spin" />
