@@ -298,50 +298,6 @@ onUnmounted(() => {
 }
 
 /*
- * 图标交叉淡入淡出 —— 无 motion 库时用 CSS 过渡模仿 (principle #7)
- * 默认态:enter 图标显示 / exit 图标隐藏;is-active 翻转
- * cubic-bezier(0.2, 0, 0, 1) 提供 enter 与 exit 双向动画
- */
-.icon-crossfade {
-  position: relative;
-  display: inline-flex;
-  width: 1rem;
-  height: 1rem;
-}
-.icon-crossfade__item {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  transition:
-    opacity 200ms cubic-bezier(0.2, 0, 0, 1),
-    transform 200ms cubic-bezier(0.2, 0, 0, 1),
-    filter 200ms cubic-bezier(0.2, 0, 0, 1);
-}
-.icon-crossfade__item--enter {
-  opacity: 1;
-  transform: scale(1);
-  filter: blur(0);
-}
-.icon-crossfade__item--exit {
-  opacity: 0;
-  transform: scale(0.25);
-  filter: blur(4px);
-}
-.icon-crossfade.is-active .icon-crossfade__item--enter {
-  opacity: 0;
-  transform: scale(0.25);
-  filter: blur(4px);
-}
-.icon-crossfade.is-active .icon-crossfade__item--exit {
-  opacity: 1;
-  transform: scale(1);
-  filter: blur(0);
-}
-.icon-crossfade.is-active .icon-crossfade__item--exit.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-/*
  * InfoWindow preview card —— AMap 把内容塞到 amap-info-content 容器下(脱离本组件作用域),
  * 用 :deep 命中 fish-preview-card 子级,接管字体 / 微阴影。
  * 业务颜色(--ink / --page / --muted)走主题 token。

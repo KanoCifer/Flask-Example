@@ -1,0 +1,58 @@
+/**
+ * 图标交叉淡入淡出 —— FishingSidebar / MapContainer 共有。
+ * 用 CSS 过渡模拟 enter/exit 图标交替（无需 motion 库）。
+ *
+ * 默认态:enter 图标可见,exit 图标隐藏;.is-active 翻转两者。
+ * transition:opacity + transform + filter;200ms cubic-bezier(0.2,0,0,1)。
+ */
+
+.icon-crossfade {
+  position: relative;
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+}
+
+.icon-crossfade__item {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  transition:
+    opacity 200ms cubic-bezier(0.2, 0, 0, 1),
+    transform 200ms cubic-bezier(0.2, 0, 0, 1),
+    filter 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.icon-crossfade__item--enter {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+.icon-crossfade__item--exit {
+  opacity: 0;
+  transform: scale(0.25);
+  filter: blur(4px);
+}
+
+.icon-crossfade.is-active .icon-crossfade__item--enter {
+  opacity: 0;
+  transform: scale(0.25);
+  filter: blur(4px);
+}
+
+.icon-crossfade.is-active .icon-crossfade__item--exit {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+.icon-crossfade.is-active .icon-crossfade__item--exit.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-crossfade__item {
+    transition: none;
+  }
+}

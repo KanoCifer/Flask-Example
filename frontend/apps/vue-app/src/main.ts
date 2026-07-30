@@ -9,6 +9,7 @@ import './styles/backgrounds.css'; // 背景渐变
 import './styles/base.scss'; // font-face sass
 import './styles/route-transitions.css'; // 路由过渡动画 keyframes
 import './styles/squircle.css';
+import './styles/icon-crossfade.css';
 import './lib/echarts';
 import './lib/dayjs';
 import { initVisitorWebSocket } from './lib';

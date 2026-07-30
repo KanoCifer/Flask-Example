@@ -376,50 +376,7 @@ const PIN_KIND_BG: Record<FishingSpotKind, string> = {
   background: var(--ink);
 }
 
-/*
- * 图标交叉淡入 —— 与 MapContainer 顶栏定位按钮保持一致节奏。
- */
-.icon-crossfade {
-  position: relative;
-  display: inline-flex;
-  width: 1rem;
-  height: 1rem;
-}
-.icon-crossfade__item {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  transition:
-    opacity 200ms cubic-bezier(0.2, 0, 0, 1),
-    transform 200ms cubic-bezier(0.2, 0, 0, 1),
-    filter 200ms cubic-bezier(0.2, 0, 0, 1);
-}
-.icon-crossfade__item--enter {
-  opacity: 1;
-  transform: scale(1);
-  filter: blur(0);
-}
-.icon-crossfade__item--exit {
-  opacity: 0;
-  transform: scale(0.25);
-  filter: blur(4px);
-}
-.icon-crossfade.is-active .icon-crossfade__item--enter {
-  opacity: 0;
-  transform: scale(0.25);
-  filter: blur(4px);
-}
-.icon-crossfade.is-active .icon-crossfade__item--exit {
-  opacity: 1;
-  transform: scale(1);
-  filter: blur(0);
-}
-.icon-crossfade.is-active .icon-crossfade__item--exit.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .icon-crossfade__item,
   .filter-chip,
   .spot-row {
     transition: none;
