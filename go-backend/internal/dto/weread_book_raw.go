@@ -18,7 +18,7 @@ type WereadBookRaw struct {
 	WordCount        int            `json:"wordCount"`
 	NewRating        float64        `json:"newRating"`
 	NewRatingCount   int            `json:"newRatingCount"`
-	NewRatingDetails map[string]int `json:"newRatingDetail"`
+	NewRatingDetails map[string]any `json:"newRatingDetail"`
 }
 
 // ToDTO 将原生响应映射为前端契约 DTO（bookId→id、intro→introduction、newRatingDetail→newRatingDetails）。

@@ -21,7 +21,7 @@ type WereadBookResponse struct {
 	WordCount        int            `json:"wordCount"`
 	NewRating        float64        `json:"newRating"`
 	NewRatingCount   int            `json:"newRatingCount"`
-	NewRatingDetails map[string]int `json:"newRatingDetails"`
+	NewRatingDetails map[string]any `json:"newRatingDetails"`
 	FetchedAt        time.Time      `json:"fetched_at"`
 }
 
