@@ -28,7 +28,7 @@
           title="刷新任务列表"
           @click="store.fetchTasks()"
         >
-          <RotateCcw class="size-4" />
+          <RotateCcw class="size-4" :class="{ 'animate-spin': store.loading }" />
         </UiButton>
         <UiButton
           variant="outline"

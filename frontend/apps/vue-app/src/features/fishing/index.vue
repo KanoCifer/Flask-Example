@@ -7,15 +7,21 @@
  * dashboard 状态在这里创建并下发，子页注入取用 —— 切页不重挂载、不重复拉钓点。
  */
 defineOptions({ name: 'FishingLayout' });
-import AnalysisPanel from '@/features/fishing/components/AnalysisPanel.vue';
-import FeedbackFormDialog from '@/features/fishing/components/FeedbackFormDialog.vue';
 import FishingTopBar from '@/features/fishing/components/FishingTopBar.vue';
-import SpotDetailPanel from '@/features/fishing/components/SpotDetailPanel.vue';
 import { provideFishingDashboard } from '@/features/fishing/composables/useFishingDashboard';
 import { defineAsyncComponent } from 'vue';
 
 const SpotFormPanel = defineAsyncComponent(
   () => import('@/features/fishing/components/SpotFormPanel.vue'),
+);
+const FeedbackFormDialog = defineAsyncComponent(
+  () => import('@/features/fishing/components/FeedbackFormDialog.vue'),
+);
+const AnalysisPanel = defineAsyncComponent(
+  () => import('@/features/fishing/components/AnalysisPanel.vue'),
+);
+const SpotDetailPanel = defineAsyncComponent(
+  () => import('@/features/fishing/components/SpotDetailPanel.vue'),
 );
 
 const dash = provideFishingDashboard();

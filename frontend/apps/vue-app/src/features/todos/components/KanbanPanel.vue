@@ -13,7 +13,7 @@
 
     <!-- ── 四列看板 ── -->
     <div
-      class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+      class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start"
       role="list"
       aria-label="开发任务看板"
     >
@@ -21,7 +21,7 @@
         v-for="col in KANBAN_COLUMNS"
         :key="col.id"
         role="listitem"
-        class="bg-surface/40 flex min-h-96 flex-col rounded-xl border p-3 transition-colors"
+        class="bg-surface/40 flex min-h-96 max-h-[calc(100dvh-10rem)] flex-col rounded-xl border p-3 transition-colors"
         :class="
           dragOverColumn === col.id
             ? 'border-accent/60 bg-accent/5 ring-accent/30 ring-1'
@@ -52,7 +52,7 @@
 
         <!-- 泳道 + 卡片 -->
         <div
-          class="flex max-h-[calc(200vh)] min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
+          class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
         >
           <div
             v-for="lane in swimlanesFor(col.id)"
@@ -74,46 +74,44 @@
               v-for="task in lane.tasks"
               :key="task.slug"
               :task="task"
-              :columns="MOVABLE_COLUMNS"
               :is-dragging="draggedSlug === task.slug"
-              :move-menu-open="openMoveMenuSlug === task.slug"
               @open="$emit('open', $event)"
               @cycle="$emit('cycle', $event)"
               @delete="$emit('delete', $event)"
-              @move="handleMove"
-              @toggle-move-menu="toggleMoveMenu(task.slug)"
               @dragstart="onDragStart(task.slug)"
               @dragend="onDragEnd"
             />
           </div>
 
           <!-- 空列提示 -->
-          <div
-            v-if="!swimlanesFor(col.id).length"
-            class="text-muted/60 flex flex-1 flex-col items-center justify-center gap-1.5 py-6 text-center text-xs"
-          >
-            <template v-if="dragOverColumn === col.id">
-              <span class="font-serif text-sm">松开以放置</span>
-            </template>
-            <template v-else>
-              <svg
-                class="text-muted/30 h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              <span class="font-serif text-sm">此列暂无任务</span>
-              <span class="text-muted/50">从待办拖一个过来</span>
-            </template>
-          </div>
+          <Transition name="fade-fast">
+            <div
+              v-if="!swimlanesFor(col.id).length"
+              class="text-muted/60 flex flex-1 flex-col items-center justify-center gap-1.5 py-6 text-center text-xs"
+            >
+              <template v-if="dragOverColumn === col.id">
+                <span class="font-serif text-sm">松开以放置</span>
+              </template>
+              <template v-else>
+                <svg
+                  class="text-muted/30 h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                <span class="font-serif text-sm">此列暂无任务</span>
+                <span class="text-muted/50">从待办拖一个过来</span>
+              </template>
+            </div>
+          </Transition>
         </div>
       </section>
     </div>
@@ -175,20 +173,10 @@ export const KANBAN_COLUMNS: KanbanColumn[] = [
   },
 ];
 
-// 键盘可访问的"移动到"菜单所需的最简列信息（不含展示用的 dotClass）。
-export interface MovableColumn {
-  id: KanbanColumnId;
-  label: string;
-  targetStatus: DevTaskStatus;
-}
-
-export const MOVABLE_COLUMNS: MovableColumn[] = KANBAN_COLUMNS.map(
-  ({ id, label, targetStatus }) => ({ id, label, targetStatus }),
-);
 </script>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
 import type {
   DevTask,
@@ -211,33 +199,6 @@ const searchTerm = ref('');
 const draggedSlug = ref<string | null>(null);
 const dragOverColumn = ref<KanbanColumnId | null>(null);
 
-// ── 键盘"移动到"菜单：当前打开菜单的卡片 slug（null 表示无） ──
-const openMoveMenuSlug = ref<string | null>(null);
-function toggleMoveMenu(slug: string) {
-  openMoveMenuSlug.value = openMoveMenuSlug.value === slug ? null : slug;
-}
-function closeMoveMenu() {
-  openMoveMenuSlug.value = null;
-}
-async function handleMove(slug: string, targetStatus: DevTaskStatus) {
-  openMoveMenuSlug.value = null;
-  const task = store.tasks.find((t) => t.slug === slug);
-  if (!task || task.status === targetStatus) return;
-  await store.updateTask(slug, { status: targetStatus });
-}
-
-// 点击菜单外部区域时关闭菜单（避免菜单打开后悬停在卡片上）。
-watch(openMoveMenuSlug, (slug) => {
-  if (!slug) return;
-  const onDocClick = (e: MouseEvent) => {
-    const menu = document.querySelector(`#move-menu-${CSS.escape(slug)}`);
-    const target = e.target as Node;
-    if (menu && !menu.contains(target)) closeMoveMenu();
-  };
-  // 延迟到下一拍绑定，避免触发 toggle 的点击立即把菜单关掉。
-  setTimeout(() => document.addEventListener('click', onDocClick, true), 0);
-  return () => document.removeEventListener('click', onDocClick, true);
-});
 
 function onDragStart(slug: string) {
   draggedSlug.value = slug;
@@ -373,3 +334,27 @@ defineEmits<{
   delete: [slug: string];
 }>();
 </script>
+
+<style scoped>
+/* ── Empty-state fade (FADE_FAST: 0.18s ease-in, 0.12s ease-out) ── */
+.fade-fast-enter-active {
+  opacity: 0;
+  animation: ffi-opacity-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.fade-fast-leave-active {
+  animation: ffi-opacity-out 0.12s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes ffi-opacity-in {
+  to { opacity: 1; }
+}
+@keyframes ffi-opacity-out {
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-fast-enter-active,
+  .fade-fast-leave-active {
+    animation-duration: 0.01ms;
+  }
+}
+</style>

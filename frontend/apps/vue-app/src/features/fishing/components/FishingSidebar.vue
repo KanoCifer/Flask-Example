@@ -295,42 +295,12 @@ const PIN_KIND_BG: Record<FishingSpotKind, string> = {
                 {{ String(index + 1).padStart(2, '0') }}
               </span>
 
-              <!-- 鱼形 pin (与地图 marker 同 SVG) -->
-              <span
-                class="mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
-                :class="
-                  spot.kind === 'lake'
-                    ? 'text-accent'
-                    : spot.kind === 'river'
-                      ? 'text-secondary'
-                      : spot.kind === 'reservoir'
-                        ? 'text-ink'
-                        : 'text-muted'
-                "
-                aria-hidden="true"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  style="transform: rotate(-45deg)"
-                >
-                  <path
-                    d="M21 12c-2.5-3.5-7-5-10.5-4.2L8 4 4 8l3 3C5.2 14.6 4 17 4 18c2 1 5 1.5 8 1 3.5-.5 6.5-2 8-4 .5-.6 1-1.4 1-3z"
-                    fill="currentColor"
-                    stroke-linejoin="round"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </span>
-
               <!-- 右列主内容 -->
               <div class="min-w-0 flex-1">
                 <p
                   class="text-ink font-family-averia truncate text-[15px] leading-tight font-semibold"
                 >
-                  {{ spot.extraData?.name ?? '未命名钓点' }}
+                  {{ spot.extraData?.name || '未命名钓点' }}
                 </p>
                 <p
                   v-if="regionLabel(spot)"

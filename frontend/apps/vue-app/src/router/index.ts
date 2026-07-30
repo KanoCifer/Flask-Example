@@ -1,33 +1,3 @@
-import {
-  EntryView,
-  FishingMapLayout,
-  FishingMapView,
-  FriendLinksView,
-  ChangelogView,
-  WebsitesView,
-} from './views';
-import { AboutView, NotFound, PrivacyPolicyView } from '@/features/pages/views';
-import { ColorShowcaseView } from '@/features/color/views';
-import {
-  LoginView,
-  RegisterView,
-  ProfileSettingView,
-} from '@/features/auth/views';
-import { BookShelf, BookStats, ImportBook } from '@/features/books/views';
-import {
-  BlogListView,
-  BlogPostView,
-  BlogEditorView,
-} from '@/features/blog/views';
-import { TodoListView } from '@/features/todos/views';
-import { MomentListView } from '@/features/moments/views';
-import { PicGallery } from '@/features/pic/views';
-import { RssSubscriptionsView, RssArticleView } from '@/features/rss/views';
-import { AnalyticsView } from '@/features/analytics/views';
-import { SubscriptionView } from '@/features/subscription/views';
-import { DeviceTracker } from '@/features/device/views';
-import { ImageToolboxView } from '@/features/toolbox/views';
-import { StatusView } from '@/features/status/views';
 import { useAuthStore } from '@/features/auth';
 import { reportVisitorData } from '@/lib';
 import {
@@ -73,7 +43,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'entry',
-      component: EntryView,
+      component: () => import('@/features/entry/EntryView.vue'),
       meta: {
         title: "Entry - Kuroome's Blog",
         description: "欢迎来到 Kuroome's Blog，探索个人阅读清单和博客文章",
@@ -83,7 +53,7 @@ const router = createRouter({
     {
       path: '/about',
       name: 'about',
-      component: AboutView,
+      component: () => import('@/features/pages/about/AboutView.vue'),
       meta: {
         title: "关于我 - Kuroome's Blog",
         description: "关于 Kuroome's Blog 项目和作者的介绍",
@@ -93,7 +63,7 @@ const router = createRouter({
     {
       path: '/version-log',
       name: 'version-log',
-      component: ChangelogView,
+      component: () => import('@/features/changelog/ChangelogView.vue'),
       meta: {
         title: "变更日志 - Kuroome's Blog",
         description: '网站更新历史与变更记录',
@@ -103,7 +73,7 @@ const router = createRouter({
     {
       path: '/websites',
       name: 'websites',
-      component: WebsitesView,
+      component: () => import('@/features/websites/WebsitesView.vue'),
       meta: {
         title: "推荐网站 - Kuroome's Blog",
         description: '发现有趣的网站和工具',
@@ -113,7 +83,7 @@ const router = createRouter({
     {
       path: '/friend-links',
       name: 'friend-links',
-      component: FriendLinksView,
+      component: () => import('@/features/friend-links/FriendLinksView.vue'),
       meta: {
         title: "友情链接 - Kuroome's Blog",
         description: '与志同道合的朋友交换链接',
@@ -123,7 +93,7 @@ const router = createRouter({
     {
       path: '/privacy',
       name: 'privacy',
-      component: PrivacyPolicyView,
+      component: () => import('@/features/pages/privacy/PrivacyPolicyView.vue'),
       meta: {
         title: "隐私政策 - Kuroome's Blog",
         description: '了解本站如何收集、使用和保护您的个人信息',
@@ -134,12 +104,12 @@ const router = createRouter({
       // 布局壳：顶栏 + 浮层常驻，主体由子路由切换。父路由不设 name，
       // 避免被 push 到父路由时主体区域空白。
       path: '/fishing-map',
-      component: FishingMapLayout,
+      component: () => import('@/features/fishing/index.vue'),
       children: [
         {
           path: '',
           name: 'fishing-map',
-          component: FishingMapView,
+          component: () => import('@/features/fishing/map/MapView.vue'),
           meta: {
             title: "钓鱼地图 - Kuroome's Blog",
             description: '探索钓鱼地点和钓点信息',
@@ -161,7 +131,7 @@ const router = createRouter({
     {
       path: '/todos',
       name: 'todo-list',
-      component: TodoListView,
+      component: () => import('@/features/todos/TodoListView.vue'),
       meta: {
         title: "开发任务 - Kuroome's Blog",
         description: '网站开发需求和实现清单',
@@ -171,7 +141,7 @@ const router = createRouter({
     {
       path: '/blog',
       name: 'blog-list',
-      component: BlogListView,
+      component: () => import('@/features/blog/BlogListView.vue'),
       meta: {
         title: "博客列表 - Kuroome's Blog",
         description: '个人博客文章列表，分享技术心得和生活感悟',
@@ -182,19 +152,19 @@ const router = createRouter({
     {
       path: '/blog/new',
       name: 'blog-new',
-      component: BlogEditorView,
+      component: () => import('@/features/blog/BlogEditorView.vue'),
       meta: { requiresAuth: true, title: "发布文章 - Kuroome's Blog" },
     },
     {
       path: '/blog/:id/edit',
       name: 'blog-edit',
-      component: BlogEditorView,
+      component: () => import('@/features/blog/BlogEditorView.vue'),
       meta: { requiresAuth: true, title: "编辑文章 - Kuroome's Blog" },
     },
     {
       path: '/blog/category/:categoryId',
       name: 'blog-category',
-      component: BlogListView,
+      component: () => import('@/features/blog/BlogListView.vue'),
       meta: {
         title: "博客分类 - Kuroome's Blog",
         description: '按分类浏览博客文章',
@@ -205,7 +175,7 @@ const router = createRouter({
     {
       path: '/blog/:id',
       name: 'blog-post',
-      component: BlogPostView,
+      component: () => import('@/features/blog/BlogPostView.vue'),
       meta: {
         title: "博客文章 - Kuroome's Blog",
         description: '博客文章详情页',
@@ -216,7 +186,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: LoginView,
+      component: () => import('@/features/auth/LoginView.vue'),
       meta: {
         title: "登录 - Kuroome's Blog",
         description: "登录 Kuroome's Blog",
@@ -227,7 +197,7 @@ const router = createRouter({
     {
       path: '/register',
       name: 'register',
-      component: RegisterView,
+      component: () => import('@/features/auth/RegisterView.vue'),
       meta: {
         title: "注册 - Kuroome's Blog",
         description: "注册 Kuroome's Blog 账户",
@@ -238,7 +208,7 @@ const router = createRouter({
     {
       path: '/settings',
       name: 'settings',
-      component: ProfileSettingView,
+      component: () => import('@/features/auth/ProfileSettingView.vue'),
       meta: {
         requiresAuth: true,
         title: "个人设置 - Kuroome's Blog",
@@ -250,7 +220,7 @@ const router = createRouter({
     {
       path: '/import',
       name: 'import',
-      component: ImportBook,
+      component: () => import('@/features/books/ImportBook.vue'),
       meta: {
         requiresAuth: true,
         title: "导入书籍 - Kuroome's Blog",
@@ -261,7 +231,7 @@ const router = createRouter({
     {
       path: '/bookshelf',
       name: 'bookshelf',
-      component: BookShelf,
+      component: () => import('@/features/books/BookShelf.vue'),
       meta: {
         title: "书架 - Kuroome's Blog",
         description: '个人书架，管理你的阅读清单和书籍信息',
@@ -273,7 +243,7 @@ const router = createRouter({
     {
       path: '/bookshelf/stats',
       name: 'bookshelf-stats',
-      component: BookStats,
+      component: () => import('@/features/books/BookStats.vue'),
       meta: {
         title: "阅读统计 - Kuroome's Blog",
         description: '微信读书阅读统计数据与趋势分析',
@@ -284,7 +254,7 @@ const router = createRouter({
     {
       path: '/analytics',
       name: 'analytics',
-      component: AnalyticsView,
+      component: () => import('@/features/analytics/AnalyticsView.vue'),
       meta: {
         requiresAuth: true,
         title: '网站数据分析',
@@ -295,7 +265,7 @@ const router = createRouter({
     {
       path: '/subscription',
       name: 'subscription',
-      component: SubscriptionView,
+      component: () => import('@/features/subscription/SubscriptionView.vue'),
       meta: {
         requiresAuth: true,
         title: "订阅管理 - Kuroome's Blog",
@@ -306,7 +276,7 @@ const router = createRouter({
     {
       path: '/device-tracker',
       name: 'device-tracker',
-      component: DeviceTracker,
+      component: () => import('@/features/device/DeviceTracker.vue'),
       meta: {
         requiresAuth: true,
         title: "设备管理 - Kuroome's Blog",
@@ -317,7 +287,7 @@ const router = createRouter({
     {
       path: '/gallery',
       name: 'gallery',
-      component: PicGallery,
+      component: () => import('@/features/pic/PicGallery.vue'),
       meta: {
         title: "照片墙 - Kuroome's Blog",
         description: '展示精选图片的画廊，支持拖拽浏览',
@@ -328,7 +298,7 @@ const router = createRouter({
     {
       path: '/rss',
       name: 'rss',
-      component: RssSubscriptionsView,
+      component: () => import('@/features/rss/RssSubscriptionsView.vue'),
       meta: {
         title: "RSS 工作台 - Kuroome's Blog",
         requiresAuth: true,
@@ -360,7 +330,7 @@ const router = createRouter({
     {
       path: '/rss/articles/:id',
       name: 'rss-article',
-      component: RssArticleView,
+      component: () => import('@/features/rss/RssArticleView.vue'),
       meta: {
         title: "RSS 阅读 - Kuroome's Blog",
         requiresAuth: true,
@@ -369,7 +339,7 @@ const router = createRouter({
     {
       path: '/write',
       name: 'blog-write',
-      component: BlogEditorView,
+      component: () => import('@/features/blog/BlogEditorView.vue'),
       meta: {
         requiresAuth: true,
         title: "写文章 - Kuroome's Blog",
@@ -380,7 +350,7 @@ const router = createRouter({
     {
       path: '/moments',
       name: 'moments',
-      component: MomentListView,
+      component: () => import('@/features/moments/MomentListView.vue'),
       meta: {
         title: "碎碎念 - Kuroome's Blog",
         description: '日常的只言片语，汇成一卷散装活页。',
@@ -390,7 +360,7 @@ const router = createRouter({
     {
       path: '/color',
       name: 'color-showcase',
-      component: ColorShowcaseView,
+      component: () => import('@/features/color/ColorShowcaseView.vue'),
       meta: {
         title: "配色工坊 - Kuroome's Blog",
         description:
@@ -401,7 +371,7 @@ const router = createRouter({
     {
       path: '/toolbox/image-toolbox',
       name: 'image-toolbox',
-      component: ImageToolboxView,
+      component: () => import('@/features/toolbox/ImageToolboxView.vue'),
       meta: {
         title: "图片工具箱 - Kuroome's Blog",
         description: '本地图片压缩与格式转换工具',
@@ -411,7 +381,7 @@ const router = createRouter({
     {
       path: '/status',
       name: 'status',
-      component: StatusView,
+      component: () => import('@/features/status/StatusView.vue'),
       meta: {
         title: "服务状态 - Kuroome's Blog",
         description: '查看 Kuroome Blog 各项服务的实时运行状况',
@@ -422,7 +392,7 @@ const router = createRouter({
       // 通配符匹配所有未定义的路径
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
-      component: NotFound,
+      component: () => import('@/features/pages/not-found/NotFound.vue'),
     },
   ],
 });

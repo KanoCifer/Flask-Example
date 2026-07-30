@@ -1,6 +1,17 @@
 <template>
   <!-- 地图实例 -->
   <div ref="containerRef" class="map-container relative">
+    <!-- 图层切换按钮 -->
+    <button
+      type="button"
+      class="bg-page/90 text-ink hover:bg-page/40 absolute right-2.5 bottom-35 z-60 flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm backdrop-blur-md transition-all duration-200 ease-out active:scale-95"
+      aria-label="切换卫星图"
+      @click="toggleMapLayer"
+    >
+      <Map v-if="isSatellite" class="h-5 w-5" />
+      <Globe v-else class="h-5 w-5" />
+    </button>
+
     <!-- 添加钓点按钮 -->
     <button
       type="button"
@@ -46,12 +57,15 @@
 </template>
 
 <script setup lang="ts">
-import { Loader2, Locate, Plus } from '@lucide/vue';
+import { Globe, Loader2, Locate, Map, Plus } from '@lucide/vue';
 import type { FishingSpotKind, MapMarker } from '@readinglist/types';
-import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
 import { loadAMapNamespace } from '@/features/fishing/composables/amapNamespace';
-import { FishingMapRuntime } from '@/features/fishing/composables/fishingMapRuntime';
-import type { FishingMapInstance } from '@/features/fishing/composables/fishingMapRuntime';
+import type { AMapWithPlugins } from '@/features/fishing/composables/amapNamespace';
+import {
+  type FishingMapInstance,
+  type MarkerClickPayload,
+  FishingMapRuntime,
+} from '@/features/fishing/composables/fishingMapRuntime';
 import { DEFAULT_MAP_CENTER } from '@/features/fishing/stores/fishingMap';
 import { onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue';
 
@@ -99,28 +113,38 @@ const emit = defineEmits<{
 
 let map: AMap.Map | null = null;
 let runtime: FishingMapRuntime | null = null;
+let amap: AMapWithPlugins | null = null;
 let clickHandler: ((e: unknown) => void) | null = null;
 
 const isLocating = ref(false);
+const isSatellite = ref(false);
+
+function toggleMapLayer() {
+  if (!map || !amap) return;
+  isSatellite.value = !isSatellite.value;
+  map.setLayers(
+    isSatellite.value
+      ? [new amap.TileLayer.Satellite()]
+      : [new amap.TileLayer()],
+  );
+}
 
 onMounted(async () => {
   try {
-    const AMap = await loadAMapNamespace();
+    const loaded = await loadAMapNamespace();
+    amap = loaded;
     if (!containerRef.value) return;
 
-    map = new AMap.Map(containerRef.value, {
+    map = new loaded.Map(containerRef.value, {
       viewMode: '2D',
       zoom: 11,
       center: DEFAULT_MAP_CENTER,
-      layers: [new AMap.TileLayer.Satellite()],
+      // layers: [new AMap.TileLayer.Satellite()],
       mapStyle: 'amap://styles/normal',
     });
 
-    map.addControl(new AMap.ToolBar({ position: 'RT' }));
-    map.addControl(new AMap.Scale());
-
     // 行为下沉到 runtime;map 实例由本组件持有,卸载时销毁
-    runtime = new FishingMapRuntime(map, AMap);
+    runtime = new FishingMapRuntime(map, loaded);
     runtime.onMarkerClick = (payload) => emit('markerClick', payload);
     runtime.renderMarkers(props.markers);
     // 初始化可见性
@@ -249,6 +273,7 @@ onUnmounted(() => {
  * transition 同时跑 opacity + transform —— 任务 282 要求 200ms。
  */
 .fish-marker {
+  background-color: #ffffff;
   transition:
     opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 200ms cubic-bezier(0.22, 1, 0.36, 1);

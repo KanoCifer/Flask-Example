@@ -14,7 +14,6 @@ import {
   V3_STATUSES,
 } from '@/features/todos/composables/devTaskPolicy';
 
-// 重新导出供未迁移的消费方（如 router meta）继续使用 V3_STATUSES。
 export { V3_STATUSES };
 
 export const useV3DevTaskStore = defineStore('v3-devtasks', () => {
@@ -23,17 +22,21 @@ export const useV3DevTaskStore = defineStore('v3-devtasks', () => {
   const notifier = useNotificationStore();
 
   async function fetchTasks(): Promise<void> {
-    loading.value = true;
+    // 首次加载显示骨架屏（loading=true），后续刷新静默替换（loading 不变）
+    const isFirstLoad = tasks.value.length === 0;
+    if (isFirstLoad) loading.value = true;
     try {
-      // 看板展示全量；v3 分页默认 per_page=10，提高到 200 覆盖个人工作台量级。
       const res = await devTaskGateway.list({ per_page: 200 });
-      // 过滤已软删除的；后端 filter 默认 is_deleted=false，此处做防御性兜底
       tasks.value = res.tasks.filter((t) => !t.is_deleted);
     } catch (err) {
+      if (err instanceof Error) {
+        notifier.error(err.message);
+      } else {
+        notifier.error('获取任务失败');
+      }
       console.error('fetch v3 devtasks error:', err);
-      notifier.error('加载开发任务失败');
     } finally {
-      loading.value = false;
+      if (isFirstLoad) loading.value = false;
     }
   }
 
@@ -45,8 +48,12 @@ export const useV3DevTaskStore = defineStore('v3-devtasks', () => {
       tasks.value = [task, ...tasks.value];
       return task;
     } catch (err) {
+      if (err instanceof Error) {
+        notifier.error(err.message);
+      } else {
+        notifier.error('创建任务失败');
+      }
       console.error('create v3 devtask error:', err);
-      notifier.error('创建任务失败');
       return null;
     }
   }
@@ -55,15 +62,22 @@ export const useV3DevTaskStore = defineStore('v3-devtasks', () => {
     slug: string,
     patch: UpdateDevTaskPayload,
   ): Promise<boolean> {
+    // 乐观更新：先改本地，再打后端
+    tasks.value = tasks.value.map((t) =>
+      t.slug === slug ? { ...t, ...patch } : t,
+    );
     try {
       await devTaskGateway.update(slug, patch);
-      tasks.value = tasks.value.map((t) =>
-        t.slug === slug ? { ...t, ...patch } : t,
-      );
       return true;
     } catch (err) {
+      // 后端失败 → 回滚
+      await fetchTasks();
+      if (err instanceof Error) {
+        notifier.error(err.message);
+      } else {
+        notifier.error('更新任务失败');
+      }
       console.error('update v3 devtask error:', err);
-      notifier.error('更新任务失败');
       return false;
     }
   }

@@ -96,30 +96,6 @@
           <!-- actions (reveal on hover) -->
           <div class="fc-actions flex items-center gap-1">
             <button
-              v-if="columns.length > 1"
-              type="button"
-              class="text-muted hover:bg-surface hover:text-ink border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
-              title="移动到…"
-              aria-label="移动到…"
-              :aria-expanded="moveMenuOpen"
-              :aria-controls="`move-menu-${task.slug}`"
-              @click.stop="$emit('toggle-move-menu', task.slug)"
-            >
-              <svg
-                class="h-[11px] w-[11px]"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 8h10" />
-                <path d="M9.5 4.5L13 8l-3.5 3.5" />
-              </svg>
-            </button>
-            <button
               v-if="!done"
               type="button"
               class="text-muted hover:bg-surface hover:text-ink border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
@@ -137,10 +113,8 @@
                 stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <path d="M3 8a5 5 0 0 1 8.5-3.5L13 6" />
-                <path d="M13 3v3h-3" />
-                <path d="M13 8a5 5 0 0 1-8.5 3.5L3 10" />
-                <path d="M3 13v-3h3" />
+                <path d="M3 8h10" />
+                <path d="M9.5 4.5L13 8l-3.5 3.5" />
               </svg>
             </button>
             <button
@@ -172,32 +146,12 @@
       </div>
     </div>
 
-    <!-- keyboard "move to" menu: closes on outside click or selection. Sibling of the grid. -->
-    <div
-      v-if="moveMenuOpen"
-      :id="`move-menu-${task.slug}`"
-      class="border-border bg-page absolute right-2 bottom-full z-10 mb-1 min-w-[8rem] rounded-lg border p-1 shadow-lg"
-      role="menu"
-      :aria-label="`将「${task.title}」移动到`"
-    >
-      <button
-        v-for="col in columns.filter((c) => c.targetStatus !== task.status)"
-        :key="col.id"
-        type="button"
-        role="menuitem"
-        class="focus-visible:ring-ring hover:bg-surface block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
-        @click="$emit('move', task.slug, col.targetStatus)"
-      >
-        移动到「{{ col.label }}」
-      </button>
-    </div>
   </article>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { DevTask, DevTaskStatus } from '@/features/todos/api';
-import type { MovableColumn } from './KanbanPanel.vue';
+import type { DevTask } from '@/features/todos/api';
 import StatusChip from './StatusChip.vue';
 import PriorityBadge from './PriorityBadge.vue';
 import KindBadge from './KindBadge.vue';
@@ -205,14 +159,10 @@ import KindBadge from './KindBadge.vue';
 const props = withDefaults(
   defineProps<{
     task: DevTask;
-    columns?: MovableColumn[];
     isDragging?: boolean;
-    moveMenuOpen?: boolean;
   }>(),
   {
-    columns: () => [],
     isDragging: false,
-    moveMenuOpen: false,
   },
 );
 
@@ -220,8 +170,6 @@ const emit = defineEmits<{
   open: [slug: string];
   cycle: [slug: string];
   delete: [slug: string];
-  move: [slug: string, targetStatus: DevTaskStatus];
-  'toggle-move-menu': [slug: string];
   dragstart: [slug: string];
   dragend: [];
 }>();

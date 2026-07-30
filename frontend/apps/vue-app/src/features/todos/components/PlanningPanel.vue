@@ -15,7 +15,7 @@
       <div
         v-for="task in filteredPlanning"
         :key="task.slug"
-        class="hover:bg-accent/5 group relative flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0"
+        class="hover:bg-accent/5 group border-border relative flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0"
         role="button"
         tabindex="0"
         :aria-label="`任务: ${task.title}`"
@@ -28,7 +28,12 @@
           aria-hidden="true"
         />
 
-        <span class="text-ink min-w-0 flex-1 truncate font-serif text-base">
+        <span
+          class="bg-secondary/70 border-secondary text-ink rounded-full border px-2 text-xs whitespace-nowrap tabular-nums"
+          >{{ task.slug }}</span
+        >
+
+        <span class="text-ink min-w-0 flex-1 truncate font-serif">
           {{ task.title }}
         </span>
 

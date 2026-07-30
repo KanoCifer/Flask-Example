@@ -2,9 +2,7 @@
   <UiModal :open="open" size="md" @close="emit('close')">
     <div class="flex flex-col">
       <!-- ── 头部 ── -->
-      <header
-        class="flex items-start justify-between gap-3 border-b px-6 pt-5 pb-4"
-      >
+      <header class="flex items-start justify-between gap-3 px-6 pt-5 pb-4">
         <div>
           <h2 class="text-ink text-lg font-semibold">签发 MCP 服务 Token</h2>
           <p class="text-muted mt-0.5 text-xs">
@@ -56,9 +54,9 @@
         </div>
 
         <!-- 生成按钮 -->
-        <button
+        <Button
           type="button"
-          class="bg-accent text-ink hover:bg-accent/90 focus-visible:ring-ring inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          class="focus-visible:ring-ring inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="loading"
           @click="handleGenerate"
         >
@@ -83,7 +81,7 @@
             />
           </svg>
           <template v-else>生成 Token</template>
-        </button>
+        </Button>
 
         <!-- 错误 -->
         <p
@@ -117,9 +115,10 @@
               readonly
               :value="result.token"
             />
-            <button
+            <Button
               type="button"
-              class="text-muted hover:bg-surface hover:text-ink absolute top-2 right-2 cursor-pointer rounded-md p-1.5 transition-colors"
+              variant="ghost"
+              class="absolute top-2 right-2 cursor-pointer rounded-md p-1.5 transition-colors"
               :title="copied ? '已复制' : '复制'"
               @click="handleCopy"
             >
@@ -159,7 +158,7 @@
                   stroke-linecap="round"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
 
           <!-- 安全提示 -->
@@ -179,7 +178,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Modal as UiModal } from '@/components';
+import { Button, Modal as UiModal } from '@/components';
 import { devTaskGateway, type McpTokenResult } from '@/features/todos/api';
 
 interface DayOption {
@@ -206,7 +205,6 @@ const copied = ref(false);
 async function handleGenerate() {
   loading.value = true;
   error.value = '';
-  result.value = null;
   copied.value = false;
   try {
     result.value = await devTaskGateway.issueMcpToken(days.value);

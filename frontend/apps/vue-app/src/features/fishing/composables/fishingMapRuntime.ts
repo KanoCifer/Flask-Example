@@ -9,13 +9,8 @@
  * 定位失败时降级到 CitySearch IP 城市级定位。
  */
 import type { AMapWithPlugins } from '@/features/fishing/composables/amapNamespace';
-import type {
-  FishingSpotKind,
-  MapMarker,
-} from '@readinglist/types';
-import {
-  FISHING_SPOT_KIND_LABELS,
-} from '@readinglist/types';
+import type { FishingSpotKind, MapMarker } from '@readinglist/types';
+import { FISHING_SPOT_KIND_LABELS } from '@readinglist/types';
 
 // ---- AMap 内部服务类型(本文件独占,不导出)----
 
@@ -82,10 +77,9 @@ const KIND_FILL: Record<FishingSpotKind, { bg: string }> = {
   reservoir: { bg: 'var(--color-page)' },
 };
 
-/** 默认 fallback(未知 kind / null)——走 muted 主题色,弱化存在感 */
-const DEFAULT_FILL = { bg: 'var(--color-muted)' };
+const DEFAULT_FILL = { bg: 'var(--color-accent)' };
 
-/** 取 marker 填充色:已知 kind 走对应 token,其它(legacy null/未匹配)走 muted */
+/** 取 marker 填充色:已知 kind 走对应 token,其它(legacy null/未匹配)走 accent */
 function fillFor(kind: FishingSpotKind | null): { bg: string } {
   return kind ? KIND_FILL[kind] : DEFAULT_FILL;
 }
@@ -102,10 +96,7 @@ function fillFor(kind: FishingSpotKind | null): { bg: string } {
  *
  * a11y:role/tabindex/aria-label 在工厂内注入到外层 div。
  */
-function makeFishMarkerHtml(
-  spot: MapMarker,
-  index: number,
-): string {
+function makeFishMarkerHtml(spot: MapMarker, index: number): string {
   const { bg } = fillFor(spot.kind);
   const name = spot.extraData?.name ?? `钓点 ${index + 1}`;
   const kindLabel = spot.kind ? FISHING_SPOT_KIND_LABELS[spot.kind] : '未分类';
@@ -128,24 +119,11 @@ function makeFishMarkerHtml(
         transform:rotate(-45deg);
         transform-origin:center;
         border-radius:50% 50% 50% 0;
+        background-color:#ffffff;
         box-shadow:0 0 0 2px #ffffff, 0 2px 6px color-mix(in oklch, #000 22%, transparent);
       "
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        width="28"
-        height="28"
-        aria-hidden="true"
-      >
-        <path
-          d="M21 12c-2.5-3.5-7-5-10.5-4.2L8 4 4 8l3 3C5.2 14.6 4 17 4 18c2 1 5 1.5 8 1 3.5-.5 6.5-2 8-4 .5-.6 1-1.4 1-3z"
-          fill="${bg}"
-          stroke-linejoin="round"
-          stroke-linecap="round"
-        />
-        <circle cx="16" cy="12" r="1.2" fill="#0a0a0a" />
-      </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${bg}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-fish-symbol-icon lucide-fish-symbol"><path d="M2 16s9-15 20-4C11 23 2 8 2 8"/></svg>
     </div>
   `;
 }
@@ -156,7 +134,7 @@ function makeFishMarkerHtml(
  * 不内联硬编码颜色字符串外的样式。
  */
 function makeHoverPreviewHtml(spot: MapMarker): string {
-  const name = spot.extraData?.name ?? '未命名钓点';
+  const name = spot.extraData?.name || '未命名钓点';
   const kindLabel = spot.kind ? FISHING_SPOT_KIND_LABELS[spot.kind] : '未分类';
   return `
     <div class="fish-preview-card bg-page text-ink" style="
@@ -165,7 +143,7 @@ function makeHoverPreviewHtml(spot: MapMarker): string {
       max-width:240px;
       border-radius:10px;
       box-shadow:0 6px 18px color-mix(in oklch, var(--ink) 14%, transparent);
-      font-family:var(--font-family-alibaba, system-ui);
+      font-family:var(--font-sans, system-ui);
     ">
       <div style="font-size:14px;font-weight:600;line-height:1.3;">${escapeHtml(name)}</div>
       <div class="text-muted" style="font-size:12px;margin-top:4px;line-height:1.4;">
@@ -227,8 +205,6 @@ export class FishingMapRuntime {
     this.geolocation = new ns.Geolocation({
       enableHighAccuracy: true,
       timeout: 10000,
-      offset: [10, 20],
-      position: 'RT',
       // 禁止定位成功后自动移图 —— 避免 marker 点击时把地图中心拉回用户位置
       panToLocation: false,
     });
@@ -281,9 +257,11 @@ export class FishingMapRuntime {
    * unknown 强制断言,失败时降级(键盘激活不可用,但鼠标点击仍工作)。
    */
   private attachKeyboard(index: number, marker: AMap.Marker): void {
-    const getDomElement = (marker as unknown as {
-      getDomElement?: () => HTMLElement | null;
-    }).getDomElement;
+    const getDomElement = (
+      marker as unknown as {
+        getDomElement?: () => HTMLElement | null;
+      }
+    ).getDomElement;
     if (typeof getDomElement !== 'function') return;
     const dom = getDomElement.call(marker);
     if (!dom) return;

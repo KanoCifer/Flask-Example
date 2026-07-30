@@ -95,7 +95,7 @@
                   <!-- 连接线 -->
                   <span
                     v-if="i > 0"
-                    class="absolute top-3.5 right-1/2 w-full"
+                    class="border-border absolute top-3.5 right-1/2 w-full"
                     :class="i <= statusIndex ? 'border-success' : ''"
                     style="border-top-width: 1px; transform: translateY(-50%)"
                     aria-hidden="true"
@@ -170,7 +170,7 @@
                 </span>
                 <span
                   v-if="task.slug"
-                  class="bg-accent/10 border-chart-5/40 *:text-ink rounded-full px-1.5 py-px text-[10px] font-medium"
+                  class="bg-secondary/70 border-secondary text-ink rounded-full border px-2 text-xs whitespace-nowrap tabular-nums"
                 >
                   {{ task.slug }}
                 </span>
@@ -228,7 +228,7 @@
               v-html="renderMarkdown(task.detail)"
             />
 
-            <hr class="my-5" />
+            <hr class="border-border my-5" />
 
             <!-- ── 附区：元信息（弱化：label + 更轻的文字色） ── -->
             <div class="space-y-4">
