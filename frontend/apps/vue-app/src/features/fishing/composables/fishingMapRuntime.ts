@@ -10,7 +10,7 @@
  */
 import type { AMapWithPlugins } from '@/features/fishing/composables/amapNamespace';
 import type { FishingSpotKind, MapMarker } from '@readinglist/types';
-import { FISHING_SPOT_KIND_LABELS } from '@readinglist/types';
+import { escapeHtml, fillFor, makeFishMarkerHtml, makeHoverPreviewHtml } from '@readinglist/utils';
 
 // ---- AMap 内部服务类型(本文件独占,不导出)----
 
@@ -62,108 +62,7 @@ export const FISHING_MARKER_CONTENT = `
   </div>
 `;
 
-/**
- * kind → 三色 fill —— 走现有 Tailwind/主题 CSS 变量(用户明确指示「用现有 token」):
- * - lake → --color-accent (主题主强调色)
- * - river → --color-secondary (次级)
- * - reservoir → --color-page (背景色,深色主题下也是浅卡)
- *
- * 鱼形 divIcon 渲染在 AMap 注入的 .amap-marker-content 容器里(脱离 Vue scope),
- * 因此用内联 style 写 CSS 变量 —— SVG fill 接受 var() 解析,无需硬编码 hex。
- */
-const KIND_FILL: Record<FishingSpotKind, { bg: string }> = {
-  lake: { bg: 'var(--color-accent)' },
-  river: { bg: 'var(--color-secondary)' },
-  reservoir: { bg: 'var(--color-page)' },
-};
-
-const DEFAULT_FILL = { bg: 'var(--color-accent)' };
-
-/** 取 marker 填充色:已知 kind 走对应 token,其它(legacy null/未匹配)走 accent */
-function fillFor(kind: FishingSpotKind | null): { bg: string } {
-  return kind ? KIND_FILL[kind] : DEFAULT_FILL;
-}
-
-/**
- * 鱼形 divIcon HTML —— 38×38 div,rotate(-45deg) 让鱼头指向坐标点。
- * 2px 白色边框落在外层 div(box-shadow 模拟,避免 div 自身 border 与 transform 互掐);
- * SVG 鱼身用 kind 对应 token 上色 + 黑色鱼眼,无内联白描边(白边由外层负责)。
- *
- * 几何:
- *   - 外层 div 38×38:AMap 默认 marker click hit area
- *   - 内部 SVG viewBox 24×24,鱼身整体在 div 中,旋转 -45° 让头朝东北(标记惯例)
- *   - offset(-19,-19) 把 div 中心对齐坐标
- *
- * a11y:role/tabindex/aria-label 在工厂内注入到外层 div。
- */
-function makeFishMarkerHtml(spot: MapMarker, index: number): string {
-  const { bg } = fillFor(spot.kind);
-  const name = spot.extraData?.name ?? `钓点 ${index + 1}`;
-  const kindLabel = spot.kind ? FISHING_SPOT_KIND_LABELS[spot.kind] : '未分类';
-  const ariaLabel = `${name} · ${kindLabel}`;
-  return `
-    <div
-      class="fish-marker"
-      data-kind="${spot.kind ?? 'unknown'}"
-      data-marker-index="${index}"
-      role="button"
-      tabindex="0"
-      aria-label="${ariaLabel.replace(/"/g, '&quot;')}"
-      style="
-        width:38px;
-        height:38px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        cursor:pointer;
-        transform:rotate(-45deg);
-        transform-origin:center;
-        border-radius:50% 50% 50% 0;
-        background-color:#ffffff;
-        box-shadow:0 0 0 2px #ffffff, 0 2px 6px color-mix(in oklch, #000 22%, transparent);
-      "
-    >
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${bg}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-fish-symbol-icon lucide-fish-symbol"><path d="M2 16s9-15 20-4C11 23 2 8 2 8"/></svg>
-    </div>
-  `;
-}
-
-/**
- * Hover preview 内容 —— name + kind。
- * 走 inline style + 语义 class(由 MapContainer 全局样式接管 .fish-preview-card),
- * 不内联硬编码颜色字符串外的样式。
- */
-function makeHoverPreviewHtml(spot: MapMarker): string {
-  const name = spot.extraData?.name || '未命名钓点';
-  const kindLabel = spot.kind ? FISHING_SPOT_KIND_LABELS[spot.kind] : '未分类';
-  return `
-    <div class="fish-preview-card bg-page text-ink" style="
-      padding:10px 12px;
-      min-width:160px;
-      max-width:240px;
-      border-radius:10px;
-      box-shadow:0 6px 18px color-mix(in oklch, var(--ink) 14%, transparent);
-      font-family:var(--font-sans, system-ui);
-    ">
-      <div style="font-size:14px;font-weight:600;line-height:1.3;">${escapeHtml(name)}</div>
-      <div class="text-muted" style="font-size:12px;margin-top:4px;line-height:1.4;">
-        <span>${escapeHtml(kindLabel)}</span>
-      </div>
-    </div>
-  `;
-}
-
-/** 简单 HTML 转义,防御 XSS(name/address 可能来自用户输入) */
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-/** marker 点击时抛出的载荷 —— 闭包从 MapMarker 带下来,上层无需再按 index 反查 */
+/** marker 点击时抛出的载荷 */
 export interface MarkerClickPayload {
   index: number;
   spot: MapMarker;

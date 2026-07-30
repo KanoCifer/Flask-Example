@@ -49,6 +49,7 @@ export {
 } from './domain/rss';
 export type { ExampleFeed } from './domain/rss';
 export { weatherIcon, formatDistance, formatDuration } from './domain/fishing';
+export { fillFor, escapeHtml, makeFishMarkerHtml, makeHoverPreviewHtml } from './domain/fishingMarker';
 // ── 订阅领域 DTO（真源 @readinglist/types，供表单映射函数引用）────────────────
 export type {
   Subscription,

@@ -5,10 +5,10 @@
  * 定位、路线规划等 AMap 操作收拢到此 class;React hook (useMap) 只负责生命周期编排。
  */
 import type { FishingSpotKind, MapMarker } from '@readinglist/types';
-import { FISHING_SPOT_KIND_LABELS } from '@readinglist/types';
 
 import type { AMapWithPlugins, InfoWindowInstance } from './amapNamespace';
 import type { RouteInfo } from '../types';
+import { escapeHtml, fillFor, makeFishMarkerHtml, makeHoverPreviewHtml } from '@readinglist/utils';
 
 // ---- 内部服务类型(本文件独占,不导出) ----
 
@@ -35,111 +35,6 @@ interface AMapDrivingResult {
 interface GeolocationResult {
   position: { lng: number; lat: number };
   info?: string;
-}
-
-// ---- 鱼形 marker 视觉常量 ----
-
-/**
- * kind → 三色 fill —— 走现有 Tailwind/主题 CSS 变量:
- * - lake → --color-accent (主题主强调色)
- * - river → --color-secondary (次级)
- * - reservoir → --color-page (背景色)
- */
-const KIND_FILL: Record<FishingSpotKind, { bg: string }> = {
-  lake: { bg: 'var(--color-accent)' },
-  river: { bg: 'var(--color-secondary)' },
-  reservoir: { bg: 'var(--color-page)' },
-};
-
-/** 默认 fallback(未知 kind / null)——走 muted 主题色 */
-const DEFAULT_FILL = { bg: 'var(--color-muted)' };
-
-function fillFor(kind: FishingSpotKind | null): { bg: string } {
-  return kind ? KIND_FILL[kind] : DEFAULT_FILL;
-}
-
-/**
- * 鱼形 divIcon HTML —— 38×38 div,rotate(-45deg) 让鱼头指向坐标点。
- * 2px 白色边框落在外层 div(box-shadow 模拟),SVG 鱼身用 kind 对应 token 上色 + 黑色鱼眼。
- */
-function makeFishMarkerHtml(
-  spot: MapMarker,
-  index: number,
-): string {
-  const { bg } = fillFor(spot.kind);
-  const name = spot.extraData?.name ?? `钓点 ${index + 1}`;
-  const kindLabel = spot.kind ? FISHING_SPOT_KIND_LABELS[spot.kind] : '未分类';
-  const ariaLabel = `${name} · ${kindLabel}`;
-  return `
-    <div
-      class="fish-marker"
-      data-kind="${spot.kind ?? 'unknown'}"
-      data-marker-index="${index}"
-      role="button"
-      tabindex="0"
-      aria-label="${ariaLabel.replace(/"/g, '&quot;')}"
-      style="
-        width:38px;
-        height:38px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        cursor:pointer;
-        transform:rotate(-45deg);
-        transform-origin:center;
-        border-radius:50% 50% 50% 0;
-        box-shadow:0 0 0 2px #ffffff, 0 2px 6px color-mix(in oklch, #000 22%, transparent);
-      "
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        width="28"
-        height="28"
-        aria-hidden="true"
-      >
-        <path
-          d="M21 12c-2.5-3.5-7-5-10.5-4.2L8 4 4 8l3 3C5.2 14.6 4 17 4 18c2 1 5 1.5 8 1 3.5-.5 6.5-2 8-4 .5-.6 1-1.4 1-3z"
-          fill="${bg}"
-          stroke-linejoin="round"
-          stroke-linecap="round"
-        />
-        <circle cx="16" cy="12" r="1.2" fill="#0a0a0a" />
-      </svg>
-    </div>
-  `;
-}
-
-/**
- * Hover preview 内容 —— name + kind。
- */
-function makeHoverPreviewHtml(spot: MapMarker): string {
-  const name = spot.extraData?.name ?? '未命名钓点';
-  const kindLabel = spot.kind ? FISHING_SPOT_KIND_LABELS[spot.kind] : '未分类';
-  return `
-    <div class="fish-preview-card bg-page text-ink" style="
-      padding:10px 12px;
-      min-width:160px;
-      max-width:240px;
-      border-radius:10px;
-      box-shadow:0 6px 18px color-mix(in oklch, var(--ink) 14%, transparent);
-      font-family:var(--font-family-alibaba, system-ui);
-    ">
-      <div style="font-size:14px;font-weight:600;line-height:1.3;">${escapeHtml(name)}</div>
-      <div class="text-muted" style="font-size:12px;margin-top:4px;line-height:1.4;">
-        <span>${escapeHtml(kindLabel)}</span>
-      </div>
-    </div>
-  `;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 /** marker 点击时抛出的载荷 */
