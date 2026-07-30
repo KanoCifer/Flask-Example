@@ -42,13 +42,25 @@ SPOTS: list[dict[str, object]] = [
 ]
 
 
-def build_doc(position: list[float]) -> dict[str, object]:
-    """构造与 go-backend/internal/mongo/document/fishing_spot.go:FishingSpot 对齐的文档。"""
+def build_doc(
+    position: list[float],
+    name: str = "",
+    description: str = "",
+    kind: str | None = None,
+) -> dict[str, object]:
+    """构造与 go-backend/internal/mongo/document/fishing_spot.go:FishingSpot 对齐的文档。
+
+    ``kind`` 是水体类型（``lake``/``river``/``reservoir``），与
+    ``@readinglist/types`` 的 ``FishingSpotKind`` 同一组字面量。
+    seed 阶段没有用户输入，固定为 ``None``；遗留行经
+    ``backend/scripts/migrate_fishing_spot_kind.py`` 启发式回填。
+    """
     now = datetime.now(UTC)
     return {
         "location": position,
-        "name": "",
-        "description": "",
+        "name": name,
+        "description": description,
+        "kind": kind,
         "tags": [],
         "createdAt": now,
         "updatedAt": now,
