@@ -32,6 +32,8 @@
             src="https://github.githubassets.com/favicons/favicon.svg"
             class="h-3.5 w-3.5 opacity-60 mix-blend-normal grayscale"
             alt="Github"
+            loading="lazy"
+            decoding="async"
           />
           <span class="font-mono tracking-[0.1em]">GitHub</span>
         </a>

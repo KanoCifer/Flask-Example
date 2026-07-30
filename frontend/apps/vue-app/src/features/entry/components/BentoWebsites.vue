@@ -17,6 +17,8 @@
           :src="randomSite.icon"
           :alt="randomSite?.name"
           class="h-6 w-6 object-contain"
+          loading="lazy"
+          decoding="async"
           @error="handleImageError"
         />
         <svg

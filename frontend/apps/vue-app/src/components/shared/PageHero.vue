@@ -37,7 +37,7 @@ const heightClass = computed(() =>
 
 <template>
   <div :class="['relative flex-shrink-0 overflow-hidden', heightClass]">
-    <img :src="background" alt="" class="h-full w-full object-cover" />
+    <img :src="background" alt="" class="h-full w-full object-cover" loading="lazy" decoding="async" />
     <div
       class="from-page/40 via-page/5 to-page/40 pointer-events-none absolute inset-0 bg-gradient-to-b"
     />

@@ -15,6 +15,8 @@
           src="/images/animal-badge/fox.png"
           alt="Fox"
           class="size-10 rounded-md object-cover"
+          loading="lazy"
+          decoding="async"
         />
         <div class="flex -space-x-2">
           <div

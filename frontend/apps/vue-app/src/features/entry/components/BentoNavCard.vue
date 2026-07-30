@@ -45,6 +45,7 @@
               :alt="item.label"
               class="h-6 w-6 shrink-0 object-cover"
               loading="lazy"
+              decoding="async"
             />
             <span class="text-[15px]">{{ item.label }}</span>
           </RouterLink>

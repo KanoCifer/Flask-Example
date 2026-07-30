@@ -170,13 +170,23 @@ const renderedBody = computed(() => {
 });
 
 // 渲染正文中所有 <img src="...">，非 http(s) 开头的补上前缀
+// 同时注入 loading=lazy / decoding=async,让长文里的非首屏图片走懒加载,
+// 显著降低 LCP 与首屏带宽。
+// 不强制注入 width/height —— markdown 没有尺寸约定,盲目写入会让图片塌缩;
+// 如果作者写了 width/height,保留原值(走分支:retain original)。
 const renderedBodyWithOrigin = computed(() => {
   if (!renderedBody.value) return '';
   return renderedBody.value.replace(
     /<img\s+([^>]*?)src=["']([^"']+)["']([^>]*)>/gi,
     (_match, pre, src, post) => {
       const fixed = useOrigin(src);
-      return `<img ${pre}src="${fixed}"${post}>`;
+      // 仅在原 attrs 里没有 lazy / decoding 时补,避免重复注入
+      const attrs = `${pre} ${post}`;
+      const hasLazy = /\bloading\s*=/.test(attrs);
+      const hasDecoding = /\bdecoding\s*=/.test(attrs);
+      const lazy = hasLazy ? '' : ' loading="lazy"';
+      const decoding = hasDecoding ? '' : ' decoding="async"';
+      return `<img ${pre}src="${fixed}"${post}${lazy}${decoding}>`;
     },
   );
 });
