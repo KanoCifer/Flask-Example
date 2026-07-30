@@ -50,7 +50,7 @@ const delayStatus = computed(() => {
       borderRadius: islandExpanded ? 24 : 14,
     }"
     :transition="SPRING_CRISP"
-    class="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 cursor-pointer overflow-hidden bg-black text-white shadow-lg shadow-black/20"
+    class="fixed bottom-6 left-1/2 z-100 -translate-x-1/2 cursor-pointer overflow-hidden bg-black text-white shadow-lg shadow-black/20"
     @click="islandExpanded = !islandExpanded"
     role="button"
     :aria-expanded="islandExpanded"

@@ -49,9 +49,9 @@ const isActive = (to: string) =>
       <RouterLink
         to="/"
         aria-label="返回首页"
-        class="text-ink shrink-0 font-serif text-2xl leading-none transition-[transform] duration-150 ease-out active:scale-[0.96]"
+        class="text-ink font-family-averia shrink-0 font-serif text-2xl leading-none transition-[transform] duration-150 ease-out active:scale-[0.96]"
       >
-        钓鱼地图
+        Luring
         <span class="text-muted font-serif text-xs tracking-[0.2em] italic">
           ka·no·ci·fer
         </span>

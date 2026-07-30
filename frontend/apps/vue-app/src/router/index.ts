@@ -140,10 +140,9 @@ const router = createRouter({
       },
     },
     {
-      path: '/fishing/weather',
+      path: '/fishing-map/weather',
       name: 'fishing-weather',
-      component: () =>
-        import('@/features/fishing/weather/WeatherView.vue'),
+      component: () => import('@/features/fishing/weather/WeatherView.vue'),
       meta: {
         title: "天气与渔情 - Kuroome's Blog",
         description: '实时天气、24h 时序预报、潮汐与钓鱼指数全景视图',
@@ -153,7 +152,6 @@ const router = createRouter({
     {
       path: '/todos',
       name: 'todo-list',
-      // redirect: { path: "/" },
       component: TodoListView,
       meta: {
         title: "开发任务 - Kuroome's Blog",

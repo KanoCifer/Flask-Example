@@ -14,8 +14,6 @@ const themeStore = useThemeStore();
 const route = useRoute();
 const showBasicNav = ref<boolean | null>(null);
 
-// 自带顶栏的路由：首页是全屏 bento，钓点图鉴页有专属顶栏（FishingTopBar），
-// 两者都不再叠加全局导航。
 const SELF_NAVIGATED_ROUTES = new Set(['/', '/fishing-map']);
 
 // 路由 → 顶栏导航可见性

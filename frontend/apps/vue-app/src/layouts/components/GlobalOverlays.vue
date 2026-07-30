@@ -10,15 +10,13 @@
   </Teleport>
 
   <!-- Feature overlays -->
-  <DynamicIsland />
-  <TaskDrawer @requestLogin="$emit('requestLogin')" />
+  <Teleport to="body">
+    <DynamicIsland />
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import CookieConsent from '@/layouts/components/CookieConsent.vue';
 import ToastContainer from '@/layouts/components/ToastContainer.vue';
 import DynamicIsland from '@/layouts/components/DynamicIsland.vue';
-import TaskDrawer from '@/layouts/components/TaskDrawer.vue';
-
-defineEmits<{ requestLogin: [] }>();
 </script>

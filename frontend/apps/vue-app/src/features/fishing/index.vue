@@ -5,7 +5,6 @@ import FeedbackFormDialog from '@/features/fishing/components/FeedbackFormDialog
 import FishingTopBar from '@/features/fishing/components/FishingTopBar.vue';
 import MapContainer from '@/features/fishing/components/MapContainer.vue';
 import SpotDetailPanel from '@/features/fishing/components/SpotDetailPanel.vue';
-import QuickFeedbackBanner from '@/features/fishing/components/QuickFeedbackBanner.vue';
 import { useFishingDashboard } from '@/features/fishing/composables/useFishingDashboard';
 import { defineAsyncComponent, onMounted } from 'vue';
 
