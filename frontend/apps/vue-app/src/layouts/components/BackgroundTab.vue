@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { useBackgroundStore } from '@/stores';
+/*
+ * 背景设置 Tab —— 仅暴露「调整」三件套：模糊 / 亮度 / 缩放。
+ *
+ * 背景图本身已下线：以前这里的「背景模式」「自动切换」「选择背景」三块
+ * 是 SVG 图片 + 固定/随机模式的入口，现在背景由
+ * styles/backgrounds.css 中的 .scheme-bg 与 [data-color-scheme] 绑定，
+ * 跟随 themeStore.scheme 切换。
+ *
+ * Debounced localStorage writes: 更新响应式 ref 立刻得到实时预览，
+ * 但 localStorage 写入合并到 150ms 批量，避免滑块逐像素拖动阻塞主线程。
+ */
 import { useThemeStore } from '@/stores';
-import ImageGrid from './ImageGrid.vue';
 import { computed, onBeforeUnmount } from 'vue';
 
 const themeStore = useThemeStore();
-const backgroundStore = useBackgroundStore();
 
-// Debounced localStorage writes: update reactive ref immediately for live preview,
-// but batch localStorage writes to avoid blocking main thread on every slider pixel.
 const debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 const debouncedSet = (key: string, value: string, ms = 150) => {
   if (debounceTimers[key]) clearTimeout(debounceTimers[key]);
@@ -37,8 +43,8 @@ const onInputScale = (e: Event) => {
 };
 
 /*
- * 滑块填充百分比（0–100）— 驱动 CSS 渐变实现"已填充段"。
- * 语义令牌 via color‑mix，跟随主题。
+ * 滑块填充百分比（0–100）—— 驱动 CSS 渐变实现"已填充段"。
+ * 语义令牌 via color-mix，跟随主题。
  */
 const fillPct = (val: number, min: number, max: number) =>
   `${((val - min) / (max - min)) * 100}%`;
@@ -71,41 +77,20 @@ const scaleFill = computed(() =>
 onBeforeUnmount(() => {
   Object.values(debounceTimers).forEach(clearTimeout);
 });
-
-const autoSwitchOptions = [
-  { label: '关闭', value: 0 },
-  { label: '10s', value: 10 },
-  { label: '30s', value: 30 },
-  { label: '60s', value: 60 },
-  { label: '120s', value: 120 },
-];
-
-/*
- * 共享卡片 class：与 AppearanceTab 保持一致的小卡片样式。
- * !shadow-sm 覆盖全局 :where([class~='border']) 硬阴影,给出 active 高度。
- */
-const smallCardBase =
-  'flex flex-col items-center gap-2 rounded-xl border p-4 transition-colors';
-const smallCardDefault = ' bg-page hover:border-accent';
-const smallCardActive = 'border-accent bg-accent/5 !shadow-sm';
 </script>
 
 <template>
   <div class="space-y-6">
-    <!-- 滑块组 — 统一卡式外观，跟随切换 -->
     <div>
       <h2 class="text-ink mb-1 font-serif text-lg font-semibold">背景调整</h2>
       <p class="text-muted mb-4 text-xs italic">Adjust background appearance</p>
 
       <div class="/60 bg-page rounded-xl border p-5">
-        <!-- 滑块行 -->
         <div class="relative space-y-5">
           <!-- 背景模糊 -->
           <div>
             <div class="mb-2 flex items-center justify-between">
-              <span
-                class="text-ink flex items-center gap-1.5 text-sm font-medium"
-              >
+              <span class="text-ink flex items-center gap-1.5 text-sm font-medium">
                 <!-- 模糊图标 -->
                 <svg
                   class="text-muted h-4 w-4"
@@ -143,9 +128,7 @@ const smallCardActive = 'border-accent bg-accent/5 !shadow-sm';
           <!-- 背景亮度 -->
           <div>
             <div class="mb-2 flex items-center justify-between">
-              <span
-                class="text-ink flex items-center gap-1.5 text-sm font-medium"
-              >
+              <span class="text-ink flex items-center gap-1.5 text-sm font-medium">
                 <!-- 亮度图标 -->
                 <svg
                   class="text-muted h-4 w-4"
@@ -184,9 +167,7 @@ const smallCardActive = 'border-accent bg-accent/5 !shadow-sm';
           <!-- 背景缩放 -->
           <div>
             <div class="mb-2 flex items-center justify-between">
-              <span
-                class="text-ink flex items-center gap-1.5 text-sm font-medium"
-              >
+              <span class="text-ink flex items-center gap-1.5 text-sm font-medium">
                 <!-- 缩放图标 -->
                 <svg
                   class="text-muted h-4 w-4"
@@ -241,116 +222,13 @@ const smallCardActive = 'border-accent bg-accent/5 !shadow-sm';
         重置为默认
       </button>
     </div>
-
-    <!-- 背景模式 -->
-    <div>
-      <h2 class="text-ink mb-1 font-serif text-lg font-semibold">背景模式</h2>
-      <p class="text-muted mb-4 text-xs italic">Background mode</p>
-
-      <div class="grid grid-cols-2 gap-3">
-        <button
-          @click="backgroundStore.randomize()"
-          :class="[
-            smallCardBase,
-            backgroundStore.mode === 'random'
-              ? smallCardActive
-              : smallCardDefault,
-          ]"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            :class="backgroundStore.mode === 'random' ? 'text-ink' : 'text-ink'"
-          >
-            <polyline points="16 3 21 3 21 8" />
-            <line x1="4" y1="20" x2="21" y2="3" />
-            <polyline points="21 16 21 21 16 21" />
-            <line x1="15" y1="15" x2="21" y2="21" />
-            <line x1="4" y1="4" x2="9" y2="9" />
-          </svg>
-          <span
-            class="text-sm font-medium"
-            :class="backgroundStore.mode === 'random' ? 'text-ink' : 'text-ink'"
-          >
-            随机切换
-          </span>
-        </button>
-        <button
-          @click="backgroundStore.mode = 'fixed'"
-          :class="[
-            smallCardBase,
-            backgroundStore.mode === 'fixed'
-              ? smallCardActive
-              : smallCardDefault,
-          ]"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            :class="backgroundStore.mode === 'fixed' ? 'text-ink' : 'text-ink'"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-          <span
-            class="text-sm font-medium"
-            :class="backgroundStore.mode === 'fixed' ? 'text-ink' : 'text-ink'"
-          >
-            固定背景
-          </span>
-        </button>
-      </div>
-    </div>
-
-    <!-- 自动切换间隔（仅 random 模式） -->
-    <div v-if="backgroundStore.mode === 'random'">
-      <h2 class="text-ink mb-1 font-serif text-lg font-semibold">自动切换</h2>
-      <p class="text-muted mb-4 text-xs italic">Auto-switch interval</p>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="opt in autoSwitchOptions"
-          :key="opt.value"
-          @click="backgroundStore.saveAutoSwitch(opt.value)"
-          class="rounded-lg border px-3.5 py-1.5 text-sm transition-colors"
-          :class="
-            backgroundStore.autoSwitchInterval === opt.value
-              ? 'border-accent bg-accent/5 text-ink font-medium !shadow-sm'
-              : 'bg-page text-ink hover:border-accent'
-          "
-        >
-          {{ opt.label }}
-        </button>
-      </div>
-    </div>
-
-    <!-- 固定背景选择（仅 fixed 模式） -->
-    <div v-if="backgroundStore.mode === 'fixed'">
-      <h2 class="text-ink mb-1 font-serif text-lg font-semibold">选择背景</h2>
-      <p class="text-muted mb-4 text-xs italic">Choose a fixed background</p>
-      <ImageGrid
-        :images="backgroundStore.backgrounds"
-        :selected="backgroundStore.fixedIndex"
-        @select="backgroundStore.selectFixed($event)"
-      />
-    </div>
   </div>
 </template>
 
 <style scoped>
 /*
  * 自定义滑块样式。
- * 用 `--track-fill` 行内属性驱动渐变填充"已取值段"，
+ * 用 --track-fill 行内属性驱动渐变填充"已取值段"，
  * 跟随主题 — track 基色 = var(--secondary), fill 色 = var(--accent)。
  */
 
