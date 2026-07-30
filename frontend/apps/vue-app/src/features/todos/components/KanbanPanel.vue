@@ -13,7 +13,7 @@
 
     <!-- ── 四列看板 ── -->
     <div
-      class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 items-start"
+      class="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 xl:grid-cols-4"
       role="list"
       aria-label="开发任务看板"
     >
@@ -21,7 +21,7 @@
         v-for="col in KANBAN_COLUMNS"
         :key="col.id"
         role="listitem"
-        class="bg-surface/40 flex min-h-96 max-h-[calc(100dvh-10rem)] flex-col rounded-xl border p-3 transition-colors"
+        class="bg-surface/40 flex max-h-[calc(100dvh-10rem)] min-h-96 flex-col overflow-y-scroll overscroll-contain rounded-xl border p-3 transition-colors contain-[layout_paint_scroll_style]"
         :class="
           dragOverColumn === col.id
             ? 'border-accent/60 bg-accent/5 ring-accent/30 ring-1'
@@ -51,9 +51,7 @@
         </header>
 
         <!-- 泳道 + 卡片 -->
-        <div
-          class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
-        >
+        <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
           <div
             v-for="lane in swimlanesFor(col.id)"
             :key="lane.userId"
@@ -172,7 +170,6 @@ export const KANBAN_COLUMNS: KanbanColumn[] = [
     dotClass: 'bg-success',
   },
 ];
-
 </script>
 
 <script setup lang="ts">
@@ -198,7 +195,6 @@ const searchTerm = ref('');
 // ── 拖拽状态 ──
 const draggedSlug = ref<string | null>(null);
 const dragOverColumn = ref<KanbanColumnId | null>(null);
-
 
 function onDragStart(slug: string) {
   draggedSlug.value = slug;
@@ -345,10 +341,14 @@ defineEmits<{
   animation: ffi-opacity-out 0.12s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 @keyframes ffi-opacity-in {
-  to { opacity: 1; }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes ffi-opacity-out {
-  to { opacity: 0; }
+  to {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
