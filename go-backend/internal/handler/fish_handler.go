@@ -1,15 +1,44 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
 	"github.com/KanoCifer/kuroome-blog/internal/middleware"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
+
+// kindBindingErrMessage gin binding tag 触发 oneof 失败时返回的字符串固定形态。
+// 我们嗅探字符串以把 binding 阶段的 kind 错误也归一为同一个 invalid_kind 标记。
+const kindBindingErrMessage = "Field validation for 'Kind' failed on the 'oneof' tag"
+
+// isInvalidKindError 嗅探 binding / service 两层错误。
+// service 走 errors.Is(ErrInvalidKind)；binding 阶段是字符串嗅探，因为 gin 没导出
+// 一种 stable 的字段级错误类型（v10.ValidationErrors 会被 ShouldBindJSON 包成
+// errors.New 字符串，无法独立 errors.Is 出原 ValidationErrors）。
+func isInvalidKindError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, service.ErrInvalidKind) {
+		return true
+	}
+	var verr validator.ValidationErrors
+	if errors.As(err, &verr) {
+		for _, fe := range verr {
+			if fe.Field() == "Kind" && fe.Tag() == "oneof" {
+				return true
+			}
+		}
+	}
+	return strings.Contains(err.Error(), kindBindingErrMessage)
+}
 
 // FishHandler 处理钓点资源的 CRUD 请求。
 type FishHandler struct {
@@ -47,10 +76,18 @@ func (h *FishHandler) GetFishingSpot(c *gin.Context) {
 func (h *FishHandler) CreateFishingSpot(c *gin.Context) {
 	var req dto.FishingSpotRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isInvalidKindError(err) {
+			response.APIError(c, "invalid_kind: kind 必须在 lake/river/reservoir 之一", 400)
+			return
+		}
 		response.APIError(c, err.Error())
 		return
 	}
 	if err := h.svc.CreateFishingSpot(c.Request.Context(), &req); err != nil {
+		if isInvalidKindError(err) {
+			response.APIError(c, "invalid_kind: kind 必须在 lake/river/reservoir 之一", 400)
+			return
+		}
 		slog.ErrorContext(c.Request.Context(), "create fishing spot", "error", err)
 		response.APIError(c, err.Error())
 		return
@@ -64,10 +101,18 @@ func (h *FishHandler) UpdateFishingSpot(c *gin.Context) {
 	id := c.Param("id")
 	var req dto.FishingSpotUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if isInvalidKindError(err) {
+			response.APIError(c, "invalid_kind: kind 必须在 lake/river/reservoir 之一", 400)
+			return
+		}
 		response.APIError(c, err.Error())
 		return
 	}
 	if err := h.svc.UpdateFishingSpot(c.Request.Context(), id, &req); err != nil {
+		if isInvalidKindError(err) {
+			response.APIError(c, "invalid_kind: kind 必须在 lake/river/reservoir 之一", 400)
+			return
+		}
 		slog.ErrorContext(c.Request.Context(), "update fishing spot", "error", err, "id", id)
 		response.APIError(c, err.Error())
 		return

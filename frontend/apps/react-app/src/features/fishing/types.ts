@@ -136,7 +136,7 @@ export type WeatherAnalysisPayload = Omit<AnalysisPayload, 'modelId'>;
 
 /**
  * FishingSpot DTO → MapMarker transform。
- * location 拆为 position；其余字段收进 extraData。
+ * location 拆为 position；kind 提升到顶层（标记配色 / 过滤必用）；其余字段收进 extraData。
  *
  * 纯函数、无副作用 —— 可在 hook / 测试中直接调用。
  */
@@ -144,6 +144,7 @@ export function toMapMarker(spot: FishingSpot): MapMarker {
   const { location, ...rest } = spot;
   return {
     position: location,
+    kind: spot.kind,
     extraData: rest,
   };
 }

@@ -11,7 +11,14 @@
  * 与 SpotDetailPanel / AnalysisPanel 三者互斥(父组件 useFishingDashboard 保证)。
  */
 import SpotMiniMap from '@/features/fishing/components/SpotMiniMap.vue';
-import type { CreateFishingSpotPayload } from '@readinglist/types';
+import type {
+  CreateFishingSpotPayload,
+  FishingSpotKind,
+} from '@readinglist/types';
+import {
+  FISHING_SPOT_KINDS,
+  FISHING_SPOT_KIND_LABELS,
+} from '@readinglist/types';
 import { fishingSpotsGateway } from '@readinglist/api';
 import { DEFAULT_MAP_CENTER } from '@/features/fishing/stores/fishingMap';
 import { useUpload } from '@/features/upload/composables';
@@ -64,6 +71,12 @@ const description = ref('');
 const tags = ref('');
 const rating = ref(0);
 const coordinate = ref<[number, number] | null>(null);
+/** 水体类型 — 新建必填。selecting null 表示尚未选择,提交被拦截。 */
+const kind = ref<FishingSpotKind | null>(null);
+/** 提交时若 kind 未选,聚焦到 chip 组并展示错误;UI 用 shake 反馈,但不抖动。仅用一个标记位去重防止重复滚动。 */
+const kindTouched = ref(false);
+
+const kinds = FISHING_SPOT_KINDS;
 
 // ── 钓点图片 ──
 // 与照片墙 Picture 同形,但本地定义(避免跨域 import @/features/pic 类型)。
@@ -144,6 +157,7 @@ const canSubmit = computed(
   () =>
     name.value.trim().length > 0 &&
     coordinate.value !== null &&
+    kind.value !== null &&
     !isUploading.value,
 );
 
@@ -192,7 +206,11 @@ watch(
 );
 
 async function handleSubmit(): Promise<void> {
-  if (!canSubmit.value) return;
+  if (!canSubmit.value) {
+    // canSubmit 为 false 时若 kind 仍未选,标记 touched 触发红边错误态
+    if (kind.value === null) kindTouched.value = true;
+    return;
+  }
   submitting.value = true;
   error.value = '';
   try {
@@ -203,6 +221,7 @@ async function handleSubmit(): Promise<void> {
     const payload: CreateFishingSpotPayload = {
       name: name.value.trim(),
       location: coordinate.value!,
+      kind: kind.value!,
       description: description.value.trim(),
       tags: tagsArr,
       rating: rating.value,
@@ -217,6 +236,32 @@ async function handleSubmit(): Promise<void> {
   } finally {
     submitting.value = false;
   }
+}
+
+// 弹窗每次新打开,清空 kind 与 touched;表单其他字段由父组件决定是否保留
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      kind.value = null;
+      kindTouched.value = false;
+    }
+  },
+);
+
+/** radiogroup 键处理 —— 与 ARIA radiogroup pattern 一致: ← / → / ↑ / ↓ 切换选中。 */
+function onKindKeydown(event: KeyboardEvent): void {
+  const k = event.key;
+  if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') {
+    return;
+  }
+  event.preventDefault();
+  const idx = kind.value === null ? 0 : kinds.indexOf(kind.value);
+  const dir =
+    k === 'ArrowLeft' || k === 'ArrowUp' ? -1 : 1;
+  const nextIdx = (idx + dir + kinds.length) % kinds.length;
+  kind.value = kinds[nextIdx];
+  kindTouched.value = true;
 }
 
 // ── 图片操作 ──
@@ -401,6 +446,59 @@ watch(
                 placeholder="水情、目标鱼、最佳出钓时段..."
                 class="bg-surface text-ink placeholder:text-muted/60 focus:ring-accent/30 w-full resize-none rounded-xl border-0 px-4 py-3 text-sm leading-relaxed focus:ring-2 focus:outline-none"
               />
+            </div>
+
+            <!-- 类型(必填) -->
+            <div>
+              <span
+                id="spot-form-kind-label"
+                class="text-ink mb-1.5 block text-sm font-medium"
+                >类型</span
+              >
+              <div
+                :class="[
+                  'flex gap-2 rounded-2xl p-1',
+                  kindTouched && kind === null ? 'ring-2 ring-offset-1 ring-offset-[var(--page)] ring-[color:var(--destructive)]/40' : '',
+                ]"
+                role="radiogroup"
+                aria-labelledby="spot-form-kind-label"
+                :aria-invalid="kindTouched && kind === null ? 'true' : 'false'"
+                :aria-describedby="kindTouched && kind === null ? 'spot-form-kind-error' : undefined"
+                @keydown="onKindKeydown"
+              >
+                <button
+                  v-for="k in kinds"
+                  :key="k"
+                  type="button"
+                  role="radio"
+                  :aria-checked="kind === k"
+                  :aria-label="FISHING_SPOT_KIND_LABELS[k]"
+                  :tabindex="kind === k || (kind === null && k === kinds[0]) ? 0 : -1"
+                  class="bg-surface text-ink hover:border-accent/60 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
+                  :class="
+                    kind === k
+                      ? 'bg-accent text-ink border-accent font-medium'
+                      : 'border-border'
+                  "
+                  @click="
+                    () => {
+                      kind = k;
+                      kindTouched = true;
+                    }
+                  "
+                  @focus="kindTouched = true"
+                >
+                  {{ FISHING_SPOT_KIND_LABELS[k] }}
+                </button>
+              </div>
+              <p
+                v-if="kindTouched && kind === null"
+                id="spot-form-kind-error"
+                class="text-destructive mt-1.5 text-xs"
+                role="alert"
+              >
+                请选择钓点类型
+              </p>
             </div>
 
             <!-- 标签 -->

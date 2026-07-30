@@ -9,12 +9,39 @@
 // 钓点 DTO
 // ---------------------------------------------------------------------------
 
+/**
+ * 钓点水体类型 —— 与 go-backend document.Kind* 常量、Python models 的 kind 字段共用同一组字面量。
+ * 三值封闭：新增类型须同步 Go / Python 的校验枚举。
+ */
+export type FishingSpotKind = 'lake' | 'river' | 'reservoir';
+
+/** 遍历用的有序全集 —— filter chips / 选择器按此顺序渲染 */
+export const FISHING_SPOT_KINDS: readonly FishingSpotKind[] = [
+  'lake',
+  'river',
+  'reservoir',
+] as const;
+
+/** 中文展示 label —— UI 层唯一文案来源，勿在组件内内联硬编码 */
+export const FISHING_SPOT_KIND_LABELS: Readonly<
+  Record<FishingSpotKind, string>
+> = {
+  lake: '湖泊',
+  river: '溪流·江',
+  reservoir: '水库',
+};
+
 export interface FishingSpot {
   id: string;
   name: string;
   description: string;
   /** [lng, lat] */
   location: [number, number];
+  /**
+   * 水体类型。字段必需存在，值可为 null ——
+   * 遗留行经 migration 名字启发式回填，未匹配的少数留 null，UI 按未分类（muted）渲染。
+   */
+  kind: FishingSpotKind | null;
   tags: string[];
   rating: number;
   images: string[];
@@ -24,12 +51,14 @@ export interface FishingSpot {
 
 /**
  * 创建钓点载荷 —— 与 dto.FishingSpotIn 对齐。
- * Name / Location 必填（binding:"required"），其余可选。
+ * Name / Location / Kind 必填（binding:"required,oneof=lake river reservoir"），其余可选。
  */
 export interface CreateFishingSpotPayload {
   name: string;
   /** [lng, lat] */
   location: [number, number];
+  /** 新建时严格必填 —— 不接受 null，后端 oneof 校验会拒绝非法值 */
+  kind: FishingSpotKind;
   description?: string;
   tags?: string[];
   rating?: number;
@@ -268,12 +297,15 @@ export interface FishingStats {
  *
  * 字段:
  * - position:  经纬度 [lng, lat]
+ * - kind:      水体类型（必需；null = 未分类遗留行）—— 标记配色 / 侧栏过滤的唯一依据，
+ *              提升到顶层而非只读 extraData，因为 extraData 可缺省而 kind 渲染必用。
  * - content:   自定义 DOM 字符串（可选；默认使用内置 SVG）
  * - offset:    像素偏移 [x, y]（可选；与 content 配合使用）
  * - extraData: 钓点业务数据（name/description/tags/rating/images 等，location 除外）
  */
 export interface MapMarker {
   position: [number, number];
+  kind: FishingSpotKind | null;
   content?: string;
   offset?: [number, number];
   extraData?: Omit<FishingSpot, 'location'>;
