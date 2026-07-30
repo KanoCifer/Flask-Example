@@ -101,7 +101,7 @@ function openWeather(): void {
 <template>
   <button
     type="button"
-    class="conditions-panel bg-surface text-ink group absolute top-20 right-4 z-60 flex w-64 flex-col gap-3 rounded-2xl border px-4 py-3 text-left shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
+    class="conditions-panel bg-surface text-ink group absolute top-20 right-4 z-60 hidden w-64 flex-col gap-3 rounded-2xl border px-4 py-3 text-left md:flex"
     :aria-label="`查看完整天气与渔情 · ${locationLabel}`"
     @click="openWeather"
   >
@@ -185,21 +185,3 @@ function openWeather(): void {
     </p>
   </button>
 </template>
-
-<style scoped>
-/* 窄屏隐藏 —— 任务 284 AC: < 820px 不显示(让 sidebar 占满,地图吃满下方) */
-@media (max-width: 820px) {
-  .conditions-panel {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .conditions-panel {
-    transition: none;
-  }
-  .conditions-panel:hover {
-    transform: none;
-  }
-}
-</style>

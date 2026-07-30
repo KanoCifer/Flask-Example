@@ -25,7 +25,9 @@ import {
 } from '@readinglist/types';
 import type { FishingSpotKind, MapMarker } from '@readinglist/types';
 import { Loader2, Locate, Plus } from '@lucide/vue';
+import { AnimatePresence, Motion } from 'motion-v';
 import { computed, ref } from 'vue';
+import { EASE } from '@/constants';
 
 interface Props {
   spots: MapMarker[];
@@ -246,108 +248,122 @@ const PIN_KIND_BG: Record<FishingSpotKind, string> = {
     <div class="border-border shrink-0 border-t" aria-hidden="true" />
 
     <!-- Spot list -->
-    <ul
-      class="min-h-0 flex-1 overflow-y-scroll overscroll-y-contain"
-      role="listbox"
-      aria-label="钓点列表"
-    >
-      <li
-        v-for="(spot, index) in visibleSpots"
-        :key="spot.extraData?.id ?? `${spot.position[0]}-${spot.position[1]}`"
-        role="option"
-        :aria-selected="props.selectedId === (spot.extraData?.id ?? null)"
+    <AnimatePresence mode="popLayout">
+      <ul
+        v-if="visibleSpots.length > 0"
+        key="spot-list"
+        class="min-h-0 flex-1 overflow-y-scroll overscroll-y-contain"
+        role="listbox"
+        aria-label="钓点列表"
       >
-        <button
-          type="button"
-          class="spot-row group hover:bg-surface/60 w-full px-6 py-6 text-left transition-colors duration-200"
-          :class="
-            props.selectedId === (spot.extraData?.id ?? null)
-              ? 'bg-surface/80'
-              : ''
-          "
-          @click="emit('select', spot)"
+        <Motion
+          v-for="(spot, index) in visibleSpots"
+          :key="spot.extraData?.id ?? `${spot.position[0]}-${spot.position[1]}`"
+          as="li"
+          :initial="{ opacity: 0, y: 6 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="{ ...EASE, delay: index * 0.05 }"
+          :exit="{ opacity: 0, y: -4, transition: { ...EASE, duration: 0.15 } }"
+          role="option"
+          :aria-selected="props.selectedId === (spot.extraData?.id ?? null)"
         >
-          <!--
+          <button
+            type="button"
+            class="spot-row group hover:bg-surface/60 w-full px-6 py-6 text-left transition-colors duration-200"
+            :class="
+              props.selectedId === (spot.extraData?.id ?? null)
+                ? 'bg-surface/80'
+                : ''
+            "
+            @click="emit('select', spot)"
+          >
+            <!--
             编辑图鉴式行:左列大序号 · 中列鱼形 pin · 右列(主标题 / 副标题 / kind 标签)。
             active 状态:左侧 2px ink 色 hairline,文字加重。
           -->
-          <div class="flex items-start gap-3">
-            <!-- 序号 (左列,display 字体) -->
-            <span
-              class="text-muted bg-secondary group-hover:text-ink font-family-averia shrink-0 rounded-full p-1.5 text-sm leading-none tabular-nums"
-              :class="
-                props.selectedId === (spot.extraData?.id ?? null)
-                  ? 'text-ink'
-                  : ''
-              "
-              aria-hidden="true"
-            >
-              {{ String(index + 1).padStart(2, '0') }}
-            </span>
+            <div class="flex items-start gap-3">
+              <!-- 序号 (左列,display 字体) -->
+              <span
+                class="text-muted bg-secondary group-hover:text-ink font-family-averia shrink-0 rounded-full p-1.5 text-sm leading-none tabular-nums"
+                :class="
+                  props.selectedId === (spot.extraData?.id ?? null)
+                    ? 'text-ink'
+                    : ''
+                "
+                aria-hidden="true"
+              >
+                {{ String(index + 1).padStart(2, '0') }}
+              </span>
 
-            <!-- 鱼形 pin (与地图 marker 同 SVG) -->
-            <span
-              class="mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
-              :class="
-                spot.kind === 'lake'
-                  ? 'text-accent'
-                  : spot.kind === 'river'
-                    ? 'text-secondary'
-                    : spot.kind === 'reservoir'
-                      ? 'text-ink'
-                      : 'text-muted'
-              "
-              aria-hidden="true"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                style="transform: rotate(-45deg)"
+              <!-- 鱼形 pin (与地图 marker 同 SVG) -->
+              <span
+                class="mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
+                :class="
+                  spot.kind === 'lake'
+                    ? 'text-accent'
+                    : spot.kind === 'river'
+                      ? 'text-secondary'
+                      : spot.kind === 'reservoir'
+                        ? 'text-ink'
+                        : 'text-muted'
+                "
+                aria-hidden="true"
               >
-                <path
-                  d="M21 12c-2.5-3.5-7-5-10.5-4.2L8 4 4 8l3 3C5.2 14.6 4 17 4 18c2 1 5 1.5 8 1 3.5-.5 6.5-2 8-4 .5-.6 1-1.4 1-3z"
-                  fill="currentColor"
-                  stroke-linejoin="round"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  style="transform: rotate(-45deg)"
+                >
+                  <path
+                    d="M21 12c-2.5-3.5-7-5-10.5-4.2L8 4 4 8l3 3C5.2 14.6 4 17 4 18c2 1 5 1.5 8 1 3.5-.5 6.5-2 8-4 .5-.6 1-1.4 1-3z"
+                    fill="currentColor"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
 
-            <!-- 右列主内容 -->
-            <div class="min-w-0 flex-1">
-              <p
-                class="text-ink font-family-averia truncate text-[15px] leading-tight font-semibold"
-              >
-                {{ spot.extraData?.name ?? '未命名钓点' }}
-              </p>
-              <p
-                v-if="regionLabel(spot)"
-                class="text-muted mt-1 truncate text-xs leading-snug"
-              >
-                {{ regionLabel(spot) }}
-              </p>
-              <p
-                v-if="spot.kind"
-                class="text-muted font-family-averia mt-1.5 text-[10px] tracking-[0.2em] uppercase"
-              >
-                {{ FISHING_SPOT_KIND_LABELS[spot.kind] }}
-              </p>
+              <!-- 右列主内容 -->
+              <div class="min-w-0 flex-1">
+                <p
+                  class="text-ink font-family-averia truncate text-[15px] leading-tight font-semibold"
+                >
+                  {{ spot.extraData?.name ?? '未命名钓点' }}
+                </p>
+                <p
+                  v-if="regionLabel(spot)"
+                  class="text-muted mt-1 truncate text-xs leading-snug"
+                >
+                  {{ regionLabel(spot) }}
+                </p>
+                <p
+                  v-if="spot.kind"
+                  class="text-muted font-family-averia mt-1.5 text-[10px] tracking-[0.2em] uppercase"
+                >
+                  {{ FISHING_SPOT_KIND_LABELS[spot.kind] }}
+                </p>
+              </div>
             </div>
-          </div>
-        </button>
-      </li>
+          </button>
+        </Motion>
+      </ul>
 
-      <li
-        v-if="visibleSpots.length === 0"
+      <!-- Empty state: fades in when chips filter to zero spots -->
+      <Motion
+        v-else
+        key="empty-state"
+        :initial="{ opacity: 0 }"
+        :animate="{ opacity: 1 }"
+        :transition="{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }"
         class="text-muted px-6 py-12 text-center text-sm"
       >
         <p class="font-family-averia italic">
           {{ props.spots.length === 0 ? '尚无钓点收录' : '当前筛选下无钓点' }}
         </p>
-      </li>
-    </ul>
+      </Motion>
+    </AnimatePresence>
   </aside>
 </template>
 

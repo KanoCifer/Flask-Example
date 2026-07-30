@@ -14,7 +14,11 @@ const themeStore = useThemeStore();
 const route = useRoute();
 const showBasicNav = ref<boolean | null>(null);
 
-const SELF_NAVIGATED_ROUTES = new Set(['/', '/fishing-map']);
+const SELF_NAVIGATED_ROUTES = new Set([
+  '/',
+  '/fishing-map',
+  '/fishing-map/weather',
+]);
 
 // 路由 → 顶栏导航可见性
 watch(

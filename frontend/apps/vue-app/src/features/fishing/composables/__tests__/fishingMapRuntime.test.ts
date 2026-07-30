@@ -35,6 +35,7 @@ function makeMarker(
     kind,
     extraData: {
       id,
+      kind,
       name: `Spot ${id}`,
       description: '',
       tags: [],

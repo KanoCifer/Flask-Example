@@ -1,19 +1,19 @@
 <script setup lang="ts">
 /**
- * WeatherView —— 天气与渔情全屏页。
+ * WeatherView —— 天气与渔情页（/fishing-map/weather）。
  *
- * 把原本在 /fishing 主页 dashboard 网格里的 4 个 cards 抽出成独立路由:
+ * FishingLayout 的子路由页，与「地图」子页平级，由顶栏导航切换。
+ * 页内 4 个 cards:
  * - IndexHeroCard: 钓鱼指数 hero (主导)
  * - WeatherCard:   实时天气详情 (按 location 拉取)
  * - HourlyChartCard: 24h 时序 (降水 + 温度)
  * - TideCard:      潮汐面板 (手动 harbor / date)
  *
  * 设计:
- * - 与 /fishing 共享 FishingAmbient 氛围层 + FishingTopBar 顶导,
- *   从条件面板跳过来后顶导 active state 仍处于「地图」入口
- * - 顶部独立 back 按钮回 /fishing (替代 FishingTopBar 默认「首页」入口)
+ * - 顶栏与浮层由 FishingLayout 常驻提供，本页只渲染主体（顶部留出 fixed 顶栏高度）
+ * - FishingAmbient 氛围层仅本页需要（地图页满屏地图不叠氛围）
  * - location 默认 DEFAULT_MAP_CENTER,也可由 query ?lng=...&lat=... 覆盖,
- *   留给 task-284 后续从主页 conditions panel 跳转时透传
+ *   从主页 conditions panel 跳转时透传
  * - 数据来源仍用 useFishingMapStore.fetchWeatherAndFishing —— 与 React 端保持一致
  */
 import IndexHeroCard from '@/features/fishing/components/IndexHeroCard.vue';
@@ -21,21 +21,17 @@ import WeatherCard from '@/features/fishing/components/WeatherCard.vue';
 import HourlyChartCard from '@/features/fishing/components/HourlyChartCard.vue';
 import TideCard from '@/features/fishing/components/TideCard.vue';
 import FishingAmbient from '@/features/fishing/components/FishingAmbient.vue';
-import FishingTopBar from '@/features/fishing/components/FishingTopBar.vue';
 import {
   DEFAULT_MAP_CENTER,
   useFishingMapStore,
 } from '@/features/fishing/stores/fishingMap';
-import { Button } from '@/components';
-import { ArrowLeft } from '@lucide/vue';
 import { useHead } from '@vueuse/head';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { computed, onMounted } from 'vue';
 
 defineOptions({ name: 'WeatherView' });
 
 const route = useRoute();
-const router = useRouter();
 const fishingMapStore = useFishingMapStore();
 
 useHead({
@@ -67,10 +63,6 @@ function refresh(): Promise<void> {
   return fishingMapStore.fetchWeatherAndFishing(location.value);
 }
 
-function goBack(): void {
-  void router.push('/fishing-map');
-}
-
 onMounted(() => {
   void fishingMapStore.fetchWeatherAndFishing(location.value);
 });
@@ -80,29 +72,16 @@ onMounted(() => {
   <div class="bg-page relative min-h-screen">
     <FishingAmbient />
 
-    <FishingTopBar />
-
     <main
-      class="relative z-10 mx-auto flex max-w-screen-2xl flex-col gap-6 px-4 pt-6 pb-5 sm:px-6 sm:pt-8 sm:pb-8"
+      class="relative z-10 mx-auto flex max-w-screen-2xl flex-col gap-6 px-4 pt-20 pb-5 sm:px-6 sm:pt-24 sm:pb-8"
     >
-      <!-- 顶部 back + 标题 -->
-      <header class="flex items-center justify-between gap-4">
-        <Button
-          variant="ghost"
-          size="md"
-          aria-label="返回钓点图鉴主页"
-          class="-ml-2"
-          @click="goBack"
-        >
-          <ArrowLeft class="h-4 w-4" aria-hidden="true" />
-          <span>返回</span>
-        </Button>
+      <!-- 标题（返回入口已由常驻顶栏承担） -->
+      <header class="flex items-center justify-center">
         <h1
-          class="text-ink font-family-averia text-2xl leading-tight font-semibold sm:text-3xl"
+          class="text-ink font-serif text-2xl leading-tight font-semibold sm:text-3xl"
         >
           天气与渔情
         </h1>
-        <div class="w-16 sm:w-20" aria-hidden="true" />
       </header>
 
       <div

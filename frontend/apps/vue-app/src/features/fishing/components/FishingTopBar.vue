@@ -24,10 +24,11 @@ defineEmits<{
   'add-spot': [];
 }>();
 
-// 顺序对齐图鉴式设计稿；目前仅「地图」有真实路由。
+// 顺序对齐图鉴式设计稿；目前仅「地图」「天气」有真实路由。
 const navItems: FishingNavItem[] = [
   { label: '总览', ariaLabel: '总览' },
   { label: '地图', ariaLabel: '钓点地图', to: '/fishing-map' },
+  { label: '天气', ariaLabel: '天气与渔情', to: '/fishing-map/weather' },
   { label: '笔记', ariaLabel: '钓行笔记' },
   { label: '装备', ariaLabel: '装备清单' },
   { label: '图鉴进度', ariaLabel: '图鉴进度' },
@@ -36,8 +37,11 @@ const navItems: FishingNavItem[] = [
 
 const route = useRoute();
 
-const isActive = (to: string) =>
-  route.path === to || route.path.startsWith(`${to}/`);
+/**
+ * 精确匹配 —— /fishing-map 现在是布局父路径，前缀匹配会让「地图」在
+ * /fishing-map/weather 上一起高亮。仅容忍末尾斜杠差异。
+ */
+const isActive = (to: string) => route.path.replace(/\/+$/, '') === to;
 </script>
 
 <template>

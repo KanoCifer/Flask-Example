@@ -217,7 +217,9 @@ export function createInMemoryAmap() {
   const PixelSpy = vi.fn(makePixel);
 
   return {
-    map,
+    map: map as unknown as ConstructorParameters<
+      typeof import('../fishingMapRuntime').FishingMapRuntime
+    >[0],
     markers,
     infoWindows,
     ns: {
@@ -235,7 +237,7 @@ export function createInMemoryAmap() {
         x: number,
         y: number,
       ) => { x: number; y: number },
-    } as unknown as Parameters<
+    } as unknown as ConstructorParameters<
       typeof import('../fishingMapRuntime').FishingMapRuntime
     >[1] & { _internals: { map: FakeMap; markers: FakeMarker[] } },
   };

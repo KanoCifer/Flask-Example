@@ -18,7 +18,8 @@ import { useFishingAnalysis } from '@/features/fishing/composables/useFishingAna
 import { useFishingFeedback } from '@/features/fishing/composables/useFishingFeedback';
 import { usePanelMutex } from '@/features/fishing/composables/usePanelMutex';
 import { storeToRefs } from 'pinia';
-import { computed, ref, useTemplateRef } from 'vue';
+import type { ComponentPublicInstance, InjectionKey } from 'vue';
+import { computed, inject, provide, ref } from 'vue';
 
 export function useFishingDashboard() {
   const fishingSpots = ref<MapMarker[]>([]);
@@ -36,7 +37,18 @@ export function useFishingDashboard() {
       spotsLoading.value = false;
     }
   })();
-  const mapTileRef = useTemplateRef<FishingMapInstance>('mapTileRef');
+  /**
+   * 地图实例引用。
+   *
+   * 不能用 useTemplateRef —— 它只绑定「调用它的那个组件实例」的模板 ref，
+   * 而本 composable 现在由 FishingLayout 创建、MapContainer 落在子路由页 MapView 里，
+   * 层级对不上会永远收不到实例（定位 / 飞行 / 过滤全部静默失效）。
+   * 改用普通 ref + 函数 ref 回填，由持有 MapContainer 的组件显式绑定 `:ref="setMapTile"`。
+   */
+  const mapTileRef = ref<FishingMapInstance | null>(null);
+  function setMapTile(el: Element | ComponentPublicInstance | null): void {
+    mapTileRef.value = (el as FishingMapInstance | null) ?? null;
+  }
 
   const fishingMapStore = useFishingMapStore();
   const notifier = useNotificationStore();
@@ -241,6 +253,7 @@ export function useFishingDashboard() {
   return {
     // refs / state
     mapTileRef,
+    setMapTile,
     fishingSpots,
     spotsLoading,
     spotsError,
@@ -295,4 +308,31 @@ export function useFishingDashboard() {
     onLocate,
     onAddSpot,
   };
+}
+
+export type FishingDashboard = ReturnType<typeof useFishingDashboard>;
+
+const FISHING_DASHBOARD_KEY: InjectionKey<FishingDashboard> =
+  Symbol('fishing-dashboard');
+
+/**
+ * 在 FishingLayout 里建一份 dashboard 并向子路由页下发。
+ * 顶栏与浮层挂在 layout，主体（地图 / 天气）由 RouterView 切换，
+ * 两边共享同一份状态，切页时不重挂载、不重复拉钓点。
+ */
+export function provideFishingDashboard(): FishingDashboard {
+  const dash = useFishingDashboard();
+  provide(FISHING_DASHBOARD_KEY, dash);
+  return dash;
+}
+
+/** 子路由页取用 layout 下发的 dashboard —— 不在 FishingLayout 内使用即报错 */
+export function useFishingDashboardContext(): FishingDashboard {
+  const dash = inject(FISHING_DASHBOARD_KEY, null);
+  if (!dash) {
+    throw new Error(
+      'useFishingDashboardContext 必须在 FishingLayout 的子组件中调用',
+    );
+  }
+  return dash;
 }

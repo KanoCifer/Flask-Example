@@ -1,5 +1,6 @@
 import {
   EntryView,
+  FishingMapLayout,
   FishingMapView,
   FriendLinksView,
   ChangelogView,
@@ -130,24 +131,32 @@ const router = createRouter({
       },
     },
     {
+      // 布局壳：顶栏 + 浮层常驻，主体由子路由切换。父路由不设 name，
+      // 避免被 push 到父路由时主体区域空白。
       path: '/fishing-map',
-      name: 'fishing-map',
-      component: FishingMapView,
-      meta: {
-        title: "钓鱼地图 - Kuroome's Blog",
-        description: '探索钓鱼地点和钓点信息',
-        keywords: '钓鱼,地图,钓点,钓鱼地图',
-      },
-    },
-    {
-      path: '/fishing-map/weather',
-      name: 'fishing-weather',
-      component: () => import('@/features/fishing/weather/WeatherView.vue'),
-      meta: {
-        title: "天气与渔情 - Kuroome's Blog",
-        description: '实时天气、24h 时序预报、潮汐与钓鱼指数全景视图',
-        keywords: '天气,渔情,钓鱼指数,潮汐,小时预报',
-      },
+      component: FishingMapLayout,
+      children: [
+        {
+          path: '',
+          name: 'fishing-map',
+          component: FishingMapView,
+          meta: {
+            title: "钓鱼地图 - Kuroome's Blog",
+            description: '探索钓鱼地点和钓点信息',
+            keywords: '钓鱼,地图,钓点,钓鱼地图',
+          },
+        },
+        {
+          path: 'weather',
+          name: 'fishing-weather',
+          component: () => import('@/features/fishing/weather/WeatherView.vue'),
+          meta: {
+            title: "天气与渔情 - Kuroome's Blog",
+            description: '实时天气、24h 时序预报、潮汐与钓鱼指数全景视图',
+            keywords: '天气,渔情,钓鱼指数,潮汐,小时预报',
+          },
+        },
+      ],
     },
     {
       path: '/todos',
