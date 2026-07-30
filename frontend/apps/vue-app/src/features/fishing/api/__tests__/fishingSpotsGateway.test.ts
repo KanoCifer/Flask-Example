@@ -51,6 +51,7 @@ const sampleSpot: FishingSpot = {
   name: 'Test Spot',
   description: 'desc',
   location: [113.399705, 23.067563],
+  kind: 'river',
   tags: ['river'],
   rating: 4.5,
   images: ['img1.png'],
@@ -100,12 +101,14 @@ describe('fishingSpotsGateway', () => {
       await fishingSpotGateway.create({
         name: 'New Spot',
         location: [113.4, 23.06],
+        kind: 'lake',
         tags: ['lake'],
       });
 
       expect(mockPost).toHaveBeenCalledWith('v3/fish/spots', {
         name: 'New Spot',
         location: [113.4, 23.06],
+        kind: 'lake',
         tags: ['lake'],
       });
     });
