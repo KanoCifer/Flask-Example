@@ -19,6 +19,29 @@ import {
 
 // ---- AMap 内部服务类型(本文件独占,不导出)----
 
+/**
+ * FishingMapInstance —— MapContainer 暴露给父组件的行为接口。
+ *
+ * 任务 282 后:路线规划已下线,只保留定位 / 视野控制 / kind 过滤 / hover preview。
+ * 原先定义在 useFishingRoute.ts,与 FishingMapRuntime 类同址更合理 —— 接口是
+ * runtime 的对外契约,搬家后 useFishingRoute 整个 stub 可彻底删除。
+ */
+export interface FishingMapInstance {
+  getCurrentPosition: () => Promise<[number, number]>;
+  /** 地图视角移动到指定坐标并缩放 */
+  setZoomAndCenter: (zoom: number, center: [number, number]) => void;
+  /** 定位:移图 + 打点,返回坐标供调用方复用。初始化自动定位与按钮重试共用 */
+  locate: () => Promise<[number, number] | null>;
+  /**
+   * 按 kind 过滤 marker 可见性。null / 空 Set = 全部可见。
+   * 不销毁实例,过渡走 200ms CSS(opacity + transform)。
+   * 集合内不放 null —— null kind 的 marker 在 kinds 非空时一律视为不可见。
+   */
+  setVisibleKinds: (kinds: Set<FishingSpotKind> | null) => void;
+  /** hover preview —— AMap.InfoWindow 显示 name + kind + region;null = 关闭 */
+  setHoverPreview: (spot: MapMarker | null) => void;
+}
+
 interface GeolocationResult {
   position: { lng: number; lat: number };
   info?: string;

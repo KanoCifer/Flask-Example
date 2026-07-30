@@ -51,7 +51,7 @@ import type { FishingSpotKind, MapMarker } from '@readinglist/types';
 import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
 import { loadAMapNamespace } from '@/features/fishing/composables/amapNamespace';
 import { FishingMapRuntime } from '@/features/fishing/composables/fishingMapRuntime';
-import type { FishingMapInstance } from '@/features/fishing/composables/useFishingRoute';
+import type { FishingMapInstance } from '@/features/fishing/composables/fishingMapRuntime';
 import { DEFAULT_MAP_CENTER } from '@/features/fishing/stores/fishingMap';
 import { onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue';
 

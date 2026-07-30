@@ -10,11 +10,13 @@ import type {
   MapMarker,
 } from '@readinglist/types';
 import { toMapMarker, toMapMarkers } from '@/features/fishing/types';
-import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
+import type {
+  FishingMapInstance,
+  MarkerClickPayload,
+} from '@/features/fishing/composables/fishingMapRuntime';
 import { useFishingAnalysis } from '@/features/fishing/composables/useFishingAnalysis';
 import { useFishingFeedback } from '@/features/fishing/composables/useFishingFeedback';
-import type { FishingMapInstance } from '@/features/fishing/composables/useFishingRoute';
-import { useFishingRoute } from '@/features/fishing/composables/useFishingRoute';
+import { usePanelMutex } from '@/features/fishing/composables/usePanelMutex';
 import { storeToRefs } from 'pinia';
 import { computed, ref, useTemplateRef } from 'vue';
 
@@ -40,13 +42,17 @@ export function useFishingDashboard() {
   const notifier = useNotificationStore();
   const { indexData } = storeToRefs(fishingMapStore);
 
+  // —— 三面板互斥 seam(任务 289):详情 / 表单 / AI 分析同一时刻只开一个 —— //
+  const mutex = usePanelMutex();
+  const panelOpen = mutex.isOpen('detail');
+  const formOpen = mutex.isOpen('form');
+
   const userPosition = ref<[number, number] | null>(null);
   const activeLocation = computed<[number, number]>(
     () => userPosition.value ?? DEFAULT_MAP_CENTER,
   );
 
   // —— 钓点详情 Panel ——
-  const panelOpen = ref(false);
   /**
    * 当前 Panel 展示的完整 MapMarker。
    * position 供迷你地图;extraData 供详情展示。
@@ -54,14 +60,11 @@ export function useFishingDashboard() {
    */
   const activePanelMarker = ref<MapMarker | null>(null);
   function openSpotPanel(marker: MapMarker): void {
-    // 三面板互斥:打开详情前关闭表单 + AI 分析
-    closeSpotForm();
-    analysis.close();
+    mutex.openExclusive('detail');
     activePanelMarker.value = marker;
-    panelOpen.value = true;
   }
   function closeSpotPanel(): void {
-    panelOpen.value = false;
+    mutex.close('detail');
     activePanelMarker.value = null;
   }
   /** 钓点被 Panel 内编辑后:同步 marker 引用(触发地图重渲染) */
@@ -80,15 +83,11 @@ export function useFishingDashboard() {
   }
 
   // ── 新增钓点 Panel ──
-  const formOpen = ref(false);
   function openSpotForm(): void {
-    // 三面板互斥:打开表单前关闭详情 + AI 分析
-    closeSpotPanel();
-    analysis.close();
-    formOpen.value = true;
+    mutex.openExclusive('form');
   }
   function closeSpotForm(): void {
-    formOpen.value = false;
+    mutex.close('form');
   }
   /**
    * 新增钓点后端 create 不返回实体,按名称匹配新钓点 → 同步列表 → 打开详情面板。
@@ -103,30 +102,33 @@ export function useFishingDashboard() {
     }
   }
 
-  // useFishingRoute 当前是 stub(任务 282 后路线规划已下线)。
-  // 仍实例化以保留旧字段平铺接口(后续可彻底删除此 composable)。
-  const route = useFishingRoute(() => mapTileRef.value);
   const feedback = useFishingFeedback();
   const analysis = useFishingAnalysis();
 
-  const showFeedbackBanner = computed(
-    () => !route.isPlanning.value && !route.routeInfo.value,
-  );
+  /**
+   * showFeedbackBanner —— 路线规划入口已下线(task-279),无 isPlanning /
+   * routeInfo 任何来源,保持硬编码 true 等价「始终显示」,与 QuickFeedbackBanner
+   * 既有行为对齐。
+   * TODO:React 端 useRouteMapStore.isPlanningRoute 字段保留作为占位;若 Vue 端
+   *      未来恢复路线规划,这里需要从 store 派生。
+   */
+  const showFeedbackBanner = computed(() => true);
 
   /**
-   * marker 点击 → 滑入钓点详情 Panel。
+   * AI 分析开关 —— 三面板互斥由 mutex.openExclusive 保证(开 AI 自动关其它)。
    * 路线规划入口已删除(任务 279):Panel 内联「打开高德 App」按钮。
    */
-  /** AI 分析开关 —— 三面板互斥:打开前关闭表单 + 详情 */
   function toggleAnalysis(): void {
-    closeSpotForm();
-    closeSpotPanel();
+    mutex.openExclusive('analysis');
     analysis.toggle();
   }
 
+  /** Sidebar 列表选中 index —— dashboard 内部状态(原 useFishingRoute 占位) */
+  const selectedSpotIndex = ref<number | null>(null);
+
   function onMarkerClick(payload: MarkerClickPayload): void {
     if (!payload.spot.extraData) return;
-    route.selectedSpotIndex.value = payload.index;
+    selectedSpotIndex.value = payload.index;
     selectedIndex.value = payload.index;
     // 地图视角跟随被点击的钓点(覆盖已打开 Panel 的场景)
     mapTileRef.value?.setZoomAndCenter(15, payload.spot.position);
@@ -134,7 +136,7 @@ export function useFishingDashboard() {
   }
 
   function onFeedbackClick(data: FishingIndexData): void {
-    feedback.openFeedback(data, route.selectedSpotIndex.value);
+    feedback.openFeedback(data, selectedSpotIndex.value);
   }
 
   function onQuickFeedback(): void {
@@ -257,10 +259,6 @@ export function useFishingDashboard() {
     onSpotUpdated,
     onSpotDeleted,
 
-    // 拍平的子 composable refs (模板里直接 dash.isPlanning 等,避免三层点链)
-    // 路线规划已下线,isPlanning / routeInfo 恒为 false / null,保留是为兼容旧模板
-    isPlanning: route.isPlanning,
-    routeInfo: route.routeInfo,
     feedbackOpen: feedback.open,
     currentFishingData: feedback.currentFishingData,
     feedbackLocationId: feedback.locationId,
@@ -270,7 +268,6 @@ export function useFishingDashboard() {
     analysisHasData: analysis.hasData,
 
     // sub-composables (仅 handlers 内部使用,不暴露给模板)
-    route,
     feedback,
     analysis,
 
