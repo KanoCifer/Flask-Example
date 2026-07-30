@@ -30,7 +30,7 @@
       class="grid max-h-[calc(88vh-72px)] grid-cols-1 gap-0 overflow-hidden md:grid-cols-[minmax(0,1fr)_220px]"
     >
       <form
-        class="space-y-5 overflow-y-auto px-7 py-6"
+        class="space-y-5 overflow-y-auto contain-[layout_paint_scroll_style] px-7 py-6"
         @submit.prevent="handleSubmit"
       >
         <!-- 内容 -->

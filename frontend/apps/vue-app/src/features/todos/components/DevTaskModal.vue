@@ -3,7 +3,7 @@
     <!-- 外层 flex 列：限制总高度，让表单区独立滚动 -->
     <div class="flex max-h-[85vh] w-full flex-col">
       <!-- ── 头部 ── -->
-      <div class="bg-card border-b px-6 pt-5 pb-4">
+      <div class="bg-card px-6 pt-5 pb-4">
         <div class="flex items-start gap-3">
           <span
             class="bg-accent/10 text-ink mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
@@ -36,7 +36,9 @@
       </div>
 
       <!-- ── 表单 (可滚动) ── -->
-      <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+      <div
+        class="min-h-0 flex-1 overflow-y-auto px-6 py-5 contain-[layout_paint_scroll_style]"
+      >
         <div class="space-y-5">
           <!-- ── 标题 ── -->
           <label class="block">
@@ -227,7 +229,7 @@
 
       <!-- ── 底部按钮 ── -->
       <div
-        class="bg-page flex shrink-0 items-center justify-between border-t px-6 pt-4 pb-5"
+        class="bg-page flex shrink-0 items-center justify-between px-6 pt-4 pb-5"
       >
         <button
           v-if="form.slug"

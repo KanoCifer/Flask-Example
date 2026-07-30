@@ -237,7 +237,7 @@ watch(
         </div>
 
         <!-- 可滚动主体 -->
-        <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+        <div class="flex-1 space-y-5 overflow-y-auto contain-[layout_paint_scroll_style] px-6 py-5">
           <!-- 交互迷你地图选点 -->
           <div class="space-y-3">
             <div class="text-muted flex items-center gap-1.5">

@@ -308,7 +308,7 @@ watch(
         </header>
 
         <!-- 可滚动主体 -->
-        <div class="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+        <div class="flex-1 space-y-6 overflow-y-auto contain-[layout_paint_scroll_style] px-6 py-5">
           <!-- 标签 -->
           <ul v-if="spot?.tags.length" class="flex flex-wrap gap-1.5">
             <li

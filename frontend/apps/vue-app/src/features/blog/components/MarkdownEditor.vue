@@ -380,7 +380,7 @@ defineExpose({
             关闭
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto bg-page">
+        <div class="flex-1 overflow-y-auto contain-[layout_paint_scroll_style] bg-page">
           <ArticlePreview
             :post-id="postId"
             :title="title || '无标题'"

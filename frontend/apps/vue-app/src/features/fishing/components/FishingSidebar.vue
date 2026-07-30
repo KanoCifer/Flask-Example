@@ -250,7 +250,7 @@ const PIN_KIND_BG: Record<FishingSpotKind, string> = {
       <ul
         v-if="visibleSpots.length > 0"
         key="spot-list"
-        class="min-h-0 flex-1 overflow-y-scroll overscroll-y-contain"
+        class="min-h-0 flex-1 overflow-y-scroll overscroll-y-contain contain-[layout_paint_scroll_style]"
         role="listbox"
         aria-label="钓点列表"
       >
