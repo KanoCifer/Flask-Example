@@ -386,7 +386,7 @@ watch(
       <aside
         v-if="open"
         ref="panelRef"
-        class="bg-page border-border fixed top-6 right-6 bottom-6 z-50 flex w-full max-w-[480px] flex-col overflow-hidden rounded-3xl border"
+        class="bg-page/90 border-border fixed top-6 right-6 bottom-6 z-50 flex w-full max-w-[480px] flex-col overflow-hidden rounded-3xl border backdrop-blur-sm"
         :style="CARD_SHADOW"
         role="dialog"
         aria-modal="true"

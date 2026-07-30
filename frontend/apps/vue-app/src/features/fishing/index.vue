@@ -2,6 +2,8 @@
 defineOptions({ name: 'FishingMapView' });
 import AnalysisPanel from '@/features/fishing/components/AnalysisPanel.vue';
 import FeedbackFormDialog from '@/features/fishing/components/FeedbackFormDialog.vue';
+import FishingConditionsPanel from '@/features/fishing/components/FishingConditionsPanel.vue';
+import FishingSidebar from '@/features/fishing/components/FishingSidebar.vue';
 import FishingTopBar from '@/features/fishing/components/FishingTopBar.vue';
 import MapContainer from '@/features/fishing/components/MapContainer.vue';
 import SpotDetailPanel from '@/features/fishing/components/SpotDetailPanel.vue';
@@ -19,31 +21,43 @@ onMounted(dash.init);
 </script>
 
 <template>
-  <div class="bg-page relative min-h-screen">
+  <div class="h-screen overflow-hidden">
     <FishingTopBar
       class="fixed inset-x-0 top-0"
       :analysis-open="dash.analysisOpen.value"
       :analysis-has-data="dash.analysisHasData.value"
       @toggle-analysis="dash.toggleAnalysis"
-      @add-spot="dash.openSpotForm"
+      @add-spot="dash.onAddSpot"
     />
+    <main
+      class="grid h-full min-h-0 grid-cols-[0_1fr] overflow-hidden transition-[grid-template-columns] duration-200 md:grid-cols-[auto_1fr]"
+    >
+      <FishingSidebar
+        class="border-border w-[320px] md:flex md:flex-col"
+        :spots="dash.fishingSpots.value"
+        :selected-id="dash.selectedId.value"
+        :is-locating="dash.isLocating.value"
+        @select="dash.onSpotSelect"
+        @locate="dash.onLocate"
+        @add-spot="dash.onAddSpot"
+        @change-filter="dash.onFilterChange"
+      />
 
-    <main class="relative z-10">
-      <!-- <QuickFeedbackBanner
-        :disabled="!dash.indexData.value"
-        @submit="dash.onQuickFeedback"
-      /> -->
-
-      <div
-        class="fishing-map-wrapper absolute inset-0 h-screen w-screen overflow-hidden"
-      >
+      <div class="relative size-full min-h-0 overflow-hidden">
         <MapContainer
           ref="mapTileRef"
           :markers="dash.fishingSpots.value"
+          :visible-kinds="dash.activeFilter.value"
+          :hovered-marker="null"
           @marker-click="dash.onMarkerClick"
           @map-ready="dash.onMapReady"
           @error="dash.onMapError"
-          @add-spot="dash.openSpotForm"
+          @add-spot="dash.onAddSpot"
+        />
+
+        <FishingConditionsPanel
+          :location="dash.activeLocation.value"
+          @navigate="() => {}"
         />
       </div>
     </main>
@@ -80,30 +94,3 @@ onMounted(dash.init);
     />
   </div>
 </template>
-
-<style scoped>
-.fishing-tagline-rule {
-  display: block;
-  height: 1px;
-  width: 64px;
-  margin: 0 auto 16px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    oklch(from var(--muted) l c h / 0.5),
-    transparent
-  );
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fishing-map-wrapper:hover {
-    transform: none;
-  }
-}
-
-@media (hover: none) {
-  .fishing-map-wrapper:hover {
-    transform: none;
-  }
-}
-</style>

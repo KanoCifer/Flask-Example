@@ -41,16 +41,17 @@ const isActive = (to: string) =>
 </script>
 
 <template>
-  <nav aria-label="主导航" class="bg-surface/90 z-50 backdrop-blur-md">
+  <nav aria-label="主导航" class="bg-page/70 z-50 backdrop-blur-md">
     <div
-      class="mx-auto flex max-w-screen-2xl items-center gap-10 px-4 py-6 sm:px-6"
+      class="mx-auto flex max-w-screen-2xl items-center gap-10 px-4 py-3 sm:px-6"
     >
       <!-- 品牌 mark -->
       <RouterLink
         to="/"
         aria-label="返回首页"
-        class="text-ink font-family-averia shrink-0 font-serif text-2xl leading-none transition-[transform] duration-150 ease-out active:scale-[0.96]"
+        class="text-ink font-family-averia inline-flex shrink-0 items-center gap-1.5 text-2xl leading-none transition-[transform] duration-150 ease-out active:scale-[0.96]"
       >
+        <span class="brand-mark">Ka</span>
         Luring
         <span class="text-muted font-serif text-xs tracking-[0.2em] italic">
           ka·no·ci·fer
@@ -137,3 +138,17 @@ const isActive = (to: string) =>
     </div>
   </nav>
 </template>
+
+<style lang="scss" scoped>
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+</style>

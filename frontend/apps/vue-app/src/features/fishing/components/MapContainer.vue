@@ -254,6 +254,10 @@ onUnmounted(() => {
     transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
   opacity: 1;
 }
+.fish-marker:hover {
+  /* hover scale 1.12(任务 282 AC)—— 与 --leaving / --visible 的 rotate(-45deg) 一致 */
+  transform: rotate(-45deg) scale(1.12);
+}
 .fish-marker:focus-visible {
   /* 键盘聚焦时给个高亮描边,让 Tab/Shift+Tab 导航可见 */
   outline: 2px solid var(--accent, currentColor);

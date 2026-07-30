@@ -45,29 +45,32 @@ export const FISHING_MARKER_CONTENT = `
 `;
 
 /**
- * kind → 三色配置。
- * lake / river / reservoir 各分配一组「背景 + 边框」色对。
- * 颜色用 hex 字符串硬编码鱼形 marker(SVG 直接渲染,不经过主题 token)——
- * 这是地图标记覆盖在卫星/矢量底图上的设计选择:不能依赖页面主题色,
- * 否则深色主题下与底图对比度崩溃。
+ * kind → 三色 fill —— 走现有 Tailwind/主题 CSS 变量(用户明确指示「用现有 token」):
+ * - lake → --color-accent (主题主强调色)
+ * - river → --color-secondary (次级)
+ * - reservoir → --color-page (背景色,深色主题下也是浅卡)
+ *
+ * 鱼形 divIcon 渲染在 AMap 注入的 .amap-marker-content 容器里(脱离 Vue scope),
+ * 因此用内联 style 写 CSS 变量 —— SVG fill 接受 var() 解析,无需硬编码 hex。
  */
-const KIND_FILL: Record<FishingSpotKind, { bg: string; border: string }> = {
-  lake: { bg: '#1d6fd1', border: '#0a3a7a' },
-  river: { bg: '#2cb38a', border: '#0f5e44' },
-  reservoir: { bg: '#d97a1f', border: '#7a3f08' },
+const KIND_FILL: Record<FishingSpotKind, { bg: string }> = {
+  lake: { bg: 'var(--color-accent)' },
+  river: { bg: 'var(--color-secondary)' },
+  reservoir: { bg: 'var(--color-page)' },
 };
 
-/** 默认 fallback(未知 kind / null)——灰色,弱化存在感 */
-const DEFAULT_FILL = { bg: '#7a7a7a', border: '#3a3a3a' };
+/** 默认 fallback(未知 kind / null)——走 muted 主题色,弱化存在感 */
+const DEFAULT_FILL = { bg: 'var(--color-muted)' };
 
-/** 取 marker 配色:已知 kind 取对应色对,其它(legacy null/未匹配)走灰色 */
-function fillFor(kind: FishingSpotKind | null): { bg: string; border: string } {
+/** 取 marker 填充色:已知 kind 走对应 token,其它(legacy null/未匹配)走 muted */
+function fillFor(kind: FishingSpotKind | null): { bg: string } {
   return kind ? KIND_FILL[kind] : DEFAULT_FILL;
 }
 
 /**
  * 鱼形 divIcon HTML —— 38×38 div,rotate(-45deg) 让鱼头指向坐标点。
- * SVG 鱼身内置白色描边 + 黑色鱼眼;填充色由 fillFor(kind) 决定。
+ * 2px 白色边框落在外层 div(box-shadow 模拟,避免 div 自身 border 与 transform 互掐);
+ * SVG 鱼身用 kind 对应 token 上色 + 黑色鱼眼,无内联白描边(白边由外层负责)。
  *
  * 几何:
  *   - 外层 div 38×38:AMap 默认 marker click hit area
@@ -87,6 +90,7 @@ function makeFishMarkerHtml(
   return `
     <div
       class="fish-marker"
+      data-kind="${spot.kind ?? 'unknown'}"
       data-marker-index="${index}"
       role="button"
       tabindex="0"
@@ -100,20 +104,20 @@ function makeFishMarkerHtml(
         cursor:pointer;
         transform:rotate(-45deg);
         transform-origin:center;
+        border-radius:50% 50% 50% 0;
+        box-shadow:0 0 0 2px #ffffff, 0 2px 6px color-mix(in oklch, #000 22%, transparent);
       "
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
-        width="30"
-        height="30"
+        width="28"
+        height="28"
         aria-hidden="true"
       >
         <path
           d="M21 12c-2.5-3.5-7-5-10.5-4.2L8 4 4 8l3 3C5.2 14.6 4 17 4 18c2 1 5 1.5 8 1 3.5-.5 6.5-2 8-4 .5-.6 1-1.4 1-3z"
           fill="${bg}"
-          stroke="#ffffff"
-          stroke-width="1.5"
           stroke-linejoin="round"
           stroke-linecap="round"
         />
@@ -289,9 +293,13 @@ export class FishingMapRuntime {
    * 按 kind 过滤 marker 可见性 —— 200ms CSS 过渡后 setMap(null)。
    * 不销毁实例,filter 切换时无重新构造开销。
    *
-   * 传空 Set 或不传 → 全部可见。
-   * 切换时:不可见 marker 先走过渡(淡出 + 缩小)→ 动画结束从 map 卸载;
-   *          重新可见 marker 立即 add 回 map(下一帧 CSS 让其淡入)。
+   * 传 null 或空 Set → 全部可见。
+   * 切换时:不可见 marker 先走过渡(淡出 + 缩小)→ transitionend 触发了再 setMap(null);
+   *          重新可见 marker 立即 setMap(map),下一帧 CSS 让其淡入。
+   *
+   * 为什么 transitionend 不用 setTimeout:
+   * - transitionend 与 CSS 真实时长同步;CSS 改 200ms 时不用动这里
+   * - transitionend + e.propertyName 去重(opacity / transform 同时触发,只取首个)
    */
   setVisibleKinds(kinds: Set<FishingSpotKind> | null): void {
     const allVisible = !kinds || kinds.size === 0;
@@ -317,17 +325,34 @@ export class FishingMapRuntime {
         if (marker.getMap()) {
           dom?.classList.remove('fish-marker--visible');
           dom?.classList.add('fish-marker--leaving');
-          // 200ms 过渡结束再卸载 DOM(避免动画中途被撕掉)
+          // 200ms 过渡结束再卸载 DOM(避免动画中途被撕掉)。
+          // 用 transitionend 而非 setTimeout(200),与 CSS 真实时长同步。
+          // 用 once:true 保证 listener 自动移除;期间用户重切可见则 marker 不再 setMap(null)。
+          dom?.addEventListener(
+            'transitionend',
+            () => {
+              // 期间用户可能重新切回可见,加保护
+              if (
+                this.markerDomElements[i]?.classList.contains(
+                  'fish-marker--leaving',
+                )
+              ) {
+                marker.setMap(null);
+              }
+            },
+            { once: true },
+          );
+          // 兜底:浏览器未触发 transitionend(罕见,但曾在断点续动画后观察到)→ 240ms 后强卸
           window.setTimeout(() => {
-            // 期间用户可能重新切回可见,加保护
             if (
               this.markerDomElements[i]?.classList.contains(
                 'fish-marker--leaving',
-              )
+              ) &&
+              marker.getMap()
             ) {
               marker.setMap(null);
             }
-          }, 200);
+          }, 240);
         }
       }
     });

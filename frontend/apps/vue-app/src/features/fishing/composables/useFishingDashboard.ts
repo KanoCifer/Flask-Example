@@ -4,7 +4,11 @@ import {
 } from '@/features/fishing/stores/fishingMap';
 import { useNotificationStore } from '@/stores';
 import { fishingSpotsGateway } from '@readinglist/api';
-import type { FishingIndexData, MapMarker } from '@readinglist/types';
+import type {
+  FishingIndexData,
+  FishingSpotKind,
+  MapMarker,
+} from '@readinglist/types';
 import { toMapMarker, toMapMarkers } from '@/features/fishing/types';
 import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
 import { useFishingAnalysis } from '@/features/fishing/composables/useFishingAnalysis';
@@ -123,6 +127,7 @@ export function useFishingDashboard() {
   function onMarkerClick(payload: MarkerClickPayload): void {
     if (!payload.spot.extraData) return;
     route.selectedSpotIndex.value = payload.index;
+    selectedIndex.value = payload.index;
     // 地图视角跟随被点击的钓点(覆盖已打开 Panel 的场景)
     mapTileRef.value?.setZoomAndCenter(15, payload.spot.position);
     openSpotPanel(payload.spot);
@@ -165,6 +170,65 @@ export function useFishingDashboard() {
   /** Index hero card 的刷新按钮 → 用当前 activeLocation 重新拉 */
   function refreshIndex(): Promise<void> {
     return fishingMapStore.fetchWeatherAndFishing(activeLocation.value);
+  }
+
+  // —— Sidebar (任务 284) ——
+  /**
+   * Sidebar filter chip 状态:null = 全部,Set = 仅显示选中 kind。
+   * 父组件 watch 后调用 map.setVisibleKinds;MapContainer 自己也接受
+   * visibleKinds prop 双向同步。本 ref 作为单一真源。
+   */
+  const activeFilter = ref<Set<FishingSpotKind> | null>(null);
+  /**
+   * Sidebar 列表选中 index —— 指向原始数组,与 marker click 共用。
+   */
+  const selectedIndex = ref<number | null>(null);
+  /**
+   * Sidebar 列表选中 id —— 用 id 而非 index(原始数组索引)跟 sidebar 同步,
+   * 因为 sidebar 已按 kind 过滤,index 范围与原始数组不再对齐。
+   */
+  const selectedId = computed<string | null>(
+    () => fishingSpots.value[selectedIndex.value ?? -1]?.extraData?.id ?? null,
+  );
+
+  /** 定位 in-flight 标志,Sidebar Locate icon crossfade 用 */
+  const isLocating = ref(false);
+
+  /** Sidebar chip 切换 → 更新本地状态 + 通知地图过滤 marker */
+  function onFilterChange(kinds: Set<FishingSpotKind>): void {
+    activeFilter.value = kinds.size > 0 ? kinds : null;
+    mapTileRef.value?.setVisibleKinds(activeFilter.value);
+  }
+
+  /** Sidebar 列表项点击 → flyTo zoom=9 + hover preview + 更新 selectedIndex */
+  function onSpotSelect(spot: MapMarker): void {
+    // sidebar 传 MapMarker 自身(已过滤);selectedIndex 仍指向原始数组以便
+    // 后续 MapContainer markers prop 索引对应
+    const idx = fishingSpots.value.findIndex(
+      (m) => m.extraData?.id === spot.extraData?.id,
+    );
+    selectedIndex.value = idx >= 0 ? idx : null;
+    mapTileRef.value?.setZoomAndCenter(15, spot.position);
+    mapTileRef.value?.setHoverPreview(spot);
+  }
+
+  /** Sidebar header 定位按钮 → 复用 MapContainer.locate */
+  async function onLocate(): Promise<[number, number] | null> {
+    const map = mapTileRef.value;
+    if (!map) return null;
+    isLocating.value = true;
+    try {
+      const pos = await map.locate();
+      if (pos) userPosition.value = pos;
+      return pos;
+    } finally {
+      isLocating.value = false;
+    }
+  }
+
+  /** Sidebar header 添加钓点入口 → 复用 openSpotForm */
+  function onAddSpot(): void {
+    openSpotForm();
   }
 
   /** MapTile 定位 / 路线等操作失败时 toast 提示 */
@@ -223,5 +287,15 @@ export function useFishingDashboard() {
     onMapError,
     init,
     refreshIndex,
+
+    // sidebar (任务 284)
+    activeFilter,
+    selectedIndex,
+    selectedId,
+    isLocating,
+    onFilterChange,
+    onSpotSelect,
+    onLocate,
+    onAddSpot,
   };
 }
