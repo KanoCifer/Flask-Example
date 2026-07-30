@@ -251,24 +251,27 @@
             </div>
           </div>
 
-          <!-- Blog Post List with page transition -->
-          <AnimatePresence v-else mode="wait">
-            <motion.div
-              :key="currentPage"
-              :initial="{ opacity: 0, y: 12 }"
-              :animate="{ opacity: 1, y: 0 }"
-              :exit="{ opacity: 0, y: -12 }"
-              :transition="EASE_INOUT"
-              class="space-y-5"
-            >
-              <BlogListItem
+          <!-- Blog Post List with per-item transition
+               之前用 AnimatePresence mode="wait" + key=currentPage,分页切换会
+               unmount 整列表(所有图片 lazy-load 状态、滚动位置、缓存都丢)。
+               现在用 AnimatePresence(默认 mode=popLayout)+ per-item motion.div
+               + layout,让 motion 自己处理 enter/exit/layout,已渲染 item 保留状态。
+               space-y-5 留在外层容器,避免每个 item 下方多出 20px。 -->
+          <div v-else class="space-y-5">
+            <AnimatePresence>
+              <motion.div
                 v-for="(post, index) in posts"
                 :key="post._id"
-                :post="post"
-                :index="index"
-              />
-            </motion.div>
-          </AnimatePresence>
+                :layout="true"
+                :initial="{ opacity: 0, y: 12 }"
+                :animate="{ opacity: 1, y: 0 }"
+                :exit="{ opacity: 0, y: -12 }"
+                :transition="EASE_INOUT"
+              >
+                <BlogListItem :post="post" :index="index" />
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
           <!-- Pagination: 统一算法，gap ≥ 2 时自动插入省略号 -->
           <nav

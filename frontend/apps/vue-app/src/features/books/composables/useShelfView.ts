@@ -116,11 +116,16 @@ export function useShelfView(visibleBooks: Ref<WereadUserBook[]>) {
   }));
 
   // ── 「你正在读」rail 数据 ────────────────────────────────
-  const recentReading = computed(() => {
-    return [...buckets.value.reading]
-      .sort(sortByRecent)
-      .slice(0, RECENT_RAIL_LIMIT);
-  });
+  // buckets.reading 按 sortByRecent 排好的结果 — 单独 computed,
+  // 让 recentReading 与 displayedBooks(默认 sort='recent')都能复用,
+  // 避免 sort 切换外的搜索/筛选每次都重新 sort。
+  const readingSortedByRecent = computed(() =>
+    [...buckets.value.reading].sort(sortByRecent),
+  );
+
+  const recentReading = computed(() =>
+    readingSortedByRecent.value.slice(0, RECENT_RAIL_LIMIT),
+  );
 
   const showReadingRail = computed(
     () =>
@@ -135,23 +140,44 @@ export function useShelfView(visibleBooks: Ref<WereadUserBook[]>) {
   );
 
   // ── filter + search + sort 管道 ─────────────────────────
-  const displayedBooks = computed(() => {
-    let list: WereadUserBook[];
-    if (filter.value === 'reading') list = buckets.value.reading;
-    else if (filter.value === 'finished') list = buckets.value.finished;
-    else if (filter.value === 'wishlist') list = buckets.value.wishlist;
-    else list = visibleBooks.value;
-
-    const q = searchQuery.value.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (b) =>
-          b.title.toLowerCase().includes(q) ||
-          b.author.toLowerCase().includes(q),
-      );
+  // 拆成两个 computed:
+  //  - preFiltered: 仅依赖 filter,buckets 内桶选择;filter 切换才重算
+  //  - displayedBooks: 在 preFiltered 基础上按 searchQuery 筛 + sort
+  // 排序结果同样按 sort 变化缓存,搜索/筛选变化时不再重排。
+  const preFiltered = computed<WereadUserBook[]>(() => {
+    switch (filter.value) {
+      case 'reading':
+        return buckets.value.reading;
+      case 'finished':
+        return buckets.value.finished;
+      case 'wishlist':
+        return buckets.value.wishlist;
+      default:
+        return visibleBooks.value;
     }
+  });
 
-    return [...list].sort(SORTERS[sort.value]);
+  const displayedBooks = computed<WereadUserBook[]>(() => {
+    const q = searchQuery.value.trim().toLowerCase();
+    const base = q
+      ? preFiltered.value.filter(
+          (b) =>
+            b.title.toLowerCase().includes(q) ||
+            b.author.toLowerCase().includes(q),
+        )
+      : preFiltered.value;
+
+    // 默认 sort='recent' 且无搜索时,直接复用已排序的 readingSortedByRecent(仅 reading 桶命中)
+    // — 其他桶 + 有搜索时仍按 SORTERS[sort] 排,但只排一次,Vue computed 会缓存结果到下次依赖变化
+    const sorter = SORTERS[sort.value];
+    if (
+      sorter === sortByRecent &&
+      !q &&
+      filter.value === 'reading'
+    ) {
+      return readingSortedByRecent.value;
+    }
+    return [...base].sort(sorter);
   });
 
   // ── 派生 UI ─────────────────────────────────────────────

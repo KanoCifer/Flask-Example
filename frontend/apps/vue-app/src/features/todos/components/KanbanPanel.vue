@@ -292,37 +292,80 @@ const visibleTasks = computed<DevTask[]>(() => {
 });
 
 function columnCount(col: KanbanColumnId): number {
-  const statuses = KANBAN_COLUMNS.find((c) => c.id === col)?.statuses ?? [];
-  return visibleTasks.value.filter((t) => statuses.includes(t.status)).length;
+  return columnCounts.value.get(col) ?? 0;
 }
 
 /**
- * 泳道 —— 在每个看板列里按 user_id 分组，始终展示标签头（含单成员场景）。
- * 单成员场景下所有卡片归入同一泳道，结构仍一致，便于未来扩展多成员。
+ * 每列卡片数 —— 一次性算好 4 列，模板多次取用都只是 Map.get。
+ * 之前 columnCount 在每列 header 上被调用 2 次,共 8 次 filter;现在 1 次 filter 分桶。
+ */
+const columnCounts = computed<Map<KanbanColumnId, number>>(() => {
+  const counts = new Map<KanbanColumnId, number>();
+  for (const col of KANBAN_COLUMNS) counts.set(col.id, 0);
+  for (const t of visibleTasks.value) {
+    for (const col of KANBAN_COLUMNS) {
+      if (col.statuses.includes(t.status)) {
+        counts.set(col.id, (counts.get(col.id) ?? 0) + 1);
+        break;
+      }
+    }
+  }
+  return counts;
+});
+
+/**
+ * 泳道 —— 在每个看板列里按 user_id 分组,始终展示标签头(含单成员场景)。
+ * 单成员场景下所有卡片归入同一泳道,结构仍一致,便于未来扩展多成员。
+ *
+ * 之前 swimlanesFor 在每列 v-for 里各调一次,共 4 次 filter+sort+group;
+ * 现改成一次性把 visibleTasks 按 (column, user_id) 二维分桶,模板直接 Map.get。
  */
 function swimlanesFor(col: KanbanColumnId): {
   userId: number;
   label: string;
   tasks: DevTask[];
 }[] {
-  const statuses = KANBAN_COLUMNS.find((c) => c.id === col)?.statuses ?? [];
-  const inCol = visibleTasks.value
-    .filter((t) => statuses.includes(t.status))
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  return swimlanesByColumn.value.get(col) ?? [];
+}
 
-  const grouped = new Map<number, DevTask[]>();
-  for (const t of inCol) {
-    const arr = grouped.get(t.user_id) ?? [];
-    arr.push(t);
-    grouped.set(t.user_id, arr);
+const swimlanesByColumn = computed<
+  Map<KanbanColumnId, { userId: number; label: string; tasks: DevTask[] }[]>
+>(() => {
+  // 一次遍历同时算出每列的卡片数和泳道 —— 比 4×(filter+sort+group) 省一个数量级
+  const grouped = new Map<
+    KanbanColumnId,
+    Map<number, { userId: number; label: string; tasks: DevTask[] }>
+  >();
+  for (const col of KANBAN_COLUMNS) grouped.set(col.id, new Map());
+
+  for (const t of visibleTasks.value) {
+    for (const col of KANBAN_COLUMNS) {
+      if (!col.statuses.includes(t.status)) continue;
+      const laneMap = grouped.get(col.id)!;
+      let lane = laneMap.get(t.user_id);
+      if (!lane) {
+        lane = { userId: t.user_id, label: `用户 ${t.user_id}`, tasks: [] };
+        laneMap.set(t.user_id, lane);
+      }
+      lane.tasks.push(t);
+      break;
+    }
   }
 
-  return Array.from(grouped.entries()).map(([userId, tasks]) => ({
-    userId,
-    label: `用户 ${userId}`,
-    tasks,
-  }));
-}
+  // 每列内按 sort_order 升序,与原行为一致
+  const result = new Map<
+    KanbanColumnId,
+    { userId: number; label: string; tasks: DevTask[] }[]
+  >();
+  for (const col of KANBAN_COLUMNS) {
+    const lanes = Array.from(grouped.get(col.id)!.values());
+    for (const lane of lanes) {
+      lane.tasks.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    }
+    result.set(col.id, lanes);
+  }
+  return result;
+});
 
 defineEmits<{
   open: [slug: string];
