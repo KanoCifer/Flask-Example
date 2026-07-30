@@ -191,6 +191,10 @@ export class FishingMapRuntime {
     : never;
   /** 当前 hover 的 marker index,用于清除预览时定位 */
   private hoverIndex: number | null = null;
+  /** 处理 hover 结束延迟关闭的定时器 ID(防快速滑动累积) */
+  private hoverEndTimer: ReturnType<typeof setTimeout> | null = null;
+  /** setVisibleKinds 兜底 fallback 定时器 ID(所有 marker 共用一个) */
+  private visibleKindsFallback: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * 标记点击回调(由组件注入,转发到上层 emit)。
@@ -304,6 +308,7 @@ export class FishingMapRuntime {
    */
   setVisibleKinds(kinds: Set<FishingSpotKind> | null): void {
     const allVisible = !kinds || kinds.size === 0;
+    let needsFallback = false;
     this.markers.forEach((marker, i) => {
       const spot = this.markerSources[i];
       const visible = allVisible || (spot.kind != null && kinds.has(spot.kind));
@@ -343,20 +348,30 @@ export class FishingMapRuntime {
             },
             { once: true },
           );
-          // 兜底:浏览器未触发 transitionend(罕见,但曾在断点续动画后观察到)→ 240ms 后强卸
-          window.setTimeout(() => {
-            if (
-              this.markerDomElements[i]?.classList.contains(
-                'fish-marker--leaving',
-              ) &&
-              marker.getMap()
-            ) {
-              marker.setMap(null);
-            }
-          }, 240);
+          if (!needsFallback) needsFallback = true;
         }
       }
     });
+    // 兜底:所有 marker 共用一个 fallback 定时器,避免 N 个定时器。
+    // 取消上一个 fallback,防止新旧切换回合时残留定时器把刚切回的 marker 卸载。
+    if (this.visibleKindsFallback !== null) {
+      clearTimeout(this.visibleKindsFallback);
+    }
+    if (needsFallback) {
+      this.visibleKindsFallback = setTimeout(() => {
+        this.visibleKindsFallback = null;
+        this.markers.forEach((marker, i) => {
+          if (
+            this.markerDomElements[i]?.classList.contains(
+              'fish-marker--leaving',
+            ) &&
+            marker.getMap()
+          ) {
+            marker.setMap(null);
+          }
+        });
+      }, 240);
+    }
   }
 
   /**
@@ -387,14 +402,19 @@ export class FishingMapRuntime {
   private handleHoverEnd(): void {
     // 短暂延迟:用户从 marker 移到 InfoWindow 内容时,mouseout 触发会立即关闭 → 用户看不到预览。
     // 150ms 延迟,期间若 hover 进入新 marker 会被 handleHover 覆盖,期间若进入 InfoWindow 自身则用户已在看。
-    window.setTimeout(() => {
+    // 防快速滑动累积:每次 mouseout 先清除上一个未执行定时器
+    if (this.hoverEndTimer !== null) {
+      clearTimeout(this.hoverEndTimer);
+    }
+    this.hoverIndex = null;
+    this.hoverEndTimer = setTimeout(() => {
+      this.hoverEndTimer = null;
       if (this.hoverIndex !== null) {
         // 仍有活跃 hover(mouseover 在 mouseout 后又触发了) → 不关闭
         return;
       }
       this.hoverInfoWindow.close();
     }, 150);
-    this.hoverIndex = null;
   }
 
   /** 容器尺寸变化后通知 AMap 重新测量(运行时方法,类型未声明) */

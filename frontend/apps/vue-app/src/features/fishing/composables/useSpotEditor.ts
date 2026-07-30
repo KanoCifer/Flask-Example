@@ -207,10 +207,6 @@ export function useSpotEditor(
   function removePicture(p: SpotPicture): void {
     pictures.value = pictures.value.filter((x) => x.id !== p.id);
     // 命中未上传预览:一并清理,避免旧 blob URL 残留
-    if (selectedFile.value && previewUrl.value) {
-      pictures;
-      // 仅清空一次;不依赖 selectedFile 的具体引用,沿用原 watch(selectedFile) 的清理语义
-    }
     selectedFile.value = null;
     previewUrl.value = null;
   }
@@ -223,9 +219,14 @@ export function useSpotEditor(
 
   async function retryUpload(): Promise<void> {
     if (!selectedFile.value || isUploading.value) return;
+    await doUploadThenAppend(selectedFile.value);
+  }
+
+  /** 上传文件并追加到 pictures,失败写 pendingError。 */
+  async function doUploadThenAppend(file: File): Promise<void> {
     pendingError.value = null;
     try {
-      const url = await upload(selectedFile.value);
+      const url = await upload(file);
       pictures.value.push({
         id: uuidv4().slice(0, 8),
         uploadedAt: dayjs().toISOString(),
@@ -247,20 +248,7 @@ export function useSpotEditor(
       previewUrl.value = null;
       return;
     }
-    pendingError.value = null;
-    try {
-      const url = await upload(file);
-      pictures.value.push({
-        id: uuidv4().slice(0, 8),
-        uploadedAt: dayjs().toISOString(),
-        url,
-        description: '',
-      });
-      selectedFile.value = null;
-      previewUrl.value = null;
-    } catch {
-      pendingError.value = '图片上传失败,请重试';
-    }
+    await doUploadThenAppend(file);
   });
 
   // 释放旧 blob URL,避免内存泄漏(对齐既有 watch 写法)。

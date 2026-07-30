@@ -67,13 +67,11 @@ const allActive = computed(() => selectedKinds.value.size === 0);
 
 /** 每个 kind 在 props.spots 中的计数 —— 给 chip 副信息 */
 const kindCount = computed<Record<FishingSpotKind, number>>(() => {
-  const counts: Record<FishingSpotKind, number> = {
-    lake: 0,
-    river: 0,
-    reservoir: 0,
-  };
+  const counts = Object.fromEntries(
+    FISHING_SPOT_KINDS.map((k) => [k, 0]),
+  ) as Record<FishingSpotKind, number>;
   for (const spot of props.spots) {
-    if (spot.kind) counts[spot.kind]++;
+    if (spot.kind && spot.kind in counts) counts[spot.kind]++;
   }
   return counts;
 });
@@ -303,10 +301,9 @@ const PIN_KIND_BG: Record<FishingSpotKind, string> = {
                   {{ spot.extraData?.name || '未命名钓点' }}
                 </p>
                 <p
-                  v-if="regionLabel(spot)"
                   class="text-muted mt-1 truncate text-xs leading-snug"
                 >
-                  {{ regionLabel(spot) }}
+                  {{ regionLabel(spot) || '&nbsp;' }}
                 </p>
                 <p
                   v-if="spot.kind"

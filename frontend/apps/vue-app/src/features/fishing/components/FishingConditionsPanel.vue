@@ -18,7 +18,7 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ChevronRight, Droplets, Moon, Thermometer, Wind } from '@lucide/vue';
-import type { WeatherDay, WeatherHourly } from '@readinglist/types';
+import type { WeatherDay } from '@readinglist/types';
 
 const emit = defineEmits<{
   /** 跳 /fishing-map/weather 之前父组件可拦截(用于切到 weather 后 reset) */
@@ -64,9 +64,6 @@ const windText = computed(() => {
   return `${w.windDir ?? ''} ${w.windScale ?? ''}级`.trim() || '—';
 });
 
-/** 当前小时水温近似值 —— WeatherHourly 暂无专用字段,用温度代理;若无 hourly 则取当前 temp */
-const waterTempText = computed(() => tempText.value);
-
 /** 今日月相 —— 取 forecasts[0].moonPhase;无则兜底 */
 const moonPhaseText = computed(() => {
   const daily = (indexData.value?.forecasts ?? []) as WeatherDay[];
@@ -78,11 +75,6 @@ const tideSummary = computed(() => {
   if (!tideData.value?.tideTable?.length) return '';
   const next = tideData.value.tideTable[0];
   return `${next.type === 'H' ? '高潮' : '低潮'} ${next.fxTime.slice(11, 16)}`;
-});
-
-/** 最近一次 hourly 取一条 —— 仅用于让 conditions panel 显示有数据感 */
-const lastHourly = computed<WeatherHourly | null>(() => {
-  return weatherHourly.value?.[0] ?? null;
 });
 
 const locationLabel = computed(() => locationName.value || '当前位置');
@@ -156,7 +148,7 @@ function openWeather(): void {
       <li class="flex items-center gap-1.5">
         <Droplets class="text-muted h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span class="text-muted">水温</span>
-        <span class="text-ink ml-auto tabular-nums">{{ waterTempText }}</span>
+        <span class="text-ink ml-auto tabular-nums">{{ tempText }}</span>
       </li>
       <li class="flex items-center gap-1.5">
         <Moon class="text-muted h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -178,7 +170,7 @@ function openWeather(): void {
 
     <!-- 占位:store 未就绪时给一句提示,避免空白按钮显得空荡 -->
     <p
-      v-if="!liveWeather && !lastHourly"
+      v-if="!liveWeather"
       class="text-muted text-xs leading-tight"
     >
       定位后将展示实时天气与渔情窗口

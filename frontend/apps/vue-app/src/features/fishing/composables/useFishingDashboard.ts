@@ -124,7 +124,7 @@ export function useFishingDashboard() {
    * TODO:React 端 useRouteMapStore.isPlanningRoute 字段保留作为占位;若 Vue 端
    *      未来恢复路线规划,这里需要从 store 派生。
    */
-  const showFeedbackBanner = computed(() => true);
+  const showFeedbackBanner = true;
 
   /**
    * AI 分析开关 —— 三面板互斥由 mutex.openExclusive 保证(开 AI 自动关其它)。
@@ -135,12 +135,11 @@ export function useFishingDashboard() {
     analysis.toggle();
   }
 
-  /** Sidebar 列表选中 index —— dashboard 内部状态(原 useFishingRoute 占位) */
-  const selectedSpotIndex = ref<number | null>(null);
+  /** Sidebar 列表选中 index —— dashboard 内部状态 */
+  const selectedIndex = ref<number | null>(null);
 
   function onMarkerClick(payload: MarkerClickPayload): void {
     if (!payload.spot.extraData) return;
-    selectedSpotIndex.value = payload.index;
     selectedIndex.value = payload.index;
     // 地图视角跟随被点击的钓点(覆盖已打开 Panel 的场景)
     mapTileRef.value?.setZoomAndCenter(15, payload.spot.position);
@@ -148,7 +147,7 @@ export function useFishingDashboard() {
   }
 
   function onFeedbackClick(data: FishingIndexData): void {
-    feedback.openFeedback(data, selectedSpotIndex.value);
+    feedback.openFeedback(data, selectedIndex.value);
   }
 
   function onQuickFeedback(): void {

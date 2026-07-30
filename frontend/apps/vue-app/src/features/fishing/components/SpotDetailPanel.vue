@@ -153,10 +153,7 @@ async function saveEdit(): Promise<void> {
     const payload = buildPayload() as UpdateFishingSpotPayload;
     await fishingSpotsGateway.update(id, payload);
     // update 不返回实体 —— 用 patch 后的字段 + 父组件 marker 复用,手工构造新 marker
-    const tagsArr = draft.value.tags
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tagsArr = payload.tags;
     const updated: MapMarker = {
       ...props.marker!,
       extraData: {

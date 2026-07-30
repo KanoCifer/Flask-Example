@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'FishingTopBar' });
 import { useRoute } from 'vue-router';
+import { Plus } from '@lucide/vue';
 import { Button } from '@/components';
 
 /**
@@ -93,19 +94,7 @@ const isActive = (to: string) => route.path.replace(/\/+$/, '') === to;
 
       <div class="mr-4 ml-auto flex items-center gap-2">
         <Button size="md" @click="$emit('add-spot')">
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <Plus class="h-4 w-4" aria-hidden="true" />
           <span class="hidden sm:inline">添加钓点</span>
         </Button>
 
