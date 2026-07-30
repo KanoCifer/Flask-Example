@@ -7,9 +7,11 @@
  * - 判定是否有可分析的数据 (用于 header 按钮上的小红点)
  *
  * 抽出原因: 原本散落在 view 顶层, view 里业务状态太多。
+ * 「是否有可分析数据」的具体判定已抽到 `lib/tideDerivation.hasMeaningfulWeather`。
  */
 import { useFishingMapStore } from '@/features/fishing/stores/fishingMap';
 import { useTidePanelStore } from '@/features/fishing/stores/tidePanel';
+import { hasMeaningfulWeather } from '@/features/fishing/lib/tideDerivation';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -43,11 +45,12 @@ export function useFishingAnalysis() {
     };
   });
 
-  const hasData = computed(
-    () =>
-      liveWeather.value !== null ||
-      forecasts.value.length > 0 ||
-      tideData.value !== null,
+  const hasData = computed(() =>
+    hasMeaningfulWeather({
+      liveWeather: liveWeather.value,
+      forecasts: forecasts.value,
+      tideData: tideData.value,
+    }),
   );
 
   function toggle() {

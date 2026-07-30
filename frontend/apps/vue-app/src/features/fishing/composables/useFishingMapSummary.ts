@@ -13,9 +13,8 @@ import {
   DEFAULT_MAP_CENTER,
   useFishingMapStore,
 } from '@/features/fishing/stores/fishingMap';
-import type { TideData } from '@readinglist/types';
+import { deriveTideStatus } from '@/features/fishing/lib/tideDerivation';
 import { formatRelative } from '@/lib/dayjs';
-import dayjs from 'dayjs';
 import { computed, ref, type Ref } from 'vue';
 
 export interface UseFishingMapSummaryReturn {
@@ -25,22 +24,6 @@ export interface UseFishingMapSummaryReturn {
   weatherText: Ref<string>;
   tideStatus: Ref<string>;
   refresh: () => Promise<void>;
-}
-
-function deriveTideStatus(tideData: TideData | null): string {
-  if (!tideData?.tideTable?.length) return '未知潮汐';
-
-  const now = dayjs();
-  const table = tideData.tideTable;
-
-  for (let i = 0; i < table.length; i++) {
-    const tideTime = dayjs(table[i].fxTime);
-    if (tideTime.isAfter(now)) {
-      return table[i].type === 'H' ? '退潮中' : '涨潮中';
-    }
-  }
-
-  return '未知潮汐';
 }
 
 export function useFishingMapSummary(): UseFishingMapSummaryReturn {

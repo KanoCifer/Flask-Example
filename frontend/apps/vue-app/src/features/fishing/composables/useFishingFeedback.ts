@@ -5,69 +5,17 @@
  * - 从 store 取实时天气 / 潮汐数据 → 拼成 FishingFeedbackData
  * - 维护 modal 开关 + 选中的钓点 id/name
  *
- * 把「哪些字段从 liveWeather 取、哪些从 tideTable 推、默认值是什么」集中到这里，
- * 避免污染 view 组件。
+ * 派生逻辑（风级 / 潮位 / 距下一潮）已抽到 `@/features/fishing/lib/tideDerivation`，
+ * 本文件只负责「取 store 值 → 调 seam → 装入 feedback payload」。
  */
 import { useFishingMapStore } from '@/features/fishing/stores/fishingMap';
-import type {
-  FishingFeedbackData,
-  FishingIndexData,
-  TideData,
-} from '@readinglist/types';
+import {
+  deriveTideMeta,
+  deriveWindLevel,
+} from '@/features/fishing/lib/tideDerivation';
+import type { FishingFeedbackData, FishingIndexData } from '@readinglist/types';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
-
-/** 风力等级（1-3）：风速 km/h 除以 3 向上取整再夹到 [1, 3] */
-function deriveWindLevel(windScale: string | number | undefined): number {
-  const scale = Number(windScale) || 1;
-  return Math.min(3, Math.max(1, Math.ceil(scale / 3)));
-}
-
-/** 从潮汐表推算下一潮差 / 距下一潮小时数 */
-function deriveTideMeta(tideData: TideData | null): {
-  level: number;
-  type?: '涨潮' | '退潮';
-  range: number;
-  hoursToNext: number;
-} {
-  const fallback = {
-    level: 1.5,
-    type: undefined,
-    range: 1.5,
-    hoursToNext: 3.0,
-  };
-  const table = tideData?.tideTable;
-  if (!table || table.length === 0) return fallback;
-
-  const current = table[0];
-  const next = table[1];
-  const level = Number(current.height ?? fallback.level);
-  const type = current.type === 'H' ? '退潮' : '涨潮';
-
-  if (!next) {
-    return {
-      level,
-      type,
-      range: fallback.range,
-      hoursToNext: fallback.hoursToNext,
-    };
-  }
-
-  const nextLevel = Number(next.height ?? fallback.level);
-  const currentTime = new Date(current.fxTime).getTime();
-  const nextTime = new Date(next.fxTime).getTime();
-  const hoursToNext =
-    Number.isFinite(currentTime) && Number.isFinite(nextTime)
-      ? (nextTime - currentTime) / (1000 * 60 * 60)
-      : fallback.hoursToNext;
-
-  return {
-    level,
-    type,
-    range: Math.abs(nextLevel - level),
-    hoursToNext,
-  };
-}
 
 export function useFishingFeedback() {
   const fishingMapStore = useFishingMapStore();
