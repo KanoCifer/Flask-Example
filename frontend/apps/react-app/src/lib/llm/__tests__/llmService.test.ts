@@ -3,10 +3,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('@readinglist/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@readinglist/api')>();
   return {
+    ...actual,
+    apiClient: {
+      post: vi.fn(),
+    },
     default: {
       post: vi.fn(),
     },
-    extractData: actual.extractData,
   };
 });
 

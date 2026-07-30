@@ -8,7 +8,7 @@ import type { FishingSpotKind, MapMarker } from '@readinglist/types';
 
 import type { AMapWithPlugins, InfoWindowInstance } from './amapNamespace';
 import type { RouteInfo } from '../types';
-import { escapeHtml, fillFor, makeFishMarkerHtml, makeHoverPreviewHtml } from '@readinglist/utils';
+import { makeFishMarkerHtml, makeHoverPreviewHtml } from '@readinglist/utils';
 
 // ---- 内部服务类型(本文件独占,不导出) ----
 

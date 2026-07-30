@@ -27,7 +27,7 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const fishingMapStore = useFishingMapStore();
-const { liveWeather, locationName, indexData, weatherHourly, tideData } =
+const { liveWeather, locationName, indexData, tideData } =
   storeToRefs(fishingMapStore);
 
 /** 当前坐标:store 没有专门字段,fallback 默认中心;activeLocation 由父级用 useFishingDashboard 注入 */

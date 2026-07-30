@@ -135,9 +135,6 @@ export function useFishingDashboard() {
     analysis.toggle();
   }
 
-  /** Sidebar 列表选中 index —— dashboard 内部状态 */
-  const selectedIndex = ref<number | null>(null);
-
   function onMarkerClick(payload: MarkerClickPayload): void {
     if (!payload.spot.extraData) return;
     selectedIndex.value = payload.index;
@@ -193,7 +190,7 @@ export function useFishingDashboard() {
    */
   const activeFilter = ref<Set<FishingSpotKind> | null>(null);
   /**
-   * Sidebar 列表选中 index —— 指向原始数组,与 marker click 共用。
+   * Sidebar / marker click 共用选中 index —— 指向原始数组。
    */
   const selectedIndex = ref<number | null>(null);
   /**

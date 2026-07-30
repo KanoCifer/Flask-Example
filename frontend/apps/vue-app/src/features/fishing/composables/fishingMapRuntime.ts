@@ -10,7 +10,7 @@
  */
 import type { AMapWithPlugins } from '@/features/fishing/composables/amapNamespace';
 import type { FishingSpotKind, MapMarker } from '@readinglist/types';
-import { escapeHtml, fillFor, makeFishMarkerHtml, makeHoverPreviewHtml } from '@readinglist/utils';
+import { makeFishMarkerHtml, makeHoverPreviewHtml } from '@readinglist/utils';
 
 // ---- AMap 内部服务类型(本文件独占,不导出)----
 

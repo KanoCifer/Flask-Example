@@ -168,17 +168,12 @@ class FakePolyline {
   }
 }
 
-class FakeDriving {
-  private lastSearchCallback:
-    | ((status: string, result: unknown) => void)
-    | null = null;
-
+export class FakeDriving {
   search(
     _origin: unknown,
     _destination: unknown,
     callback: (status: string, result: unknown) => void,
   ): void {
-    this.lastSearchCallback = callback;
     // 默认返回一条虚构路线
     callback('complete', {
       routes: [
@@ -195,7 +190,7 @@ class FakeDriving {
   }
 
   clear(): void {
-    this.lastSearchCallback = null;
+    /* no-op */
   }
 }
 
@@ -309,8 +304,6 @@ export function createInMemoryAmap() {
       Polyline: PolylineSpy as unknown as new (
         opts: ConstructorParameters<typeof FakePolyline>[0],
       ) => FakePolyline,
-    } as unknown as Parameters<
-      typeof import('./FishingMapRuntime').FishingMapRuntime
-    >[1] & { _internals: { map: FakeMap; markers: FakeMarker[] } },
+    } as unknown as Record<string, unknown> & { _internals: { map: FakeMap; markers: FakeMarker[] } } as any,
   };
 }

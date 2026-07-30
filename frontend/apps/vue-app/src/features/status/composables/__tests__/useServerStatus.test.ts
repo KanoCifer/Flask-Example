@@ -12,7 +12,7 @@ vi.mock('@/features/status/api/statusGateway', () => ({
 const connectionDelay: Ref<number> = ref(0);
 const isConnected: Ref<boolean> = ref(true);
 const sendPing = vi.fn();
-vi.mock('@/utils/visitor', () => ({
+vi.mock('@/lib', () => ({
   connectionDelay,
   isConnected,
   sendPing,

@@ -1,17 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { blogGateway } from '@readinglist/api';
 
-// Mock the underlying apiClient module
-vi.mock('@readinglist/api', () => ({
-  apiClient: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
+// Mock axios so apiClient created via axios.create() uses our mocked instance
+const mockAxiosInstance = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  delete: vi.fn(),
+  interceptors: {
+    request: { use: vi.fn() },
+    response: { use: vi.fn() },
   },
+  create: vi.fn(() => mockAxiosInstance),
+  defaults: {},
 }));
 
-import { apiClient } from '@readinglist/api';
+vi.mock('axios', () => ({
+  default: mockAxiosInstance,
+}));
+
+import { blogGateway, apiClient } from '@readinglist/api';
 
 describe('blogGateway (tags migration)', () => {
   beforeEach(() => {

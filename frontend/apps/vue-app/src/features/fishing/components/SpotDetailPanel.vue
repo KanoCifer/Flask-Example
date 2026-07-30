@@ -159,7 +159,7 @@ async function saveEdit(): Promise<void> {
       extraData: {
         ...spot.value!,
         ...payload,
-        tags: tagsArr,
+        tags: tagsArr ?? [],
         images: pictures.value.map((p) => p.url),
         updated_at: new Date().toISOString(),
       },

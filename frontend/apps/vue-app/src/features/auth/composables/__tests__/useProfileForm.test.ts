@@ -7,6 +7,13 @@ const updateProfileSettings = vi.fn();
 const fetchUser = vi.fn();
 let mockUser: UserInfo | null = null;
 
+vi.mock('@readinglist/api', () => ({
+  authGateway: {
+    updateProfileSettings: (...args: unknown[]) =>
+      updateProfileSettings(...args),
+  },
+}));
+
 vi.mock('@/features/auth', () => ({
   authGateway: {
     updateProfileSettings: (...args: unknown[]) =>

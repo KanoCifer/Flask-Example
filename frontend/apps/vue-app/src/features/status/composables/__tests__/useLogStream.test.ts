@@ -4,7 +4,7 @@ import { mount } from '@vue/test-utils';
 
 // ── gateway mock ─────────────────────────────────────────────────
 const fetchRecentEvents = vi.fn();
-vi.mock('@/features/status/api/logGateway', () => ({
+vi.mock('@readinglist/api', () => ({
   fetchRecentEvents: (...args: unknown[]) => fetchRecentEvents(...args),
 }));
 
