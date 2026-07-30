@@ -140,6 +140,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/fishing/weather',
+      name: 'fishing-weather',
+      component: () =>
+        import('@/features/fishing/weather/WeatherView.vue'),
+      meta: {
+        title: "天气与渔情 - Kuroome's Blog",
+        description: '实时天气、24h 时序预报、潮汐与钓鱼指数全景视图',
+        keywords: '天气,渔情,钓鱼指数,潮汐,小时预报',
+      },
+    },
+    {
       path: '/todos',
       name: 'todo-list',
       // redirect: { path: "/" },

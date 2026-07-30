@@ -1,145 +1,59 @@
 <template>
-  <Teleport to="body" :disabled="!isFullscreen">
-    <div
-      :class="[
-        isFullscreen
-          ? 'fixed inset-0 overflow-hidden'
-          : 'relative h-full w-full',
-      ]"
+  <!-- 地图实例 -->
+  <div ref="containerRef" class="map-container relative">
+    <!-- 添加钓点按钮 -->
+    <button
+      type="button"
+      class="bg-secondary/90 text-ink hover:bg-accent absolute right-2.5 bottom-20 z-60 flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm transition-all duration-200 ease-out active:scale-95"
+      aria-label="添加钓点"
+      @click="emit('addSpot')"
     >
-      <!-- 地图实例 -->
-      <div ref="containerRef" class="map-container shadow-md"></div>
+      <Plus class="text-ink h-5 w-5" />
+    </button>
 
-      <!-- 添加钓点按钮 -->
-      <button
-        type="button"
-        class="bg-secondary/90 text-ink hover:bg-accent absolute right-2.5 bottom-36 z-60 flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm transition-all duration-200 ease-out active:scale-95"
-        aria-label="添加钓点"
-        @click="emit('addSpot')"
+    <!-- 定位按钮：浏览器原生方式获取 -->
+    <button
+      type="button"
+      :class="[
+        'bg-page/90 text-ink hover:bg-page /40 absolute right-2.5 bottom-5 z-60 flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm backdrop-blur-md transition-all duration-200 ease-out active:scale-95 disabled:opacity-50',
+        isLocating && 'text-ink',
+      ]"
+      :disabled="isLocating"
+      aria-label="定位到当前位置"
+      @click="handleLocateClick"
+    >
+      <!-- 图标交叉淡入淡出(非 motion 库:cubic-bezier 过渡 + 缩放 + 模糊) -->
+      <span
+        class="icon-crossfade"
+        :class="{ 'is-active': isLocating }"
+        aria-hidden="true"
       >
-        <Plus class="text-ink h-5 w-5" />
-      </button>
+        <Locate
+          class="icon-crossfade__item icon-crossfade__item--enter h-4 w-4"
+        />
+        <Loader2
+          class="icon-crossfade__item icon-crossfade__item--exit h-4 w-4"
+        />
+      </span>
+    </button>
 
-      <!-- 定位按钮：浏览器原生方式获取 -->
-      <button
-        type="button"
-        :class="[
-          'bg-page/90 text-ink hover:bg-page /40 absolute right-2.5 bottom-5 z-60 flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm backdrop-blur-md transition-all duration-200 ease-out active:scale-95 disabled:opacity-50',
-          isLocating && 'text-ink',
-        ]"
-        :disabled="isLocating"
-        aria-label="定位到当前位置"
-        @click="handleLocateClick"
-      >
-        <!-- 图标交叉淡入淡出(非 motion 库:cubic-bezier 过渡 + 缩放 + 模糊) -->
-        <span
-          class="icon-crossfade"
-          :class="{ 'is-active': isLocating }"
-          aria-hidden="true"
-        >
-          <Locate
-            class="icon-crossfade__item icon-crossfade__item--enter h-4 w-4"
-          />
-          <Loader2
-            class="icon-crossfade__item icon-crossfade__item--exit h-4 w-4"
-          />
-        </span>
-      </button>
-
-      <!-- 地图全屏按钮 -->
-      <button
-        type="button"
-        class="bg-page/90 text-ink hover:bg-page /40 absolute right-2.5 bottom-20 z-60 flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm backdrop-blur-md transition-all duration-200 ease-out active:scale-95 disabled:opacity-50"
-        @click="handleFullscreen"
-      >
-        <span
-          class="icon-crossfade"
-          :class="{ 'is-active': isFullscreen }"
-          aria-hidden="true"
-        >
-          <Maximize
-            class="icon-crossfade__item icon-crossfade__item--enter h-4 w-4"
-          />
-          <Minimize
-            class="icon-crossfade__item icon-crossfade__item--exit h-4 w-4"
-          />
-        </span>
-      </button>
-
-      <!-- 路线浮层（原 MapTile 折叠进来） -->
-      <SlideFadeTransitionX
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-2"
-      >
-        <div
-          v-if="isPlanning || routeInfo"
-          class="bg-page/90 absolute right-4 bottom-4 left-4 mx-auto w-fit rounded-2xl border p-4 shadow-lg backdrop-blur-md"
-        >
-          <div v-if="isPlanning" class="text-muted flex items-center gap-3">
-            <Loader2 class="h-4 w-4 animate-spin" />
-            <span class="text-sm">正在规划路线...</span>
-          </div>
-          <div
-            v-else-if="routeInfo"
-            class="flex items-center justify-between gap-4"
-          >
-            <div class="space-y-1.5">
-              <p class="text-muted text-xs tracking-[0.2em] uppercase">
-                路线信息
-              </p>
-              <p
-                class="text-ink font-family-averia text-2xl leading-none tabular-nums sm:text-3xl"
-              >
-                <span>{{ formatDistance(routeInfo.distance) }}</span>
-                <span class="text-muted mx-2 text-base">·</span>
-                <span>{{ formatDuration(routeInfo.time) }}</span>
-              </p>
-            </div>
-            <button
-              class="bg-destructive text-ink hover:bg-destructive/90 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-              type="button"
-              @click="emit('clearRoute')"
-            >
-              清除路线
-            </button>
-          </div>
-        </div>
-      </SlideFadeTransitionX>
-
-      <p
-        v-if="!isPlanning && !routeInfo"
-        class="text-muted/90 bg-page/70 absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-1.5 text-xs backdrop-blur-md"
-      >
-        点击地图标记，查看钓点信息
-      </p>
-    </div>
-  </Teleport>
+    <p
+      class="text-muted/90 bg-page/70 absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full px-4 py-1.5 text-xs backdrop-blur-md"
+    >
+      点击地图标记，查看钓点信息
+    </p>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { Loader2, Locate, Maximize, Minimize, Plus } from '@lucide/vue';
-import type { MapMarker } from '@readinglist/types';
+import { Loader2, Locate, Plus } from '@lucide/vue';
+import type { FishingSpotKind, MapMarker } from '@readinglist/types';
 import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
 import { loadAMapNamespace } from '@/features/fishing/composables/amapNamespace';
 import { FishingMapRuntime } from '@/features/fishing/composables/fishingMapRuntime';
-import {
-  formatDistance,
-  type FishingMapInstance,
-  type RouteInfo,
-} from '@/features/fishing/composables/useFishingRoute';
-import { formatDuration } from '@/lib/dayjs';
-import { SlideFadeTransitionX } from '@/components';
+import type { FishingMapInstance } from '@/features/fishing/composables/useFishingRoute';
 import { DEFAULT_MAP_CENTER } from '@/features/fishing/stores/fishingMap';
-import {
-  nextTick,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch,
-  useTemplateRef,
-} from 'vue';
+import { onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue';
 
 declare global {
   interface Window {
@@ -149,23 +63,30 @@ declare global {
 
 /*
  * MapContainer 现在是浅组件:只负责容器 DOM、AMap 加载与 map 实例生命周期。
- * 所有行为(标记 / 路线 / 定位)下沉到 FishingMapRuntime,经 FishingMapInstance
- * 接口暴露,可注入 in-memory AMap 引擎测试。
+ * 所有行为(标记 / 定位 / kind 过滤 / hover preview)下沉到 FishingMapRuntime,
+ * 经 FishingMapInstance 接口暴露,可注入 in-memory AMap 引擎测试。
+ *
+ * 路线规划已下线(task-279 / task-282 一并清理):marker 不再有 Driving 浮层,
+ * 详情面板内联「打开高德 App」即可。
  */
 
 const containerRef = useTemplateRef<HTMLDivElement>('containerRef');
 
 interface Props {
   markers?: MapMarker[];
-  /** 路线浮层状态(由 dashboard 的 useFishingRoute 驱动) */
-  isPlanning?: boolean;
-  routeInfo?: RouteInfo | null;
+  /**
+   * 可见的 kind 集合(任务 284 chip 选择器驱动)。
+   * null / 空 Set = 全部可见。null kind 的 marker 在 kinds 非空时也视为不可见。
+   */
+  visibleKinds?: Set<FishingSpotKind> | null;
+  /** 当前 hover 的 marker(任务 284 列表 hover 同步驱动 InfoWindow) */
+  hoveredMarker?: MapMarker | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   markers: () => [],
-  isPlanning: false,
-  routeInfo: null,
+  visibleKinds: null,
+  hoveredMarker: null,
 });
 
 const emit = defineEmits<{
@@ -173,7 +94,6 @@ const emit = defineEmits<{
   (e: 'markerClick', payload: MarkerClickPayload): void;
   (e: 'mapReady'): void;
   (e: 'error', message: string): void;
-  (e: 'clearRoute'): void;
   (e: 'addSpot'): void;
 }>();
 
@@ -182,7 +102,6 @@ let runtime: FishingMapRuntime | null = null;
 let clickHandler: ((e: unknown) => void) | null = null;
 
 const isLocating = ref(false);
-const isFullscreen = ref(false);
 
 onMounted(async () => {
   try {
@@ -204,6 +123,10 @@ onMounted(async () => {
     runtime = new FishingMapRuntime(map, AMap);
     runtime.onMarkerClick = (payload) => emit('markerClick', payload);
     runtime.renderMarkers(props.markers);
+    // 初始化可见性
+    if (props.visibleKinds) {
+      runtime.setVisibleKinds(props.visibleKinds);
+    }
 
     clickHandler = (e: unknown) => emit('click', e);
     map.on('click', clickHandler);
@@ -219,21 +142,29 @@ watch(
   () => props.markers,
   () => {
     runtime?.renderMarkers(props.markers);
+    // 重渲染后立即应用可见性,避免刚加进来的 marker 闪一下又消失
+    if (props.visibleKinds) {
+      runtime?.setVisibleKinds(props.visibleKinds);
+    }
   },
   { deep: true },
 );
 
-// 全屏按钮点击:Teleport 后容器被重新挂载,AMap 不会自动重新测量尺寸
-watch(isFullscreen, async () => {
-  await nextTick();
-  if (map) {
-    runtime?.resize();
-  }
-});
+// 监听 kind 过滤变化
+watch(
+  () => props.visibleKinds,
+  (kinds) => {
+    runtime?.setVisibleKinds(kinds ?? null);
+  },
+);
 
-const handleFullscreen = () => {
-  isFullscreen.value = !isFullscreen.value;
-};
+// 监听 hover preview 变化(列表 hover → 同步 InfoWindow)
+watch(
+  () => props.hoveredMarker,
+  (marker) => {
+    runtime?.setHoverPreview(marker ?? null);
+  },
+);
 
 // 定位:runtime 解析位置 → setCenter + 打点。失败走 IP 兜底(静默),都失败才通知。
 // 初始化(onMapReady)与按钮点击共用;按钮可重试。
@@ -262,13 +193,8 @@ const locate = async (): Promise<[number, number] | null> => {
 // 定位按钮点击:可重试定位
 const handleLocateClick = () => void locate();
 
-// 暴露行为接口给父组件（经 FishingMapInstance 类型约束）
+// 暴露行为接口给父组件(经 FishingMapInstance 类型约束)
 defineExpose<FishingMapInstance>({
-  planRoute: (start, end): Promise<RouteInfo> => {
-    if (!runtime) return Promise.reject(new Error('地图未就绪'));
-    return runtime.planRoute(start, end);
-  },
-  clearRoute: () => runtime?.clearRoute(),
   getCurrentPosition: () => {
     if (!runtime) return Promise.reject(new Error('地图未就绪'));
     return runtime.getCurrentPosition();
@@ -279,6 +205,10 @@ defineExpose<FishingMapInstance>({
   },
   /** 定位:移图 + 打点,返回坐标供调用方复用。初始化自动定位与按钮重试共用 */
   locate,
+  /** kind 过滤 —— null / 空 Set = 全部可见 */
+  setVisibleKinds: (kinds) => runtime?.setVisibleKinds(kinds),
+  /** hover preview —— AMap.InfoWindow;null = 关闭 */
+  setHoverPreview: (spot) => runtime?.setHoverPreview(spot),
 });
 
 onUnmounted(() => {
@@ -307,6 +237,35 @@ onUnmounted(() => {
   margin: 0px;
   width: 100%;
   height: 100%;
+}
+
+/*
+ * 鱼形 marker 的过渡(任务 282):
+ * - 默认态:opacity 1,scale 1(基线)
+ * - 隐藏中(--leaving):opacity 0,scale 0.6;200ms 过渡后由 runtime setMap(null)
+ * - 重新可见(--visible):触发过渡回到默认态
+ *
+ * 类切换由 runtime.setVisibleKinds 控制(JS 直接操作 classList)。
+ * transition 同时跑 opacity + transform —— 任务 282 要求 200ms。
+ */
+.fish-marker {
+  transition:
+    opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 1;
+}
+.fish-marker:focus-visible {
+  /* 键盘聚焦时给个高亮描边,让 Tab/Shift+Tab 导航可见 */
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 2px;
+}
+.fish-marker--leaving {
+  opacity: 0;
+  transform: rotate(-45deg) scale(0.6);
+}
+.fish-marker--visible {
+  opacity: 1;
+  transform: rotate(-45deg) scale(1);
 }
 
 /*
@@ -351,5 +310,24 @@ onUnmounted(() => {
 }
 .icon-crossfade.is-active .icon-crossfade__item--exit.animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/*
+ * InfoWindow preview card —— AMap 把内容塞到 amap-info-content 容器下(脱离本组件作用域),
+ * 用 :deep 命中 fish-preview-card 子级,接管字体 / 微阴影。
+ * 业务颜色(--ink / --page / --muted)走主题 token。
+ */
+:deep(.fish-preview-card) {
+  /* 让工具栏、版权水印不出现在预览窗上 */
+  border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
+}
+:deep(.amap-info-content) {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:deep(.amap-info-close) {
+  /* 关闭 × 走主题色 */
+  color: var(--ink, currentColor);
 }
 </style>

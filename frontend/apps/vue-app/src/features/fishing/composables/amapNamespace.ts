@@ -28,18 +28,6 @@ declare global {
 
 // ---- AMap 插件类型 (官方 @types/amap-js-api 只覆盖核心) ----
 
-interface DrivingService {
-  search(
-    origin: [number, number] | AMap.LngLat,
-    destination: [number, number] | AMap.LngLat,
-    callback: (
-      status: 'complete' | 'no_data' | string,
-      result: unknown,
-    ) => void,
-  ): void;
-  clear(): void;
-}
-
 interface CitySearchService {
   getLocalCity(
     callback: (status: 'complete' | string, result: unknown) => void,
@@ -55,6 +43,19 @@ interface GeolocationService {
   ): void;
 }
 
+/**
+ * AMap.InfoWindow —— 浮层信息窗,用于 marker hover preview。
+ * offset 为 (x, y) 像素偏移,content 直接接受 DOM 字符串或 HTMLElement。
+ */
+interface InfoWindowInstance {
+  setContent(
+    content: string | HTMLElement,
+  ): void;
+  setPosition(position: [number, number] | AMap.LngLat): void;
+  open(map: AMap.Map, position?: [number, number] | AMap.LngLat): void;
+  close(): void;
+}
+
 export type AMapWithPlugins = typeof AMap & {
   CitySearch: new () => CitySearchService;
   Geolocation: new (options?: {
@@ -64,11 +65,13 @@ export type AMapWithPlugins = typeof AMap & {
     position?: string;
     panToLocation?: boolean;
   }) => GeolocationService;
-  Driving: new (options?: {
-    map?: AMap.Map;
-    policy?: number;
-    showTraffic?: boolean;
-  }) => DrivingService;
+  InfoWindow: new (options?: {
+    content?: string | HTMLElement;
+    offset?: [number, number];
+    position?: [number, number] | AMap.LngLat;
+    isCustom?: boolean;
+    closeWhenClickMap?: boolean;
+  }) => InfoWindowInstance;
   ToolBar: new (opts?: { position?: string }) => object;
   Scale: new () => object;
 };
@@ -102,7 +105,7 @@ export function loadAMapNamespace(): Promise<AMapWithPlugins> {
         'AMap.ToolBar',
         'AMap.Geolocation',
         'AMap.CitySearch',
-        'AMap.Driving',
+        'AMap.InfoWindow',
       ],
     });
     return loaded as AMapWithPlugins;

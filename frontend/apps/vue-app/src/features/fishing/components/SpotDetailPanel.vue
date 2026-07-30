@@ -60,7 +60,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
-  (e: 'route', marker: MapMarker): void;
   /** 钓点被删除后通知父组件同步地图标记 */
   (e: 'spot-deleted', id: string): void;
   /** 钓点字段更新后通知父组件同步 */
@@ -93,9 +92,19 @@ function openLightbox(i: number): void {
   lightboxOpen.value = true;
 }
 
-// ── 路线 ──
-function onRoute(): void {
-  if (props.marker) emit('route', props.marker);
+// ── 打开高德地图(任务 279 路线规划下线后的替代入口) ──
+//
+// 高德地图 URL Scheme:android = `androidamap://navi?sourceApplication=...&lat=&lon=&dev=0`;
+// ios = `iosamap://navi?sourceApplication=...&lat=&lon=&dev=0`;
+// 兜底 web = `https://uri.amap.com/marker?position=lng,lat&name=...`。
+// 简单起见,只走 web 兜底链接(浏览器内能直接开;移动端浏览器会弹高德 App 接管)。
+function openInAmap(): void {
+  const pos = position.value;
+  if (!pos) return;
+  const [lng, lat] = pos;
+  const name = encodeURIComponent(spot.value?.name ?? '钓点');
+  const url = `https://uri.amap.com/marker?position=${lng},${lat}&name=${name}&src=readinglist&coordinate=gaode&callnative=1`;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 // ── 编辑模式 ──
@@ -719,10 +728,15 @@ watch(
 
         <!-- 底栏 -->
         <footer class="border-border space-y-3 border-t px-6 py-4">
-          <!-- 主操作:规划路线 -->
-          <UiButton class="w-full rounded-full! px-4 py-2.5" @click="onRoute">
+          <!-- 主操作:打开高德地图 App(任务 279 路线规划下线后的替代入口) -->
+          <UiButton
+            class="w-full rounded-full! px-4 py-2.5"
+            type="button"
+            :disabled="!position"
+            @click="openInAmap"
+          >
             <Navigation class="h-4 w-4" />
-            从这里规划路线
+            在高德地图中打开
           </UiButton>
           <!-- 管理操作 -->
           <div class="flex items-center justify-end gap-1">

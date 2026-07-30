@@ -9,10 +9,8 @@ import { toMapMarker, toMapMarkers } from '@/features/fishing/types';
 import type { MarkerClickPayload } from '@/features/fishing/composables/fishingMapRuntime';
 import { useFishingAnalysis } from '@/features/fishing/composables/useFishingAnalysis';
 import { useFishingFeedback } from '@/features/fishing/composables/useFishingFeedback';
-import {
-  type FishingMapInstance,
-  useFishingRoute,
-} from '@/features/fishing/composables/useFishingRoute';
+import type { FishingMapInstance } from '@/features/fishing/composables/useFishingRoute';
+import { useFishingRoute } from '@/features/fishing/composables/useFishingRoute';
 import { storeToRefs } from 'pinia';
 import { computed, ref, useTemplateRef } from 'vue';
 
@@ -47,7 +45,7 @@ export function useFishingDashboard() {
   const panelOpen = ref(false);
   /**
    * 当前 Panel 展示的完整 MapMarker。
-   * position 供迷你地图 / 路线规划;extraData 供详情展示。
+   * position 供迷你地图;extraData 供详情展示。
    * 来源: MarkerClickPayload.spot(地图点击时即含 position)。
    */
   const activePanelMarker = ref<MapMarker | null>(null);
@@ -101,6 +99,8 @@ export function useFishingDashboard() {
     }
   }
 
+  // useFishingRoute 当前是 stub(任务 282 后路线规划已下线)。
+  // 仍实例化以保留旧字段平铺接口(后续可彻底删除此 composable)。
   const route = useFishingRoute(() => mapTileRef.value);
   const feedback = useFishingFeedback();
   const analysis = useFishingAnalysis();
@@ -111,8 +111,7 @@ export function useFishingDashboard() {
 
   /**
    * marker 点击 → 滑入钓点详情 Panel。
-   * 规划路线操作内嵌到 Panel 内(由 Panel 回调 marker 触发 planFromMarker),
-   * 保留 index ↔ spot 双引用供路线规划使用。
+   * 路线规划入口已删除(任务 279):Panel 内联「打开高德 App」按钮。
    */
   /** AI 分析开关 —— 三面板互斥:打开前关闭表单 + 详情 */
   function toggleAnalysis(): void {
@@ -127,10 +126,6 @@ export function useFishingDashboard() {
     // 地图视角跟随被点击的钓点(覆盖已打开 Panel 的场景)
     mapTileRef.value?.setZoomAndCenter(15, payload.spot.position);
     openSpotPanel(payload.spot);
-  }
-
-  function onClearRoute(): void {
-    route.clearRoute();
   }
 
   function onFeedbackClick(data: FishingIndexData): void {
@@ -197,13 +192,9 @@ export function useFishingDashboard() {
     closeSpotPanel,
     onSpotUpdated,
     onSpotDeleted,
-    // Panel 路线按钮 → 直接从 emitted marker 取 position → planFromMarker。
-    onRouteFromSpot: (marker: MapMarker) => {
-      const idx = route.selectedSpotIndex.value;
-      if (idx != null) void route.planFromMarker(idx, marker);
-    },
 
     // 拍平的子 composable refs (模板里直接 dash.isPlanning 等,避免三层点链)
+    // 路线规划已下线,isPlanning / routeInfo 恒为 false / null,保留是为兼容旧模板
     isPlanning: route.isPlanning,
     routeInfo: route.routeInfo,
     feedbackOpen: feedback.open,
@@ -226,7 +217,6 @@ export function useFishingDashboard() {
     openSpotForm,
     toggleAnalysis,
     onMarkerClick,
-    onClearRoute,
     onFeedbackClick,
     onQuickFeedback,
     onMapReady,
