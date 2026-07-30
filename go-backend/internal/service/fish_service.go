@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -26,6 +27,10 @@ type Fisher interface {
 	Delete(ctx context.Context, id string, hardDelete ...bool) error
 }
 
+// ErrInvalidKind 是 service 抛出的领域错误 —— handler 据此映射 400 + invalid_kind 标记。
+// 不混进 bson / 网络错误，方便定位。
+var ErrInvalidKind = errors.New("invalid_kind")
+
 type FishService struct {
 	repo FishRepoer
 }
@@ -49,6 +54,7 @@ func (s *FishService) GetFishingSpots(ctx context.Context) ([]*dto.FishingSpotRe
 			Tags:        doc.Tags,
 			Rating:      doc.Rating,
 			Images:      doc.Images,
+			Kind:        doc.Kind,
 		})
 	}
 	return spots, nil
@@ -67,6 +73,7 @@ func (s *FishService) GetFishingSpotByID(ctx context.Context, id string) (*dto.F
 		Tags:        doc.Tags,
 		Rating:      doc.Rating,
 		Images:      doc.Images,
+		Kind:        doc.Kind,
 	}
 
 	return out, nil
@@ -75,7 +82,12 @@ func (s *FishService) GetFishingSpotByID(ctx context.Context, id string) (*dto.F
 // UpdateFishingSpot 部分更新钓点 —— 与 DevTaskService.Update 同模式：
 // 只把前端实际传了的字段塞进 bson.M，避免未传字段被静默覆盖为零值。
 // updated_at 由 service 层刷新，repo 只负责执行。
+// Kind 二次校验：binding 已通过 oneof，但仍做 IsValidKind 检查
+// （gin 版本漂移/中间件顺序错位时兜底）。
 func (s *FishService) UpdateFishingSpot(ctx context.Context, id string, spot *dto.FishingSpotUpdate) error {
+	if !spot.IsValidKind() {
+		return ErrInvalidKind
+	}
 	data := bson.M{}
 	if spot.Name != nil {
 		data["name"] = *spot.Name
@@ -95,6 +107,9 @@ func (s *FishService) UpdateFishingSpot(ctx context.Context, id string, spot *dt
 	if spot.Images != nil {
 		data["images"] = *spot.Images
 	}
+	if spot.Kind != nil {
+		data["kind"] = *spot.Kind
+	}
 	if len(data) == 0 {
 		return nil
 	}
@@ -107,12 +122,17 @@ func (s *FishService) UpdateFishingSpot(ctx context.Context, id string, spot *dt
 }
 
 func (s *FishService) CreateFishingSpot(ctx context.Context, spot *dto.FishingSpotRequest) error {
+	// 二次校验：binding 已验，但当 gin 版本/中间件顺序导致 binding 漏执行时，service 兜底。
+	if !spot.IsValidKind() {
+		return ErrInvalidKind
+	}
 	doc := &document.FishingSpot{
 		Name:        spot.Name,
 		Description: spot.Description,
 		Tags:        spot.Tags,
 		Rating:      spot.Rating,
 		Location:    spot.Location,
+		Kind:        spot.Kind,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 		Images:      spot.Images,

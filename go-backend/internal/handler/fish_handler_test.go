@@ -7,11 +7,13 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
+	"github.com/KanoCifer/kuroome-blog/internal/mongo/document"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
 
@@ -220,7 +222,7 @@ func TestFishHandler_CreateFishingSpot_Success(t *testing.T) {
 	}
 	_, r := newFishHandler(svc)
 
-	body := dto.FishingSpotRequest{Name: "新钓点", Location: []float64{120.1, 30.2}}
+	body := dto.FishingSpotRequest{Name: "新钓点", Location: []float64{120.1, 30.2}, Kind: "lake"}
 	w := fishDo(t, r, http.MethodPost, "/v3/fish/spots", body)
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
@@ -248,11 +250,57 @@ func TestFishHandler_CreateFishingSpot_MissingRequiredFields(t *testing.T) {
 	svc := &mockFishService{}
 	_, r := newFishHandler(svc)
 
-	// 缺 name / location → binding:"required" 失败。ptr 复用 admin_test.go 的通用 helper。
+	// 缺 name / location / kind → binding:"required" 失败。ptr 复用 admin_test.go 的通用 helper。
 	body := dto.FishingSpotRequest{}
 	w := fishDo(t, r, http.MethodPost, "/v3/fish/spots", body)
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400 (missing required field)", w.Code)
+	}
+}
+
+// TestFishHandler_CreateFishingSpot_InvalidKind 验证 binding 的 oneof 拒绝非枚举值，
+// 400 + message 含 "invalid_kind" 标记（AC: {"code": "invalid_kind"}）。
+func TestFishHandler_CreateFishingSpot_InvalidKind(t *testing.T) {
+	svc := &mockFishService{}
+	_, r := newFishHandler(svc)
+
+	body := dto.FishingSpotRequest{
+		Name:     "t",
+		Location: []float64{1, 2},
+		Kind:     "marsh", // 非法
+	}
+	w := fishDo(t, r, http.MethodPost, "/v3/fish/spots", body)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400; body=%s", w.Code, w.Body.String())
+	}
+	resp := fishDecode(t, w)
+	if !strings.Contains(resp.Message, "invalid_kind") {
+		t.Errorf("message = %q, want it to contain invalid_kind", resp.Message)
+	}
+}
+
+// TestFishHandler_UpdateFishingSpot_InvalidKind 验证 PATCH 同样走 invalid_kind 400。
+func TestFishHandler_UpdateFishingSpot_InvalidKind(t *testing.T) {
+	svc := &mockFishService{
+		updateFn: func(ctx context.Context, id string, spot *dto.FishingSpotUpdate) error {
+			// service 层二次校验：若 binding 漏过，service 仍返 ErrInvalidKind
+			if spot == nil || spot.Kind == nil || !document.IsValidKind(*spot.Kind) {
+				return service.ErrInvalidKind
+			}
+			return nil
+		},
+	}
+	_, r := newFishHandler(svc)
+
+	kind := "bogus"
+	body := dto.FishingSpotUpdate{Kind: &kind}
+	w := fishDo(t, r, http.MethodPatch, "/v3/fish/spots/abc", body)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400; body=%s", w.Code, w.Body.String())
+	}
+	resp := fishDecode(t, w)
+	if !strings.Contains(resp.Message, "invalid_kind") {
+		t.Errorf("message = %q, want it to contain invalid_kind", resp.Message)
 	}
 }
 
@@ -264,7 +312,7 @@ func TestFishHandler_CreateFishingSpot_ServiceError(t *testing.T) {
 	}
 	_, r := newFishHandler(svc)
 
-	body := dto.FishingSpotRequest{Name: "t", Location: []float64{1, 2}}
+	body := dto.FishingSpotRequest{Name: "t", Location: []float64{1, 2}, Kind: "lake"}
 	w := fishDo(t, r, http.MethodPost, "/v3/fish/spots", body)
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", w.Code)
