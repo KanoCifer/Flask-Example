@@ -2,7 +2,7 @@
 // 单一职责：route.meta.transition → 过渡动画名。
 
 /** 已支持的过渡动画名。router meta 中只允许写这些值。 */
-export type RouteTransitionName = 'fade' | 'slide-up';
+export type RouteTransitionName = 'fade' | 'slide-up' | 'page-side-by-side';
 
 /** router meta 未声明 transition 时使用的默认动画。 */
 export const DEFAULT_TRANSITION_NAME: RouteTransitionName = 'slide-up';
@@ -11,6 +11,7 @@ export const DEFAULT_TRANSITION_NAME: RouteTransitionName = 'slide-up';
 export const TRANSITION_NAMES: ReadonlySet<RouteTransitionName> = new Set([
   'fade',
   'slide-up',
+  'page-side-by-side',
 ]);
 
 /** 类型守卫：判断给定字符串是否为合法的过渡动画名。 */

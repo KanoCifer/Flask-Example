@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { AiCompanion } from '@/features/ai';
 import { TwikooComments } from '@/components';
+import { motion } from 'motion-v';
+
 import ArticlePreview from './components/ArticlePreview.vue';
 import {
   AlertDialog,
@@ -379,7 +381,13 @@ onUnmounted(() => {
     </div>
 
     <!-- Article -->
-    <div v-else-if="post" class="grid grid-rows-[auto_0fr_0fr]">
+    <motion.div
+      :initial="{ opacity: 0, filter: 'blur(4px)', y: 4 }"
+      :animate="{ opacity: 1, filter: 'blur(0px)', y: 0 }"
+      :transition="{ duration: 0.3, delay: 0.3 }"
+      v-else-if="post"
+      class="grid grid-rows-[auto_0fr_0fr]"
+    >
       <!-- grid-row 1: 文章主体 -->
       <div class="contents">
         <div class="mx-auto max-w-2xl pt-30"></div>
@@ -533,7 +541,7 @@ onUnmounted(() => {
           </AlertDialogContent>
         </AlertDialog>
       </Teleport>
-    </div>
+    </motion.div>
   </div>
 </template>
 

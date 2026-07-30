@@ -158,6 +158,7 @@ const router = createRouter({
         title: "博客列表 - Kuroome's Blog",
         description: '个人博客文章列表，分享技术心得和生活感悟',
         keywords: '博客,文章,技术分享,生活感悟',
+        transition: 'page-side-by-side',
       },
     },
     {
@@ -180,6 +181,7 @@ const router = createRouter({
         title: "博客分类 - Kuroome's Blog",
         description: '按分类浏览博客文章',
         keywords: '博客分类,文章分类',
+        transition: 'page-side-by-side',
       },
     },
     {
@@ -190,6 +192,7 @@ const router = createRouter({
         title: "博客文章 - Kuroome's Blog",
         description: '博客文章详情页',
         keywords: '博客文章,文章详情',
+        transition: 'page-side-by-side',
       },
     },
     {

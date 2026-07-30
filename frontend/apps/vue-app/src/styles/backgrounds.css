@@ -40,26 +40,26 @@
   }
 }
 
-/* paper → saiun (Iridescent Cloud)
- * MOON WHITE  oklch(96.2% 0.0151 241.8)
- * LAPIS       oklch(44.6% 0.1434 259.9)
- * PEACH PINK  oklch(75.7% 0.1152 14.7)
- * ANCIENT PPL oklch(53.8% 0.0898 326)
+/* Peach glow
+ * SAKURA MIST #FFF3EC
+ * CORAL GLAZE #FFC9A3
+ * IBIS HAZE #F08A8C
+ * BELLFLOWER PURPLE #B65E8C
  */
 [data-color-scheme='paper'] {
   --scheme-gradient: linear-gradient(
     135deg,
-    oklch(96.2% 0.0151 241.8) 12.5%,
-    oklch(44.6% 0.1434 259.9) 37.5%,
-    oklch(75.7% 0.1152 14.7) 62.5%,
-    oklch(53.8% 0.0898 326) 87.5%
-  ); /* fallback: engines without oklab interpolation */
+    oklch(97.2% 0.016 52.6) 12.5%,
+    oklch(87.5% 0.0795 56.6) 37.5%,
+    oklch(74.3% 0.1245 19.2) 62.5%,
+    oklch(70% 0.1258 349) 87.5%
+  );
   --scheme-gradient: linear-gradient(
     135deg in oklab,
-    oklch(96.2% 0.0151 241.8) 12.5%,
-    oklch(44.6% 0.1434 259.9) 37.5%,
-    oklch(75.7% 0.1152 14.7) 62.5%,
-    oklch(53.8% 0.0898 326) 87.5%
+    oklch(97.2% 0.016 52.6) 12.5%,
+    oklch(87.5% 0.0795 56.6) 37.5%,
+    oklch(74.3% 0.1245 19.2) 62.5%,
+    oklch(70% 0.1258 349) 87.5%
   );
 }
 

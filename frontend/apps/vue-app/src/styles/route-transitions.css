@@ -63,6 +63,10 @@
   .slide-up-leave-active {
     animation: none !important;
   }
+  .page-side-by-side-enter-active,
+  .page-side-by-side-leave-active {
+    transition: none !important;
+  }
   .fade-enter-from,
   .fade-leave-to,
   .slide-up-enter-from,
@@ -70,4 +74,51 @@
     opacity: 1 !important;
     transform: none !important;
   }
+  .page-side-by-side-enter-from,
+  .page-side-by-side-leave-to {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+/* page-side-by-side — 博客列表 ↔ 详情
+ * 移植自 transitions-dev 08-page-side-by-side。
+ * snippet 原本面向 SPA 内 master/detail 双面板同框滑动（data-page 驱动方向），
+ * 这里改用 Vue Router + <Transition mode="out-in">：enter 从右、leave 向左，
+ * --page-* 语义变量保持与 snippet 一致，便于后续 transitions refine 接入统一令牌。 */
+:root {
+  --page-slide-dur: 250ms;
+  --page-fade-dur: 250ms;
+  --page-slide-distance: 8px;
+  --page-blur: 3px;
+  --page-stagger: 0ms;
+  --page-exit-enabled: 1;
+  --page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --page-fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-side-by-side-enter-active,
+.page-side-by-side-leave-active {
+  transition:
+    opacity var(--page-fade-dur) var(--page-fade-ease),
+    transform
+      calc(var(--page-slide-dur) * var(--page-exit-enabled))
+      var(--page-slide-ease),
+    filter
+      calc(var(--page-slide-dur) * var(--page-exit-enabled))
+      var(--page-slide-ease);
+  will-change: opacity, transform, filter;
+}
+
+.page-side-by-side-enter-from {
+  opacity: 0;
+  transform: translateX(var(--page-slide-distance));
+  filter: blur(var(--page-blur));
+}
+
+.page-side-by-side-leave-to {
+  opacity: 0;
+  transform: translateX(calc(var(--page-slide-distance) * -1));
+  filter: blur(var(--page-blur));
 }

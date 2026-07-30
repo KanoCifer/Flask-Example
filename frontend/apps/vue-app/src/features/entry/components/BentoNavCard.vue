@@ -43,7 +43,7 @@
             <img
               :src="item.animalSrc"
               :alt="item.label"
-              class="h-6 w-6 shrink-0 rounded-md object-cover"
+              class="h-6 w-6 shrink-0 object-cover"
               loading="lazy"
             />
             <span class="text-[15px]">{{ item.label }}</span>
