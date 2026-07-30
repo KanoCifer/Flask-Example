@@ -14,11 +14,15 @@ const themeStore = useThemeStore();
 const route = useRoute();
 const showBasicNav = ref<boolean | null>(null);
 
-// 路由 → 顶栏导航可见性：首页不显示，其他页显示
+// 自带顶栏的路由：首页是全屏 bento，钓点图鉴页有专属顶栏（FishingTopBar），
+// 两者都不再叠加全局导航。
+const SELF_NAVIGATED_ROUTES = new Set(['/', '/fishing-map']);
+
+// 路由 → 顶栏导航可见性
 watch(
   () => route.path,
   (newPath) => {
-    showBasicNav.value = newPath === '/' ? false : true;
+    showBasicNav.value = !SELF_NAVIGATED_ROUTES.has(newPath);
   },
   { immediate: true },
 );
