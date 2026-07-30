@@ -305,7 +305,7 @@ const coverGradient = computed(() =>
                     :initial="{ width: '0%' }"
                     :animate="{ width: `${livePercent}%` }"
                     :transition="{ ...EASE_SLOW, delay: 0.28, duration: 0.6 }"
-                    class="bg-accent absolute inset-y-0 left-0 rounded-full"
+                    class="bg-accent absolute inset-y-0 left-0 transform-gpu rounded-full"
                   />
                 </div>
 

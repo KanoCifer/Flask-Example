@@ -7,7 +7,9 @@
     <div class="grid flex-1 grid-cols-[auto_1fr]">
       <TodoSidebar v-model="activeTab" v-model:collapsed="sidebarCollapsed" />
 
-      <main class="min-w-0 overflow-y-auto contain-[layout_paint_scroll_style] px-5 py-5 sm:px-8">
+      <main
+        class="min-w-0 overflow-y-auto px-5 py-5 contain-[layout_paint_scroll_style] sm:px-8"
+      >
         <!-- mobile tab strip (in flow, below the page title row) -->
         <TodoMobileTabs v-model="activeTab" />
 
@@ -139,15 +141,16 @@ const activeTab = ref<TabId>('frontier');
 // 刷新页面或重进站点时保留用户偏好；try/catch 容错隐私模式/SSR。
 const SIDEBAR_COLLAPSED_KEY = 'todos:sidebar-collapsed';
 const sidebarCollapsed = ref(false);
-
-onMounted(() => {
+const fetchSidebarCollapsed = () => {
   try {
     sidebarCollapsed.value =
       localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
   } catch {
     // localStorage 不可用；保留默认展开
   }
-});
+};
+
+fetchSidebarCollapsed();
 
 watch(sidebarCollapsed, (v) => {
   try {
