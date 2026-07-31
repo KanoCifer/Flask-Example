@@ -1,4 +1,5 @@
 import { cardStylesData as cardStyles } from '@/data';
+import { CARD_LAYOUT_SCALE } from '@/constants';
 import { useCardLayoutStore } from '@/features/entry/cardLayout';
 import {
   onUnmounted,
@@ -20,12 +21,6 @@ interface CardStyle {
 
 const styles = cardStyles as Record<string, CardStyle>;
 
-const cardNamesByOrder = Object.entries(styles)
-  .sort((a, b) => a[1].order - b[1].order)
-  .map(([name]) => name);
-
-const maxOrder = Math.max(...Object.values(styles).map((s) => s.order));
-
 // ── Declarative card layout ─────────────────────────────
 // Flat absolute model: every card declares its home position as an offset
 // from the viewport center (centerX, centerY). No cascade — dragging any
@@ -35,13 +30,11 @@ const maxOrder = Math.max(...Object.values(styles).map((s) => s.order));
 // Offsets were derived from the previous cascade layout evaluated at
 // layoutHeight = 820 (the container min-height), then baked as constants.
 
-/** Global layout scale: shrinks the entire bento grid (card sizes + spacing
- *  + distance from center) uniformly. Applied to the cardSpec offsets and
- *  to the measured/fallback card dimensions used for center→top-left math.
- *  Keep this in sync with whatever visual scale the card components apply
- *  (e.g. a `transform: scale(LAYOUT_SCALE)` on the card root) so the layout
- *  box matches the visual size. */
-const LAYOUT_SCALE = 0.85;
+// 视觉缩放分层（两个独立轴）：
+// - home 偏移（cardSpec 常量）按 CARD_LAYOUT_SCALE 缩放 —— 让卡片间的间距
+//   和离中心距离随视觉同步收缩。
+// - 拖拽增量保持 1:1（屏幕像素空间）—— 拖动时卡片以 1:1 跟手，不做缩放。
+//   持久化偏移量本身也按拖拽增量记录，缩放只发生在渲染层。
 
 interface CardSpec {
   /** Export name used by consumers (the `*Position` ref). */
@@ -146,7 +139,10 @@ function position(
   const fallback = styles[cardName];
   // Box dims stay UNSCALED — the layout box matches the card's natural
   // size (Tailwind class), so JSON fallback accuracy doesn't visually
-  // matter much (measured takes over once mounted).
+  // matter much (measured takes over once mounted). The visual shrink to
+  // 85% happens in `.card-scaler` with `transform-origin: center`, keeping
+  // the visual centered on this natural box — so unscaled dims + scaled
+  // offsets compose without double-shrinking.
   const w = measured?.width ?? fallback?.width ?? 0;
   const h = measured?.height ?? fallback?.height ?? 0;
   return { top: px(centerY - h / 2), left: px(centerX - w / 2) };
@@ -215,15 +211,15 @@ export function useCardLayout(containerRef: Ref<HTMLElement | null>) {
   // ── Flat absolute positioning ──────────────────────────
   // Each card's home position is viewport center + (xOffset, yOffset). Drag
   // offsets are per-card and independent — no cascade, so dragging one card
-  // cannot move another. Spec offsets and drag deltas are both scaled by
-  // LAYOUT_SCALE so the entire grid (spacing + distance from center)
-  // shrinks uniformly.
+  // cannot move another. Home offsets are scaled by CARD_LAYOUT_SCALE so the
+  // grid spacing/distance-from-center shrinks uniformly; drag deltas stay
+  // 1:1 so a dragged card tracks the cursor exactly.
   const positions: Record<string, Ref<CSSProperties>> = {};
   for (const spec of cardSpecs) {
     positions[spec.as] = usePositionRef(() =>
       position(
-        centerY.value + (spec.yOffset + dragY(spec.name)) * LAYOUT_SCALE,
-        centerX.value + (spec.xOffset + dragX(spec.name)) * LAYOUT_SCALE,
+        centerY.value + spec.yOffset * CARD_LAYOUT_SCALE + dragY(spec.name),
+        centerX.value + spec.xOffset * CARD_LAYOUT_SCALE + dragX(spec.name),
         spec.name,
         cardSizes,
       ),
@@ -231,20 +227,23 @@ export function useCardLayout(containerRef: Ref<HTMLElement | null>) {
   }
 
   return {
-    centerX,
     containerStyle,
-    picPosition: positions.picPosition,
-    greetingPosition: positions.greetingPosition,
-    profilePosition: positions.profilePosition,
-    navCardPosition: positions.navCardPosition,
-    clockCardPosition: positions.clockCardPosition,
-    calendarPosition: positions.calendarPosition,
-    techPosition: positions.techPosition,
-    listCardPosition: positions.listCardPosition,
-    todoCardPosition: positions.todoCardPosition,
-    cardStyles: styles,
-    cardNamesByOrder,
-    maxOrder,
+    ...positions,
     registerCardSize,
-  };
+  } as {
+    containerStyle: Ref<CSSProperties>;
+    registerCardSize: (cardName: string, el: HTMLElement) => void;
+  } & Record<CardName, Ref<CSSProperties>>;
 }
+
+/** Position ref names exposed by useCardLayout (one per card). */
+type CardName =
+  | 'picPosition'
+  | 'greetingPosition'
+  | 'profilePosition'
+  | 'navCardPosition'
+  | 'clockCardPosition'
+  | 'calendarPosition'
+  | 'techPosition'
+  | 'listCardPosition'
+  | 'todoCardPosition';

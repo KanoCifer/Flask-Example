@@ -64,6 +64,6 @@ export const galleryGateway: GalleryGateway = {
   },
 
   async saveGallery(payload: SaveGalleryPayload): Promise<void> {
-    await apiClient.post('v2/publicv2/set-pic-gallery', payload);
+    await apiClient.post('v2/publicv2/pic-gallery', payload);
   },
 };

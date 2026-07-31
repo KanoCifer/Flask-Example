@@ -1,7 +1,7 @@
 <template>
   <div
     ref="wrapperEl"
-    :style="[position]"
+    :style="[position, { '--layout-scale': CARD_LAYOUT_SCALE }]"
     class="drag-wrapper absolute"
     :class="{
       'outline-accent/60 rounded-3xl outline-2 outline-offset-8 outline-dashed':
@@ -20,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+import { CARD_LAYOUT_SCALE } from '@/constants';
 import { useCardDrag } from '@/features/entry';
 import { useCardLayoutStore } from '@/features/entry';
 import type { CSSProperties } from 'vue';
@@ -45,9 +46,10 @@ const registerCardSize = props.registerCardSize ?? providedRegister;
 const wrapperEl = useTemplateRef<HTMLElement>('wrapperEl');
 const scalerEl = useTemplateRef<HTMLElement>('scalerEl');
 
-// Report the unscaled card size (from .card-scaler, which is sized to its
-// content by max-content + transform doesn't affect offsetWidth) so
-// useCardLayout can scale it by LAYOUT_SCALE and avoid recursive shrinking.
+// Report the card's natural (unscaled) size — read from .card-scaler, whose
+// layout box is content-sized and unaffected by `transform: scale`, so
+// useCardLayout can center on the real box. (Card dims stay unscaled there;
+// only the home offsets are scaled by CARD_LAYOUT_SCALE.)
 onMounted(() => {
   if (scalerEl.value && registerCardSize) {
     registerCardSize(props.cardName, scalerEl.value);
@@ -95,24 +97,32 @@ function onPointerDown(e: PointerEvent) {
 </script>
 
 <style scoped>
-/* Visual scale for the card content.
-   The .drag-wrapper's layout box is sized to the natural (Tailwind) card
-   dimensions; useCardLayout scales the offset only, not the box. So the
-   visual card needs to shrink around the box center for both axes of
-   alignment — use `transform-origin: center` and let the scaled visual
-   occupy the inner 85% of the layout box. The extra ~7.5% padding on
-   each side is invisible because box-to-box spacing is also scaled by
-   0.85 in useCardLayout. */
-.card-scaler {
-  transform-origin: center center;
-  transform: scale(0.85);
+/* Contain layout + style so each card's internal updates (clock tick,
+   reading-list / todo refreshes) never invalidate the sibling cards or the
+   page's outer layout. Without it, any internal reflow/paint bubbles up to
+   the shared `top/left`-positioned tree.
+   Caveat: `layout` containment makes this wrapper the containing block for
+   `position: fixed` descendants. No card uses fixed today — GreetingToast's
+   fixed toast lives outside DragWrapper. Deliberately NOT `paint` containment,
+   which would clip the is-dragging lift shadow (scale: 1.06) and any card
+   popovers that extend past the box. */
+.drag-wrapper {
+  contain: layout style;
 }
 
-/* When dragging, undo the visual scale so .drag-wrapper.is-dragging's
-   `scale: 1.06` applies to the original-size card (a 6% lift, not on
-   top of an 85% shrink). */
-.drag-wrapper.is-dragging .card-scaler {
-  transform: none;
+/* Visual scale for the card content.
+   The .drag-wrapper's layout box is sized to the natural (Tailwind) card
+   dimensions; useCardLayout scales the home offset only, not the box. So the
+   visual card needs to shrink around the box center for both axes of
+   alignment — use `transform-origin: center` and let the scaled visual
+   occupy the inner 85% of the layout box. The extra ~7.5% padding on each
+   side is invisible because box-to-box spacing is also scaled by the same
+   factor in useCardLayout.
+   Value comes from the shared CARD_LAYOUT_SCALE via the --layout-scale
+   custom property (set on the wrapper) — one source of truth, two consumers. */
+.card-scaler {
+  transform-origin: center center;
+  transform: scale(var(--layout-scale));
 }
 
 /* Asymmetric lift: brisk IN (grab), springy OUT (release).
@@ -134,6 +144,16 @@ function onPointerDown(e: PointerEvent) {
     z-index: 100;
     cursor: grabbing;
     scale: 1.06;
+    /* Promote to its own compositor layer for the lift: scale + box-shadow
+       animate on the compositor instead of repainting. Temporary — only while
+       actively dragging. (contain: layout style above does not clip the
+       oversized shadow; will-change only upgrades the animation pipeline.) */
+    will-change: transform;
+    /* During a drag the card is pulled to 1:1 cursor tracking, so the lift
+       (scale + shadow) must apply to the full-size visual — temporarily undo
+       the 85% shrink. Without this the 6% lift would compound on the 85%
+       shrink and the size change on grab/release would be jarring. */
+    transform: scale(1);
     box-shadow:
       0 26px 60px -14px color-mix(in oklch, var(--ink) 20%, transparent),
       0 12px 30px -16px color-mix(in oklch, var(--ink) 12%, transparent);

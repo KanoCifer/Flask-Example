@@ -23,7 +23,6 @@ from app.core.logger import logger
 from app.core.response import APIResponse
 from app.plugins.cache import redis_cache
 from app.schemas.gallery import GalleryInput
-from app.services.public_service import PublicService
 
 router = APIRouter(prefix="/publicv2", tags=["publicv2"])
 
@@ -49,7 +48,6 @@ async def get_changelogs(state: AppState = Depends(get_app_state)):
 
 
 @router.get("/status-detail")
-@redis_cache(ttl=60, exclude=["state", "session"])
 async def get_status_detail(
     state: AppState = Depends(get_app_state),
     session: AsyncSession = Depends(get_session),
@@ -97,7 +95,7 @@ async def get_sitemap_xml(
 # ── Picture gallery ───────────────────────────────────────────
 
 
-@router.post("/set-pic-gallery")
+@router.post("/pic-gallery")
 async def set_pic_gallery(
     images: GalleryInput = Body(..., description="List of image data to set"),
     state: AppState = Depends(get_app_state),
@@ -119,7 +117,6 @@ async def set_pic_gallery(
 
 
 @router.get("/pic-gallery")
-@redis_cache(ttl=600, exclude=["state", "session"])
 async def get_pic_gallery(
     state: AppState = Depends(get_app_state),
     session: AsyncSession = Depends(get_session),

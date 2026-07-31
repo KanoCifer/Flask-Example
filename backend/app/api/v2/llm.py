@@ -23,9 +23,6 @@ def _resolve_user_id(user_id: int | None, request: Request) -> str:
     return f"anon:{client_key(request)}"
 
 
-# ── Thread（总结 / 对话共用）──────────────────────────────
-
-
 @router.post("/thread/stream", response_class=EventSourceResponse)
 async def thread_stream(
     request: Request,
@@ -33,10 +30,7 @@ async def thread_stream(
     user: int | None = Depends(optional_user),
     state: AppState = Depends(get_app_state),
 ):
-    # 按 mode 分别限流：summary 5/min、chat 20/min。
-    # 注意：限流检查必须在返回 EventSourceResponse 之前完成 —— Starlette 会先
-    # 发 ``http.response.start``（200）再迭代 body，若把检查放生成器内部，超限
-    # 时状态码已无法改为 429。
+    """按 mode 分别限流：summary 5/min、chat 20/min。"""
     check_mode_rate_limit(payload.mode, client_key(request))
 
     async for chunk in state.ai_svc.thread_stream(
@@ -45,13 +39,10 @@ async def thread_stream(
         yield chunk
 
 
-# ── 天气分析 ──────────────────────────────────────────────
-
-
 @router.post("/weather-analysis", response_class=EventSourceResponse)
 @limiter.limit("50/hour")
 async def analyze_weather(
-    request: Request,  # limiter 需要
+    request: Request,
     weather_data: WeatherAnalysisInput = Body(
         ..., description="Weather data to analyze"
     ),
