@@ -38,8 +38,8 @@ type DeviceTrack struct {
 	Notes          *string   `gorm:"type:text"`
 	CreatedAt      time.Time `gorm:"index;default:current_timestamp"`
 	UpdatedAt      time.Time
-	Status         DeviceStatus `gorm:"type:device_status_enum;not null"`
-	ReminderConfig *datatypes.JSON
+	Status         DeviceStatus    `gorm:"type:device_status_enum;not null"`
+	ReminderConfig *datatypes.JSON `gorm:"type:jsonb"`
 }
 
 // TableName 对齐 Python SQLAlchemy 的 __tablename__ = "device_track"。

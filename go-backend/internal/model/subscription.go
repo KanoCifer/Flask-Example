@@ -60,9 +60,9 @@ type Subscription struct {
 	BillingCycle    BillingCycle       `gorm:"type:billing_cycle_enum;not null"`
 	NextBillingDate time.Time          `gorm:"not null"`
 	Status          SubscriptionStatus `gorm:"type:subscription_status_enum;not null"`
-	ReminderConfig  *datatypes.JSON
-	Notes           *string   `gorm:"type:text"`
-	CreatedAt       time.Time `gorm:"index;default:current_timestamp"`
+	ReminderConfig  *datatypes.JSON    `gorm:"type:jsonb"`
+	Notes           *string            `gorm:"type:text"`
+	CreatedAt       time.Time          `gorm:"index;default:current_timestamp"`
 	UpdatedAt       time.Time
 	UserID          uint `gorm:"index"`
 }
