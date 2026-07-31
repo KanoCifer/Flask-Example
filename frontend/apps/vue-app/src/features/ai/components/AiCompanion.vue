@@ -252,9 +252,10 @@ function toggleReasoning(msg: AiMessage) {
           />
           <span
             v-if="lastMsg === msg && loading"
-            class="bg-accent ml-0.5 inline-block h-4 w-1.5 animate-pulse align-text-bottom"
+            class="shimmer ml-1 inline-block select-none"
             aria-hidden="true"
-          />
+            >Thinking</span
+          >
         </motion.div>
 
         <!-- Chat turns -->
@@ -321,12 +322,13 @@ function toggleReasoning(msg: AiMessage) {
             />
             <span v-else>{{ msg.content }}</span>
 
-            <!-- streaming cursor -->
+            <!-- streaming: 生成中 shimmer "Thinking" -->
             <span
               v-if="msg.role === 'assistant' && lastMsg === msg && loading"
-              class="bg-card/70 ml-0.5 inline-block h-4 w-1.5 animate-pulse align-text-bottom"
+              class="shimmer ml-1 inline-block select-none"
               aria-hidden="true"
-            />
+              >Thinking</span
+            >
           </div>
         </motion.div>
       </template>
@@ -496,10 +498,45 @@ function toggleReasoning(msg: AiMessage) {
   animation: result-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 生成中 "Thinking" 文字流光:
+   基底 = 半透明墨色,一道更浅的高亮带从左向右扫过(文字背景裁剪) */
+.shimmer {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--ink) 60%, transparent) 0%,
+    color-mix(in oklch, var(--ink) 60%, transparent) 30%,
+    color-mix(in oklch, var(--ink) 25%, transparent) 45%,
+    color-mix(in oklch, var(--ink) 25%, transparent) 55%,
+    color-mix(in oklch, var(--ink) 60%, transparent) 70%,
+    color-mix(in oklch, var(--ink) 60%, transparent) 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: label-shine 2.25s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+@keyframes label-shine {
+  0%,
+  18% {
+    background-position: 100% 0;
+  }
+  82%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-glow-breathe,
   .animate-glow-pulse,
-  .animate-result-in {
+  .animate-result-in,
+  .shimmer {
     animation: none !important;
   }
 }

@@ -450,7 +450,7 @@ onUnmounted(() => {
             :exit="{ opacity: 0, y: -8 }"
             class="text-muted text-sm"
           >
-            <p>{{ textShimmer[0] }}</p>
+            <p class="shimmer">{{ textShimmer[0] }}</p>
             <div class="mt-3 space-y-2">
               <div class="bg-surface h-3 w-full animate-pulse rounded"></div>
               <div class="bg-surface h-3 w-5/6 animate-pulse rounded"></div>
@@ -495,3 +495,45 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 分析加载中的文案流光 —— 与 AiCompanion 的 "Thinking" 同款:
+   基底 = 半透明墨色,一道更浅的高亮带从左向右扫过(文字背景裁剪) */
+.shimmer {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--ink) 60%, transparent) 0%,
+    color-mix(in oklch, var(--ink) 60%, transparent) 30%,
+    color-mix(in oklch, var(--ink) 25%, transparent) 45%,
+    color-mix(in oklch, var(--ink) 25%, transparent) 55%,
+    color-mix(in oklch, var(--ink) 60%, transparent) 70%,
+    color-mix(in oklch, var(--ink) 60%, transparent) 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: label-shine 2.25s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+@keyframes label-shine {
+  0%,
+  18% {
+    background-position: 100% 0;
+  }
+  82%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none !important;
+  }
+}
+</style>
