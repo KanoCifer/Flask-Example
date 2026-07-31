@@ -20,7 +20,13 @@ height / aspect_ratio / file_size / mime_type / status 字段。常规路径下�
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 from sqlalchemy import select
+
+# 确保能 import app 包
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.api.des.db import AsyncSessionFactory, async_engine
 from app.core import logger
@@ -38,7 +44,7 @@ async def main() -> None:
             select(GalleryImage).where(GalleryImage.status == STATUS_TARGET)
         )
         rows = list(result.scalars().all())
-        logger.info("found {} gallery rows to process", len(rows))
+        logger.info(f"found {len(rows)} gallery rows to process")
 
         ready = failed = 0
         for row in rows:
@@ -55,12 +61,8 @@ async def main() -> None:
                 row.status = "ready"
                 ready += 1
                 logger.info(
-                    "processed {}: {}x{} -> {} / {}",
-                    row.id,
-                    row.width,
-                    row.height,
-                    row.thumbnail_url,
-                    row.medium_url,
+                    f"processed {row.id}: {row.width}x{row.height} -> "
+                    f"{row.thumbnail_url} / {row.medium_url}"
                 )
             except Exception:
                 row.status = "failed"
@@ -72,17 +74,20 @@ async def main() -> None:
 
         await session.commit()
         logger.info(
-            "done: {} ready, {} failed, {} skipped",
-            ready,
-            failed,
-            len(rows) - ready - failed,
+            f"done: {ready} ready, {failed} failed, "
+            f"{len(rows) - ready - failed} skipped"
         )
 
 
 if __name__ == "__main__":
     import asyncio
 
-    try:
-        asyncio.run(main())
-    finally:
-        asyncio.run(async_engine.dispose())
+    async def _main() -> None:
+        try:
+            await main()
+        finally:
+            # 必须在同一个 loop 内 dispose；asyncio.run 结束后 loop 已关闭，
+            # 再起新 loop dispose 池中连接会抛 "Event loop is closed"。
+            await async_engine.dispose()
+
+    asyncio.run(_main())

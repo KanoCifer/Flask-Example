@@ -4,6 +4,7 @@ from logging.config import fileConfig
 from pathlib import Path
 
 from dotenv import load_dotenv
+import sqlalchemy as sa
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -42,6 +43,42 @@ if config.config_file_name is not None:
 """修改：直接使用 app.models 中定义的 Base.metadata，确保 Alembic 能正确识别所有 ORM 模型"""
 target_metadata = Base.metadata
 
+# 所有 Python ORM 管理的表名。
+# 不在这个集合里的表被视为「孤儿表」——比如 visitor_track（由 Go 端直写 PostgreSQL），
+# Alembic 既不为其生成迁移、也不在 autogenerate 时把它们当作待删除表。
+_orm_tables: frozenset[str] = frozenset(Base.metadata.tables)
+
+# 生成“从数据库快照”基线时使用：ALEMBIC_BUILD_ALL_FROM_DB=1 时，
+# 把 target_metadata 换成从数据库反射出来的真实元数据，以“空库 + 真实库”的对比
+# 生成覆盖全部现有表（含 visitor_track 等孤儿表）的 CREATE TABLE 基线迁移。
+# 一次性使用，日常迁移不开启。
+_build_all_from_db = os.getenv("ALEMBIC_BUILD_ALL_FROM_DB", "0") == "1"
+if _build_all_from_db:
+    from sqlalchemy import MetaData
+
+    target_metadata = MetaData()  # 稍后在 run_migrations_online() 里用同步引擎填充
+
+
+def include_object(
+    object_: sa.SchemaItem,
+    name: str | None,
+    type_: str,
+    reflected: bool,
+    compare_to: sa.SchemaItem | None,
+) -> bool:
+    """过滤 autogenerate 的对比范围。
+
+    - 仅比较 ORM 管理的表（其余表视为合法的“孤儿表”，不生成迁移、不作为待删除项）。
+    - 只对表级对象（表、索引、唯一约束）生效；列级对象的开关由
+      env.py 顶部 _orm_tables 的反射结果决定（见 build_all_from_db）。
+    """
+    del reflected, compare_to  # 与当前过滤逻辑无关
+    if _build_all_from_db:
+        return True  # 基线模式要包含全部表（含 visitor_track 等孤儿表）
+    if type_ == "table":
+        return name in _orm_tables
+    return True
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -66,6 +103,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -73,7 +111,11 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_object=include_object,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
@@ -99,6 +141,27 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+    if _build_all_from_db:
+        # 基线模式：用同步引擎反射真实库结构，填充顶层的空 MetaData，
+        # 再走“空库 vs 真实库”的对比生成 CREATE TABLE 基线。
+        import sqlalchemy as sync_sa
+
+        url = config.get_main_option("sqlalchemy.url")
+        engine = sync_sa.create_engine(url)
+        try:
+            with engine.connect() as conn:
+                target_metadata.reflect(bind=conn)
+                context.configure(
+                    connection=conn,
+                    target_metadata=target_metadata,
+                    include_object=include_object,
+                )
+                with context.begin_transaction():
+                    context.run_migrations()
+        finally:
+            engine.dispose()
+        return
+
     import concurrent.futures
 
     try:
