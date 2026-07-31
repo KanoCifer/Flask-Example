@@ -29,7 +29,7 @@
 
 ## devtask 工作流
 
-本项目使用 devtask 看板管理开发任务。MCP server `devtask` 已注册以下工具：`create_task` / `batch_create_tasks` / `get_task` / `update_task` / `complete_task` / `list_children`。
+本项目使用 devtask 看板管理开发任务。MCP server `devtask` 提供 v3 工具，**优先用 skill 而不是直接工具调用**。
 
 ### 工作流
 
@@ -53,4 +53,4 @@
 
 - spec 是规划节点（kind=spec），subtask 是可执行单元（kind=subtask）
 - `parent_slug` 承载结构归属，`blocked_by` 承载同层执行顺序依赖
-- 状态推进统一走 `complete_task`；其他字段修改走 `update_task`
+- 状态推进统一走 `update_task(slug, status=...)` 或 `update_task(slugs=[...])`；其它字段修改走 `update_task(slug, detail=...)`
