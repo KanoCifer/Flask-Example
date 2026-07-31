@@ -35,6 +35,14 @@ const maxOrder = Math.max(...Object.values(styles).map((s) => s.order));
 // Offsets were derived from the previous cascade layout evaluated at
 // layoutHeight = 820 (the container min-height), then baked as constants.
 
+/** Global layout scale: shrinks the entire bento grid (card sizes + spacing
+ *  + distance from center) uniformly. Applied to the cardSpec offsets and
+ *  to the measured/fallback card dimensions used for center→top-left math.
+ *  Keep this in sync with whatever visual scale the card components apply
+ *  (e.g. a `transform: scale(LAYOUT_SCALE)` on the card root) so the layout
+ *  box matches the visual size. */
+const LAYOUT_SCALE = 0.85;
+
 interface CardSpec {
   /** Export name used by consumers (the `*Position` ref). */
   as: string;
@@ -136,6 +144,9 @@ function position(
 ): CSSProperties {
   const measured = cardSizes.get(cardName);
   const fallback = styles[cardName];
+  // Box dims stay UNSCALED — the layout box matches the card's natural
+  // size (Tailwind class), so JSON fallback accuracy doesn't visually
+  // matter much (measured takes over once mounted).
   const w = measured?.width ?? fallback?.width ?? 0;
   const h = measured?.height ?? fallback?.height ?? 0;
   return { top: px(centerY - h / 2), left: px(centerX - w / 2) };
@@ -204,13 +215,15 @@ export function useCardLayout(containerRef: Ref<HTMLElement | null>) {
   // ── Flat absolute positioning ──────────────────────────
   // Each card's home position is viewport center + (xOffset, yOffset). Drag
   // offsets are per-card and independent — no cascade, so dragging one card
-  // cannot move another.
+  // cannot move another. Spec offsets and drag deltas are both scaled by
+  // LAYOUT_SCALE so the entire grid (spacing + distance from center)
+  // shrinks uniformly.
   const positions: Record<string, Ref<CSSProperties>> = {};
   for (const spec of cardSpecs) {
     positions[spec.as] = usePositionRef(() =>
       position(
-        centerY.value + spec.yOffset + dragY(spec.name),
-        centerX.value + spec.xOffset + dragX(spec.name),
+        centerY.value + (spec.yOffset + dragY(spec.name)) * LAYOUT_SCALE,
+        centerX.value + (spec.xOffset + dragX(spec.name)) * LAYOUT_SCALE,
         spec.name,
         cardSizes,
       ),

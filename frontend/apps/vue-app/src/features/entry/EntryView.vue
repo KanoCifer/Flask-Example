@@ -2,7 +2,7 @@
   <div
     class="relative min-h-dvh w-full"
     :style="containerStyle"
-    ref="parentContainer"
+    ref="parentRef"
   >
     <FloatingActionButtons
       @openSettings="openSettings"
@@ -203,7 +203,7 @@ import { useCardLayout } from '@/features/entry/composables';
 import { useCardLayoutStore } from '@/features/entry/stores/cardLayout';
 import { useThemeStore } from '@/stores';
 import { cardStylesData } from '@/data';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
 import BentoMap from './components/BentoMap.vue';
 import BentoPic from './components/BentoPic.vue';
 import GreetingToast from './components/GreetingToast.vue';
@@ -230,7 +230,7 @@ const switchToMobile = () => {
   window.location.href = 'https://m.kanocifer.chat';
 };
 
-const parentContainer = ref<HTMLElement | null>(null);
+const parentRef = useTemplateRef<HTMLElement>('parentRef');
 
 // Card layout — all position computation in one composable
 const {
@@ -244,7 +244,7 @@ const {
   techPosition,
   listCardPosition,
   todoCardPosition,
-} = useCardLayout(parentContainer);
+} = useCardLayout(parentRef);
 
 const layoutStore = useCardLayoutStore();
 

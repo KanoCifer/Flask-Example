@@ -11,8 +11,10 @@
     }"
     @pointerdown="onPointerDown"
   >
-    <div :class="{ 'pointer-events-none': layoutStore.isEditing }">
-      <slot />
+    <div ref="scalerEl" class="card-scaler">
+      <div :class="{ 'pointer-events-none': layoutStore.isEditing }">
+        <slot />
+      </div>
     </div>
   </div>
 </template>
@@ -41,12 +43,14 @@ const providedRegister = inject<
 const registerCardSize = props.registerCardSize ?? providedRegister;
 
 const wrapperEl = useTemplateRef<HTMLElement>('wrapperEl');
+const scalerEl = useTemplateRef<HTMLElement>('scalerEl');
 
-// Report this wrapper's measured size once mounted (and on every resize via
-// the composable's ResizeObserver) so the parent can center it correctly.
+// Report the unscaled card size (from .card-scaler, which is sized to its
+// content by max-content + transform doesn't affect offsetWidth) so
+// useCardLayout can scale it by LAYOUT_SCALE and avoid recursive shrinking.
 onMounted(() => {
-  if (wrapperEl.value && registerCardSize) {
-    registerCardSize(props.cardName, wrapperEl.value);
+  if (scalerEl.value && registerCardSize) {
+    registerCardSize(props.cardName, scalerEl.value);
   }
 });
 
@@ -91,6 +95,26 @@ function onPointerDown(e: PointerEvent) {
 </script>
 
 <style scoped>
+/* Visual scale for the card content.
+   The .drag-wrapper's layout box is sized to the natural (Tailwind) card
+   dimensions; useCardLayout scales the offset only, not the box. So the
+   visual card needs to shrink around the box center for both axes of
+   alignment — use `transform-origin: center` and let the scaled visual
+   occupy the inner 85% of the layout box. The extra ~7.5% padding on
+   each side is invisible because box-to-box spacing is also scaled by
+   0.85 in useCardLayout. */
+.card-scaler {
+  transform-origin: center center;
+  transform: scale(0.85);
+}
+
+/* When dragging, undo the visual scale so .drag-wrapper.is-dragging's
+   `scale: 1.06` applies to the original-size card (a 6% lift, not on
+   top of an 85% shrink). */
+.drag-wrapper.is-dragging .card-scaler {
+  transform: none;
+}
+
 /* Asymmetric lift: brisk IN (grab), springy OUT (release).
    Transition sits on the base rule; the .is-dragging rule overrides
    transition-timing/duration for the grab direction, so the release
