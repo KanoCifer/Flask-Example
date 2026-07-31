@@ -134,11 +134,6 @@ def resolve_media_path(url: str) -> Path:
     return resolved
 
 
-def get_image_path(url: str) -> Path:
-    """兼容旧调用:委托统一解析器。"""
-    return resolve_media_path(url)
-
-
 def media_url(rel: str) -> str:
     """相对媒体根路径 → 公开 URL(/media/...)。rel 传相对路径(如 gallery/1/x.jpg)。"""
     return f"/media/{rel.lstrip('/')}"
