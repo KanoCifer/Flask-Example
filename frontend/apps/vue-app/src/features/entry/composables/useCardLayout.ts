@@ -107,7 +107,7 @@ const cardSpecs: CardSpec[] = [
     as: 'todoCardPosition',
     name: 'TodoCard',
     xOffset: 300,
-    yOffset: 329,
+    yOffset: 340,
   },
 ];
 

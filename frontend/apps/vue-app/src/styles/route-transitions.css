@@ -1,18 +1,64 @@
 /*
- * 路由过渡动画全局样式 —— 与 composables/route-transition/routeTransitionPolicy.ts
- * 中的 TRANSITION_SPECS 一一对应。duration / easing 必须保持同步。
+ * 路由过渡动画全局样式 —— 与 lib/route-transition.ts 中的 TRANSITION_NAMES 一一对应。
+ * duration / easing 必须保持同步。
  *
  * 设计要点：
- * - 精确属性（opacity / transform）而非 all，避免布局抖动
- * - 统一缓动 cubic-bezier(0.32, 0.72, 0, 1)（snap in, soft out）
+ * - 精确属性（opacity / transform / filter）而非 all，避免布局抖动
+ * - class-based transition 而非 @keyframes：连点导航时 Vue <Transition> 可复用
+ *   enter 节点，CSS transition 能在 mid-flight retarget，keyframes 则会卡死
  * - 进出对称 + GPU 提示（will-change）
  * - 减动守卫：尊重 prefers-reduced-motion
+ *
+ * 时长 / 曲线 / 距离 / 模糊全部接 transitions-dev motion tokens（见 :root），
+ * 仓库自定义曲线 --ease-snap 单独定义；保留语义 token --slide-up-distance /
+ * --page-slide-direction 等供 Vue 层根据导航方向覆写。
  */
 
-/* fade — login / register / settings / gallery：纯淡入淡出 */
+/* ── Motion tokens ──────────────────────────────────────────────
+   与 transitions-dev _root.css 的语义 token 对齐。
+   仓库自定义的 --ease-snap 单独列出，避免与通用 token 串味。 */
+:root {
+  /* Durations */
+  --duration-stagger: 40ms;
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+  --duration-very-slow: 500ms;
+  /* Easings */
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-linear: linear;
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+  /* Distances */
+  --distance-micro: 4px;
+  --distance-small: 6px;
+  --distance-base: 8px;
+  --distance-medium: 12px;
+  --distance-large: 30px;
+  /* Scales */
+  --scale-large: 0.96;
+  --scale-medium: 0.97;
+  --scale-small: 0.98;
+  --scale-tiny: 0.99;
+  /* Blur */
+  --blur-small: 2px;
+  --blur-medium: 3px;
+  --blur-large: 8px;
+
+  /* 仓库自定义：jelly-tab 风格的"啪"收曲线，用于 slide-up。 */
+  --ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ── fade ──────────────────────────────────────────────────────
+   login / register / settings / bookshelf / gallery 等低频工具页：
+   纯淡入淡出，最克制。 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: opacity var(--duration-quick) var(--ease-smooth-out);
   will-change: opacity;
 }
 .fade-enter-to,
@@ -24,78 +70,42 @@
   opacity: 0;
 }
 
-/* slide-up — 默认动画：jelly tab 风格 */
-@keyframes tab-in {
-  0% {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes tab-out {
-  0% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-}
-.slide-up-enter-active {
-  animation: tab-in 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+/* ── slide-up ──────────────────────────────────────────────────
+   默认动画：jelly tab 风格，translateY(4px) + opacity。
+   用 class-based transition 而非 @keyframes，
+   便于用户连点导航时 Vue <Transition> 复用 enter 节点做 retarget。 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition:
+    opacity var(--duration-fast) var(--ease-snap),
+    transform var(--duration-fast) var(--ease-snap);
   will-change: transform, opacity;
 }
-.slide-up-leave-active {
-  animation: tab-out 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(var(--distance-micro));
+}
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(calc(var(--distance-micro) * -1));
 }
 
-/* 减动偏好：用户要求减少动画时禁用所有过渡和动画 */
-@media (prefers-reduced-motion: reduce) {
-  .fade-enter-active,
-  .fade-leave-active {
-    transition: none !important;
-  }
-  .slide-up-enter-active,
-  .slide-up-leave-active {
-    animation: none !important;
-  }
-  .page-side-by-side-enter-active,
-  .page-side-by-side-leave-active {
-    transition: none !important;
-  }
-  .fade-enter-from,
-  .fade-leave-to,
-  .slide-up-enter-from,
-  .slide-up-leave-to {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-  .page-side-by-side-enter-from,
-  .page-side-by-side-leave-to {
-    opacity: 1 !important;
-    transform: none !important;
-    filter: none !important;
-  }
-}
-
-/* page-side-by-side — 博客列表 ↔ 详情
- * 移植自 transitions-dev 08-page-side-by-side。
- * snippet 原本面向 SPA 内 master/detail 双面板同框滑动（data-page 驱动方向），
- * 这里改用 Vue Router + <Transition mode="out-in">：enter 从右、leave 向左，
- * --page-* 语义变量保持与 snippet 一致，便于后续 transitions refine 接入统一令牌。 */
+/* ── page-side-by-side ────────────────────────────────────────
+   博客列表 ↔ 详情 / 编辑器：方向感知 master/detail 滑动。
+   --page-slide-direction 由 RouteTransition.vue 根据 router.from 写入：
+   +1 = 进入从右（来自左侧列表）；-1 = 进入从左（来自右侧详情）。
+   --page-exit-enabled: 0 用于禁用 leave 滑动（首屏无来向时）。
+   语义 token 与 transitions-dev 08-page-side-by-side 一致。 */
 :root {
-  --page-slide-dur: 250ms;
-  --page-fade-dur: 250ms;
-  --page-slide-distance: 8px;
-  --page-blur: 3px;
+  --page-slide-dur: var(--duration-fast);
+  --page-fade-dur: var(--duration-fast);
+  --page-slide-distance: var(--distance-base);
+  --page-blur: var(--blur-medium);
   --page-stagger: 0ms;
   --page-exit-enabled: 1;
-  --page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --page-fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --page-slide-direction: 1;
+  --page-slide-ease: var(--ease-smooth-out);
+  --page-fade-ease: var(--ease-smooth-out);
 }
 
 .page-side-by-side-enter-active,
@@ -113,12 +123,39 @@
 
 .page-side-by-side-enter-from {
   opacity: 0;
-  transform: translateX(var(--page-slide-distance));
+  transform: translateX(
+    calc(var(--page-slide-distance) * var(--page-slide-direction))
+  );
   filter: blur(var(--page-blur));
 }
 
 .page-side-by-side-leave-to {
   opacity: 0;
-  transform: translateX(calc(var(--page-slide-distance) * -1));
+  transform: translateX(
+    calc(var(--page-slide-distance) * var(--page-slide-direction) * -1)
+  );
   filter: blur(var(--page-blur));
+}
+
+/* ── prefers-reduced-motion ──────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .fade-enter-active,
+  .fade-leave-active,
+  .slide-up-enter-active,
+  .slide-up-leave-active,
+  .page-side-by-side-enter-active,
+  .page-side-by-side-leave-active {
+    transition: none !important;
+    animation: none !important;
+  }
+  .fade-enter-from,
+  .fade-leave-to,
+  .slide-up-enter-from,
+  .slide-up-leave-to,
+  .page-side-by-side-enter-from,
+  .page-side-by-side-leave-to {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
 }

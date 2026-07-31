@@ -4,7 +4,7 @@
       <component :is="Component" :key="viewKey" />
     </template>
     <Transition v-else :name="transitionName" mode="out-in">
-      <div :key="viewKey">
+      <div :key="viewKey" :style="directionStyle">
         <component :is="Component" />
       </div>
     </Transition>
@@ -13,8 +13,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { resolveTransitionName } from '@/lib';
+import type { CSSProperties } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import {
+  resolvePageSlideDirection,
+  resolveTransitionName,
+} from '@/lib';
 
 defineOptions({ name: 'RouteTransition' });
 
@@ -23,6 +27,8 @@ const { entryPath = '/' } = defineProps<{
 }>();
 
 const route = useRoute();
+const router = useRouter();
+
 const transitionName = computed(() =>
   resolveTransitionName(route.meta.transition),
 );
@@ -39,5 +45,22 @@ const isEntryView = computed(() => route.path === entryPath);
 const viewKey = computed(() => {
   const root = route.matched[0];
   return root && root.children.length > 0 ? root.path : route.path;
+});
+
+/**
+ * page-side-by-side 进入方向：来自 router.history.state.back。
+ * - 列表 → 详情/编辑器：正向（+1，进入从右）
+ * - 详情/编辑器 → 列表：反向（-1，进入从左）
+ * - 首屏 / 同层：兜底正向
+ * 仅 page-side-by-side 需要此 style；其余动画返回空对象。
+ */
+const directionStyle = computed<CSSProperties>(() => {
+  if (transitionName.value !== 'page-side-by-side') return {};
+  const direction = resolvePageSlideDirection(
+    (router.options.history.state as { back?: string | null } | undefined)
+      ?.back ?? null,
+    route.path,
+  );
+  return { '--page-slide-direction': direction };
 });
 </script>

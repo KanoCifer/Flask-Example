@@ -153,13 +153,21 @@ const router = createRouter({
       path: '/blog/new',
       name: 'blog-new',
       component: () => import('@/features/blog/BlogEditorView.vue'),
-      meta: { requiresAuth: true, title: "发布文章 - Kuroome's Blog" },
+      meta: {
+        requiresAuth: true,
+        title: "发布文章 - Kuroome's Blog",
+        transition: 'page-side-by-side',
+      },
     },
     {
       path: '/blog/:id/edit',
       name: 'blog-edit',
       component: () => import('@/features/blog/BlogEditorView.vue'),
-      meta: { requiresAuth: true, title: "编辑文章 - Kuroome's Blog" },
+      meta: {
+        requiresAuth: true,
+        title: "编辑文章 - Kuroome's Blog",
+        transition: 'page-side-by-side',
+      },
     },
     {
       path: '/blog/category/:categoryId',
@@ -226,6 +234,7 @@ const router = createRouter({
         title: "导入书籍 - Kuroome's Blog",
         description: '从文件导入书籍信息到个人书架',
         keywords: '导入书籍,书籍管理,个人书架',
+        transition: 'fade',
       },
     },
     {
@@ -249,6 +258,7 @@ const router = createRouter({
         description: '微信读书阅读统计数据与趋势分析',
         keywords: '阅读统计,阅读数据,微信读书',
         requiresAuth: true,
+        transition: 'fade',
       },
     },
     {
@@ -260,6 +270,7 @@ const router = createRouter({
         title: '网站数据分析',
         description: '查看网站访问数据和用户行为分析',
         keywords: '网站分析,数据分析,用户行为',
+        transition: 'fade',
       },
     },
     {
@@ -271,6 +282,7 @@ const router = createRouter({
         title: "订阅管理 - Kuroome's Blog",
         description: '管理数字订阅、账单周期和通知渠道',
         keywords: '订阅管理,账单提醒,订阅通知',
+        transition: 'fade',
       },
     },
     {
@@ -282,6 +294,7 @@ const router = createRouter({
         title: "设备管理 - Kuroome's Blog",
         description: '管理电子设备资产与价格',
         keywords: '设备管理,资产追踪',
+        transition: 'fade',
       },
     },
     {
