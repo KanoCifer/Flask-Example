@@ -31,7 +31,7 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
 
   const generateLayoutSeeds = () => {
     visualSeeds.value.clear();
-    images.value.forEach((img, index) => {
+    images.value.forEach((_, index) => {
       visualSeeds.value.set(index, {
         rotation: (Math.random() - 0.5) * 6, // ±3°
       });
