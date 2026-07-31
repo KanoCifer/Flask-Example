@@ -164,20 +164,6 @@ wheels = [
 ]
 
 [[package]]
-name = "alembic"
-version = "1.18.5"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
-dependencies = [
-    { name = "mako" },
-    { name = "sqlalchemy" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/1a/cc/ac0bed8e562e7407fe55c3ba85a4dce86e6dbd8730887bd1e406a6c5c18a/alembic-1.18.5.tar.gz", hash = "sha256:1554982221dd17e9a749b53902407578eb305e453f71999e8c7f0a48389fff8e", size = 2060480, upload-time = "2026-06-25T15:20:54.888Z" }
-wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/96/78/5fe6dc3a3a5b2f5a2a4faef8bfe336d5fa049a38884ab3172e0098160c01/alembic-1.18.5-py3-none-any.whl", hash = "sha256:06d8ba9d04558022f5395e9317de03d270f3dced49cee01f89fe7a13c26f14bc", size = 264664, upload-time = "2026-06-25T15:20:56.673Z" },
-]
-
-[[package]]
 name = "annotated-doc"
 version = "0.0.4"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -214,7 +200,6 @@ source = { virtual = "." }
 dependencies = [
     { name = "agno" },
     { name = "aiosmtplib" },
-    { name = "alembic" },
     { name = "apscheduler" },
     { name = "asyncpg" },
     { name = "beanie" },
@@ -276,7 +261,6 @@ dev = [
 requires-dist = [
     { name = "agno", specifier = ">=2.5.10" },
     { name = "aiosmtplib", specifier = ">=5.1.0" },
-    { name = "alembic", specifier = ">=1.18.4" },
     { name = "apscheduler", specifier = ">=3.11.2" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "beanie", specifier = ">=2.0.1" },

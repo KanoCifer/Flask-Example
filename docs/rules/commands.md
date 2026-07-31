@@ -11,8 +11,8 @@ cd backend
 uv run python3 dev.py
 
 # migrations
-uv run alembic revision --autogenerate -m "desc"
-uv run alembic upgrade head
+# schema 统一由 Go 端 GORM AutoMigrate 管理：go-backend 启动时自动迁移。
+# 需要手动触发时，在 go-backend 目录运行 go run cmd/server（或部署 go-backend）。
 
 # format & lint (pre-commit)
 ruff format . && ruff check .

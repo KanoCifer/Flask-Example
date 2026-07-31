@@ -110,7 +110,8 @@ if [ "$BACKEND_CHANGED" = true ]; then
   ok "Dependencies synced"
 
   step "Running database migrations"
-  FAILED_STEP="数据库迁移失败 (alembic: schema 冲突/DB 连接)" && /home/kano/.local/bin/uv run alembic upgrade head
+  # schema 已统一由 Go 端 GORM AutoMigrate 管理（部署时 go-backend 启动即迁移），
+  # Python 侧不再跑 Alembic；此处仅执行数据脚本。
   FAILED_STEP="insert_changelog.py 执行失败" && /home/kano/.local/bin/uv run python scripts/insert_changelog.py
   ok "Migrations applied"
 else

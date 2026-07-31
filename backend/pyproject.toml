@@ -4,7 +4,6 @@ version = "3.0.0"
 description = "API Backend"
 requires-python = ">=3.14"
 dependencies = [
-    "alembic>=1.18.4",
     "email-validator>=2.3.0",
     "faker>=40.8.0",
     "itsdangerous>=2.2.0",
