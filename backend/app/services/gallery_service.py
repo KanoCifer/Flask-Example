@@ -51,6 +51,7 @@ class GalleryService:
                     "gallery image processing failed"
                 )
                 gallery_image.status = "failed"
+                gallery_image.mime_type = None
             db_images.append(gallery_image)
 
         await self.gallery_repo.save_images(session, db_images)

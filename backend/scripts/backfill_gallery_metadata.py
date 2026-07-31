@@ -64,6 +64,7 @@ async def main() -> None:
                 )
             except Exception:
                 row.status = "failed"
+                row.mime_type = None
                 failed += 1
                 logger.bind(url=row.url).exception(
                     "gallery image processing failed"

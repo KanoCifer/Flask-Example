@@ -367,7 +367,9 @@ class GalleryImage(Base):
 
     file_size: Mapped[int] = mapped_column(Integer, default=0)
 
-    mime_type: Mapped[str] = mapped_column(String(50), default="image/jpeg")
+    mime_type: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, default="image/jpeg", server_default="image/jpeg"
+    )
 
     # 描述
     description: Mapped[str] = mapped_column(String(500), default="")
