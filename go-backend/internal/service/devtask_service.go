@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -52,14 +53,45 @@ func NewDevTaskService(repo DevTaskRepositoryer) *DevTaskService {
 	return &DevTaskService{repo: repo}
 }
 
+var slugRegex = regexp.MustCompile(`^task-(\d+)$`)
+
 // Create 创建任务。
 func (s *DevTaskService) Create(ctx context.Context, userID int, req dto.DevTaskCreate) (*dto.DevTaskResponse, error) {
-	// 自增生成 slug —— counters 集合单文档 $inc 保证原子性，并发安全。
-	seq, err := s.repo.NextSlugSeq(ctx)
-	if err != nil {
-		return nil, err
+	var slug string
+
+	if req.Slug != nil && *req.Slug != "" {
+		// 自定义 slug：校验格式、seq、唯一性。
+		matches := slugRegex.FindStringSubmatch(*req.Slug)
+		if matches == nil {
+			return nil, devtaskerrs.ErrSlugInvalidFormat
+		}
+		customNum := 0
+		fmt.Sscanf(matches[1], "%d", &customNum)
+
+		seq, err := s.repo.NextSlugSeq(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if customNum < seq {
+			return nil, devtaskerrs.ErrSlugSequenceTooSmall
+		}
+
+		// 唯一性检查（避免并发创建同一 slug）。
+		if _, err := s.repo.GetBySlug(ctx, *req.Slug); err == nil {
+			return nil, devtaskerrs.ErrSlugConflict
+		} else if !errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, err
+		}
+
+		slug = *req.Slug
+	} else {
+		// 自增生成 slug —— counters 集合单文档 $inc 保证原子性，并发安全。
+		seq, err := s.repo.NextSlugSeq(ctx)
+		if err != nil {
+			return nil, err
+		}
+		slug = fmt.Sprintf("task-%d", seq)
 	}
-	slug := fmt.Sprintf("task-%d", seq)
 
 	now := time.Now().UTC()
 	task := &document.DevTask{

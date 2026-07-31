@@ -15,8 +15,8 @@ type DevTaskCreate struct {
 	Priority    document.DevTaskPriority `json:"priority" binding:"required"`
 	Scope       document.DevTaskScope    `json:"scope" binding:"required"`
 	DueDate     *time.Time               `json:"due_date"`
-	// Slug 由后端自增生成的 task-N，客户端无需传。
-	// 如需支持自定义 slug 可开放字段。
+	// Slug: 可选自定义 slug（格式 task-N），不传则自动生成。
+	// 需保证 N ≥ 当前自增序，且 DB 中不存在冲突。
 	// Spec
 	AcceptanceCriteria *string `json:"acceptance_criteria"`
 	Constraints        *string `json:"constraints"`
