@@ -52,6 +52,7 @@
         <PolaroidCard
           :image="image"
           :index="index"
+          :aspect="getCardAspect(index)"
           :rotation="getRotation(index)"
           :is-edit-mode="isEditMode && canEdit"
           :selected="selectedIds.has(image.id)"
@@ -143,7 +144,7 @@ const {
   formatDate,
 } = useGallery();
 
-const { generateLayoutSeeds, shuffleImages, getRowSpan, getRotation } =
+const { generateLayoutSeeds, shuffleImages, getRowSpan, getRotation, getCardAspect } =
   usePolaroidLayout({ images });
 
 // --- edit mode ---

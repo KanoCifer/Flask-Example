@@ -1,6 +1,6 @@
 <template>
   <motion.div
-    class="polaroid-card group relative block h-full w-full cursor-pointer"
+    class="polaroid-card group relative block w-full cursor-pointer"
     :initial="{ opacity: 0, y: 24 }"
     :animate="{ opacity: 1, y: 0 }"
     :transition="{
@@ -16,19 +16,20 @@
   >
     <!--
       PolaroidCard — 紧凑 grid 瀑布流版
-      - 卡片高度由父级 grid-row span 控制(根据后端 aspectRatio 计算)
-      - 内部照片容器 object-cover 填满父级,不再使用 aspect-ratio 留空
-      - 保留 var(--page) 白边 + 日期 + 胶片质感
+      - 图片区由 aspect-ratio 自己撑开高度(后端 aspectRatio 已知 → 真实比例)
+      - 卡片整体高度 = 图片 + 顶部白边 + 底部 52px 白边
+      - 父级 grid-row span 用同样公式算,精确分配行数
       - 编辑模式:左上选中圈 + 右上删除按钮;非编辑模式:点击进详情
       - 状态:processing 柔光蒙层 + spinner; failed 已实现; ready/uploaded 正常
     -->
-    <div class="polaroid group relative flex h-full flex-col rounded-[2px]">
-      <!-- 图片容器 —— 由父级 grid-row 控制高度,内部 object-cover 自适应 -->
+    <div class="polaroid group relative flex flex-col rounded-[2px]">
+      <!-- 图片容器: aspect-ratio 驱动高度,object-cover 填满 -->
       <div
-        class="polaroid-top relative mx-2 mt-3 h-full flex-1 overflow-hidden rounded-[1px] transition-all duration-300 group-hover:mx-0 group-hover:mt-0"
+        class="polaroid-top relative mx-2 mt-3 overflow-hidden rounded-[1px] transition-all duration-300 group-hover:mx-0 group-hover:mt-0"
       >
         <div
-          class="polaroid-photo relative h-full w-full overflow-hidden"
+          class="polaroid-photo relative w-full overflow-hidden"
+          :style="{ aspectRatio: String(aspect) }"
         >
           <!-- 加载失败态 -->
           <template v-if="image.status === 'failed'">
@@ -135,6 +136,7 @@ import type { Picture } from '@/features/pic/composables';
 const props = defineProps<{
   image: Picture;
   index: number;
+  aspect: number; // 后端真实 aspectRatio (w/h),驱动图片区高度
   rotation: number;
   isEditMode?: boolean;
   selected?: boolean;

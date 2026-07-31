@@ -22,32 +22,36 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
     new Map(),
   );
 
-  // 紧凑瀑布流参数 —— row 单位高度越小,密度越高
-  const ROW_HEIGHT = 8; // 8px 一行(配合底部白边让比例更准)
+  // 紧凑瀑布流参数 —— 与 CSS --gallery-row-h 对齐,保证 row-span × ROW_HEIGHT = 实际卡片高度
+  const ROW_HEIGHT = 10;
 
-  // 拍立得固定开销:顶部 mx-2 mt-3(8px 白边) + 底部 52px 留白区 + 3px polaroid 内 padding
+  // 拍立得固定开销:顶部 mt-3(12px 白边) + 底部 52px 留白区
   const POLAROID_BOTTOM = 52;
-  const POLAROID_TOP_MARGIN = 8;
-  const POLAROID_VERTICAL_PADDING = 6;
+  const POLAROID_TOP_MARGIN = 12;
 
   /**
    * 根据后端 aspectRatio 计算 row-span
-   * aspectRatio = width / height (后端约定)
+   * aspectRatio = width / height (后端约定,见 process_image.py)
    * 列宽固定 220px → 图片自然高度 = 220 / aspectRatio
    * 卡片高度 = 图片高度 + 拍立得顶部白边 + 底部白边
    */
-  const computeRowSpan = (img: Picture | undefined): number => {
+  const getAspectRatio = (img: Picture | undefined): number => {
     const ar =
       (img?.aspectRatio && img.aspectRatio > 0 ? img.aspectRatio : null) ??
       (img?.width && img.height && img.height > 0
         ? img.width / img.height
         : 1);
+    return ar; // w/h,直接用于 CSS aspect-ratio
+  };
+
+  const computeRowSpan = (img: Picture | undefined): number => {
+    const ar = getAspectRatio(img);
     const CARD_WIDTH = 220;
     const imageHeight = CARD_WIDTH / ar; // 后端 aspect = w/h, 横向 ar 大 → 图片矮
     const cardHeight =
-      imageHeight + POLAROID_BOTTOM + POLAROID_TOP_MARGIN + POLAROID_VERTICAL_PADDING;
-    // 限制最小/最大行数,避免极端比例
-    return Math.max(20, Math.min(80, Math.round(cardHeight / ROW_HEIGHT)));
+      imageHeight + POLAROID_BOTTOM + POLAROID_TOP_MARGIN;
+    // 极端比例兜底:全景图 ar=3 → 73px,极长 ar=0.3 → 733px
+    return Math.max(8, Math.min(80, Math.round(cardHeight / ROW_HEIGHT)));
   };
 
   const generateLayoutSeeds = () => {
@@ -74,6 +78,10 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
   const getRotation = (index: number) =>
     visualSeeds.value.get(index)?.rotation ?? 0;
 
+  // 给 PolaroidCard 用的真实 aspectRatio (w/h)
+  const getCardAspect = (index: number): number =>
+    getAspectRatio(images.value[index]);
+
   return {
     visualSeeds,
     generateLayoutSeeds,
@@ -81,5 +89,6 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
     bringToFront,
     getRowSpan,
     getRotation,
+    getCardAspect,
   };
 };
