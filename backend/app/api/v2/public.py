@@ -16,15 +16,20 @@ from fastapi.responses import PlainTextResponse
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.des.auth import get_admin_user
 from app.api.des.db import get_session
 from app.appstate import AppState, get_app_state
 from app.core.exceptions import APIError
 from app.core.logger import logger
 from app.core.response import APIResponse
+from app.models.models import User
 from app.plugins.cache import redis_cache
 from app.schemas.gallery import GalleryInput
 
 router = APIRouter(prefix="/publicv2", tags=["publicv2"])
+
+# 照片墙一次最多保存的图片数(防滥用服务端图片处理)
+GALLERY_MAX_IMAGES = 200
 
 
 async def _safe_invalidate(*func_names: str) -> None:
@@ -98,10 +103,16 @@ async def get_sitemap_xml(
 @router.post("/pic-gallery")
 async def set_pic_gallery(
     images: GalleryInput = Body(..., description="List of image data to set"),
+    _: User = Depends(get_admin_user),
     state: AppState = Depends(get_app_state),
     session: AsyncSession = Depends(get_session),
 ) -> APIResponse:
-    """设置图片墙数据。"""
+    """设置图片墙数据(仅管理员)。"""
+    if len(images.images) > GALLERY_MAX_IMAGES:
+        raise APIError(
+            code=400,
+            message=f"Too many images (max {GALLERY_MAX_IMAGES})",
+        )
     try:
         await state.gallery_svc.set_pic_gallery(session, images=images)
         await _safe_invalidate("get_pic_gallery")

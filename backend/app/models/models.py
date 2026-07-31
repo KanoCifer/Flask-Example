@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 import faker
 from fastapi import Request
 from sqlalchemy import (
-    JSON,
     Boolean,
     DateTime,
     Enum,
@@ -15,6 +14,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, MappedColumn, mapped_column, relationship
 from werkzeug.security import check_password_hash
 
@@ -130,7 +130,10 @@ class User(Base):
         if self.password_hash is None:
             return False
         # 兼容所有 bcrypt 变体: $2a$(Go / 早期实现) / $2b$(Python 默认) / $2y$
-        if self.password_hash[:3] in ("$2a", "$2b", "$2y") and self.password_hash[3:4] == "$":
+        if (
+            self.password_hash[:3] in ("$2a", "$2b", "$2y")
+            and self.password_hash[3:4] == "$"
+        ):
             import bcrypt
 
             return bcrypt.checkpw(
@@ -290,7 +293,7 @@ class Subscription(Base):
         ),
         nullable=False,
     )
-    reminder_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    reminder_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
@@ -332,7 +335,7 @@ class DeviceTrack(Base):
         Enum("active", "retired", name="device_status_enum"),
         nullable=False,
     )
-    reminder_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    reminder_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
 
 class GalleryImage(Base):
@@ -343,27 +346,63 @@ class GalleryImage(Base):
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
     )
+
+    # 原图
     url: Mapped[str] = mapped_column(String(500), nullable=False)
-    description: Mapped[str] = mapped_column(String(500), default="")
+
+    # 缩略图
+    thumbnail_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )
+
+    # 中等尺寸
+    medium_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # 图片信息
+    width: Mapped[int] = mapped_column(Integer, default=0)
+
+    height: Mapped[int] = mapped_column(Integer, default=0)
+
+    aspect_ratio: Mapped[float] = mapped_column(Float, default=0)
+
     file_size: Mapped[int] = mapped_column(Integer, default=0)
+
     mime_type: Mapped[str] = mapped_column(String(50), default="image/jpeg")
+
+    # 描述
+    description: Mapped[str] = mapped_column(String(500), default="")
+
+    # 排序
     sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+
+    # 图片处理状态
+    # uploaded
+    # processing
+    # ready
+    # failed
+    status: Mapped[str] = mapped_column(
+        String(20), default="uploaded", index=True
+    )
+
+    # EXIF
+    exif: Mapped[dict | None] = mapped_column(JSONB, default=None)
+
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
     )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
-    exif: Mapped[dict[str, str] | None] = mapped_column(
-        JSON, default=None
-    )
 
     user_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("user.id"), nullable=True, index=True
     )
+
     user: Mapped[User | None] = relationship(back_populates="gallery_images")

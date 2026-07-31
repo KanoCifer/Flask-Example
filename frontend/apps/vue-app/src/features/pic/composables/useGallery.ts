@@ -22,8 +22,19 @@ export interface Picture {
   id: string;
   uploadedAt?: string;
   url: string;
+  /** 后端返回的原始 url(相对或完整),用于保存时回传,避免 rewrite 后的展示值污染 DB。 */
+  rawUrl?: string;
   description: string;
   exif?: ExifInfo | null;
+  // 派生图与元数据(后端同步处理回填,可空)
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: number;
+  fileSize?: number;
+  mimeType?: string;
+  status?: 'uploaded' | 'processing' | 'ready' | 'failed';
 }
 
 // 照片墙数据与持久化
@@ -34,10 +45,13 @@ export const useGallery = () => {
   const fetchGalleryImages = async () => {
     try {
       const response = await galleryGateway.getGallery();
-      // Convert relative URLs to full media URLs
+      // 保留后端原值(rawUrl)供保存回传;展示用 rewrite 后的完整 URL
       images.value = response.images.map((img) => ({
         ...img,
+        rawUrl: img.url,
         url: rewriteMediaUrl(img.url),
+        ...(img.thumbnailUrl && { thumbnailUrl: rewriteMediaUrl(img.thumbnailUrl) }),
+        ...(img.mediumUrl && { mediumUrl: rewriteMediaUrl(img.mediumUrl) }),
       }));
     } catch {
       useNotificationStore().error('获取照片墙数据失败');
@@ -50,7 +64,7 @@ export const useGallery = () => {
       await galleryGateway.saveGallery({
         images: images.value.map((img) => ({
           id: img.id,
-          url: img.url,
+          url: img.rawUrl ?? img.url,
           description: img.description,
           uploadedAt: img.uploadedAt,
         })),

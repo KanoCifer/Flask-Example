@@ -18,8 +18,19 @@ export interface GalleryImage {
   id: string;
   uploadedAt?: string;
   url: string;
+  /** 后端返回的原始 url,用于保存回传,避免 rewrite 后的展示值污染 DB。 */
+  rawUrl?: string;
   description: string;
   exif?: ExifInfo | null;
+  // 派生图与元数据(后端同步处理回填,可空)
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: number;
+  fileSize?: number;
+  mimeType?: string;
+  status?: 'uploaded' | 'processing' | 'ready' | 'failed';
 }
 
 export interface GalleryData {

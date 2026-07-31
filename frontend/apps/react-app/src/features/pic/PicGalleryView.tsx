@@ -2,6 +2,7 @@ import {
   galleryService,
   type Picture,
 } from '@/features/pic/api/galleryService';
+import { rewriteMediaUrl } from '@readinglist/utils';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores/notificationState';
 import dayjs from 'dayjs';
@@ -57,7 +58,18 @@ export default function PicGalleryView() {
   const fetchGalleryImages = useCallback(async () => {
     try {
       const data = await service.getGallery();
-      setImages(data.images);
+      // 保留后端原值供保存回传;展示用 rewrite 后的完整 URL
+      setImages(
+        data.images.map((img) => ({
+          ...img,
+          rawUrl: img.url,
+          url: rewriteMediaUrl(img.url),
+          ...(img.thumbnailUrl && {
+            thumbnailUrl: rewriteMediaUrl(img.thumbnailUrl),
+          }),
+          ...(img.mediumUrl && { mediumUrl: rewriteMediaUrl(img.mediumUrl) }),
+        })),
+      );
     } catch {
       notifier.error('获取照片墙数据失败');
     }
@@ -97,7 +109,7 @@ export default function PicGalleryView() {
       await service.saveGallery({
         images: nextImages.map((img) => ({
           id: img.id,
-          url: img.url,
+          url: img.rawUrl ?? img.url,
           description: img.description,
           uploadedAt: img.uploadedAt,
         })),
@@ -188,7 +200,8 @@ export default function PicGalleryView() {
       const newImage: Picture = {
         id: createPictureId(),
         uploadedAt: dayjs().toISOString(),
-        url: uploadedUrl,
+        rawUrl: uploadedUrl,
+        url: rewriteMediaUrl(uploadedUrl),
         description: uploadDescription.trim(),
       };
       const nextImages = [...images, newImage];
@@ -304,24 +317,34 @@ export default function PicGalleryView() {
                   ease: [0.22, 1, 0.36, 1],
                 }}
               >
-                <div
-                  className="bg-page ring-border group relative cursor-pointer overflow-hidden rounded-2xl shadow-sm ring-1 transition-shadow hover:shadow-md"
-                  onClick={() => openImageDetail(image)}
-                >
-                  <img
-                    src={image.url}
-                    alt={image.description || 'gallery image'}
-                    className="w-full object-cover"
-                    loading="lazy"
-                  />
-                  {image.description && (
-                    <div className="bg-page/90 pointer-events-none absolute inset-x-0 bottom-0 translate-y-full p-2.5 opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-                      <p className="text-ink line-clamp-2 text-xs leading-snug">
-                        {image.description}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {image.status === 'failed' ? (
+                  <div
+                    className="bg-page ring-border flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl p-8 shadow-sm ring-1"
+                    onClick={() => openImageDetail(image)}
+                  >
+                    <ImageOff className="h-8 w-8 text-muted opacity-60" strokeWidth={1.5} />
+                    <p className="text-muted text-xs">加载失败</p>
+                  </div>
+                ) : (
+                  <div
+                    className="bg-page ring-border group relative cursor-pointer overflow-hidden rounded-2xl shadow-sm ring-1 transition-shadow hover:shadow-md"
+                    onClick={() => openImageDetail(image)}
+                  >
+                    <img
+                      src={image.thumbnailUrl ?? image.url}
+                      alt={image.description || 'gallery image'}
+                      className="w-full object-cover"
+                      loading="lazy"
+                    />
+                    {image.description && (
+                      <div className="bg-page/90 pointer-events-none absolute inset-x-0 bottom-0 translate-y-full p-2.5 opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                        <p className="text-ink line-clamp-2 text-xs leading-snug">
+                          {image.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>
@@ -383,11 +406,18 @@ export default function PicGalleryView() {
               </button>
 
               <div className="bg-surface/50 relative flex max-h-[62dvh] w-full items-center justify-center p-4">
-                <img
-                  src={selectedImage.url}
-                  alt={selectedImage.description || 'detail image'}
-                  className="ring-border h-auto max-h-full w-auto max-w-full rounded-xl object-contain shadow-lg ring-1"
-                />
+                {selectedImage.status === 'failed' ? (
+                  <div className="flex flex-col items-center gap-2 opacity-60">
+                    <ImageOff className="h-10 w-10 text-muted" strokeWidth={1.5} />
+                    <p className="text-muted text-sm">加载失败</p>
+                  </div>
+                ) : (
+                  <img
+                    src={selectedImage.mediumUrl ?? selectedImage.url}
+                    alt={selectedImage.description || 'detail image'}
+                    className="ring-border h-auto max-h-full w-auto max-w-full rounded-xl object-contain shadow-lg ring-1"
+                  />
+                )}
               </div>
 
               <div className="bg-page/60 space-y-4 p-5">

@@ -24,10 +24,11 @@
     />
 
     <!--
-      Gallery Container —— 纯 CSS 多列瀑布流
-      columns 控制列数、column-gap 控制间距；卡片 break-inside: avoid 防拆断、
-      margin-bottom 提供列内垂直间距。卡片已在组件内通过 aspect-ratio 预留高度，
-      加载时不跳动。
+      Gallery Container —— 紧凑 grid 瀑布流
+      grid-auto-rows: 10px    行单位 10px(细粒度,密度高)
+      grid-auto-flow: dense   矮卡片回填上方空隙,列高差异降到最小
+      grid-row: span N        卡片高度由后端 aspectRatio 算出
+      响应式列数 + 列宽,通过 grid-template-columns 直接驱动(不再依赖 columns 多列)
     -->
     <div
       class="gallery-masonry relative z-10 mx-auto w-full max-w-[1400px] px-4 pt-24 pb-32 sm:px-6"
@@ -37,6 +38,7 @@
         v-for="(image, index) in images"
         :key="image.id"
         class="gallery-item"
+        :style="{ gridRow: `span ${getRowSpan(index)}` }"
         :initial="{ opacity: 0, y: 24 }"
         :animate="{ opacity: 1, y: 0 }"
         :transition="{
@@ -50,7 +52,6 @@
         <PolaroidCard
           :image="image"
           :index="index"
-          :aspect="getAspectRatio(index)"
           :rotation="getRotation(index)"
           :is-edit-mode="isEditMode && canEdit"
           :selected="selectedIds.has(image.id)"
@@ -142,7 +143,7 @@ const {
   formatDate,
 } = useGallery();
 
-const { generateLayoutSeeds, shuffleImages, getAspectRatio, getRotation } =
+const { generateLayoutSeeds, shuffleImages, getRowSpan, getRotation } =
   usePolaroidLayout({ images });
 
 // --- edit mode ---
@@ -258,44 +259,36 @@ onMounted(async () => {
 
 <style scoped>
 /* ============================================================
-   瀑布流布局：纯 CSS multi-column
-   - columns 控制列数，column-gap 控制列间水平间距
-   - gallery-item 的 margin-bottom 提供列内垂直间距，break-inside: avoid 防止卡片被拆断
-   - gallery-empty 用 column-span: all 占满整行
-   - 响应式列数与间距通过 CSS 变量集中管理
-   - 卡片在组件内已通过 aspect-ratio 预留高度，加载无跳动
+   紧凑 grid 瀑布流
+   - grid-auto-rows: 10px          行单位,提供 row-span 细粒度
+   - grid-auto-flow: dense         矮卡片回填上方空隙,列高差降到最小
+   - 列数 = N 时, 列宽 ≈ (容器宽 - (N-1)*gap) / N
+   - 卡片高度由后端 aspectRatio × 列宽算出,加载前就稳定
+   - gallery-empty 跨整行
    ============================================================ */
 
 .gallery-masonry {
-  /* 间距：小屏 10px，≥640px 14px */
-  --gallery-gap: 10px;
-  /* 列数响应式：<480→2, <768→3, <1100→4, <1400→5, ≥1400→6 */
+  /* 列宽基准: 列数 × (列宽 + gap) = 容器宽。--gallery-cols 决定列数 */
+  --gallery-gap: 12px;
   --gallery-cols: 2;
+  --gallery-row-h: 10px;
 
-  columns: var(--gallery-cols);
-  column-gap: var(--gallery-gap);
-}
-
-.gallery-item {
-  break-inside: avoid;
-  margin-bottom: var(--gallery-gap);
+  display: grid;
+  grid-template-columns: repeat(var(--gallery-cols), 1fr);
+  grid-auto-rows: var(--gallery-row-h);
+  grid-auto-flow: dense;
+  gap: var(--gallery-gap);
 }
 
 .gallery-empty {
   /* 空状态占满整行 */
-  column-span: all;
+  grid-column: 1 / -1;
 }
 
-/* 响应式列数与间距 */
+/* 响应式列数 —— 与原版对齐:<480→2, <768→3, <1100→4, <1400→5, ≥1400→6 */
 @media (min-width: 480px) {
   .gallery-masonry {
     --gallery-cols: 3;
-  }
-}
-
-@media (min-width: 640px) {
-  .gallery-masonry {
-    --gallery-gap: 14px;
   }
 }
 

@@ -18,7 +18,7 @@ def _frac_to_str(value) -> str | None:
         return None
     try:
         frac = Fraction(str(float(value))).limit_denominator(100000)
-    except TypeError, ValueError, ZeroDivisionError:
+    except (TypeError, ValueError, ZeroDivisionError):
         return None
     if frac == 0:
         return None
@@ -37,7 +37,7 @@ def _gps_to_decimal(values: tuple, ref: str) -> float | None:
         return None
     try:
         d, m, s = (float(v) for v in values[:3])
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return None
     decimal = d + m / 60 + s / 3600
     if ref in ("S", "W"):
@@ -117,8 +117,9 @@ def get_exif_data(path: Path) -> dict:
                 return {}
             data = _build_friendly(exif)
     except Exception:
-        logger.exception("Failed to read EXIF from {}", path)
+        logger.bind(path=str(path)).exception("failed to read exif")
         return {}
 
-    logger.info("EXIF data: {}", data)
+    # 日志只记字段名,不记 EXIF 值(避免 GPS/拍摄信息进明文日志)
+    logger.bind(keys=sorted(data.keys())).info("exif data")
     return data

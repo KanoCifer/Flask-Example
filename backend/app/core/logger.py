@@ -80,11 +80,15 @@ def _event_to_message(logger, method_name, event_dict):
 #   1. ``filter_by_level`` 在 ``foreign_pre_chain`` 里收到 ``logger=None`` 会抛
 #      AttributeError（foreign 记录没有 structlog wrapper logger）；foreign 记录
 #      的级别过滤交给 stdlib handler 的 ``setLevel``。
+# 顺序依赖：PositionalArgumentsFormatter 必须先于 _event_to_message —— 它要对
+# event_dict["event"] 做 `%s` 占位符格式化（stdlib logging 风格），而
+# _event_to_message 会把 event 重命名为 message（此时 "event" 键已不存在，
+# 格式化会 KeyError）。
 shared_processors = [
     _add_trace_id,
+    structlog.stdlib.PositionalArgumentsFormatter(),
     _event_to_message,
     structlog.stdlib.add_log_level,
-    structlog.stdlib.PositionalArgumentsFormatter(),
     _timestamper,
     structlog.processors.StackInfoRenderer(),
     structlog.processors.format_exc_info,

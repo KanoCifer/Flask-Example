@@ -1,6 +1,6 @@
 <template>
   <motion.div
-    class="polaroid-card group relative block w-full cursor-pointer"
+    class="polaroid-card group relative block h-full w-full cursor-pointer"
     :initial="{ opacity: 0, y: 24 }"
     :animate="{ opacity: 1, y: 0 }"
     :transition="{
@@ -15,31 +15,57 @@
     @click="onClick"
   >
     <!--
-      PolaroidCard — 拍立得瀑布流版
-      - 卡片宽度 = 列宽（100%），照片高度由 aspect-ratio 自适应
+      PolaroidCard — 紧凑 grid 瀑布流版
+      - 卡片高度由父级 grid-row span 控制(根据后端 aspectRatio 计算)
+      - 内部照片容器 object-cover 填满父级,不再使用 aspect-ratio 留空
       - 保留 var(--page) 白边 + 日期 + 胶片质感
-      - 编辑模式：左上选中圈 + 右上删除按钮；非编辑模式：点击进详情
+      - 编辑模式:左上选中圈 + 右上删除按钮;非编辑模式:点击进详情
+      - 状态:processing 柔光蒙层 + spinner; failed 已实现; ready/uploaded 正常
     -->
-    <div class="polaroid group relative flex flex-col rounded-[2px]">
-      <!-- 顶部窄白边 + 图片容器 -->
+    <div class="polaroid group relative flex h-full flex-col rounded-[2px]">
+      <!-- 图片容器 —— 由父级 grid-row 控制高度,内部 object-cover 自适应 -->
       <div
-        class="polaroid-top relative mx-2 mt-3 overflow-hidden rounded-[1px] transition-all duration-300 group-hover:mx-0 group-hover:mt-0"
+        class="polaroid-top relative mx-2 mt-3 h-full flex-1 overflow-hidden rounded-[1px] transition-all duration-300 group-hover:mx-0 group-hover:mt-0"
       >
         <div
-          class="polaroid-photo relative w-full overflow-hidden"
-          :style="{ aspectRatio: String(1 / aspect) }"
+          class="polaroid-photo relative h-full w-full overflow-hidden"
         >
+          <!-- 加载失败态 -->
+          <template v-if="image.status === 'failed'">
+            <div
+              class="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-1 text-muted"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              <span class="text-muted font-family-dongfang text-[10px] italic tracking-wide opacity-80">加载失败</span>
+            </div>
+          </template>
+
+          <!-- 处理中态:柔色蒙层 + spinner -->
+          <template v-else-if="image.status === 'processing'">
+            <div
+              class="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-1 text-muted"
+            >
+              <div
+                class="border-accent/60 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+                aria-hidden="true"
+              ></div>
+              <span class="text-muted font-family-dongfang text-[10px] italic tracking-wide opacity-80">处理中</span>
+            </div>
+          </template>
+
+          <!-- 正常图片(优先缩略图,后端未回填时回退原图) -->
           <img
-            :src="image.url"
+            v-else
+            :src="photoSrc"
             :alt="image.description"
             class="pointer-events-none h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
             loading="lazy"
             draggable="false"
           />
 
-          <!-- Hover 胶片闪光点：克制的中央白点，不遮挡画面 -->
+          <!-- Hover 胶片闪光点:克制的中央白点,不遮挡画面 -->
           <div
-            v-if="!isEditMode"
+            v-if="showHoverOverlay"
             class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             aria-hidden="true"
           >
@@ -52,9 +78,9 @@
         </div>
       </div>
 
-      <!-- 底部宽白边：拍立得标志性"留白写字区" -->
+      <!-- 底部宽白边:拍立得标志性"留白写字区" -->
       <div
-        class="polaroid-bottom relative flex items-center justify-center"
+        class="polaroid-bottom relative flex shrink-0 items-center justify-center"
         :style="{ height: '52px', paddingBottom: '10px' }"
       >
         <span class="polaroid-date font-family-averia select-none">
@@ -62,7 +88,7 @@
         </span>
       </div>
 
-      <!-- 编辑模式：左上选中圈 -->
+      <!-- 编辑模式:左上选中圈 -->
       <button
         v-if="isEditMode"
         type="button"
@@ -79,7 +105,7 @@
         <Check v-if="selected" class="h-4 w-4" />
       </button>
 
-      <!-- 编辑模式：右上删除按钮 -->
+      <!-- 编辑模式:右上删除按钮 -->
       <button
         v-if="isEditMode"
         type="button"
@@ -109,7 +135,6 @@ import type { Picture } from '@/features/pic/composables';
 const props = defineProps<{
   image: Picture;
   index: number;
-  aspect: number;
   rotation: number;
   isEditMode?: boolean;
   selected?: boolean;
@@ -121,7 +146,7 @@ const emit = defineEmits<{
   delete: [id: string];
 }>();
 
-// 拍立得底部日期：若图片有 uploadedAt / createdAt / date 字段则显示，否则留空槽
+// 拍立得底部日期:若图片有 uploadedAt / createdAt / date 字段则显示,否则留空槽
 const dateLabel = computed(() => {
   const raw =
     (props.image as any).uploadedAt ??
@@ -136,25 +161,37 @@ const dateLabel = computed(() => {
   return `${y}.${m}`;
 });
 
-// 点击/选中区分：编辑模式下点击卡片切换选中，非编辑模式打开详情
+// 图片源:后端已回填 thumbnailUrl 时优先用,否则回退 url
+const photoSrc = computed(
+  () => props.image.thumbnailUrl ?? props.image.url,
+);
+
+// 处理中/失败态不显示 hover 放大镜
+const showHoverOverlay = computed(
+  () => !props.isEditMode && props.image.status !== 'processing' && props.image.status !== 'failed',
+);
+
+// 点击/选中区分:编辑模式下点击卡片切换选中,非编辑模式打开详情
 const downPos = ref({ x: 0, y: 0 });
 const onPointerDown = (e: PointerEvent) => {
   downPos.value = { x: e.clientX, y: e.clientY };
 };
 const onClick = (e: MouseEvent) => {
-  // 复用 pointerdown 记录起点，避免误触
+  // 复用 pointerdown 记录起点,避免误触
   void onPointerDown(e as unknown as PointerEvent);
   if (props.isEditMode) {
     emit('toggleSelect', props.image.id);
     return;
   }
+  // 处理中/失败态不打开详情
+  if (props.image.status === 'processing' || props.image.status === 'failed') return;
   emit('select', props.image, props.index);
 };
 </script>
 
 <style scoped>
 /* ============================================================
-   Polaroid — 跟随主题 token（拍立得瀑布流版）
+   Polaroid — 跟随主题 token(紧凑 grid 瀑布流版)
    白边 = var(--page)        阴影 = color-mix(--ink)
    ============================================================ */
 .polaroid {
@@ -196,7 +233,7 @@ const onClick = (e: MouseEvent) => {
   color: color-mix(in oklch, var(--ink) 55%, transparent);
 }
 
-/* 极轻的胶片颗粒感：白边微微泛黄/泛蓝，不影响图片本身 */
+/* 极轻的胶片颗粒感:白边微微泛黄/泛蓝,不影响图片本身 */
 .polaroid::before {
   content: '';
   position: absolute;

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+import re
 import uuid
 from pathlib import Path
 
@@ -107,13 +107,62 @@ def save_upload_image(upload_file: UploadFile, subdir: str) -> str:
     return f"{subdir}/{filename}"
 
 
-def get_image_path(url: str) -> Path:
-    """Get the full path of an image given its relative path under media root."""
-    import re
+# 完整 URL 中的媒体前缀(按出现顺序剥离):https://host/api/v1/media/xxx 或 https://host/v3/media/xxx
+_MEDIA_URL_PATTERN = re.compile(
+    r"^(?:https?://[^/]+)?/(?:api/v1/|v3/)?media/"
+)
 
+
+def resolve_media_path(url: str) -> Path:
+    """把照片墙图 url 归一化为媒体根下的绝对路径(唯一权威入口)。
+
+    兼容三种形态 + 防穿越:
+      - 完整 URL:https://api.kanocifer.chat/api/v1/media/gallery/1/x.jpg
+      - 相对前缀:  /v3/media/gallery/1/x.jpg
+      - 纯相对:    gallery/1/x.jpg
+    剥离已知前缀与 query/fragment 后 resolve(),并校验结果落在媒体根内,
+    超界(路径穿越)抛 ValueError。
+    """
     media_root: Path = _get_media_root()
-    pattern = re.compile(r"^https?://.*?/media/")
-    # 替换https://api.kanocifer.chat/api/v1/media/xxx
-    relative_path = re.sub(pattern, "", url)
+    # 去 query / fragment,只留 path
+    clean = url.split("?", 1)[0].split("#", 1)[0]
+    relative_path = _MEDIA_URL_PATTERN.sub("", clean).lstrip("/")
 
-    return media_root / relative_path
+    resolved = (media_root / relative_path).resolve()
+    if not resolved.is_relative_to(media_root.resolve()):
+        raise ValueError(f"media path escapes media root: {url!r}")
+    return resolved
+
+
+def get_image_path(url: str) -> Path:
+    """兼容旧调用:委托统一解析器。"""
+    return resolve_media_path(url)
+
+
+def media_url(rel: str) -> str:
+    """相对媒体根路径 → 公开 URL(/media/...)。rel 传相对路径(如 gallery/1/x.jpg)。"""
+    return f"/media/{rel.lstrip('/')}"
+
+
+def get_media_abs_path(rel: str) -> Path:
+    """相对媒体根路径 → 媒体根下的绝对路径。仅接受不含 .. 的规范相对路径。"""
+    media_root: Path = _get_media_root()
+    rel_clean = rel.lstrip("/")
+    resolved = (media_root / rel_clean).resolve()
+    if not resolved.is_relative_to(media_root.resolve()):
+        raise ValueError(f"media path escapes media root: {rel!r}")
+    return resolved
+
+
+def image_mime_for_ext(suffix: str) -> str:
+    """文件后缀 → MIME 类型(供 mime_type 回填)。未知后缀返回 application/octet-stream。"""
+    ext = suffix.lower().lstrip(".")
+    return {
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "gif": "image/gif",
+        "webp": "image/webp",
+        "heif": "image/heif",
+        "heic": "image/heic",
+    }.get(ext, "application/octet-stream")

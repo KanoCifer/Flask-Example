@@ -178,6 +178,7 @@ const onConfirm = async () => {
     const image: Picture = {
       id: newPictureId(),
       uploadedAt: dayjs().toISOString(),
+      rawUrl: url,
       url: rewriteMediaUrl(url),
       description: uploadDescription.value || '',
     };
