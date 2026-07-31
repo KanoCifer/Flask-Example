@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import faker
 from fastapi import Request
 from sqlalchemy import (
     Boolean,
@@ -20,9 +19,6 @@ from werkzeug.security import check_password_hash
 
 from app.models import Base
 
-# 用于生成随机数据的 Faker 实例
-fake = faker.Faker()
-
 
 # 用户模型
 class User(Base):
@@ -33,9 +29,7 @@ class User(Base):
     github_id: Mapped[int | None] = mapped_column(
         Integer, unique=True, nullable=True
     )
-    name: Mapped[str] = mapped_column(
-        String(50), default=fake.name, index=True
-    )
+    name: Mapped[str] = mapped_column(String(50), index=True)
     username: Mapped[str] = mapped_column(String(50), unique=True)
     password_hash: Mapped[str] = mapped_column(String(200))
 
@@ -59,45 +53,26 @@ class User(Base):
     profile: Mapped[Profile | None] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
-    # 一对多关系与RSS链接
-    rss_info: Mapped[list[RssInfo]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
+    # 一对多关系与订阅（sub_repo selectinload 使用）
     subscriptions: Mapped[list[Subscription]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
-
     # 一对一关系与PasskeyCredential
     passkey_credential: Mapped[PasskeyCredential | None] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
-    # 一对多关系与画廊图片
-    gallery_images: Mapped[list[GalleryImage]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
-
     def __init__(self, *args, **kwargs):
-        """允许在初始化时直接传入 password 参数并自动生成哈希值"""
+        """允许在初始化时直接传入 password 参数并自动生成哈希值.
+
+        name 未显式提供时回落为 username（name 列 NOT NULL）。
+        """
         password = kwargs.pop("password", None)
+        if "name" not in kwargs:
+            kwargs["name"] = kwargs.get("username", "")
         super().__init__(*args, **kwargs)
         if password:
-            self.raw_password = password  # 通过 setter 自动生成哈希值
-
-    def __repr__(self):
-        return f"<User {self.username}>"
-
-    def __hash__(self) -> int:
-        # SQLAlchemy 默认按对象身份 hash，导致同 id 的不同实例 hash 不同
-        # 缓存 key（如 @redis_cache）需要按业务主键 id 去重
-        return hash(self.id) if self.id is not None else id(self)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, User):
-            return NotImplemented
-        if self.id is None or other.id is None:
-            return self is other
-        return self.id == other.id
+            self.set_password(password)  # 自动生成 bcrypt 哈希
 
     # 获取用户的真实 IP 地址，考虑了代理服务器的情况
     @staticmethod
@@ -157,13 +132,7 @@ class User(Base):
 
         return self.id in settings.ADMIN_USER_IDS
 
-    @property
-    def raw_password(self):
-        """返回密码哈希值以供验证使用"""
-        return self.password_hash
-
-    @raw_password.setter
-    def raw_password(self, raw_password):
+    def set_password(self, raw_password: str) -> None:
         """设置密码时使用 bcrypt 哈希(与 Go 端对齐)."""
         import bcrypt
 
@@ -200,13 +169,6 @@ class Profile(Base):
         String(500), nullable=True
     )
 
-    # 初始化方法
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def __repr__(self):
-        return f"<Profile {self.id} - User ID: {self.user_id}>"
-
 
 class RssInfo(Base):
     __tablename__ = "rss_info"
@@ -237,7 +199,6 @@ class RssInfo(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("user.id"), index=True
     )
-    user: Mapped[User] = relationship(back_populates="rss_info")
 
 
 class PasskeyCredential(Base):
@@ -406,5 +367,3 @@ class GalleryImage(Base):
     user_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("user.id"), nullable=True, index=True
     )
-
-    user: Mapped[User | None] = relationship(back_populates="gallery_images")

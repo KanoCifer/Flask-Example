@@ -157,7 +157,7 @@ class UserMixin:
             github_id=github_id,
             name=name or username,
         )
-        user.raw_password = password
+        user.set_password(password)
         session.add(user)
         await session.flush()
         return user
