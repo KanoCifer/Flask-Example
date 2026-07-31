@@ -131,10 +131,10 @@
 import { Check, Maximize2, Trash2 } from '@lucide/vue';
 import { motion } from 'motion-v';
 import { computed, ref } from 'vue';
-import type { Picture } from '@/features/pic/composables';
+import type { GalleryImage } from '@readinglist/api';
 
 const props = defineProps<{
-  image: Picture;
+  image: GalleryImage;
   index: number;
   aspect: number; // 后端真实 aspectRatio (w/h),驱动图片区高度
   rotation: number;
@@ -143,7 +143,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  select: [image: Picture, index: number];
+  select: [image: GalleryImage, index: number];
   toggleSelect: [id: string];
   delete: [id: string];
 }>();

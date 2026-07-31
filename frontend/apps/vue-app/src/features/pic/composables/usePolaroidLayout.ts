@@ -1,9 +1,9 @@
 import { useNotificationStore } from '@/stores';
 import { ref, type Ref } from 'vue';
-import type { Picture } from '.';
+import type { GalleryImage } from '@readinglist/api';
 
 interface UsePolaroidLayoutOptions {
-  images: Ref<Picture[]>;
+  images: Ref<GalleryImage[]>;
 }
 
 /**
@@ -35,7 +35,7 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
    * 列宽固定 220px → 图片自然高度 = 220 / aspectRatio
    * 卡片高度 = 图片高度 + 拍立得顶部白边 + 底部白边
    */
-  const getAspectRatio = (img: Picture | undefined): number => {
+  const getAspectRatio = (img: GalleryImage | undefined): number => {
     const ar =
       (img?.aspectRatio && img.aspectRatio > 0 ? img.aspectRatio : null) ??
       (img?.width && img.height && img.height > 0
@@ -44,7 +44,7 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
     return ar; // w/h,直接用于 CSS aspect-ratio
   };
 
-  const computeRowSpan = (img: Picture | undefined): number => {
+  const computeRowSpan = (img: GalleryImage | undefined): number => {
     const ar = getAspectRatio(img);
     const CARD_WIDTH = 220;
     const imageHeight = CARD_WIDTH / ar; // 后端 aspect = w/h, 横向 ar 大 → 图片矮

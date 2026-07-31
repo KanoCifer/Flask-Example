@@ -124,8 +124,8 @@ import { Button } from '@/components';
 import {
   useGallery,
   usePolaroidLayout,
-  type Picture,
 } from '@/features/pic/composables';
+import type { GalleryImage } from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores';
 import { motion } from 'motion-v';
@@ -208,10 +208,10 @@ watch(canEdit, (value) => {
 });
 
 // --- detail modal ---
-const selectedImage = ref<Picture | null>(null);
+const selectedImage = ref<GalleryImage | null>(null);
 const selectedIndex = ref(-1);
 
-const openImageDetail = (image: Picture, index: number) => {
+const openImageDetail = (image: GalleryImage, index: number) => {
   if (isEditMode.value) return; // 编辑模式下不进详情
   selectedImage.value = image;
   selectedIndex.value = index;
@@ -246,7 +246,7 @@ const onDeleteImage = async (id: string) => {
   }
 };
 
-const onImageUploaded = async (image: Picture) => {
+const onImageUploaded = async (image: GalleryImage) => {
   images.value.push(image);
   await saveGallery();
   generateLayoutSeeds();

@@ -127,7 +127,8 @@ import { Loader2, UploadCloud, X } from '@lucide/vue';
 import { motion } from 'motion-v';
 import { useUpload } from '@/features/upload/composables';
 import { UploadDropzone, UploadProgress } from '@/features/upload/components';
-import { newPictureId, type Picture } from '@/features/pic/composables';
+import { newPictureId } from '@/features/pic/composables';
+import type { GalleryImage } from '@readinglist/api';
 import { rewriteMediaUrl } from '@/composables';
 import { PIC_MAX_IMAGE_BYTES, PIC_ACCEPTED_MIME } from '@readinglist/api';
 import dayjs from 'dayjs';
@@ -140,7 +141,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
-  uploaded: [image: Picture];
+  uploaded: [image: GalleryImage];
 }>();
 
 // 统一上传 composable —— 校验 + 上传 + 进度，返回服务端 URL。
@@ -191,7 +192,7 @@ const onConfirm = async () => {
     const url = await upload(selectedFile.value);
     useNotificationStore().success('图片上传成功');
 
-    const image: Picture = {
+    const image: GalleryImage = {
       id: newPictureId(),
       uploadedAt: dayjs().toISOString(),
       rawUrl: url,

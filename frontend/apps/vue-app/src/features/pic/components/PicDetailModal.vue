@@ -225,10 +225,10 @@
 <script setup lang="ts">
 import { motion } from 'motion-v';
 import { computed, nextTick, ref, watch } from 'vue';
-import type { ExifInfo, Picture } from '@/features/pic/composables';
+import type { ExifInfo, GalleryImage } from '@readinglist/api';
 
 const props = defineProps<{
-  image: Picture | null;
+  image: GalleryImage | null;
   editable: boolean;
   formattedDate: string;
   frameNo?: number;
