@@ -92,14 +92,14 @@
 
     <PicDetailModal
       :image="selectedImage"
-      :editable="canEdit && isEditMode"
+      :editable="canEdit"
       :formatted-date="
         selectedImage ? formatDate(selectedImage.uploadedAt) : ''
       "
       :frame-no="selectedIndex + 1"
       :exif="selectedImage?.exif ?? undefined"
       @close="closeImageDetail"
-      @update="onUpdateDescription"
+      @update="onUpdateImage"
       @delete="onDeleteImage"
       @prev="navigateImage(-1)"
       @next="navigateImage(1)"
@@ -123,7 +123,7 @@ import {
   useGallery,
   usePolaroidLayout,
 } from '@/features/pic/composables';
-import type { GalleryImage } from '@readinglist/api';
+import type { GalleryImage, UpdateImagePayload } from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores';
 import { motion } from 'motion-v';
@@ -137,7 +137,7 @@ const {
   images,
   fetchGalleryImages,
   saveGallery,
-  updateDescription,
+  updateImage,
   deleteImage,
   formatDate,
 } = useGallery();
@@ -228,9 +228,9 @@ const navigateImage = (delta: number) => {
   selectedImage.value = images.value[next];
 };
 
-const onUpdateDescription = async (id: string, description: string) => {
+const onUpdateImage = async (id: string, partial: UpdateImagePayload) => {
   if (!ensureAdminPermission()) return;
-  await updateDescription(id, description);
+  await updateImage(id, partial);
 };
 
 const onDeleteImage = async (id: string) => {

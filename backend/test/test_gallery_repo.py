@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 import pytest_asyncio
 
@@ -97,3 +99,111 @@ async def test_list_all_with_user_id(gallery_repo, user, db_session):
     result = await gallery_repo.list_all(db_session)
     assert len(result) == 1
     assert result[0].user_id == user.id
+
+
+# ── update_image ───────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_update_image_returns_none_when_missing(gallery_repo, db_session):
+    result = await gallery_repo.update_image(
+        db_session,
+        image_id=999999,
+        description="new desc",
+        uploaded_at=None,
+        exif=None,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_update_image_only_description(gallery_repo, db_session):
+    await gallery_repo.save_images(
+        db_session,
+        [
+            _make_image(
+                url="https://a.com/1.jpg",
+                description="old desc",
+                exif={"camera": "Sony"},
+            )
+        ],
+    )
+    existing = (await gallery_repo.list_all(db_session))[0]
+    original_uploaded_at = existing.uploaded_at
+
+    result = await gallery_repo.update_image(
+        db_session,
+        image_id=existing.id,
+        description="new desc",
+        uploaded_at=None,
+        exif=None,
+    )
+
+    assert result is not None
+    assert result.description == "new desc"
+    # 未传字段保持原值
+    assert result.exif == {"camera": "Sony"}
+    assert result.uploaded_at == original_uploaded_at
+
+
+@pytest.mark.asyncio
+async def test_update_image_only_exif(gallery_repo, db_session):
+    await gallery_repo.save_images(
+        db_session,
+        [_make_image(url="https://a.com/1.jpg", description="keep me")],
+    )
+    existing = (await gallery_repo.list_all(db_session))[0]
+
+    result = await gallery_repo.update_image(
+        db_session,
+        image_id=existing.id,
+        description=None,
+        uploaded_at=None,
+        exif={"camera": "Canon", "gps": "31.2,121.4"},
+    )
+
+    assert result is not None
+    assert result.exif == {"camera": "Canon", "gps": "31.2,121.4"}
+    assert result.description == "keep me"
+
+
+@pytest.mark.asyncio
+async def test_update_image_all_fields(gallery_repo, db_session):
+    await gallery_repo.save_images(
+        db_session, [_make_image(url="https://a.com/1.jpg", description="old")]
+    )
+    existing = (await gallery_repo.list_all(db_session))[0]
+    new_uploaded_at = datetime(2024, 6, 1, 12, 30, 0, tzinfo=UTC)
+
+    result = await gallery_repo.update_image(
+        db_session,
+        image_id=existing.id,
+        description="all new",
+        uploaded_at=new_uploaded_at,
+        exif={"iso": "100"},
+    )
+
+    assert result is not None
+    assert result.description == "all new"
+    assert result.uploaded_at == new_uploaded_at
+    assert result.exif == {"iso": "100"}
+
+
+@pytest.mark.asyncio
+async def test_update_image_clear_exif_with_empty_dict(gallery_repo, db_session):
+    await gallery_repo.save_images(
+        db_session,
+        [_make_image(url="https://a.com/1.jpg", exif={"camera": "Nikon"})],
+    )
+    existing = (await gallery_repo.list_all(db_session))[0]
+
+    result = await gallery_repo.update_image(
+        db_session,
+        image_id=existing.id,
+        description=None,
+        uploaded_at=None,
+        exif={},
+    )
+
+    assert result is not None
+    assert result.exif == {}

@@ -1,4 +1,9 @@
-import { galleryGateway, type GalleryImage } from '@readinglist/api';
+import {
+  galleryGateway,
+  type ExifInfo,
+  type GalleryImage,
+  type UpdateImagePayload,
+} from '@readinglist/api';
 import { useNotificationStore } from '@/stores';
 import { rewriteMediaUrl } from '@/composables';
 import dayjs from 'dayjs';
@@ -42,13 +47,26 @@ export const useGallery = () => {
     }
   };
 
-  // Update description for a picture by id
-  const updateDescription = async (id: string, description: string) => {
+  // PATCH 单图元数据（description / uploadedAt / exif）—— 乐观更新 + 失败回滚
+  const updateImage = async (id: string, partial: UpdateImagePayload) => {
     const index = images.value.findIndex((img) => img.id === id);
-    if (index !== -1) {
-      images.value[index].description = description;
-      await saveGallery();
-      useNotificationStore().success('描述已更新');
+    if (index === -1) return;
+    const target = images.value[index];
+    const prev = { ...target };
+    // 就地合并，保持响应性（PicDetailModal 的 selectedImage 指向同一对象）
+    if (partial.description !== undefined) target.description = partial.description;
+    if (partial.uploadedAt !== undefined) {
+      target.uploadedAt = partial.uploadedAt ?? undefined;
+    }
+    if (partial.exif !== undefined) {
+      target.exif = partial.exif as unknown as ExifInfo;
+    }
+    try {
+      await galleryGateway.updateImage(id, partial);
+      useNotificationStore().success('图片信息已更新');
+    } catch {
+      Object.assign(target, prev); // 回滚
+      useNotificationStore().error('图片信息更新失败');
     }
   };
 
@@ -74,7 +92,7 @@ export const useGallery = () => {
     images,
     fetchGalleryImages,
     saveGallery,
-    updateDescription,
+    updateImage,
     deleteImage,
     formatDate,
   };

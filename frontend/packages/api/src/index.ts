@@ -55,6 +55,7 @@ export type {
   GalleryImage,
   ExifInfo,
   SaveGalleryPayload,
+  UpdateImagePayload,
 } from './gateways/pic';
 
 // ── fishing / weather / map ─────────────────────────────────────────────

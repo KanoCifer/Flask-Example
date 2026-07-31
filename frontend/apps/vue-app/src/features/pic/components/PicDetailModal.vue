@@ -107,116 +107,224 @@
         />
       </div>
 
-      <!-- ──── Bottom info strip: EXIF + caption, single horizontal band ──── -->
+      <!-- ──── Bottom info strip: EXIF + caption + edit form ──── -->
       <footer
         class="relative z-10 mx-auto w-full max-w-6xl px-6 pt-3 pb-6 text-white/90"
       >
-        <!-- EXIF strip — one line, monospaced, only filled fields -->
+        <!-- ── 编辑态：描述 + 上传时间 + EXIF 全量表单 ── -->
         <div
-          v-if="hasExif"
-          class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tracking-[0.14em] text-white/55 uppercase tabular-nums"
-          style="font-family: var(--font-mono)"
-          aria-label="拍摄参数"
+          v-if="editable && isEditing"
+          class="max-h-[46vh] space-y-5 overflow-y-auto rounded-2xl border border-white/10 bg-white/5 p-5"
+          role="group"
+          aria-label="编辑图片信息"
         >
-          <template v-for="(item, i) in exifItems" :key="item.label">
-            <span v-if="i > 0" class="text-white/20" aria-hidden="true">·</span>
-            <span class="flex items-center gap-1.5">
-              <span class="text-white/40">{{ item.label }}</span>
-              <span class="text-white/80">{{ item.value }}</span>
-            </span>
-          </template>
-        </div>
-
-        <!-- Caption -->
-        <div class="flex items-end justify-between gap-6">
-          <div class="min-w-0 flex-1">
-            <h2
-              v-if="titleLine"
-              id="pdm-title"
-              class="mb-1 text-[13px] tracking-[0.04em] text-white/85 tabular-nums"
-              style="font-family: var(--font-mono)"
-            >
-              {{ titleLine }}
-            </h2>
-            <textarea
-              v-if="editable && isEditing"
-              ref="captionEditEl"
-              v-model="localDescription"
-              rows="3"
-              aria-label="编辑拍摄笔记"
-              class="w-full resize-none border-b border-white/15 bg-transparent pb-1 text-[14px] leading-[1.6] text-white placeholder:text-white/35 focus:border-white/40 focus:outline-none"
-              placeholder="写下这一刻..."
-              @keydown.esc="toggleEdit"
-            ></textarea>
-            <p
-              v-else-if="!isEmpty"
-              class="line-clamp-2 text-[14px] leading-[1.6] whitespace-pre-wrap text-white/80"
-            >
-              {{ image.description }}
-            </p>
-            <p v-else-if="!editable" class="text-[14px] text-white/35 italic">
-              这一刻还没留下文字
-            </p>
+          <div class="flex items-start justify-between gap-6">
+            <div class="min-w-0 flex-1">
+              <label
+                class="mb-1.5 block text-[11px] tracking-[0.14em] text-white/45 uppercase"
+                style="font-family: var(--font-mono)"
+              >
+                拍摄笔记
+              </label>
+              <textarea
+                ref="captionEditEl"
+                v-model="localDescription"
+                rows="2"
+                aria-label="编辑拍摄笔记"
+                class="w-full resize-none border-b border-white/15 bg-transparent pb-1 text-[14px] leading-[1.6] text-white placeholder:text-white/35 focus:border-white/40 focus:outline-none"
+                placeholder="写下这一刻..."
+                @keydown.esc="toggleEdit"
+              ></textarea>
+            </div>
+            <div class="flex shrink-0 items-center gap-2 pt-6">
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-medium text-black transition-colors hover:bg-white/90"
+                aria-label="保存对图片信息的修改"
+                @click="onSave"
+              >
+                保存
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1.5 rounded-full px-2 text-[12px] text-white/50 transition-colors hover:text-white"
+                aria-label="删除此图片"
+                @click="$emit('delete', image.id)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <!-- Action cluster: copy / edit / save / delete -->
-          <div class="flex shrink-0 items-center gap-2">
-            <button
-              v-if="editable && !isEditing"
-              type="button"
-              class="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/15 px-3 text-[12px] text-white/60 transition-colors hover:border-white/40 hover:text-white"
-              aria-label="编辑描述"
-              @click="toggleEdit"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="h-3.5 w-3.5"
-                aria-hidden="true"
+          <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <div>
+              <label
+                class="mb-1.5 block text-[11px] tracking-[0.14em] text-white/45 uppercase"
+                style="font-family: var(--font-mono)"
               >
-                <path
-                  d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z"
+                上传时间
+              </label>
+              <input
+                v-model="localUploadedAt"
+                type="datetime-local"
+                aria-label="上传时间"
+                class="w-full rounded-lg border border-white/15 bg-transparent px-3 py-1.5 text-[13px] text-white focus:border-white/40 focus:outline-none"
+              />
+            </div>
+            <template v-for="field in exifEditFields" :key="field.key">
+              <div>
+                <label
+                  class="mb-1.5 block text-[11px] tracking-[0.14em] text-white/45 uppercase"
+                  style="font-family: var(--font-mono)"
+                >
+                  {{ field.label }}
+                </label>
+                <input
+                  v-model="localExif[field.key]"
+                  type="text"
+                  :aria-label="field.label"
+                  class="w-full rounded-lg border border-white/15 bg-transparent px-3 py-1.5 text-[13px] text-white focus:border-white/40 focus:outline-none"
                 />
-              </svg>
-              编辑
-            </button>
-            <button
-              v-if="editable && isEditing"
-              type="button"
-              class="inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-medium text-black transition-colors hover:bg-white/90"
-              aria-label="保存对描述的修改"
-              @click="onSave"
-            >
-              保存
-            </button>
-            <button
-              v-if="editable"
-              type="button"
-              class="inline-flex h-8 items-center gap-1.5 rounded-full px-2 text-[12px] text-white/50 transition-colors hover:text-white"
-              aria-label="删除此图片"
-              @click="$emit('delete', image.id)"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="h-3.5 w-3.5"
-                aria-hidden="true"
+              </div>
+            </template>
+            <div>
+              <label
+                class="mb-1.5 block text-[11px] tracking-[0.14em] text-white/45 uppercase"
+                style="font-family: var(--font-mono)"
               >
-                <path
-                  d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"
-                />
-              </svg>
-            </button>
+                纬度 (GPS)
+              </label>
+              <input
+                v-model="localGpsLat"
+                type="number"
+                step="any"
+                aria-label="纬度"
+                placeholder="31.23"
+                class="w-full rounded-lg border border-white/15 bg-transparent px-3 py-1.5 text-[13px] text-white placeholder:text-white/30 focus:border-white/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label
+                class="mb-1.5 block text-[11px] tracking-[0.14em] text-white/45 uppercase"
+                style="font-family: var(--font-mono)"
+              >
+                经度 (GPS)
+              </label>
+              <input
+                v-model="localGpsLng"
+                type="number"
+                step="any"
+                aria-label="经度"
+                placeholder="121.47"
+                class="w-full rounded-lg border border-white/15 bg-transparent px-3 py-1.5 text-[13px] text-white placeholder:text-white/30 focus:border-white/40 focus:outline-none"
+              />
+            </div>
           </div>
         </div>
+
+        <!-- ── 非编辑态：只读展示 ── -->
+        <template v-else>
+          <!-- EXIF strip — one line, monospaced, only filled fields -->
+          <div
+            v-if="hasExif"
+            class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tracking-[0.14em] text-white/55 uppercase tabular-nums"
+            style="font-family: var(--font-mono)"
+            aria-label="拍摄参数"
+          >
+            <template v-for="(item, i) in exifItems" :key="item.label">
+              <span v-if="i > 0" class="text-white/20" aria-hidden="true">·</span>
+              <span class="flex items-center gap-1.5">
+                <span class="text-white/40">{{ item.label }}</span>
+                <span class="text-white/80">{{ item.value }}</span>
+              </span>
+            </template>
+          </div>
+
+          <!-- Caption -->
+          <div class="flex items-end justify-between gap-6">
+            <div class="min-w-0 flex-1">
+              <h2
+                v-if="titleLine"
+                id="pdm-title"
+                class="mb-1 text-[13px] tracking-[0.04em] text-white/85 tabular-nums"
+                style="font-family: var(--font-mono)"
+              >
+                {{ titleLine }}
+              </h2>
+              <p
+                v-if="!isEmpty"
+                class="line-clamp-2 text-[14px] leading-[1.6] whitespace-pre-wrap text-white/80"
+              >
+                {{ image.description }}
+              </p>
+              <p v-else-if="!editable" class="text-[14px] text-white/35 italic">
+                这一刻还没留下文字
+              </p>
+            </div>
+
+            <!-- Action cluster: edit / delete -->
+            <div class="flex shrink-0 items-center gap-2">
+              <button
+                v-if="editable"
+                type="button"
+                class="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/15 px-3 text-[12px] text-white/60 transition-colors hover:border-white/40 hover:text-white"
+                aria-label="编辑图片信息"
+                @click="toggleEdit"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z"
+                  />
+                </svg>
+                编辑
+              </button>
+              <button
+                v-if="editable"
+                type="button"
+                class="inline-flex h-8 items-center gap-1.5 rounded-full px-2 text-[12px] text-white/50 transition-colors hover:text-white"
+                aria-label="删除此图片"
+                @click="$emit('delete', image.id)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </template>
       </footer>
     </div>
   </Teleport>
@@ -224,8 +332,9 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v';
+import dayjs from 'dayjs';
 import { computed, nextTick, ref, watch } from 'vue';
-import type { ExifInfo, GalleryImage } from '@readinglist/api';
+import type { ExifInfo, GalleryImage, UpdateImagePayload } from '@readinglist/api';
 
 const props = defineProps<{
   image: GalleryImage | null;
@@ -237,7 +346,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
-  update: [id: string, description: string];
+  update: [id: string, partial: UpdateImagePayload];
   delete: [id: string];
   prev: [];
   next: [];
@@ -246,17 +355,63 @@ const emit = defineEmits<{
 const localDescription = ref('');
 const isEditing = ref(false);
 const captionEditEl = ref<HTMLTextAreaElement | null>(null);
+const localUploadedAt = ref('');
+const localExif = ref<Record<string, string>>({});
+const localGpsLat = ref('');
+const localGpsLng = ref('');
 
 const totalFrames = 36;
 
-watch(
-  () => props.image,
-  (img) => {
-    localDescription.value = img?.description ?? '';
-    isEditing.value = false;
-  },
-  { immediate: true },
+// 可编辑 EXIF 键 —— 仅渲染当前 exif 中已有的键（缺则不渲染对应输入）
+const EXIF_EDIT_KEYS = [
+  { key: 'camera', label: '相机' },
+  { key: 'lens', label: '镜头' },
+  { key: 'focalLength', label: '焦距 (mm)' },
+  { key: 'focalLength35', label: '等效焦距 (mm)' },
+  { key: 'aperture', label: '光圈' },
+  { key: 'exposure', label: '快门' },
+  { key: 'iso', label: 'ISO' },
+  { key: 'takenAt', label: '拍摄时间' },
+] as const;
+
+const exifEditFields = computed(() =>
+  EXIF_EDIT_KEYS.filter((f) => localExif.value[f.key] !== undefined),
 );
+
+// ISO 字符串 → datetime-local 值（YYYY-MM-DDTHH:mm）
+const toDatetimeLocal = (iso?: string) => {
+  if (!iso) return '';
+  const d = dayjs(iso);
+  return d.isValid() ? d.format('YYYY-MM-DDTHH:mm') : '';
+};
+
+const initForm = (img: GalleryImage | null) => {
+  localDescription.value = img?.description ?? '';
+  localUploadedAt.value = toDatetimeLocal(img?.uploadedAt);
+  const src = (img?.exif ?? {}) as Record<string, unknown>;
+  const next: Record<string, string> = {};
+  for (const [k, v] of Object.entries(src)) {
+    if (k === 'gps' || v == null) continue;
+    next[k] = String(v);
+  }
+  localExif.value = next;
+  const gps = (src as { gps?: unknown }).gps;
+  if (typeof gps === 'string') {
+    const [lat, lng] = gps.split(',');
+    localGpsLat.value = lat ?? '';
+    localGpsLng.value = lng ?? '';
+  } else if (gps && typeof gps === 'object') {
+    const g = gps as { lat?: unknown; lng?: unknown };
+    localGpsLat.value = g.lat != null ? String(g.lat) : '';
+    localGpsLng.value = g.lng != null ? String(g.lng) : '';
+  } else {
+    localGpsLat.value = '';
+    localGpsLng.value = '';
+  }
+  isEditing.value = false;
+};
+
+watch(() => props.image, initForm, { immediate: true });
 
 const isEmpty = computed(() => !props.image?.description?.trim());
 const ex = computed<ExifInfo>(() => props.exif ?? {});
@@ -336,11 +491,24 @@ async function toggleEdit() {
 }
 
 function onSave() {
-  if (!props.image) return;
-  if (props.editable && isEditing.value) {
-    emit('update', props.image.id, localDescription.value);
-    isEditing.value = false;
+  if (!props.image || !props.editable || !isEditing.value) return;
+  const exif: Record<string, string> = { ...localExif.value };
+  // 去掉被清空的字段，避免把空字符串写库
+  for (const k of Object.keys(exif)) {
+    if (exif[k] === '') delete exif[k];
   }
+  if (localGpsLat.value !== '' && localGpsLng.value !== '') {
+    exif.gps = `${localGpsLat.value},${localGpsLng.value}`;
+  }
+  const uploadedAt = localUploadedAt.value
+    ? new Date(localUploadedAt.value).toISOString()
+    : null;
+  emit('update', props.image.id, {
+    description: localDescription.value,
+    uploadedAt,
+    exif: Object.keys(exif).length > 0 ? exif : null,
+  });
+  isEditing.value = false;
 }
 </script>
 

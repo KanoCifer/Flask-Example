@@ -46,6 +46,15 @@ export interface SaveGalleryPayload {
   }>;
 }
 
+/** 管理员编辑单图元数据的 partial payload（PATCH 语义：缺省字段不动）。 */
+export interface UpdateImagePayload {
+  description?: string;
+  /** ISO 字符串；`null` 表示不动该字段。 */
+  uploadedAt?: string | null;
+  /** `null` 不动；空对象 `{}` 表示清空 EXIF。 */
+  exif?: Record<string, string> | null;
+}
+
 // ── 前端上传常量 —— 与后端 media.py MAX_IMAGE_BYTES / ALLOWED_IMAGE_TYPES 对齐 ──
 
 export const PIC_MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB, with backend MAX_IMAGE_BYTES
@@ -64,6 +73,7 @@ export interface GalleryGateway {
   getGallery(): Promise<GalleryData>;
   uploadGalleryImage(formData: FormData): Promise<string>;
   saveGallery(payload: SaveGalleryPayload): Promise<void>;
+  updateImage(id: string, payload: UpdateImagePayload): Promise<GalleryImage>;
 }
 
 export const galleryGateway: GalleryGateway = {
@@ -88,5 +98,14 @@ export const galleryGateway: GalleryGateway = {
 
   async saveGallery(payload: SaveGalleryPayload): Promise<void> {
     await apiClient.post('v2/publicv2/pic-gallery', payload);
+  },
+
+  async updateImage(id: string, payload: UpdateImagePayload): Promise<GalleryImage> {
+    const res = await apiClient.patch(`v2/publicv2/pic-gallery/${id}`, payload);
+    const data = extractData(res) as GalleryImage | undefined;
+    if (!data) {
+      throw new Error('更新图片失败：服务端未返回图片数据');
+    }
+    return data;
   },
 };

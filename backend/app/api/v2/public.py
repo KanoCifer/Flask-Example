@@ -24,7 +24,7 @@ from app.core.logger import logger
 from app.core.response import APIResponse
 from app.models.models import User
 from app.plugins.cache import redis_cache
-from app.schemas.gallery import GalleryInput
+from app.schemas.gallery import GalleryInput, UpdateImagePayload
 
 router = APIRouter(prefix="/publicv2", tags=["publicv2"])
 
@@ -145,3 +145,24 @@ async def get_pic_gallery(
             message="Failed to retrieve picture gallery",
             code=500,
         ) from exc
+
+
+@router.patch("/pic-gallery/{image_id}")
+async def update_pic_gallery_image(
+    image_id: int,
+    payload: UpdateImagePayload = Body(...),
+    _: User = Depends(get_admin_user),
+    state: AppState = Depends(get_app_state),
+    session: AsyncSession = Depends(get_session),
+) -> APIResponse:
+    """管理员编辑单图元数据（description / uploadedAt / exif），PATCH 局部更新。
+
+    不重跑 ``process_image``、不触发派生图重生成；写后仅失效 ``get_pic_gallery`` 缓存。
+    """
+    data = await state.gallery_svc.update_image(
+        session, image_id=image_id, payload=payload
+    )
+    if data is None:
+        raise APIError(message="Image not found", code=404)
+    await _safe_invalidate("get_pic_gallery")
+    return APIResponse(data=data, message="Picture image updated successfully")

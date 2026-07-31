@@ -1,9 +1,14 @@
 import {
   galleryService,
   type Picture,
+  type UpdateImagePayload,
 } from '@/features/pic/api/galleryService';
 import { rewriteMediaUrl } from '@readinglist/utils';
-import { PIC_MAX_IMAGE_BYTES, PIC_ACCEPTED_MIME } from '@readinglist/api';
+import {
+  PIC_MAX_IMAGE_BYTES,
+  PIC_ACCEPTED_MIME,
+  type ExifInfo,
+} from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores/notificationState';
 import dayjs from 'dayjs';
@@ -36,6 +41,25 @@ function createPictureId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
+// 可编辑 EXIF 键 —— 仅渲染当前 exif 中已有的键（缺则不渲染对应输入）
+const EXIF_EDIT_KEYS = [
+  { key: 'camera', label: '相机' },
+  { key: 'lens', label: '镜头' },
+  { key: 'focalLength', label: '焦距 (mm)' },
+  { key: 'focalLength35', label: '等效焦距 (mm)' },
+  { key: 'aperture', label: '光圈' },
+  { key: 'exposure', label: '快门' },
+  { key: 'iso', label: 'ISO' },
+  { key: 'takenAt', label: '拍摄时间' },
+];
+
+// ISO 字符串 → datetime-local 值（YYYY-MM-DDTHH:mm）
+function toDatetimeLocal(iso?: string): string {
+  if (!iso) return '';
+  const d = dayjs(iso);
+  return d.isValid() ? d.format('YYYY-MM-DDTHH:mm') : '';
+}
+
 export default function PicGalleryView() {
   const auth = useAuthStore();
   const notifier = useNotificationStore();
@@ -46,6 +70,10 @@ export default function PicGalleryView() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
+  const [editUploadedAt, setEditUploadedAt] = useState('');
+  const [editExif, setEditExif] = useState<Record<string, string>>({});
+  const [editGpsLat, setEditGpsLat] = useState('');
+  const [editGpsLng, setEditGpsLng] = useState('');
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,12 +175,41 @@ export default function PicGalleryView() {
   const openImageDetail = (image: Picture) => {
     setSelectedImageId(image.id);
     setEditDescription(image.description);
+    setEditUploadedAt(toDatetimeLocal(image.uploadedAt));
+    const src = (image.exif ?? {}) as Record<string, unknown>;
+    const next: Record<string, string> = {};
+    for (const [k, v] of Object.entries(src)) {
+      if (k === 'gps' || v == null) continue;
+      next[k] = String(v);
+    }
+    setEditExif(next);
+    const gps = (src as { gps?: unknown }).gps;
+    if (typeof gps === 'string') {
+      const [lat, lng] = gps.split(',');
+      setEditGpsLat(lat ?? '');
+      setEditGpsLng(lng ?? '');
+    } else if (gps && typeof gps === 'object') {
+      const g = gps as { lat?: unknown; lng?: unknown };
+      setEditGpsLat(g.lat != null ? String(g.lat) : '');
+      setEditGpsLng(g.lng != null ? String(g.lng) : '');
+    } else {
+      setEditGpsLat('');
+      setEditGpsLng('');
+    }
   };
 
   const closeImageDetail = () => {
     setSelectedImageId(null);
     setEditDescription('');
+    setEditUploadedAt('');
+    setEditExif({});
+    setEditGpsLat('');
+    setEditGpsLng('');
   };
+
+  const exifEditFields = EXIF_EDIT_KEYS.filter(
+    (field) => editExif[field.key] !== undefined,
+  );
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
@@ -223,22 +280,45 @@ export default function PicGalleryView() {
     }
   };
 
-  const updateDescription = async () => {
+  const updateImage = async () => {
     if (!ensureAdminPermission()) return;
     if (!selectedImage) return;
 
-    const nextImages = images.map((img) =>
-      img.id === selectedImage.id
-        ? { ...img, description: editDescription.trim() }
-        : img,
-    );
+    const exif: Record<string, string> = { ...editExif };
+    for (const k of Object.keys(exif)) {
+      if (exif[k] === '') delete exif[k];
+    }
+    if (editGpsLat !== '' && editGpsLng !== '') {
+      exif.gps = `${editGpsLat},${editGpsLng}`;
+    }
+    const partial: UpdateImagePayload = {
+      description: editDescription.trim(),
+      uploadedAt: editUploadedAt
+        ? new Date(editUploadedAt).toISOString()
+        : null,
+      exif: Object.keys(exif).length > 0 ? exif : null,
+    };
 
     try {
-      await saveGallery(nextImages);
-      setImages(nextImages);
-      notifier.success('描述已更新');
+      await service.updateImage(selectedImage.id, partial);
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === selectedImage.id
+            ? {
+                ...img,
+                description: partial.description ?? img.description,
+                uploadedAt: partial.uploadedAt ?? img.uploadedAt,
+                exif:
+                  (partial.exif as unknown as ExifInfo | undefined) ??
+                  img.exif,
+              }
+            : img,
+        ),
+      );
+      notifier.success('图片信息已更新');
     } catch (error) {
-      const message = error instanceof Error ? error.message : '保存失败';
+      const message =
+        error instanceof Error ? error.message : '图片信息更新失败';
       notifier.error(message);
     }
   };
@@ -430,7 +510,7 @@ export default function PicGalleryView() {
                   {formatDate(selectedImage.uploadedAt)}
                 </div>
 
-                {canEdit && isEditMode ? (
+                {canEdit ? (
                   <div className="space-y-3">
                     <label className="text-muted text-xs font-semibold tracking-wider uppercase">
                       修改描述
@@ -440,10 +520,77 @@ export default function PicGalleryView() {
                       onChange={(event) =>
                         setEditDescription(event.target.value)
                       }
-                      rows={3}
+                      rows={2}
                       placeholder="输入新的描述..."
                       className="/80 bg-page text-ink placeholder-muted focus:border-ring focus:ring-ring w-full resize-none rounded-xl border px-4 py-3 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none"
                     />
+
+                    <div>
+                      <label className="text-muted text-xs font-semibold tracking-wider uppercase">
+                        上传时间
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={editUploadedAt}
+                        onChange={(event) =>
+                          setEditUploadedAt(event.target.value)
+                        }
+                        className="/80 bg-page text-ink focus:border-ring focus:ring-ring mt-2 w-full rounded-xl border px-4 py-3 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none"
+                      />
+                    </div>
+
+                    {exifEditFields.map((field) => (
+                      <div key={field.key}>
+                        <label className="text-muted text-xs font-semibold tracking-wider uppercase">
+                          {field.label}
+                        </label>
+                        <input
+                          type="text"
+                          value={editExif[field.key] ?? ''}
+                          onChange={(event) =>
+                            setEditExif((prev) => ({
+                              ...prev,
+                              [field.key]: event.target.value,
+                            }))
+                          }
+                          className="/80 bg-page text-ink focus:border-ring focus:ring-ring mt-2 w-full rounded-xl border px-4 py-3 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none"
+                        />
+                      </div>
+                    ))}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-muted text-xs font-semibold tracking-wider uppercase">
+                          纬度 (GPS)
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={editGpsLat}
+                          onChange={(event) =>
+                            setEditGpsLat(event.target.value)
+                          }
+                          placeholder="31.23"
+                          className="/80 bg-page text-ink placeholder-muted focus:border-ring focus:ring-ring mt-2 w-full rounded-xl border px-4 py-3 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-muted text-xs font-semibold tracking-wider uppercase">
+                          经度 (GPS)
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={editGpsLng}
+                          onChange={(event) =>
+                            setEditGpsLng(event.target.value)
+                          }
+                          placeholder="121.47"
+                          className="/80 bg-page text-ink placeholder-muted focus:border-ring focus:ring-ring mt-2 w-full rounded-xl border px-4 py-3 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-1">
                       <button
                         type="button"
@@ -456,7 +603,7 @@ export default function PicGalleryView() {
                       <button
                         type="button"
                         className="bg-ink text-page hover:bg-ink/90 rounded-full px-5 py-2 text-sm shadow-sm transition-colors"
-                        onClick={updateDescription}
+                        onClick={updateImage}
                       >
                         保存修改
                       </button>

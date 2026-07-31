@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import logger
+from app.core.exceptions import APIError
 from app.models.models import GalleryImage
 from app.repositories.gallery_repo import GalleryRepo
-from app.schemas.gallery import GalleryInput
+from app.schemas.gallery import GalleryInput, UpdateImagePayload
 from app.utils.media import resolve_media_path
 from app.utils.process_image import process_image
 
@@ -68,6 +71,39 @@ class GalleryService:
         except Exception as e:
             logger.error(f"Failed to get pic gallery: {e}")
             return []
+
+    async def update_image(
+        self,
+        session: AsyncSession,
+        *,
+        image_id: int,
+        payload: UpdateImagePayload,
+    ) -> dict | None:
+        """按 id 局部更新单图元数据（description / uploadedAt / exif）。
+
+        命中返回与 ``_serialize_gallery_image`` 同形的 dict（``_strip_gps`` 仍剥 GPS）；
+        找不到返回 None（404 由 API 层处理）。不重跑 ``process_image``，不触发派生图。
+        """
+        try:
+            uploaded_at: datetime | None = None
+            if payload.uploadedAt is not None:
+                uploaded_at = datetime.fromisoformat(payload.uploadedAt)
+            img = await self.gallery_repo.update_image(
+                session,
+                image_id=image_id,
+                description=payload.description,
+                uploaded_at=uploaded_at,
+                exif=payload.exif,
+            )
+            if img is None:
+                return None
+            return self._serialize_gallery_image(img)
+        except Exception as e:
+            logger.exception("Failed to update gallery image")
+            raise APIError(
+                message="Failed to update gallery image",
+                code=500,
+            ) from e
 
     @staticmethod
     def _serialize_gallery_image(img: GalleryImage) -> dict:
