@@ -3,6 +3,7 @@ import {
   type Picture,
 } from '@/features/pic/api/galleryService';
 import { rewriteMediaUrl } from '@readinglist/utils';
+import { PIC_MAX_IMAGE_BYTES, PIC_ACCEPTED_MIME } from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores/notificationState';
 import dayjs from 'dayjs';
@@ -20,7 +21,10 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+function formatFileSize(bytes: number): string {
+  const mb = bytes / 1024 / 1024;
+  return `${mb.toFixed(0)}MB`;
+}
 
 function createPictureId(): string {
   if (
@@ -161,8 +165,8 @@ export default function PicGalleryView() {
       notifier.error('请选择图片文件');
       return;
     }
-    if (file.size > MAX_UPLOAD_SIZE) {
-      notifier.error('图片大小不能超过 5MB');
+    if (file.size > PIC_MAX_IMAGE_BYTES) {
+      notifier.error(`图片大小不能超过 ${formatFileSize(PIC_MAX_IMAGE_BYTES)}`);
       return;
     }
 
@@ -513,7 +517,7 @@ export default function PicGalleryView() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={PIC_ACCEPTED_MIME.join(',')}
                   className="hidden"
                   onChange={handleFileSelect}
                 />
@@ -543,7 +547,7 @@ export default function PicGalleryView() {
                       点击选择图片
                     </p>
                     <p className="text-muted mt-2 text-xs">
-                      支持 JPG、PNG、GIF、WebP (最大 5MB)
+                      支持 JPG、PNG、GIF、WebP、HEIF/HEIC (最大 {formatFileSize(PIC_MAX_IMAGE_BYTES)})
                     </p>
                   </div>
                 )}

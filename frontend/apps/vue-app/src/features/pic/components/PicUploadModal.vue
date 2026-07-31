@@ -45,10 +45,10 @@
 
           <!-- Upload Area -->
           <UploadDropzone
-            accept="image/*"
+            :accept="PIC_ACCEPTED_MIME.join(',')"
             :disabled="isUploading"
             prompt="点击或拖拽图片到此处"
-            hint="支持 JPG、PNG、GIF、WebP (最大 5MB)"
+            :hint="`支持 JPG、PNG、GIF、WebP、HEIF/HEIC (最大 10MB)`"
             @select="handleSelect"
           >
             <!-- Preview (shown inside dropzone once a file is selected) -->
@@ -129,6 +129,7 @@ import { useUpload } from '@/features/upload/composables';
 import { UploadDropzone, UploadProgress } from '@/features/upload/components';
 import { newPictureId, type Picture } from '@/features/pic/composables';
 import { rewriteMediaUrl } from '@/composables';
+import { PIC_MAX_IMAGE_BYTES, PIC_ACCEPTED_MIME } from '@readinglist/api';
 import dayjs from 'dayjs';
 import { computed, ref, watch } from 'vue';
 import { useNotificationStore } from '@/stores';
@@ -145,8 +146,8 @@ const emit = defineEmits<{
 // 统一上传 composable —— 校验 + 上传 + 进度，返回服务端 URL。
 const { upload, isUploading, progress, error } = useUpload({
   type: 'gallery',
-  maxSize: 5 * 1024 * 1024,
-  allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+  maxSize: PIC_MAX_IMAGE_BYTES,
+  allowedTypes: [...PIC_ACCEPTED_MIME],
 });
 
 const selectedFile = ref<File | null>(null);
