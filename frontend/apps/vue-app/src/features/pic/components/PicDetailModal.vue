@@ -95,7 +95,12 @@
           :initial="{ opacity: 0, scale: 0.985 }"
           :animate="{ opacity: 1, scale: 1 }"
           :exit="{ opacity: 0, scale: 0.985 }"
-          :transition="{ type: 'spring', damping: 30, stiffness: 280, mass: 0.8 }"
+          :transition="{
+            type: 'spring',
+            damping: 30,
+            stiffness: 280,
+            mass: 0.8,
+          }"
           class="max-h-full max-w-full object-contain select-none"
           :style="imageStyle"
           draggable="false"
@@ -109,7 +114,7 @@
         <!-- EXIF strip — one line, monospaced, only filled fields -->
         <div
           v-if="hasExif"
-          class="text-white/55 mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tracking-[0.14em] uppercase tabular-nums"
+          class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tracking-[0.14em] text-white/55 uppercase tabular-nums"
           style="font-family: var(--font-mono)"
           aria-label="拍摄参数"
         >
@@ -128,7 +133,7 @@
             <h2
               v-if="titleLine"
               id="pdm-title"
-              class="text-white/85 mb-1 text-[13px] tracking-[0.04em] tabular-nums"
+              class="mb-1 text-[13px] tracking-[0.04em] text-white/85 tabular-nums"
               style="font-family: var(--font-mono)"
             >
               {{ titleLine }}
@@ -139,20 +144,17 @@
               v-model="localDescription"
               rows="3"
               aria-label="编辑拍摄笔记"
-              class="text-white placeholder:text-white/35 focus:border-white/40 w-full resize-none border-b border-white/15 bg-transparent pb-1 text-[14px] leading-[1.6] focus:outline-none"
+              class="w-full resize-none border-b border-white/15 bg-transparent pb-1 text-[14px] leading-[1.6] text-white placeholder:text-white/35 focus:border-white/40 focus:outline-none"
               placeholder="写下这一刻..."
               @keydown.esc="toggleEdit"
             ></textarea>
             <p
               v-else-if="!isEmpty"
-              class="text-white/80 line-clamp-2 text-[14px] leading-[1.6] whitespace-pre-wrap"
+              class="line-clamp-2 text-[14px] leading-[1.6] whitespace-pre-wrap text-white/80"
             >
               {{ image.description }}
             </p>
-            <p
-              v-else-if="!editable"
-              class="text-white/35 text-[14px] italic"
-            >
+            <p v-else-if="!editable" class="text-[14px] text-white/35 italic">
               这一刻还没留下文字
             </p>
           </div>
@@ -162,19 +164,30 @@
             <button
               v-if="editable && !isEditing"
               type="button"
-              class="text-white/60 hover:text-white hover:border-white/40 inline-flex h-8 items-center gap-1.5 rounded-full border border-white/15 px-3 text-[12px] transition-colors"
+              class="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/15 px-3 text-[12px] text-white/60 transition-colors hover:border-white/40 hover:text-white"
               aria-label="编辑描述"
               @click="toggleEdit"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5" aria-hidden="true">
-                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-3.5 w-3.5"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z"
+                />
               </svg>
               编辑
             </button>
             <button
               v-if="editable && isEditing"
               type="button"
-              class="bg-white text-black hover:bg-white/90 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors"
+              class="inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-medium text-black transition-colors hover:bg-white/90"
               aria-label="保存对描述的修改"
               @click="onSave"
             >
@@ -183,12 +196,23 @@
             <button
               v-if="editable"
               type="button"
-              class="text-white/50 hover:text-white inline-flex h-8 items-center gap-1.5 rounded-full px-2 text-[12px] transition-colors"
+              class="inline-flex h-8 items-center gap-1.5 rounded-full px-2 text-[12px] text-white/50 transition-colors hover:text-white"
               aria-label="删除此图片"
               @click="$emit('delete', image.id)"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5" aria-hidden="true">
-                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-3.5 w-3.5"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"
+                />
               </svg>
             </button>
           </div>
@@ -223,7 +247,6 @@ const localDescription = ref('');
 const isEditing = ref(false);
 const captionEditEl = ref<HTMLTextAreaElement | null>(null);
 
-// 总帧数：相册当前容量 36 张（保留 FRAME 计数但只用 frameNo 一项，不加胶片装饰）
 const totalFrames = 36;
 
 watch(
@@ -270,9 +293,12 @@ const exifItems = computed<ExifItem[]>(() => {
       value: `${ex.value.focalLength35 || ex.value.focalLength}mm`,
     });
   }
-  if (ex.value.aperture) items.push({ label: '光圈', value: ex.value.aperture });
-  if (ex.value.exposure) items.push({ label: '快门', value: ex.value.exposure });
-  if (ex.value.iso != null) items.push({ label: 'ISO', value: String(ex.value.iso) });
+  if (ex.value.aperture)
+    items.push({ label: '光圈', value: ex.value.aperture });
+  if (ex.value.exposure)
+    items.push({ label: '快门', value: ex.value.exposure });
+  if (ex.value.iso != null)
+    items.push({ label: 'ISO', value: String(ex.value.iso) });
   if (ex.value.gps) {
     const fmt = (v: number, pos: string, neg: string) =>
       `${Math.abs(v).toFixed(2)}°${v >= 0 ? pos : neg}`;

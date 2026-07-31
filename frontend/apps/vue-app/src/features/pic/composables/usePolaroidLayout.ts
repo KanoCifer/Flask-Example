@@ -69,9 +69,6 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
     useNotificationStore().success('照片已重新排布');
   };
 
-  // 保留空壳,避免外部调用处(已迁移)误用时报错——返回 no-op
-  const bringToFront = (_index: number) => {};
-
   const getRowSpan = (index: number) =>
     visualSeeds.value.get(index)?.rowSpan ?? 30;
 
@@ -86,7 +83,6 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
     visualSeeds,
     generateLayoutSeeds,
     shuffleImages,
-    bringToFront,
     getRowSpan,
     getRotation,
     getCardAspect,

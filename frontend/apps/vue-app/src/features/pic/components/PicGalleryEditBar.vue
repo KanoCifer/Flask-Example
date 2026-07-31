@@ -7,7 +7,6 @@
         size="sm"
         @click="$emit('toggle-edit')"
         class="h-9 gap-2 rounded-full px-4"
-        :class="isEditMode ? 'bg-accent text-ink' : ''"
       >
         <component :is="isEditMode ? Check : Edit2" class="h-4 w-4" />
         {{ isEditMode ? '完成编辑' : '编辑模式' }}
@@ -31,10 +30,8 @@
         <Button
           v-if="isEditMode && canEdit"
           key="upload-btn"
-          variant="default"
-          size="sm"
+          size="md"
           @click="$emit('upload')"
-          class="bg-accent text-ink hover:bg-accent/90 h-9 gap-2 rounded-full px-4 shadow-md"
         >
           <Upload class="h-4 w-4" />
           上传图片

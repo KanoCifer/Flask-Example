@@ -2,6 +2,7 @@ __pycache__/
 # Environments
 .env
 .venv/
+/media
 # VS Code
 .vscode/
 .DS_Store
@@ -47,3 +48,4 @@ go-backend/logs/app_error.log
 .claude/
 go-backend/media/posts/1/030568f8-64d7-494c-91fb-ee06cfed421e.png
 go-backend/media/posts/1/
+media/posts/1/030568f8-64d7-494c-91fb-ee06cfed421e.png

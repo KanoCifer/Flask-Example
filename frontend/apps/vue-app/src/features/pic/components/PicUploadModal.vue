@@ -133,7 +133,7 @@ import dayjs from 'dayjs';
 import { computed, ref, watch } from 'vue';
 import { useNotificationStore } from '@/stores';
 
-defineProps<{
+const props = defineProps<{
   visible: boolean;
 }>();
 
@@ -155,18 +155,33 @@ const uploadDescription = ref('');
 
 const canSubmit = computed(() => !!selectedFile.value && !isUploading.value);
 
-// 从 UploadDropzone 收到文件后，记录文件并生成预览 blob URL。
+// 重置所有模态内部状态 —— 关闭时清空,确保下次打开是干净的。
+const reset = () => {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value);
+  }
+  selectedFile.value = null;
+  previewUrl.value = null;
+  uploadDescription.value = '';
+};
+
+// 模态关闭时重置(无论用户点取消、点 X 还是上传成功后自动关闭,下次打开都是空白)
+watch(
+  () => props.visible,
+  (next, prev) => {
+    if (prev && !next) reset();
+  },
+);
+
+// 从 UploadDropzone 收到文件后,记录文件并生成预览 blob URL。
 const handleSelect = (files: File[]) => {
   const file = files[0];
   if (!file) return;
+  // 同一张图被重复选中时,需要先释放旧 blob URL 再覆盖
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
   selectedFile.value = file;
   previewUrl.value = URL.createObjectURL(file);
 };
-
-// 预览 URL 变化 / 卸载时释放旧 blob URL，避免内存泄漏。
-watch(previewUrl, (_, prev) => {
-  if (prev) URL.revokeObjectURL(prev);
-});
 
 const onConfirm = async () => {
   if (!selectedFile.value) return;
