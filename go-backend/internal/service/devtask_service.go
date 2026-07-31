@@ -332,7 +332,7 @@ func (s *DevTaskService) GetBySlug(ctx context.Context, slug string, withParent 
 		if err != nil {
 			slog.WarnContext(ctx, "get parent dev task", "error", err, "slug", *task.ParentSlug)
 		} else {
-			out.Parent = dto.ToDevTaskResponse(*parent, nil)
+			out.Parent = &dto.ToDevTaskResponse(*parent, nil)
 		}
 	}
 
