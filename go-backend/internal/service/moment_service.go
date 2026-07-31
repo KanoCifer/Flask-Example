@@ -264,7 +264,8 @@ func (s *MomentService) Update(
 	id string,
 	req dto.MomentUpdate,
 ) error {
-	fields := bson.M{"updated_at": time.Now().UTC()}
+	now := time.Now().UTC()
+	fields := bson.M{"updated_at": now}
 
 	if req.Content != nil {
 		fields["content"] = *req.Content
@@ -283,6 +284,19 @@ func (s *MomentService) Update(
 	}
 	if req.Tags != nil {
 		fields["tags"] = *req.Tags
+	}
+
+	// 状态迁移 draft→published 时,如果当前 published_at 为空,
+	// 默认补 now 为发布时间,避免新发布的 moment 沉到公开列表底部。
+	// 已 published(本次显式或已存在)的不覆写;非 published 状态也不写入。
+	if req.Status != nil && *req.Status == dto.MomentPublished {
+		existing, err := s.repo.GetByID(ctx, id)
+		if err != nil {
+			return translateRepoErr(err)
+		}
+		if existing != nil && existing.PublishedAt == nil {
+			fields["published_at"] = now
+		}
 	}
 	if req.Attachments != nil {
 		fields["attachments"] = toDocAttachments(*req.Attachments)

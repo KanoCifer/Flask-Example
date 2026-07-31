@@ -145,7 +145,7 @@
       :has-prev="hasPrev"
       :has-next="hasNext"
       :is-admin="isAdmin"
-      @update:open="detailOpen = $event"
+      @update:open="(v) => { detailOpen = v; if (!v) activeOverride = null; }"
       @navigate="navigateDetail"
       @edit="openEditor($event)"
       @delete="confirmDelete"
@@ -313,9 +313,16 @@ const heroSubtitle = computed(() => `卷 · ${dayjs().format('YYYY')}`);
 // ────────────────────────────────────────────────────────────
 const detailOpen = ref(false);
 const detailId = ref<string | null>(null);
+/** 当 publicList 查不到(moment 是 draft/private/不被当前 tag 包含)时,
+ *  用 override 强行展示传入的 Moment 对象。点关闭时清空。 */
+const activeOverride = ref<Moment | null>(null);
 
 const activeMoment = computed<Moment | null>(
-  () => publicList.value.find((m) => m.id === detailId.value) ?? null,
+  () =>
+    activeOverride.value ??
+    (detailId.value
+      ? publicList.value.find((m) => m.id === detailId.value) ?? null
+      : null),
 );
 
 const detailIndex = computed(() =>
@@ -335,8 +342,15 @@ const activeVolumeLabel = computed(() => {
   return formatVolume(null, detailIndex.value);
 });
 
-function openDetail(id: string) {
-  detailId.value = id;
+function openDetail(target: Moment | string) {
+  if (typeof target === 'string') {
+    detailId.value = target;
+    activeOverride.value = null;
+  } else {
+    // 列表查不到的场景:把对象塞进 override,openDetail 不再 fail。
+    detailId.value = target.id;
+    activeOverride.value = target;
+  }
   detailOpen.value = true;
 }
 
@@ -365,10 +379,7 @@ const composer = new MomentComposer({
   create: store.create.bind(store),
   update: store.update.bind(store),
   refreshPublicList: (tag) => load(1, tag),
-  openDetail: (id) => {
-    detailId.value = id;
-    detailOpen.value = true;
-  },
+  openDetailWithMoment: (moment) => openDetail(moment),
   notify: (msg) => notifier.success(msg),
   notifyError: (msg) => notifier.error(msg),
 });

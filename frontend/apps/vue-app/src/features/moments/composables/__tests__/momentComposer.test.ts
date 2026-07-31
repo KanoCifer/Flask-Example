@@ -40,7 +40,7 @@ function makePort(overrides: Partial<MomentComposerPort> = {}) {
     create: vi.fn(async () => makeMoment({ id: 'created-id' })),
     update: vi.fn(async (_id: string) => makeMoment({ id: 'm-1' })),
     refreshPublicList: vi.fn(async () => undefined),
-    openDetail: vi.fn(),
+    openDetailWithMoment: vi.fn(),
     notify: vi.fn(),
     notifyError: vi.fn(),
     ...overrides,
@@ -111,7 +111,7 @@ describe('buildCreatePayload', () => {
 // ── MomentComposer — 新建分支 ────────────────────────────────────────────
 
 describe('MomentComposer.submit — create branch', () => {
-  it('normalize → create → refresh → notify → openDetail，顺序固定', async () => {
+  it('normalize → create → refresh → notify → openDetailWithMoment，顺序固定', async () => {
     const order: string[] = [];
     const port = makePort({
       create: vi.fn(async () => {
@@ -124,8 +124,8 @@ describe('MomentComposer.submit — create branch', () => {
       notify: vi.fn((msg: string) => {
         order.push(`notify:${msg}`);
       }),
-      openDetail: vi.fn((id: string) => {
-        order.push(`open:${id}`);
+      openDetailWithMoment: vi.fn((m: Moment) => {
+        order.push(`open:${m.id}`);
       }),
     });
     const composer = new MomentComposer(port);
@@ -161,7 +161,7 @@ describe('MomentComposer.submit — create branch', () => {
     });
 
     expect(port.notify).not.toHaveBeenCalled();
-    expect(port.openDetail).not.toHaveBeenCalled();
+    expect(port.openDetailWithMoment).not.toHaveBeenCalled();
     expect(port.notifyError).toHaveBeenCalledWith('network down');
     expect(result).toEqual({ kind: 'failed', error: 'network down' });
   });
@@ -182,7 +182,7 @@ describe('MomentComposer.submit — create branch', () => {
 
     expect(port.refreshPublicList).not.toHaveBeenCalled();
     expect(port.notify).not.toHaveBeenCalled();
-    expect(port.openDetail).not.toHaveBeenCalled();
+    expect(port.openDetailWithMoment).not.toHaveBeenCalled();
     expect(port.notifyError).toHaveBeenCalledWith('403 forbidden');
     expect(result).toEqual({ kind: 'failed', error: '403 forbidden' });
   });
@@ -226,6 +226,30 @@ describe('MomentComposer.submit — create branch', () => {
     expect(port.refreshPublicList).toHaveBeenCalledWith('meadow');
   });
 
+  it('openDetailWithMoment 收到完整 Moment 对象(view 端可走 override 路径)', async () => {
+    const port = makePort({
+      create: vi.fn(async () =>
+        makeMoment({ id: 'draft-1', status: 'draft', visibility: 'private' }),
+      ),
+    });
+    const composer = new MomentComposer(port);
+
+    await composer.submit({
+      kind: 'create',
+      payload: { content: 'private note', status: 'draft' },
+      activeTag: 'meadow',
+    });
+
+    expect(port.openDetailWithMoment).toHaveBeenCalledTimes(1);
+    const arg = (port.openDetailWithMoment as ReturnType<typeof vi.fn>).mock
+      .calls[0][0] as Moment;
+    expect(arg).toMatchObject({
+      id: 'draft-1',
+      status: 'draft',
+      visibility: 'private',
+    });
+  });
+
   it('非 Error 异常走通用兜底文案', async () => {
     const port = makePort({
       create: vi.fn(async () => {
@@ -262,7 +286,7 @@ describe('MomentComposer.submit — update branch', () => {
 
     expect(port.update).toHaveBeenCalledWith('m-42', { content: 'edit' });
     expect(port.refreshPublicList).not.toHaveBeenCalled();
-    expect(port.openDetail).not.toHaveBeenCalled();
+    expect(port.openDetailWithMoment).not.toHaveBeenCalled();
     expect(port.notify).toHaveBeenCalledWith('已保存修改');
     expect(result).toEqual({ kind: 'updated' });
   });

@@ -14,8 +14,12 @@ export interface MomentComposerPort {
   create(payload: MomentCreatePayload): Promise<Moment>;
   update(id: string, payload: MomentUpdatePayload): Promise<Moment>;
   refreshPublicList(tag: string | null): Promise<void>;
-  /** 新建成功后切换到详情 modal。 */
-  openDetail(id: string): void;
+  /**
+   * 新建成功后切换到详情 modal。
+   * 接收 Moment 对象而不仅是 id —— 避免新建的 draft / private / tag 过滤不匹配的
+   * moment 在 publicList 查不到时弹空白 modal(view 端按 override 路径处理)。
+   */
+  openDetailWithMoment(moment: Moment): void;
   notify(message: string): void;
   notifyError(message: string): void;
 }
@@ -87,7 +91,7 @@ export class MomentComposer {
         const created = await this.port.create(payload);
         await this.port.refreshPublicList(input.activeTag);
         this.port.notify('发布成功');
-        this.port.openDetail(created.id);
+        this.port.openDetailWithMoment(created);
         return { kind: 'created', id: created.id };
       }
       await this.port.update(input.id, input.payload);
