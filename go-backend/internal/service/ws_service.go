@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"sync"
 
@@ -201,6 +202,9 @@ func (s *WSService) ReadMsg(ctx context.Context, conn *websocket.Conn, msg any) 
 
 // SendMsg 是并发安全的写入口；多个 goroutine 可同时调用。
 func (s *WSService) SendMsg(ctx context.Context, conn *websocket.Conn, msg any) error {
+	if conn == nil {
+		return errors.New("nil websocket conn")
+	}
 	s.mu.Lock()
 	err := wsjson.Write(ctx, conn, msg)
 	s.mu.Unlock()

@@ -454,7 +454,7 @@ func TestDTO_WereadBookResponse_MarshalRoundtrip(t *testing.T) {
 		WordCount:        200000,
 		NewRating:        92.5,
 		NewRatingCount:   1000,
-		NewRatingDetails: map[string]int{"5": 800, "4": 150},
+		NewRatingDetails: map[string]any{"5": 800, "4": 150},
 		FetchedAt:        time.Now().UTC().Truncate(time.Second),
 	}
 
@@ -474,7 +474,8 @@ func TestDTO_WereadBookResponse_MarshalRoundtrip(t *testing.T) {
 	if decoded.Introduction != "简介" {
 		t.Errorf("introduction = %q, want 简介", decoded.Introduction)
 	}
-	if decoded.NewRatingDetails["5"] != 800 {
+	// JSON 数字反序列化进 any 是 float64，需归一化后比较。
+	if got, _ := decoded.NewRatingDetails["5"].(float64); got != 800 {
 		t.Errorf("newRatingDetails = %v", decoded.NewRatingDetails)
 	}
 	if !decoded.FetchedAt.Equal(original.FetchedAt) {
