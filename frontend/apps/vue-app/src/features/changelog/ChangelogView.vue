@@ -162,8 +162,8 @@ const getTypeClass = (type: string): string => {
                 <!-- Changes List -->
                 <ul class="space-y-3">
                   <li
-                    v-for="(change, i) in r.changes"
-                    :key="i"
+                    v-for="change in r.changes"
+                    :key="change.content"
                     class="flex items-start gap-3"
                   >
                     <span

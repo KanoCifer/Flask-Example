@@ -21,7 +21,7 @@
         <div class="flex -space-x-2">
           <div
             v-for="(color, i) in bookCovers"
-            :key="i"
+            :key="color"
             :class="[
               'h-8 w-6 rounded shadow-sm transition-transform duration-300',
               color,

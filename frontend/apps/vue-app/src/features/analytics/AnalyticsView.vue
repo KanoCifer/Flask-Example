@@ -328,7 +328,7 @@
 
               <!-- Table -->
               <div v-else>
-                <div class="overflow-x-auto">
+                <div class="contain-[layout_paint_scroll_style] overflow-x-auto">
                   <table class="w-full">
                     <caption class="sr-only">
                       用户登录记录表

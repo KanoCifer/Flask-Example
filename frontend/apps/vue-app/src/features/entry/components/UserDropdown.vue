@@ -12,7 +12,7 @@
         class="bg-page absolute top-16 right-0 z-9999 mt-2 w-auto rounded-2xl p-1 shadow-xl ring-1 ring-black/5 dark:ring-white/10"
       >
         <ol>
-          <li v-for="(item, idx) in visibleItems" :key="idx">
+          <li v-for="item in visibleItems" :key="item.label ?? 'divider'">
             <!-- 分隔线 -->
             <div v-if="item.divider" class="bg-border mx-2 my-1 h-px" />
             <!-- 路由链接 -->

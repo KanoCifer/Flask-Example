@@ -284,7 +284,7 @@
 
       <!-- 右侧设置 -->
       <aside
-        class="bg-surface/30 /40 space-y-4 overflow-y-auto border-t px-5 py-6 md:border-t-0 md:border-l"
+        class="bg-surface/30 /40 space-y-4 overflow-y-auto contain-[layout_paint_scroll_style] border-t px-5 py-6 md:border-t-0 md:border-l"
       >
         <div>
           <div

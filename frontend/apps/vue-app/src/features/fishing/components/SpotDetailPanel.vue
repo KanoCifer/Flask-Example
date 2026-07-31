@@ -569,7 +569,7 @@ watch(
           <div v-if="spot?.images.length" class="grid grid-cols-2 gap-2">
             <button
               v-for="(img, i) in spot.images"
-              :key="i"
+              :key="img"
               type="button"
               class="group /30 relative block overflow-hidden rounded-xl border"
               @click="openLightbox(i)"
