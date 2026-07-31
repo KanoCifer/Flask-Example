@@ -161,10 +161,10 @@ const navItems: NavItem[] = [
   },
   { to: '/gallery', label: 'Gallery', icon: Images, ariaLabel: 'Gallery' },
   {
-    to: '/version-log',
-    label: 'Log',
-    icon: ScrollText,
-    ariaLabel: 'Changelog',
+    to: '/todos',
+    label: 'Dev Tasks',
+    icon: ListChecks,
+    ariaLabel: 'Dev Tasks',
   },
 ];
 
@@ -184,7 +184,7 @@ const othersItems: OthersItem[] = [
   { to: '/privacy', label: 'Privacy', icon: Shield },
   { to: '/toolbox/image-toolbox', label: 'Image Tool', icon: Wrench },
   { to: '/status', label: 'Status', icon: ListChecks },
-  { to: '/todos', label: 'Dev Tasks', icon: ListChecks },
+  { to: '/version-log', label: 'Log', icon: ScrollText },
   { to: '/fishing-map', label: 'Fishing', icon: Map },
   { to: '/rss', label: 'RSS', icon: Rss },
   { to: '/subscription', label: 'Subscription', icon: CreditCard },
