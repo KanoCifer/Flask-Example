@@ -44,7 +44,11 @@ export { momentsGateway } from './gateways/moments';
 export type { MomentsGateway } from './gateways/moments';
 
 // ── pic / gallery ────────────────────────────────────────────────────
-export { galleryGateway } from './gateways/pic';
+export {
+  galleryGateway,
+  PIC_MAX_IMAGE_BYTES,
+  PIC_ACCEPTED_MIME,
+} from './gateways/pic';
 export type {
   GalleryGateway,
   GalleryData,

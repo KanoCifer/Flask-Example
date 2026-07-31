@@ -1,6 +1,6 @@
 import { useNotificationStore } from '@/stores';
 import { ref, type Ref } from 'vue';
-import type { Picture } from './useGallery';
+import type { Picture } from '.';
 
 interface UsePolaroidLayoutOptions {
   images: Ref<Picture[]>;

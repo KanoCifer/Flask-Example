@@ -46,6 +46,18 @@ export interface SaveGalleryPayload {
   }>;
 }
 
+// ── 前端上传常量 —— 与后端 media.py MAX_IMAGE_BYTES / ALLOWED_IMAGE_TYPES 对齐 ──
+
+export const PIC_MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB, with backend MAX_IMAGE_BYTES
+export const PIC_ACCEPTED_MIME = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heif',
+  'image/heic',
+] as const;
+
 // ── 照片墙网关 —— 对齐 React galleryService（返回解包后的领域数据）──
 
 export interface GalleryGateway {
