@@ -29,6 +29,7 @@ type DevTaskCreate struct {
 	Kind document.TaskKind `json:"kind"`
 	// ParentSlug: 子任务归属的 spec slug。nil = 无归属。
 	ParentSlug *string `json:"parent_slug"`
+	Slug *string `json:"slug"`
 }
 
 // DevTaskUpdate 更新任务请求（全字段可选，有值才更新）
@@ -122,9 +123,10 @@ type DevTaskListResponse struct {
 	Pagination Pagination        `json:"pagination"`
 }
 
-// ToDevTaskResponse 从 document.DevTask 转换为 DTO
-func ToDevTaskResponse(t document.DevTask) DevTaskResponse {
-	return DevTaskResponse{
+// ToDevTaskResponse 从 document.DevTask 转换为 DTO。
+// withParent 非空时填充 Parent 字段（用于 GetBySlug 单次查询）。
+func ToDevTaskResponse(t document.DevTask, parent *DevTaskResponse) DevTaskResponse {
+	out := DevTaskResponse{
 		ID:                 t.ID,
 		UserID:             t.UserID,
 		Title:              t.Title,
@@ -148,13 +150,31 @@ func ToDevTaskResponse(t document.DevTask) DevTaskResponse {
 		Kind:               t.Kind,
 		ParentSlug:         t.ParentSlug,
 	}
-}
-
-// ToDevTaskList 批量转换
-func ToDevTaskList(tasks []document.DevTask) []DevTaskResponse {
-	out := make([]DevTaskResponse, 0, len(tasks))
-	for _, t := range tasks {
-		out = append(out, ToDevTaskResponse(t))
+	if parent != nil {
+		out.Parent = parent
 	}
 	return out
 }
+
+// ToDevTaskList 批量转换，nil/空切片统一返回空数组。
+func ToDevTaskList(tasks []document.DevTask) []DevTaskResponse {
+	if len(tasks) == 0 {
+		return []DevTaskResponse{}
+	}
+	out := make([]DevTaskResponse, 0, len(tasks))
+	for _, t := range tasks {
+		out = append(out, ToDevTaskResponse(t, nil))
+	}
+	return out
+}
+
+// blockedByOrEmpty 把 nil slice 归一化为空数组。
+func blockedByOrEmpty(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}
+
+// BlockedByOrEmpty 导出别名，供 service/handler 层调用。
+var BlockedByOrEmpty = blockedByOrEmpty

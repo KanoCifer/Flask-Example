@@ -52,56 +52,6 @@ func NewDevTaskService(repo DevTaskRepositoryer) *DevTaskService {
 	return &DevTaskService{repo: repo}
 }
 
-// blockedByOrEmpty 把 nil slice 归一化为空数组，避免 omitempty 在 Mongo 里丢字段。
-// 落库的 blocked_by 始终是 [] 而不是 missing/null，这样 FindFrontier 的 $size:0
-// 查询才能稳定命中。
-func blockedByOrEmpty(s []string) []string {
-	if s == nil {
-		return []string{}
-	}
-	return s
-}
-
-// serializeTask 将文档转为输出 DTO。
-func serializeTask(t document.DevTask) dto.DevTaskResponse {
-	return dto.DevTaskResponse{
-		ID:                 t.ID,
-		UserID:             t.UserID,
-		Title:              t.Title,
-		Description:        t.Description,
-		Detail:             t.Detail,
-		Type:               t.Type,
-		Priority:           t.Priority,
-		Scope:              t.Scope,
-		Status:             t.Status,
-		SortOrder:          t.SortOrder,
-		DueDate:            t.DueDate,
-		IsDeleted:          t.IsDeleted,
-		CreatedAt:          t.CreatedAt,
-		UpdatedAt:          t.UpdatedAt,
-		AcceptanceCriteria: t.AcceptanceCriteria,
-		Constraints:        t.Constraints,
-		ContextPointers:    t.ContextPointers,
-		ForAgent:           t.ForAgent,
-		BlockedBy:          t.BlockedBy,
-		Slug:               t.Slug,
-		Kind:               t.Kind,
-		ParentSlug:         t.ParentSlug,
-	}
-}
-
-// serializeTasks 批量序列化，nil/空切片统一为空数组。
-func serializeTasks(tasks []document.DevTask) []dto.DevTaskResponse {
-	if len(tasks) == 0 {
-		return []dto.DevTaskResponse{}
-	}
-	out := make([]dto.DevTaskResponse, 0, len(tasks))
-	for _, t := range tasks {
-		out = append(out, serializeTask(t))
-	}
-	return out
-}
-
 // Create 创建任务。
 func (s *DevTaskService) Create(ctx context.Context, userID int, req dto.DevTaskCreate) (*dto.DevTaskResponse, error) {
 	// 自增生成 slug —— counters 集合单文档 $inc 保证原子性，并发安全。
@@ -128,7 +78,7 @@ func (s *DevTaskService) Create(ctx context.Context, userID int, req dto.DevTask
 		Constraints:        req.Constraints,
 		ContextPointers:    req.ContextPointers,
 		ForAgent:           req.ForAgent,
-		BlockedBy:          blockedByOrEmpty(req.BlockedBy),
+		BlockedBy:          dto.BlockedByOrEmpty(req.BlockedBy),
 		Slug:               slug,
 		Kind:               req.Kind,
 		ParentSlug:         req.ParentSlug,
@@ -138,7 +88,7 @@ func (s *DevTaskService) Create(ctx context.Context, userID int, req dto.DevTask
 		return nil, err
 	}
 
-	out := serializeTask(*task)
+	out := dto.ToDevTaskResponse(*task, nil)
 	return &out, nil
 }
 
@@ -182,7 +132,7 @@ func (s *DevTaskService) List(
 	}
 
 	return &dto.DevTaskListResponse{
-		Tasks:      serializeTasks(tasks),
+		Tasks:      dto.ToDevTaskList(tasks),
 		Pagination: pagination(page, perPage, int(total)),
 	}, nil
 }
@@ -230,7 +180,7 @@ func (s *DevTaskService) Update(ctx context.Context, slug string, req dto.DevTas
 		fields["for_agent"] = *req.ForAgent
 	}
 	if req.BlockedBy != nil {
-		fields["blocked_by"] = blockedByOrEmpty(*req.BlockedBy)
+		fields["blocked_by"] = dto.BlockedByOrEmpty(*req.BlockedBy)
 	}
 	if req.Kind != nil {
 		fields["kind"] = *req.Kind
@@ -343,15 +293,14 @@ func (s *DevTaskService) GetBySlug(ctx context.Context, slug string, withParent 
 		}
 		return nil, err
 	}
-	out := serializeTask(*task)
+	out := dto.ToDevTaskResponse(*task, nil)
 
 	if withParent && task.ParentSlug != nil {
 		parent, err := s.repo.GetBySlug(ctx, *task.ParentSlug)
 		if err != nil {
 			slog.WarnContext(ctx, "get parent dev task", "error", err, "slug", *task.ParentSlug)
 		} else {
-			parentOut := serializeTask(*parent)
-			out.Parent = &parentOut
+			out.Parent = dto.ToDevTaskResponse(*parent, nil)
 		}
 	}
 
@@ -368,5 +317,5 @@ func (s *DevTaskService) FindFrontier(ctx context.Context, limit int) ([]dto.Dev
 	if err != nil {
 		return nil, err
 	}
-	return serializeTasks(tasks), nil
+	return dto.ToDevTaskList(tasks), nil
 }

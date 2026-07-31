@@ -517,9 +517,9 @@ func TestDevTaskService_BatchStatus_RepoError(t *testing.T) {
 	}
 }
 
-// ---------- serializeTask ----------
+// ---------- ToDevTaskResponse / ToDevTaskList ----------
 
-func TestSerializeTask(t *testing.T) {
+func TestToDevTaskResponse(t *testing.T) {
 	due := time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC)
 	desc := "desc"
 	doc := document.DevTask{
@@ -539,19 +539,19 @@ func TestSerializeTask(t *testing.T) {
 		UpdatedAt:   time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
 	}
 
-	out := serializeTask(doc)
+	out := dto.ToDevTaskResponse(doc, nil)
 	if out.Slug != testSlug || out.Title != "test" || *out.Description != "desc" {
-		t.Errorf("serializeTask basic fields wrong: %+v", out)
+		t.Errorf("ToDevTaskResponse basic fields wrong: %+v", out)
 	}
 	if out.DueDate == nil || !out.DueDate.Equal(due) {
 		t.Errorf("DueDate = %v, want %v", out.DueDate, due)
 	}
 }
 
-func TestSerializeTasks_Empty(t *testing.T) {
-	out := serializeTasks(nil)
+func TestToDevTaskList_Empty(t *testing.T) {
+	out := dto.ToDevTaskList(nil)
 	if out == nil || len(out) != 0 {
-		t.Errorf("serializeTasks(nil) = %v, want empty non-nil slice", out)
+		t.Errorf("ToDevTaskList(nil) = %v, want empty non-nil slice", out)
 	}
 }
 
