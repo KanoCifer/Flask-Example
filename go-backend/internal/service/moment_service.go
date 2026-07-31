@@ -79,12 +79,20 @@ func NewMomentService(repo MomentRepositoryer) *MomentService {
 
 // Create 创建一条 moment。
 // dto→document 的转换在此层完成：repo 只认 document 类型（与 devtask 模式一致）。
+//
+// status=published 且未显式指定 PublishedAt 时,默认用 now 作为发布时间,
+//避免新建的发布态 moment 在前端列表/详情显示发布时间为 null。
+//draft / archived 状态保持 PublishedAt=nil。
 func (s *MomentService) Create(
 	ctx context.Context,
 	userID int,
 	req dto.MomentRequest,
 ) (*dto.MomentResponse, error) {
 	now := time.Now().UTC()
+	var publishedAt *time.Time
+	if req.Status == dto.MomentPublished {
+		publishedAt = &now
+	}
 	m := &document.Moment{
 		UserID:       userID,
 		Content:      req.Content,
@@ -98,6 +106,7 @@ func (s *MomentService) Create(
 		Source:       req.Source,
 		IsPinned:     req.IsPinned,
 		AllowComment: req.AllowComment,
+		PublishedAt:  publishedAt,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

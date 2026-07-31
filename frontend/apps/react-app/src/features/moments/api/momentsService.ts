@@ -45,23 +45,19 @@ export const momentsService = (): MomentsService => {
     },
 
     async get(id) {
-      const { moment } = await gateway.get(id);
-      return moment;
+      return gateway.get(id);
     },
 
     async getAdmin(id) {
-      const { moment } = await gateway.getAdmin(id);
-      return moment;
+      return gateway.getAdmin(id);
     },
 
     async create(payload) {
-      const { moment } = await gateway.create(payload);
-      return moment;
+      return gateway.create(payload);
     },
 
     async update(id, payload) {
-      const { moment } = await gateway.update(id, payload);
-      return moment;
+      return gateway.update(id, payload);
     },
 
     async remove(id) {

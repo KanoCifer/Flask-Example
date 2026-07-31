@@ -106,11 +106,11 @@ export const useMomentsStore = defineStore('moments', () => {
   }
 
   async function fetchOne(id: string, admin = false) {
-    const data = admin
+    const moment = admin
       ? await momentsGateway.getAdmin(id)
       : await momentsGateway.get(id);
-    current.value = data.moment;
-    return data.moment;
+    current.value = moment;
+    return moment;
   }
 
   /**
@@ -118,8 +118,7 @@ export const useMomentsStore = defineStore('moments', () => {
    * 不在此处写 `publicList` —— 那是耦合来源。
    */
   async function create(payload: MomentCreatePayload): Promise<Moment> {
-    const data = await momentsGateway.create(payload);
-    return data.moment;
+    return await momentsGateway.create(payload);
   }
 
   /** 编辑：落库即返回；当前条目同步（用于 detailModal 立即反映）。 */
@@ -127,11 +126,11 @@ export const useMomentsStore = defineStore('moments', () => {
     id: string,
     payload: MomentUpdatePayload,
   ): Promise<Moment> {
-    const data = await momentsGateway.update(id, payload);
+    const moment = await momentsGateway.update(id, payload);
     if (current.value?.id === id) {
-      current.value = data.moment;
+      current.value = moment;
     }
-    return data.moment;
+    return moment;
   }
 
   /** 软删除：从两侧列表剔除 + 清空 current（若指向该条）。 */
