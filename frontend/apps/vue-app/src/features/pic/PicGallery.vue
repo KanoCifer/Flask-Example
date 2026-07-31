@@ -24,11 +24,10 @@
     />
 
     <!--
-      Gallery Container —— 紧凑 grid 瀑布流
-      grid-auto-rows: 10px    行单位 10px(细粒度,密度高)
-      grid-auto-flow: dense   矮卡片回填上方空隙,列高差异降到最小
-      grid-row: span N        卡片高度由后端 aspectRatio 算出
-      响应式列数 + 列宽,通过 grid-template-columns 直接驱动(不再依赖 columns 多列)
+      Gallery Container —— 多列瀑布流 (CSS columns)
+      column-count:     列数,由 --gallery-cols 随断点递增
+      break-inside:     avoid,卡片不被拆到两列
+      卡片高度由图片 aspect-ratio 自然撑开,顺序纵向填充第一列→第二列→…
     -->
     <div
       class="gallery-masonry relative z-10 mx-auto w-full max-w-[1400px] px-4 pt-24 pb-32 sm:px-6"
@@ -38,7 +37,6 @@
         v-for="(image, index) in images"
         :key="image.id"
         class="gallery-item"
-        :style="{ gridRow: `span ${getRowSpan(index)}` }"
         :initial="{ opacity: 0, y: 24 }"
         :animate="{ opacity: 1, y: 0 }"
         :transition="{
@@ -144,7 +142,7 @@ const {
   formatDate,
 } = useGallery();
 
-const { generateLayoutSeeds, shuffleImages, getRowSpan, getRotation, getCardAspect } =
+const { generateLayoutSeeds, shuffleImages, getRotation, getCardAspect } =
   usePolaroidLayout({ images });
 
 // --- edit mode ---
@@ -260,30 +258,31 @@ onMounted(async () => {
 
 <style scoped>
 /* ============================================================
-   紧凑 grid 瀑布流
-   - grid-auto-rows: 10px          行单位,提供 row-span 细粒度
-   - grid-auto-flow: dense         矮卡片回填上方空隙,列高差降到最小
-   - 列数 = N 时, 列宽 ≈ (容器宽 - (N-1)*gap) / N
-   - 卡片高度由后端 aspectRatio × 列宽算出,加载前就稳定
-   - gallery-empty 跨整行
+   多列瀑布流 (CSS columns)
+   - column-count: 列数;column-gap: 列间距(行间距由 item margin-bottom)
+   - 卡片顺序纵向填充,第一列排满后进入下一列
+   - break-inside: avoid 保证卡片不被拆到两列
+   - 卡片高度由图片 aspect-ratio 自然撑开,无需手工计算
+   - gallery-empty 用 column-span: all 跨满整行
    ============================================================ */
 
 .gallery-masonry {
-  /* 列宽基准: 列数 × (列宽 + gap) = 容器宽。--gallery-cols 决定列数 */
+  /* --gallery-cols 决定列数,随断点递增 */
   --gallery-gap: 12px;
   --gallery-cols: 2;
-  --gallery-row-h: 10px;
 
-  display: grid;
-  grid-template-columns: repeat(var(--gallery-cols), 1fr);
-  grid-auto-rows: var(--gallery-row-h);
-  grid-auto-flow: dense;
-  gap: var(--gallery-gap);
+  column-count: var(--gallery-cols);
+  column-gap: var(--gallery-gap);
+}
+
+.gallery-item {
+  break-inside: avoid;
+  margin-bottom: var(--gallery-gap);
 }
 
 .gallery-empty {
   /* 空状态占满整行 */
-  grid-column: 1 / -1;
+  column-span: all;
 }
 
 /* 响应式列数 —— 与原版对齐:<480→2, <768→3, <1100→4, <1400→5, ≥1400→6 */
