@@ -1,16 +1,23 @@
-"""Service tests for ``app.services.learning_service.LearningService``.
+"""Service tests for ``app.services.course_generator_service.CourseGeneratorService``.
+
+C2 拆分（task-374）后，本文件从旧 ``test_learning_service.py`` 拆出**生成侧**
+测试（约 25 条）：``generate_course``（落盘 / ready 落库 / goal / 幂等 / 失败 /
+重试）、MISSION.md、``generate_next_lesson``、``get_course`` 读路径、
+``preview_next_lesson``、``session_id`` 跨轮复用。进度侧（create_pending /
+mark_progress / list_progress / merge_progress）留在旧文件，由 task-377 迁移。
 
 Mocking strategy (task-3555)：agent_driven 重构后 service 不再跑三步流水线
 （``_run_research`` / ``_run_step1`` / ``_run_step2`` 已删除），只调一次
 ``_build_course_agent(...).arun(prompt, output_schema=ExerciseBundle)``。
-测试用 ``_StubAgent`` monkeypatch ``LearningService._build_course_agent``：
+测试用 ``_StubAgent`` monkeypatch ``CourseGeneratorService._build_course_agent``：
 stub 的 ``arun`` 模拟 agent 调用磁盘工具，但**写语义委托真实
 ``CoursePackageRepo``**（C1：与生产 ``create_learning_tools`` 薄适配器共用
 同一仓库，不再在 stub 里重新实现写规则，消除漂移），并返回
 ``ExerciseBundle``，不触碰网络 / Redis / DeepSeek。
   - The beanie ``LearningProgress`` upsert that ``generate_course`` performs
-    uses a real MongoDB collection (``readinglist_test``) per the conftest
-    fixture, so we also exercise the ready-state upsert path.
+    （经注入的 ``LearningProgressService.mark_ready``）uses a real MongoDB
+    collection (``readinglist_test``) per the conftest fixture, so we also
+    exercise the ready-state upsert path against the real repo.
   - The course tmp dir is injected via the ``tmp_dir`` constructor arg so the
     markdown files land in a per-test tempdir we control.
 """
@@ -34,11 +41,12 @@ from app.repositories.course_package_repo import (
 )
 from app.repositories.learning_repo import LearningRepo
 from app.schemas.learning import Exercise
-from app.services.learning_service import (
+from app.services.course_generator_service import (
+    CourseGeneratorService,
     ExerciseBundle,
-    LearningService,
     LessonResourceOutput,
 )
+from app.services.learning_progress_service import LearningProgressService
 from app.services.learning_utils import build_course_id
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
@@ -328,7 +336,7 @@ class _StubAgent:
 
 
 def _patch_course_agent(monkeypatch, stub_factory) -> None:
-    """把 ``LearningService._build_course_agent`` 替换为返回 stub 的工厂。
+    """把 ``CourseGeneratorService._build_course_agent`` 替换为返回 stub 的工厂。
 
     Args:
         stub_factory: ``Callable[[CoursePackageRepo], _StubAgent]`` — 接收
@@ -336,7 +344,7 @@ def _patch_course_agent(monkeypatch, stub_factory) -> None:
             agent（写语义委托同一仓库，C1）。
     """
     monkeypatch.setattr(
-        LearningService,
+        CourseGeneratorService,
         "_build_course_agent",
         lambda self, repo: stub_factory(repo),
     )
@@ -421,9 +429,9 @@ async def test_generate_course_writes_three_files(
         lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
     )
 
-    svc = LearningService(
+    svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
-        repo=LearningRepo(),
+        progress_svc=LearningProgressService(repo=LearningRepo()),
     )
     cid = await svc.generate_course(topic="Rust 入门", owner="user-1")
 
@@ -472,9 +480,13 @@ async def test_generate_course_upserts_progress_with_ready_status(
     )
 
     repo = LearningRepo()
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="user-1")
 
+    # mark_ready 经注入的真实 LearningProgressService → 真实 LearningRepo 落库
     progress = await repo.get_progress("user-1", cid)
     assert progress is not None
     assert progress.status == "ready"
@@ -497,7 +509,10 @@ async def test_generate_course_persists_goal_when_provided(
     _patch_course_agent(monkeypatch, _factory)
 
     repo = LearningRepo()
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
     cid = await svc.generate_course(
         topic="Rust 入门",
         owner="user-1",
@@ -525,7 +540,10 @@ async def test_generate_course_is_idempotent(
         lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
     )
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     cid1 = await svc.generate_course(topic="Rust 入门", owner="user-1")
     cid2 = await svc.generate_course(topic="Rust 入门", owner="user-1")
     assert cid1 == cid2  # 同 course_id
@@ -550,7 +568,10 @@ async def test_generate_course_raises_when_agent_run_fails(
         ),
     )
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     with pytest.raises(RuntimeError, match="course agent boom"):
         await svc.generate_course(topic="Rust 入门", owner="user-1")
 
@@ -573,7 +594,10 @@ async def test_generate_course_retries_when_output_schema_parse_fails(
         ),
     )
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="user-1")
 
     # 重试确实发生（arun 被调 2 次），最终只落盘一课
@@ -606,7 +630,10 @@ async def test_generate_course_retries_when_lesson_body_missing(
         ),
     )
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="user-1")
 
     # 重试确实发生（arun 被调 2 次），最终只落盘一课
@@ -638,7 +665,10 @@ async def test_generate_course_raises_after_both_attempts_fail(
         ),
     )
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     with pytest.raises(RuntimeError, match="CourseAgent"):
         await svc.generate_course(topic="Rust 入门", owner="user-1")
     assert holder["stub"].arun_call_count == 2
@@ -658,7 +688,10 @@ async def test_generate_course_writes_mission_md(
         _stub_factory(holder, payload=_step1_payload(cid)),
     )
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
     mission_path = tmp_course_dir / cid / "MISSION.md"
@@ -681,7 +714,10 @@ async def test_generate_next_lesson_keeps_mission_md(
 ):
     """渐进产出 next 课不覆盖 MISSION.md；read_mission 可读回（task-365）。"""
     cid = build_course_id("Rust 入门")
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
 
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
@@ -724,7 +760,10 @@ async def test_get_course_includes_mission_md(
         monkeypatch,
         lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
     )
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
     payload = await svc.get_course(owner="u1", course_id=cid)
@@ -754,7 +793,10 @@ async def test_generate_next_lesson_writes_next_file(
     全文非空,衔接上下文仍被保证。
     """
     cid = build_course_id("Rust 入门")
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
 
     # 先用「首课」stub 准备第 1 课(写 0001-lesson-1.md)
     first_holder: dict[str, _StubAgent] = {}
@@ -815,7 +857,10 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
         monkeypatch,
         lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
     )
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
     # 在 lessons/ 下放一个 race 占位文件 — glob 匹配但 regex 拒绝
@@ -839,7 +884,10 @@ async def test_get_course_assembles_multiple_lessons_in_order(
     第 1 课 + 追加的第 2 课 → 装配时 id 升序,共享 resource.md 仍只有一份。
     """
     cid = build_course_id("Rust 入门")
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
 
     _patch_course_agent(
         monkeypatch,
@@ -879,34 +927,13 @@ async def test_get_course_assembles_multiple_lessons_in_order(
 async def test_get_course_returns_none_for_missing_progress(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     assert (
         await svc.get_course(owner="ghost", course_id="nope--00000000")
     ) is None
-
-
-async def test_create_pending_persists_goal(
-    monkeypatch, tmp_course_dir, clean_collection
-):
-    """create_pending 带 goal → pending 记录含 goal;不带 → goal 为 None。"""
-    repo = LearningRepo()
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
-
-    await svc.create_pending(
-        owner="u1",
-        course_id="c--00000001",
-        topic="T",
-        goal="能独立复述论证结构",
-    )
-    doc = await repo.get_progress("u1", "c--00000001")
-    assert doc is not None
-    assert doc.status == "pending"
-    assert doc.goal == "能独立复述论证结构"
-
-    await svc.create_pending(owner="u1", course_id="c--00000002", topic="T2")
-    doc2 = await repo.get_progress("u1", "c--00000002")
-    assert doc2 is not None
-    assert doc2.goal is None
 
 
 async def test_get_course_returns_pending_when_status_is_pending(
@@ -919,7 +946,10 @@ async def test_get_course_returns_pending_when_status_is_pending(
         topic="T",
         status="pending",
     )
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
     payload = await svc.get_course(owner="u1", course_id="c--00000001")
     assert payload == {"status": "pending"}
 
@@ -931,7 +961,10 @@ async def test_get_course_returns_none_when_status_is_failed(
     await repo.upsert_progress(
         owner="u1", course_id="c--00000001", topic="T", status="failed"
     )
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
     assert await svc.get_course(owner="u1", course_id="c--00000001") is None
 
 
@@ -944,7 +977,10 @@ async def test_get_course_returns_full_package_when_ready(
         lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
     )
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
     payload = await svc.get_course(owner="u1", course_id=cid)
@@ -966,75 +1002,6 @@ async def test_get_course_returns_full_package_when_ready(
     assert "速查表" in course.resource_md
 
 
-# ── mark_progress / list_progress / merge_progress ────────────────────
-
-
-async def test_mark_progress_appends_session_done_idempotently(
-    monkeypatch, tmp_course_dir, clean_collection
-):
-    cid = build_course_id("Rust 入门")
-    _patch_course_agent(
-        monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
-    )
-    repo = LearningRepo()
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1")
-
-    # 重复调用不应膨胀 sessions_done 列表
-    await svc.mark_progress(owner="u1", course_id=cid, session_done=1)
-    await svc.mark_progress(owner="u1", course_id=cid, session_done=1)
-    await svc.mark_progress(owner="u1", course_id=cid, session_done=2)
-
-    items = await svc.list_progress(owner="u1")
-    assert len(items) == 1
-    assert sorted(items[0]["sessions_done"]) == [1, 2]
-    assert items[0]["next_session"] == 3
-
-
-async def test_mark_progress_sets_exercise_done(
-    monkeypatch, tmp_course_dir, clean_collection
-):
-    cid = build_course_id("Rust 入门")
-    _patch_course_agent(
-        monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
-    )
-    repo = LearningRepo()
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1")
-
-    out = await svc.mark_progress(
-        owner="u1", course_id=cid, exercise_done=True
-    )
-    assert out is not None
-    assert out["exercise_done"] is True
-
-
-async def test_mark_progress_returns_none_for_missing(
-    monkeypatch, tmp_course_dir, clean_collection
-):
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    assert (
-        await svc.mark_progress(owner="ghost", course_id="x--00000000")
-    ) is None
-
-
-async def test_merge_progress_returns_zero_for_self_merge(
-    monkeypatch, tmp_course_dir, clean_collection
-):
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    assert await svc.merge_progress("u1", "u1") == 0
-
-
-async def test_merge_progress_returns_zero_for_empty_owners(
-    monkeypatch, tmp_course_dir, clean_collection
-):
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    assert await svc.merge_progress("", "u1") == 0
-    assert await svc.merge_progress("anon:x", "") == 0
-
-
 # ── session_id 跨轮复用（task-373） ──────────────────────────────────────
 
 
@@ -1051,7 +1018,10 @@ async def test_generate_course_persists_session_id(
     )
 
     repo = LearningRepo()
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="user-1")
 
     progress = await repo.get_progress("user-1", cid)
@@ -1070,7 +1040,10 @@ async def test_generate_next_lesson_reuses_session_id(
     给 agent 的 arun — 实现跨轮 agno 会话复用。
     """
     cid = build_course_id("Rust 入门")
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
 
     # 首课：写 0001-lesson-1.md，同时落库 progress.session_id
     first_holder: dict[str, _StubAgent] = {}
@@ -1118,14 +1091,18 @@ async def test_preview_next_lesson_returns_context_when_ready(
 ):
     """进度 ready + 磁盘空 → NextLessonContext(next_num=1, already_generated=False)。"""
     cid = build_course_id("Rust 入门")
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    await svc._repo.upsert_progress(
+    repo = LearningRepo()
+    await repo.upsert_progress(
         owner="u1",
         course_id=cid,
         topic="Rust 入门",
         status="ready",
         goal="g",
         session_id="sess-1",
+    )
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
     )
 
     ctx = await svc.preview_next_lesson("u1", cid)
@@ -1145,9 +1122,13 @@ async def test_preview_next_lesson_already_generated_when_file_exists(
     repo = CoursePackageRepo(course_id=cid, tmp_dir=tmp_course_dir)
     repo.write_lesson(slug="lesson-1", lesson_md="# l1")
 
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    await svc._repo.upsert_progress(
+    progress_repo = LearningRepo()
+    await progress_repo.upsert_progress(
         owner="u1", course_id=cid, topic="Rust 入门", status="ready"
+    )
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=progress_repo),
     )
 
     ctx = await svc.preview_next_lesson("u1", cid)
@@ -1167,10 +1148,14 @@ async def test_preview_next_lesson_returns_none_when_missing_or_failed(
     monkeypatch, tmp_course_dir, clean_collection
 ):
     """进度不存在 / failed → 返回 None（API 层据此回 failed 包）。"""
-    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    repo = LearningRepo()
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
     assert await svc.preview_next_lesson("ghost", "c--00000000") is None
 
-    await svc._repo.upsert_progress(
+    await repo.upsert_progress(
         owner="u1", course_id="c--00000001", topic="T", status="failed"
     )
     assert await svc.preview_next_lesson("u1", "c--00000001") is None

@@ -1,22 +1,40 @@
-"""Learning course generation service (D2/D3 决策, task-351 重构, task-3553 切换 agent_driven).
+"""Course generation service (task-374 C2 拆分：生成编排 + 混合读 + agent 构造).
+
+从 fat :class:`app.services.learning_service.LearningService` 拆出的**生成侧**
+service：课程生成编排（``generate_course`` / ``generate_next_lesson``）、两个
+混合读（``get_course`` / ``preview_next_lesson``）与 course agent 构造
+（``_build_course_agent`` / ``_generate_lesson``）。模块同时持有顶层 schema
+``ExerciseBundle`` / ``LessonResourceOutput`` / ``NextLessonContext``。
+
+与纯进度侧 :class:`app.services.learning_progress_service.LearningProgressService`
+的边界（C2）：本类**不直接持有 ``LearningRepo``**，进度读写全部在构造时注入
+的 ``progress_svc`` 上进行——
+
+- ``generate_course`` 成功落盘后经 ``progress_svc.mark_ready`` 置 ``ready``
+  （替代原 ``LearningService._repo.upsert_progress(status="ready")``）。
+- ``get_course`` / ``preview_next_lesson`` 经 ``progress_svc.get_progress``
+  取状态门（None/failed→None、pending→{"status":"pending"}）与
+  topic / goal / session_id。
+
+依赖方向：handler → service → repo；service → service（本类 → 纯进度类）
+单向向下，无循环。
 
 agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 agent run**：
 
-- 单一课程 agent 绑定三个磁盘工具（save_lesson / save_resource /
-  read_previous_lesson）+ 可选研究工具（Exa + Context7），在一次 ``arun``
-  内自主完成「写课 + 写 resource + 出题」，最终响应解析为 ``ExerciseBundle``。
+- 单一课程 agent 绑定五个磁盘工具（save_lesson / save_resource /
+  read_previous_lesson / save_mission / read_mission）+ 可选研究工具（Exa +
+  Context7），在一次 ``arun`` 内自主完成「写课 + 写 resource + 出题」，最终
+  响应解析为 ``ExerciseBundle``。
 - 一课一文件落盘到 ``<learning-root>/<course-id>/lessons/0001-<slug>.md``
   （learning-root 默认 ``<backend>/tmp/learning``，可用 ``LEARNING_ROOT_DIR``
-  环境变量配置；课程包布局统一由 :class:`CoursePackageRepo` 拥有）；
-  同目录 ``0001-<slug>.exercise.md`` 由 service 在 run 后消费
-  ``repo.last_written_lesson`` 的 ``num / slug`` 落盘（显式交接，不再从磁盘
-  反推），与 lesson body 严格同名对应；``resource.md`` 由 agent 经
-  ``save_resource`` 写盘。YAML front matter 用 ``yaml.safe_dump`` 序列化。
-- ``LearningProgress`` 统一经 ``LearningRepo`` 持久化（upsert / 查询 / 合并）。
+  环境变量配置；课程包布局统一由 :class:`CoursePackageRepo` 拥有）。
+- ``LearningProgress`` 统一经注入的 ``progress_svc`` 持久化（mark_ready /
+  get_progress），不感知 agno / DeepSeek / 磁盘布局。
 
 设计依据：
-- spec：``task-334``（PR #22 决策 #24 课程包结构）、``task-351``（一课一文件 + 渐进产出）、
-  ``task-3553``（三步流水线 → 一次 course agent run）
+- spec：``task-334``（PR #22 决策 #24 课程包结构）、``task-351``（一课一文件 +
+  渐进产出）、``task-3553``（三步流水线 → 一次 course agent run）、
+  ``task-374``（C2 拆分 fat LearningService）
 - DeepSeek 仅支持 JSON mode（``json_object``），不支持原生 json_schema；
   ``agno.models.deepseek.DeepSeek.supports_native_structured_outputs=False``
   → 必须在 ``create_agent`` 显式 ``use_json_mode=True``，否则
@@ -48,11 +66,10 @@ from app.core.llm_prompts import (
 )
 from app.core.logger import logger
 from app.repositories.course_package_repo import CoursePackageRepo
-from app.repositories.learning_repo import LearningRepo
 from app.schemas.learning import CoursePackage, Exercise
+from app.services.learning_progress_service import LearningProgressService
 from app.services.learning_tools import create_learning_tools
 from app.services.learning_utils import (
-    _progress_to_dict,
     _unwrap_model,
     build_course_id,
 )
@@ -105,8 +122,8 @@ class NextLessonContext:
 # ── service ─────────────────────────────────────────────────────────── #
 
 
-class LearningService:
-    """课程生成 service：一次 course agent run + 一课一文件 + 渐进产出。
+class CourseGeneratorService:
+    """课程生成 service：一次 course agent run + 一课一文件 + 渐进产出（C2 生成侧）。
 
     Args:
         model: 可选注入；为 None 时用 ``create_deepseek_model()`` 默认值。
@@ -116,9 +133,12 @@ class LearningService:
             避免 ``deepcopy(agent)`` 复制 run state / session 缓存带来的
             共享状态风险。
         tmp_dir: 课程包根目录；为 None 时依次取 ``LEARNING_ROOT_DIR`` 环境变量、
-            无则回退 ``<backend>/tmp/learning``。单元测试可注入 :class:`pathlib.Path`
-            指向临时目录。
-        repo: 可选的进度仓库；为 None 时用 :class:`LearningRepo` 默认实例。
+            无则回退 ``<backend>/tmp/learning``。单元测试可注入
+            :class:`pathlib.Path` 指向临时目录。
+        progress_svc: 进度领域 service（**必填**，C2 拆分后本类不再持有
+            ``LearningRepo``）：生成成功经
+            :meth:`LearningProgressService.mark_ready` 落库，混合读经
+            :meth:`LearningProgressService.get_progress` 取状态门。
     """
 
     def __init__(
@@ -127,19 +147,19 @@ class LearningService:
         model: Model | None = None,
         agent: Agent | None = None,
         tmp_dir: Path | None = None,
-        repo: LearningRepo | None = None,
+        progress_svc: LearningProgressService,
     ) -> None:
         self._model = model
         self._agent = agent
         self._tmp_dir = tmp_dir
-        self._repo = repo or LearningRepo()
+        self._progress_svc = progress_svc
 
     # ── 公开 API ────────────────────────────────────────────────────── #
 
     async def generate_course(
         self, topic: str, owner: str, goal: str | None = None
     ) -> str:
-        """生成**第 1 课**并落盘，同步写一条 ``LearningProgress(status="ready")``。
+        """生成**第 1 课**并落盘，经 ``progress_svc.mark_ready`` 落 ready 进度。
 
         落盘结构：
 
@@ -178,12 +198,12 @@ class LearningService:
             session_id=session_id,
         )
 
-        # 落盘成功后再持久化进度，避免半成品状态。
-        await self._repo.upsert_progress(
+        # 落盘成功后再持久化进度，避免半成品状态。C2 拆分后置 ready 委托
+        # 注入的 progress_svc（本类不持有 LearningRepo）。
+        await self._progress_svc.mark_ready(
             owner=owner,
             course_id=course_id,
             topic=topic,
-            status="ready",
             goal=goal,
             session_id=session_id,
         )
@@ -274,7 +294,7 @@ class LearningService:
             - ``ready``：``{"status": "ready", "course": CoursePackage}``，
               ``course.lessons`` 只含已生成的课（仅按磁盘实际文件列表）。
         """
-        progress = await self._repo.get_progress(owner, course_id)
+        progress = await self._progress_svc.get_progress(owner, course_id)
         if progress is None or progress.status == "failed":
             return None
 
@@ -301,67 +321,6 @@ class LearningService:
             ),
         }
 
-    async def list_progress(self, owner: str) -> list[dict[str, Any]]:
-        """列出 owner 的课程进度，每条含推导出的 ``next_session``。"""
-        docs = await self._repo.list_progress(owner)
-        return [_progress_to_dict(doc) for doc in docs]
-
-    async def mark_progress(
-        self,
-        owner: str,
-        course_id: str,
-        *,
-        session_done: int | None = None,
-        exercise_done: bool | None = None,
-    ) -> dict[str, Any] | None:
-        """标记进度：追加完成的 session 或设置 exercise_done（幂等）。
-
-        Returns:
-            更新后的进度 dict；进度不存在返回 None。
-        """
-        doc = None
-        if session_done is not None:
-            doc = await self._repo.add_session_done(
-                owner, course_id, session_done
-            )
-        if exercise_done is not None:
-            doc = await self._repo.set_exercise_done(
-                owner, course_id, exercise_done
-            )
-        if doc is None:
-            # 无 mutation 时补读一次；mutation 已返回同步后的最新文档。
-            doc = await self._repo.get_progress(owner, course_id)
-        if doc is None:
-            return None
-        return _progress_to_dict(doc)
-
-    async def create_pending(
-        self, owner: str, course_id: str, topic: str, goal: str | None = None
-    ) -> None:
-        """API 提交阶段：先 upsert 一条 ``LearningProgress(status="pending")``。
-
-        与 :meth:`generate_course` 的 ``_upsert_progress``（置 ``ready``）对称：
-        API 收到主题后立刻落库一条 pending 记录，``course_id`` 同步返回给前端
-        用于轮询；再 ``.kiq()`` 异步任务，最后由 worker 把状态置 ``ready``。
-
-        复用 :meth:`LearningRepo.upsert_progress` 的并发安全语义（按唯一索引
-        ``(owner, course_id)`` 处理 ``DuplicateKeyError``），原
-        ``sessions_done`` / ``exercise_done`` 不会被覆盖。
-
-        Args:
-            owner: 进度归属。
-            course_id: 课程 ID。
-            topic: 学习主题。
-            goal: 学习目标（可选），随 pending 记录落库。
-        """
-        await self._repo.upsert_progress(
-            owner=owner,
-            course_id=course_id,
-            topic=topic,
-            status="pending",
-            goal=goal,
-        )
-
     async def preview_next_lesson(
         self, owner: str, course_id: str
     ) -> NextLessonContext | None:
@@ -385,7 +344,7 @@ class LearningService:
         Returns:
             进度不存在 / ``failed`` → None；否则 :class:`NextLessonContext`。
         """
-        progress = await self._repo.get_progress(owner, course_id)
+        progress = await self._progress_svc.get_progress(owner, course_id)
         if progress is None or progress.status == "failed":
             return None
 
@@ -399,39 +358,6 @@ class LearningService:
             session_id=progress.session_id,
         )
 
-    async def merge_progress(self, anon_owner: str, user_owner: str) -> int:
-        """登录合并：将 anon_owner 进度合入 user_owner（并集 / OR）。
-
-        行为：
-        - ``anon_owner == user_owner``：直接返回 0，避免 repo 把同一 owner
-          的文档互相覆盖。
-        - 否则委托 ``LearningRepo.merge_anon_into_user``，返回成功合并的
-          课程数量。
-
-        Returns:
-            本次合并涉及的课程数量（0 表示无事可做或 self-merge）。
-
-        Note:
-            幂等：第一次合并后匿名文档会被删除，重复调用返回 0；
-            ``task-337`` 的登录路由负责在 user_owner 完成认证后调用一次。
-        """
-        if not anon_owner or not user_owner:
-            logger.bind(anon_owner=anon_owner, user_owner=user_owner).warning(
-                "learning merge_progress skipped: empty owner"
-            )
-            return 0
-        if anon_owner == user_owner:
-            logger.bind(owner=anon_owner).info(
-                "learning merge_progress skipped: anon_owner == user_owner"
-            )
-            return 0
-
-        merged = await self._repo.merge_anon_into_user(anon_owner, user_owner)
-        logger.bind(
-            anon_owner=anon_owner, user_owner=user_owner, merged=merged
-        ).info("learning anon progress merged into user")
-        return merged
-
     # ── 内部 ──────────────────────────────────────────────────────── #
 
     def _build_course_agent(self, repo: CoursePackageRepo) -> Agent:
@@ -441,10 +367,11 @@ class LearningService:
 
         - **instructions** 用融合的 :data:`COURSE_AGENT_INSTRUCTIONS`
           （写课 + 出题 + 工具使用 + 研究 + ZPD 说明），不再分 Step1 / Step2。
-        - **tools 显式传**：:func:`create_learning_tools` 返回的三个磁盘工具
-          （save_lesson / save_resource / read_previous_lesson）为基底；配置了
-          ``EXA_API_KEY`` 时再追加研究工具（ExaTools + Context7 MCPTools），
-          未配置则不挂（优雅降级——agent 上下文里没有搜索工具，自然跳过研究）。
+        - **tools 显式传**：:func:`create_learning_tools` 返回的五个磁盘工具
+          （save_lesson / save_resource / read_previous_lesson / save_mission /
+          read_mission）为基底；配置了 ``EXA_API_KEY`` 时再追加研究工具
+          （ExaTools + Context7 MCPTools），未配置则不挂（优雅降级——agent
+          上下文里没有搜索工具，自然跳过研究）。
         - 注入 ``self._agent`` 时以其 model / db 为模板新建一份；否则走 factory
           ``create_deepseek_model`` + ``create_postgres_db``。
 
@@ -605,8 +532,8 @@ class LearningService:
 
 
 __all__ = [
+    "CourseGeneratorService",
     "ExerciseBundle",
-    "LearningService",
     "LessonResourceOutput",
     "NextLessonContext",
 ]

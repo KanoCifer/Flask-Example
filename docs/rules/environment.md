@@ -27,7 +27,7 @@
 | ------------------- | ---------------------------------------------------------------------------------------- |
 | `DEEPSEEK_API_KEY`  | DeepSeek API key（Learning 模块专用，独立于 AntLLM 的 `API_KEY`）。为空时 `create_deepseek_model()` 立即抛 `RuntimeError`，老特性不受影响。 |
 | `EXA_API_KEY`       | Exa 研究 API key（Learning 课程 agent 研究工具裁剪）。为空时课程 agent **不挂** Exa/Context7 研究工具（优雅降级，模型自然跳过研究）；配置后才挂 `ExaTools` + Context7 `MCPTools`，由模型自主决定何时调用研究。 |
-| `LEARNING_ROOT_DIR` | Learning 课程包根目录（所有学习资源的根，课程按 `<course_id>/` 包一层在其下）。为空时用默认值 `<backend>/tmp/learning`；配置为绝对或相对路径时作为根目录（相对路径相对于进程 CWD）。优先级：构造 `LearningService` 注入的 `tmp_dir` > 本变量 > 默认值。 |
+| `LEARNING_ROOT_DIR` | Learning 课程包根目录（所有学习资源的根，课程按 `<course_id>/` 包一层在其下）。为空时用默认值 `<backend>/tmp/learning`；配置为绝对或相对路径时作为根目录（相对路径相对于进程 CWD）。优先级：构造 `CourseGeneratorService` 注入的 `tmp_dir` > 本变量 > 默认值。 |
 
 - base_url：`https://api.deepseek.com`（`create_deepseek_model` 内置，无需环境变量）。
 - 支持的 model id：`deepseek-v4-pro`、`deepseek-v4-flash`（白名单硬编码，传入其他值会抛 `ValueError`）。

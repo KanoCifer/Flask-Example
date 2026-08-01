@@ -30,3 +30,6 @@ kanocifer.chat是一个个人阅读追踪 + 博客系统，名称源于日语 "k
 | GalleryImage      | 图库图片，PostgreSQL `pic` 表 + Redis 缓存，瀑布流展示                                          |
 | Event             | 系统事件（PostgreSQL `event` 表），承载 startup / deploy / notify_failure 等业务事件            |
 | Admin             | 非角色系统。硬编码 `user.id in ADMIN_USER_IDS` 为管理员，用于内容审核、部署触发、系统监控       |
+| Learning          | AI 课程生成模块（后端 service，agno/DeepSeek agent 驱动，课程包落盘）                                              |
+| LearningProgress  | 用户/课程学习进度（MongoDB `learning_progress`，`(owner, course_id)` 唯一），状态三态 pending/ready/failed，字段 sessions_done / exercise_done / session_id |
+| CoursePackage     | 磁盘课程包（CoursePackageRepo 持有），布局 `<course_id>/{lessons/0001-<slug>.md, 0001-<slug>.exercise.md, resource.md, MISSION.md}`，course_id 格式 `<slug>--<8hex>` |

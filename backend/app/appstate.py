@@ -25,11 +25,12 @@ from app.repositories import (
 )
 from app.repositories.user import UserRepo
 from app.services.ai_service import AiService
+from app.services.course_generator_service import CourseGeneratorService
 from app.services.device_service import DeviceService
 from app.services.fishing.fishing_service import FishingService
 from app.services.friendlink_service import FriendLinkService
 from app.services.gallery_service import GalleryService
-from app.services.learning_service import LearningService
+from app.services.learning_progress_service import LearningProgressService
 from app.services.notification_service import NotificationService
 from app.services.public_service import PublicService
 from app.services.rss_service import RssService
@@ -61,7 +62,8 @@ class AppState:
     fishing_svc: FishingService
     friendlink_svc: FriendLinkService
     ai_svc: AiService
-    learning_svc: LearningService
+    progress_svc: LearningProgressService
+    course_gen_svc: CourseGeneratorService
 
 
 def new_app_state(redis: AsyncRedis) -> AppState:
@@ -111,7 +113,10 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         ai_agent=ai_agent,
         fishing_svc=fishing_svc,
     )
-    learning_svc = LearningService()
+    # C2 拆分：进度领域 + 生成编排两个 service；course_gen 依赖 progress_svc
+    # （生成成功 mark_ready、混合读 get_progress），构造顺序不能反。
+    progress_svc = LearningProgressService()
+    course_gen_svc = CourseGeneratorService(progress_svc=progress_svc)
 
     return AppState(
         user_svc=user_svc,
@@ -128,7 +133,8 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         fishing_svc=fishing_svc,
         friendlink_svc=friendlink_svc,
         ai_svc=ai_svc,
-        learning_svc=learning_svc,
+        progress_svc=progress_svc,
+        course_gen_svc=course_gen_svc,
     )
 
 

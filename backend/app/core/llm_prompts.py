@@ -21,7 +21,7 @@ DEFAULT_GOAL_HINT = "未提供,请从主题推断学习目标"
 # 单一课程 agent 的系统指令（agent_driven 重构第 3 步，task-3552）。
 # 融合原 STEP1（写 lesson_md + resource_md + title/slug 元数据）与 STEP2
 # （出 ExerciseBundle 练习）两套规范，并补充工具使用 / 研究 / 收尾说明。
-# 本常量由 :meth:`LearningService._build_course_agent` 使用；三步流水线已在
+# 本常量由 :meth:`CourseGeneratorService._build_course_agent` 使用；三步流水线已在
 # task-3553 删除，旧 STEP1_INSTRUCTIONS / STEP2_INSTRUCTIONS /
 # STEP1_USER_PROMPT_TEMPLATE / STEP2_USER_PROMPT_TEMPLATE / STEP2_RETRY_HINT
 # 已被清理（task-3556 / task-3558），内容全部融合进本常量。
@@ -101,7 +101,7 @@ COURSE_AGENT_USER_PROMPT_TEMPLATE = (
     "（``exercises`` 是本课的练习任务列表，不要包含解释文字 / Markdown / 代码围栏）。"
 )
 
-# 课程 agent 整 run 兜底重试的修正指令（task-3554）：:meth:`LearningService.
+# 课程 agent 整 run 兜底重试的修正指令（task-3554）：:meth:`CourseGeneratorService.
 # _generate_lesson` 在「磁盘缺 body 文件」或「ExerciseBundle 解析失败」时，把
 # 本提示追加到用户消息末尾重跑一次，指示 agent 修正上次失败原因。
 COURSE_AGENT_RETRY_HINT = (

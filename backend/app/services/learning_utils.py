@@ -1,6 +1,7 @@
 """Learning 模块的自由函数与纯工具（从 ``learning_service`` 提取，独立可测）。
 
-与 :class:`LearningService` 无实例状态关联的纯函数集中于此，便于独立单测与复用：
+与 :class:`CourseGeneratorService` / :class:`LearningProgressService` 无实例状态
+关联的纯函数集中于此，便于独立单测与复用：
 
 - 响应解析：:func:`_unwrap_model` — agent run 响应 → Pydantic 模型
   （``isinstance`` 命中 / dict 兜底 / str 失败）。
@@ -10,8 +11,8 @@
 C1 深化（CoursePackageStore）后，本模块**不再**拥有任何磁盘课程包知识：
 布局 / 命名约定 / 扫描 / 原子写 / 装配 / 练习解析渲染已全部迁入
 :class:`app.repositories.course_package_repo.CoursePackageRepo`，本模块只留
-纯文本与身份工具，被 ``learning_service`` 与测试共同引用；不 import 上层
-模块（无循环依赖）。
+纯文本与身份工具，被 ``course_generator_service`` / ``learning_progress_service``
+与测试共同引用；不 import 上层模块（无循环依赖）。
 """
 
 from __future__ import annotations
