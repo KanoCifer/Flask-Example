@@ -33,6 +33,8 @@ from agno.tools.function import Function
 
 from app.services.learning_utils import (
     _last_lesson_md,
+    _read_md,
+    _write_md,
     lesson_file_exists,
     list_existing_lesson_ids,
 )
@@ -95,8 +97,7 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         Returns:
             落盘文件名 resource.md。
         """
-        root.mkdir(parents=True, exist_ok=True)
-        resource_path.write_text(resource_md, encoding="utf-8")
+        _write_md(resource_path, resource_md, overwrite=True)
         return "resource.md"
 
     @tool(show_result=True)
@@ -126,13 +127,11 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         Returns:
             落盘文件名 MISSION.md；已存在则返回跳过提示（不重复写）。
         """
-        if mission_path.exists():
+        if not _write_md(mission_path, mission_md, overwrite=False):
             return (
                 "MISSION.md already exists, skipped writing (idempotent); "
                 "keep existing mission"
             )
-        root.mkdir(parents=True, exist_ok=True)
-        mission_path.write_text(mission_md, encoding="utf-8")
         return "MISSION.md"
 
     @tool(show_result=True)
@@ -145,9 +144,7 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         Returns:
             MISSION.md 全文；无该文件时返回空字符串 ""。
         """
-        if not mission_path.exists():
-            return ""
-        return mission_path.read_text(encoding="utf-8")
+        return _read_md(mission_path) or ""
 
     return [save_lesson, save_resource, read_previous_lesson, save_mission, read_mission]
 

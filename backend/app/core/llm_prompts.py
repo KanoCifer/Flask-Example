@@ -15,6 +15,8 @@
 # lesson.md / exercise.md 公共 front matter 字段，与原型 sample 对齐。
 LEARNING_MODEL_ID = "deepseek-v4-flash"
 LANGUAGE = "zh"
+# 用户未提供 goal 时填入用户消息的缺省提示（task-3654/3655），由 service 引用。
+DEFAULT_GOAL_HINT = "未提供,请从主题推断学习目标"
 
 # 单一课程 agent 的系统指令（agent_driven 重构第 3 步，task-3552）。
 # 融合原 STEP1（写 lesson_md + resource_md + title/slug 元数据）与 STEP2
@@ -43,7 +45,6 @@ COURSE_AGENT_INSTRUCTIONS = (
     "  - ``## Success looks like``（- 可观察的具体结果）\n"
     "  - ``## Constraints``（- 时间/预算/学习偏好等边界）\n"
     "  - ``## Out of scope``（- 明确不想现在学的相邻主题）\n"
-    "- MISSION.md 已存在（渐进产出 / 整 run 重试）**不要覆盖**。\n"
     "- 后续每课生成前用 ``read_mission()`` 读 MISSION.md，让教学决策溯源到课程目标；"
     "keep it short（不超过一屏）。\n\n"
     "## 研究说明\n"
@@ -88,7 +89,7 @@ COURSE_AGENT_INSTRUCTIONS = (
 # ZPD 不再由 service 拼进 prompt——``read_previous_lesson()`` 工具由 agent
 # 自读；研究由 agent 自主决定是否调用（研究工具可选挂载）。
 # ``{goal}`` 槽（task-3654/3655）：学习目标。service 负责缺省——
-# 用户没提供时传「未提供,请从主题推断学习目标」，本模板只留占位。
+# 用户没提供时传 :data:`DEFAULT_GOAL_HINT`，本模板只留占位。
 COURSE_AGENT_USER_PROMPT_TEMPLATE = (
     "课程主题：{topic}\n"
     "course_id：{course_id}\n"

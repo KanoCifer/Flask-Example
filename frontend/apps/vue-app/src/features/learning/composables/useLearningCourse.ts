@@ -85,8 +85,6 @@ export function useLearningCourse() {
       error.value = msg;
       throw new Error(msg);
     }
-    const goal = inputGoal?.trim() || undefined;
-
     // 并发保护:上一个还没结束,直接拒绝(避免双 timer)。
     if (submitting.value) {
       const msg = '上一门课程正在生成中,请稍候…';
@@ -101,7 +99,7 @@ export function useLearningCourse() {
     courseStatus.value = null;
 
     try {
-      const created = await learningGateway.createCourse(trimmed, goal);
+      const created = await learningGateway.createCourse(trimmed, inputGoal);
       pendingCourseId.value = created.course_id;
 
       // 立即 GET 一次,可能后端同步生成好,直接拿到 ready 走 fast-path。

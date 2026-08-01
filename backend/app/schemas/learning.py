@@ -14,7 +14,9 @@ class CourseGenerateInput(BaseModel):
 
     topic: str = Field(..., min_length=1, description="要学习的主题")
     goal: str | None = Field(
-        default=None, description="学习目标（可选），用于组织 MISSION.md 具体文案"
+        default=None,
+        max_length=200,
+        description="学习目标（可选，≤200 字符），用于组织 MISSION.md 具体文案",
     )
 
 

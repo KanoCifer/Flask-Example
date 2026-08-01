@@ -223,8 +223,8 @@ describe('LearningList', () => {
     await flushPromises();
     await flushPromises();
 
-    // 不填目标 → createCourse(topic, undefined)
-    expect(createCourseMock).toHaveBeenCalledWith('Rust 入门', undefined);
+    // 不填目标 → createCourse(topic, '')，gateway 端归一化（空串不落 body）
+    expect(createCourseMock).toHaveBeenCalledWith('Rust 入门', '');
     expect(getCourseMock).toHaveBeenCalledWith('rust--abc12345');
     // submitTopic 完成后 router.push 到课程详情
     expect(pushMock).toHaveBeenCalledWith(

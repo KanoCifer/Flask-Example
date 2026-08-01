@@ -113,6 +113,7 @@ class _MockLearningProgress:
 
     topic: str
     status: str = "ready"
+    goal: str | None = None
 
 
 @dataclass

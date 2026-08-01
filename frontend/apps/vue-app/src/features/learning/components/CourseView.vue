@@ -70,7 +70,6 @@ const resourceHtml = computed(() =>
 const missionHtml = computed(() =>
   course.value?.mission_md?.trim() ? renderMarkdown(course.value.mission_md) : '',
 );
-const hasMission = computed(() => missionHtml.value.length > 0);
 
 /** 当前课程在 progressList 里的最新条目;可能 undefined(冷启动)。 */
 const progressItem = computed<LearningProgressItem | undefined>(() =>
@@ -312,7 +311,7 @@ useHead({
 
         <!-- Mission (task-365):学习使命文档,缺失时整块隐藏 -->
         <section
-          v-if="hasMission"
+          v-if="missionHtml"
           class="bg-card ring-border/40 mb-5 rounded-2xl ring-1"
         >
           <div class="border-border/40 flex items-center gap-2 border-b px-4 py-3 sm:px-5">

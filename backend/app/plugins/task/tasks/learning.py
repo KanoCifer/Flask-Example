@@ -81,6 +81,7 @@ async def generate_next_lesson(
     topic: str,
     owner: str,
     course_id: str,
+    goal: str | None = None,
 ) -> int | None:
     """渐进产出：在已有课程下生成下一课并落盘（task-352）。
 
@@ -96,6 +97,8 @@ async def generate_next_lesson(
     :param topic: 课程主题（API 层从 progress 读出后传入）。
     :param owner: 进度归属（user_id 或 anon_id）。
     :param course_id: 课程 ID。
+    :param goal: 学习目标（可选，API 层从 progress 读出转发，保证 prompt 与
+        MISSION.md 目标一致）。
     :return: 新课编号；幂等命中（已存在）时返回 None。
     """
     logger.bind(course_id=course_id, owner=owner, topic=topic).info(
@@ -107,7 +110,7 @@ async def generate_next_lesson(
 
         learning_svc: LearningService = app.state.services.learning_svc
         next_num = await learning_svc.generate_next_lesson(
-            topic=topic, owner=owner, course_id=course_id
+            topic=topic, owner=owner, course_id=course_id, goal=goal
         )
     except Exception as exc:
         logger.bind(course_id=course_id, owner=owner).error(

@@ -47,31 +47,25 @@ class LearningRepo:
     ) -> LearningProgress:
         """创建或替换一条进度记录（按唯一索引 (owner, course_id)）。
 
-        - 已存在：以 (topic, status, goal) 替换，原 sessions_done / exercise_done 保留。
-        - 不存在：插入新行，created_at 由模型默认值生成。
+        - 已存在：topic / status 无条件替换，goal 仅在非 ``None`` 时替换，
+          原 sessions_done / exercise_done 保留。
+        - 不存在：插入新行，created_at 由模型默认值生成；goal 不传则为 None。
 
-        ``goal`` 为可选：传入 ``None`` 时已存在记录保留原 goal，新记录不写该字段
-        （存量旧字段不迁移，见 task-365）。
+        存量旧字段不迁移，见 task-365。
         """
         existing = await self.get_progress(owner, course_id)
         if existing is not None:
-            existing.topic = topic
-            existing.status = status
-            if goal is not None:
-                existing.goal = goal
-            await existing.save()
+            await self._apply_upsert_fields(existing, topic, status, goal)
             return existing
 
-        kwargs: dict[str, object] = {
-            "owner": owner,
-            "course_id": course_id,
-            "topic": topic,
-            "status": status,
-            "created_at": datetime.now(UTC),
-        }
-        if goal is not None:
-            kwargs["goal"] = goal
-        new_doc = LearningProgress(**kwargs)
+        new_doc = LearningProgress(
+            owner=owner,
+            course_id=course_id,
+            topic=topic,
+            status=status,
+            goal=goal,
+            created_at=datetime.now(UTC),
+        )
         try:
             await new_doc.insert()
         except DuplicateKeyError:
@@ -79,13 +73,24 @@ class LearningRepo:
             existing = await self.get_progress(owner, course_id)
             if existing is None:  # pragma: no cover - 极端竞态
                 raise
-            existing.topic = topic
-            existing.status = status
-            if goal is not None:
-                existing.goal = goal
-            await existing.save()
+            await self._apply_upsert_fields(existing, topic, status, goal)
             return existing
         return new_doc
+
+    @staticmethod
+    async def _apply_upsert_fields(
+        doc: LearningProgress,
+        topic: str,
+        status: str,
+        goal: str | None,
+    ) -> LearningProgress:
+        """已存在分支的统一字段应用：topic/status 替换，goal 非 None 才替换。"""
+        doc.topic = topic
+        doc.status = status
+        if goal is not None:
+            doc.goal = goal
+        await doc.save()
+        return doc
 
     async def add_session_done(
         self, owner: str, course_id: str, session_num: int

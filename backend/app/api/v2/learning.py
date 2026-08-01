@@ -216,9 +216,13 @@ async def create_next_lesson(
             message="下一课已生成",
         )
 
-    # 5. 正常的异步路径
+    # 5. 正常的异步路径（goal 随 progress 读出转发，让后续课 prompt 与
+    #    MISSION.md 目标保持一致）
     await generate_next_lesson.kiq(
-        topic=progress.topic, owner=owner, course_id=course_id
+        topic=progress.topic,
+        owner=owner,
+        course_id=course_id,
+        goal=progress.goal,
     )
     logger.bind(course_id=course_id, owner=owner).info(
         "learning: next-lesson generation queued"

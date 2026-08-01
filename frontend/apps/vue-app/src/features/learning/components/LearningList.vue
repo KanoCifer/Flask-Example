@@ -46,6 +46,10 @@ const draft = ref('');
 /** 学习目标(可选)的本地草稿。 */
 const goalDraft = ref('');
 
+/** 主题 / 目标两个输入框共享的基座样式（宽度差异经 :class 拼接）。 */
+const inputCls =
+  'text-ink placeholder-muted bg-surface/40 focus-visible:ring-ring/40 border-border/60 rounded-lg border px-3 py-2.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60';
+
 /** 触发生成;ready 后跳转。 */
 async function onGenerate() {
   const t = draft.value.trim();
@@ -122,7 +126,7 @@ function statusLabel(item: LearningProgressItem): string {
             :disabled="submitting"
             placeholder="例如:康德《纯粹理性批判》的先验演绎"
             maxlength="120"
-            class="text-ink placeholder-muted bg-surface/40 focus-visible:ring-ring/40 border-border/60 flex-1 rounded-lg border px-3 py-2.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+            :class="[inputCls, 'flex-1']"
             @keydown.enter="onGenerate"
           />
           <Button
@@ -155,7 +159,7 @@ function statusLabel(item: LearningProgressItem): string {
           :disabled="submitting"
           placeholder="例如:能独立复述先验演绎的论证结构,并完成 5 道自测题"
           maxlength="200"
-          class="text-ink placeholder-muted bg-surface/40 focus-visible:ring-ring/40 border-border/60 w-full rounded-lg border px-3 py-2.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+          :class="[inputCls, 'w-full']"
           @keydown.enter="onGenerate"
         />
 

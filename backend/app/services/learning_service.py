@@ -41,6 +41,7 @@ from app.core.llm_prompts import (
     COURSE_AGENT_INSTRUCTIONS,
     COURSE_AGENT_RETRY_HINT,
     COURSE_AGENT_USER_PROMPT_TEMPLATE,
+    DEFAULT_GOAL_HINT,
 )
 from app.core.logger import logger
 from app.repositories.learning_repo import LearningRepo
@@ -50,6 +51,7 @@ from app.services.learning_utils import (
     _assemble_lessons,
     _lesson_slug_for_num,
     _progress_to_dict,
+    _read_md,
     _render_exercise_md,
     _unwrap_model,
     build_course_id,
@@ -174,7 +176,11 @@ class LearningService:
         return course_id
 
     async def generate_next_lesson(
-        self, topic: str, owner: str, course_id: str
+        self,
+        topic: str,
+        owner: str,
+        course_id: str,
+        goal: str | None = None,
     ) -> int | None:
         """渐进产出：生成**下一课**并落盘。
 
@@ -210,13 +216,15 @@ class LearningService:
 
         lessons_dir.mkdir(parents=True, exist_ok=True)
 
-        # 2. 生成并落盘下一课（ZPD 衔接由 agent 经 read_previous_lesson 工具完成）
+        # 2. 生成并落盘下一课（ZPD 衔接由 agent 经 read_previous_lesson 工具完成；
+        #    goal 转发保证 prompt 与 MISSION.md 目标一致）
         await self._generate_lesson(
             topic=topic,
             course_id=course_id,
             lessons_dir=lessons_dir,
             owner=owner,
             lesson_num=next_num,
+            goal=goal,
         )
 
         logger.bind(
@@ -258,11 +266,7 @@ class LearningService:
         lessons = _assemble_lessons(lessons_dir)
         resource_md = resource_path.read_text(encoding="utf-8")
         # MISSION.md 缺失（旧课程 / 未生成）→ mission_md 为 None，前端隐藏展示。
-        mission_md = (
-            mission_path.read_text(encoding="utf-8")
-            if mission_path.exists()
-            else None
-        )
+        mission_md = _read_md(mission_path)
 
         return {
             "status": "ready",
@@ -466,7 +470,7 @@ class LearningService:
         base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
             topic=topic,
             course_id=course_id,
-            goal=goal or "未提供,请从主题推断学习目标",
+            goal=goal or DEFAULT_GOAL_HINT,
         )
         retry_prompt = base_prompt + "\n\n" + COURSE_AGENT_RETRY_HINT
 

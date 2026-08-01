@@ -158,6 +158,29 @@ def _last_lesson_md(
     return None
 
 
+def _read_md(path: Path) -> str | None:
+    """读可选 md 文件；缺失或读失败返回 None（课程根目录 resource / MISSION 共用）。"""
+    try:
+        return path.read_text(encoding="utf-8") if path.exists() else None
+    except OSError:
+        return None
+
+
+def _write_md(path: Path, content: str, *, overwrite: bool) -> bool:
+    """写 md 文件；``overwrite=False`` 时已存在则跳过。返回是否实际写入。
+
+    用临时文件 + ``os.replace`` 保证原子写：进程中途崩溃不会留下截断文件，
+    也不会被后续幂等跳过误当成已存在内容。
+    """
+    if not overwrite and path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    tmp.replace(path)
+    return True
+
+
 def _assemble_lessons(lessons_dir: Path) -> list[LessonItem]:
     """扫描 ``lessons/`` 装配 :class:`LessonItem` 列表：按编号排序；
     每个 lesson body 从 front matter 抽 ``title``，否则回退到 slug 美化。
