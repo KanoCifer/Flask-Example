@@ -76,14 +76,9 @@ func (s *DevTaskService) Create(ctx context.Context, userID int, req dto.DevTask
 			return nil, devtaskerrs.ErrSlugSequenceTooSmall
 		}
 
-		// 唯一性检查（避免并发创建同一 slug）。
-		if _, err := s.repo.GetBySlug(ctx, *req.Slug); err == nil {
-			return nil, devtaskerrs.ErrSlugConflict
-		} else if !errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, err
-		}
-
-		slug = *req.Slug
+		// 自定义 slug 超出当前 seq —— 截短为 seq，保证 slug == seq 不漂移。
+		// counter 已被 NextSlugSeq 推到 seq，下次自增自然衔接。
+		slug = fmt.Sprintf("task-%d", seq)
 	} else {
 		// 自增生成 slug —— counters 集合单文档 $inc 保证原子性，并发安全。
 		seq, err := s.repo.NextSlugSeq(ctx)
