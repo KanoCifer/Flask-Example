@@ -108,6 +108,28 @@ COURSE_AGENT_USER_PROMPT_TEMPLATE = (
     "最终响应不需要返回 JSON。"
 )
 
+# 渐进产出专用提示（避免下一课复制首课）：由 service 在调用
+# :meth:`CourseGeneratorService.generate_next_lesson` 时拼到用户消息末尾。
+# ZPD 在系统指令里已说明"读编号最大的 lesson md"；但 LLM 在同主题复用
+# session_id 的上下文下仍倾向复用首课结构与措辞——把"必须推进"显式写进
+# 用户消息才能稳约束。
+COURSE_AGENT_NEXT_LESSON_HINT = (
+    "## 渐进产出：这是本课程的下一课\n"
+    "你正在为本课程生成**下一**课（不是首课）。请严格按以下步骤，避免与"
+    "已有课重复：\n"
+    "1. **先读上下文**：用 ``read_file`` 读 ``MISSION.md`` 与 ``lessons/``"
+    "下编号最大的 lesson md，搞清课程目标与上一课讲了哪些概念、用过哪些"
+    "代码示例、出过哪些练习题。\n"
+    "2. **必须推进**：本课要引入新概念 / 新分支 / 新应用场景，或在旧主题上"
+    "进入更深的层次（如边界情况、性能取舍、与其他主题的对比）。**禁止**"
+    "复用上一课的小节结构、代码示例、练习题骨架或措辞；``slug`` 也必须"
+    "与历史 lesson 不同。\n"
+    "3. **承前启后**：``prerequisites`` 引用上一课涉及的术语；``objectives``"
+    "聚焦本课新引入的能力点，不要把上一课的目标重抄一遍。\n"
+    "4. **resource.md**：覆盖写（不是叠加），把本课新引用的资料合并进"
+    "已有 resource.md，不要整段重写首课部分。"
+)
+
 # 课程 agent 整 run 兜底重试的修正指令（task-3554）：:meth:`CourseGeneratorService.
 # _generate_lesson` 在「磁盘缺 body 文件」或「缺 exercise 文件」时，把
 # 本提示追加到用户消息末尾重跑一次，指示 agent 修正上次失败原因。

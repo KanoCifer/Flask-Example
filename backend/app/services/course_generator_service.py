@@ -60,6 +60,7 @@ from app.core.llm_factory import (
 )
 from app.core.llm_prompts import (
     COURSE_AGENT_INSTRUCTIONS,
+    COURSE_AGENT_NEXT_LESSON_HINT,
     COURSE_AGENT_RETRY_HINT,
     COURSE_AGENT_USER_PROMPT_TEMPLATE,
     DEFAULT_GOAL_HINT,
@@ -470,6 +471,12 @@ class CourseGeneratorService:
             course_id=course_id,
             goal=goal or DEFAULT_GOAL_HINT,
         )
+        # 渐进产出路径（lesson_num > 1）：把"必须推进"提示拼到 base prompt
+        # 末尾,避免 LLM 在同主题复用 session_id 时倾向复制首课。
+        # 重试 attempt 2 也保留这条 hint,因为约束(不要重复结构/示例/
+        # slug)与重试目标(补齐 lesson/exercise)正交。
+        if lesson_num > 1:
+            base_prompt = base_prompt + "\n\n" + COURSE_AGENT_NEXT_LESSON_HINT
         retry_prompt = base_prompt + "\n\n" + COURSE_AGENT_RETRY_HINT
 
         last_error: RuntimeError | None = None
