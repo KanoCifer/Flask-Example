@@ -18,7 +18,6 @@ shape + owner-key wiring.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -56,17 +55,19 @@ class _MockLearningService:
     mark_progress_responses: dict[str, dict[str, Any] | None] = field(
         default_factory=dict
     )
-    # ``POST /courses/{course_id}/lessons`` 直接访问 ``_repo.get_progress`` 与
-    # ``_course_dir``;测试在构造时注入 mock,避免触碰 mongo / 磁盘。
-    _repo: _MockLearningRepo | None = None
-    # 课程根目录(供 API 层 ``_list_existing_lesson_ids_for_api`` 扫描);
-    # 测试置 ``None`` → 路径解析为不存在的目录,等价于「磁盘空」。
-    _course_dir_root: Path | None = None
+    # ``POST /courses/{course_id}/lessons`` 只依赖 ``preview_next_lesson``
+    # 一个公开方法（C1/C3：handler 不再打穿 _repo / _course_dir）。
+    preview_calls: list[tuple[str, str]] = field(default_factory=list)
+    preview_responses: dict[tuple[str, str], _MockPreviewResult | None] = (
+        field(default_factory=dict)
+    )
 
-    def _course_dir(self, course_id: str) -> Path:
-        """镜像 :meth:`LearningService._course_dir` 的签名 — 测试用。"""
-        root = self._course_dir_root or Path("/nonexistent")
-        return root / course_id
+    async def preview_next_lesson(
+        self, owner: str, course_id: str
+    ) -> _MockPreviewResult | None:
+        """镜像 :meth:`LearningService.preview_next_lesson` — 测试用。"""
+        self.preview_calls.append((owner, course_id))
+        return self.preview_responses.get((owner, course_id))
 
     async def create_pending(
         self,
@@ -108,30 +109,17 @@ class _MockLearningService:
 
 
 @dataclass
-class _MockLearningProgress:
-    """最小化的 progress stub,匹配 ``learning_svc._repo.get_progress`` 形状。"""
+class _MockPreviewResult:
+    """``preview_next_lesson`` 的返回 stub（C1：一次调用带回预检 + kiq 字段）。
 
-    topic: str
-    status: str = "ready"
-    goal: str | None = None
-
-
-@dataclass
-class _MockLearningRepo:
-    """``_MockLearningService._repo`` 代理(API ``POST /lessons`` 经此读 progress)。
-
-    提供 ``get_progress`` 一个最小方法足以让 ``POST /courses/{course_id}/lessons``
-    走完整路径(预检 topic 与状态)。
+    ``None`` 等价于 service 层「进度不存在 / failed」。
     """
 
-    progress: dict[tuple[str, str], _MockLearningProgress] = field(
-        default_factory=dict
-    )
-
-    async def get_progress(
-        self, owner: str, course_id: str
-    ) -> _MockLearningProgress | None:
-        return self.progress.get((owner, course_id))
+    next_num: int
+    already_generated: bool
+    topic: str = "Rust 入门"
+    goal: str | None = None
+    session_id: str | None = None
 
 
 def _build_test_app(
@@ -259,7 +247,9 @@ async def test_post_courses_passes_goal_to_create_pending_and_kiq(monkeypatch):
     # kiq 透传 goal
     assert captured["goal"] == "能独立复述所有权规则"
     assert captured["topic"] == "Rust 入门"
-    assert str(captured["course_id"]).startswith("rust--")  # build_course_id 生成
+    assert str(captured["course_id"]).startswith(
+        "rust--"
+    )  # build_course_id 生成
 
 
 async def test_post_courses_uses_user_id_owner_when_logged_in():
@@ -301,7 +291,9 @@ async def test_post_courses_validation_error_on_empty_topic():
 
 async def test_get_course_returns_pending_payload():
     mock = _MockLearningService()
-    mock.get_course_responses[("anon:x", "c--00000001")] = {"status": "pending"}
+    mock.get_course_responses[("anon:x", "c--00000001")] = {
+        "status": "pending"
+    }
     app = _build_test_app(mock)
     transport = ASGITransport(app=app)
     async with AsyncClient(
@@ -403,9 +395,9 @@ async def test_get_course_returns_ready_payload_with_course_dict():
 
 
 async def test_post_next_lesson_returns_pending_when_no_progress():
-    """progress 不存在 → ``{status: "failed", next_lesson: null}``,不入队。"""
+    """progress 不存在（preview 返回 None）→ ``{status: "failed", next_lesson: null}``,不入队。"""
     mock = _MockLearningService()
-    mock._repo = _MockLearningRepo()  # 空的 progress 字典
+    mock.preview_responses[("anon:x", "nope--00000000")] = None
     app = _build_test_app(mock)
     transport = ASGITransport(app=app)
     async with AsyncClient(
@@ -422,19 +414,16 @@ async def test_post_next_lesson_returns_pending_when_no_progress():
     assert body["data"]["next_lesson"] is None
 
 
-async def test_post_next_lesson_returns_pending_when_disk_empty(tmp_path):
+async def test_post_next_lesson_returns_pending_when_disk_empty():
     """progress 存在 + 磁盘上无 lesson 文件 → 同步预检未命中,返回 ``pending``。
 
     ``next_lesson`` = 预期编号(1,因为 lessons/ 为空),``.kiq()`` 被 patch 为
     no-op,这里只断言响应数据形态。
     """
     mock = _MockLearningService()
-    mock._repo = _MockLearningRepo(
-        progress={("anon:x", "rust--aaaabbbb"): _MockLearningProgress(
-            topic="Rust 入门", status="ready"
-        )},
+    mock.preview_responses[("anon:x", "rust--aaaabbbb")] = _MockPreviewResult(
+        next_num=1, already_generated=False, topic="Rust 入门"
     )
-    mock._course_dir_root = tmp_path
     app = _build_test_app(mock)
     transport = ASGITransport(app=app)
     async with AsyncClient(
@@ -451,37 +440,93 @@ async def test_post_next_lesson_returns_pending_when_disk_empty(tmp_path):
     assert body["data"]["next_lesson"] == 1
 
 
-async def test_post_next_lesson_returns_already_generated_when_next_file_exists(
-    tmp_path, monkeypatch,
-):
-    """同步预检命中 → 立刻 ``already_generated``,不入队。
-
-    该分支只覆盖一种 race:kiq 已落地 next_num 文件但 progress 状态尚未被改
-    变(罕见)。直接构造「next_num 文件已存在」比较繁琐(因为 existing_ids
-    会把 next_num 也算进去),这里 monkeypatch ``_list_existing_lesson_ids_for_api``
-    强制返回一个**不含** next_num 的列表,然后让 ``_lesson_file_exists`` 自然
-    命中。
+async def test_post_next_lesson_forwards_session_id_to_kiq(monkeypatch):
+    """``POST /courses/{id}/lessons`` 把 preview 的 session_id 透传给
+    ``generate_next_lesson.kiq``（task-373 — 渐进产出复用首课锚定的 agno 会话）。
     """
-    import app.api.v2.learning as api_mod
+    import app.plugins.task.tasks.learning as task_mod
 
-    course_id = "rust--aaaabbbb"
-    lessons_dir = tmp_path / course_id / "lessons"
-    lessons_dir.mkdir(parents=True)
-    # 让 next_num = 3 的文件存在,但 monkeypatch 让 existing_ids 看不到它
-    (lessons_dir / "0003-foo.md").write_text("# l3", encoding="utf-8")
+    captured: dict[str, object] = {}
 
-    # 强制 existing_ids=[1,2] → next_num=3 → file_exists(3) 命中
-    monkeypatch.setattr(
-        api_mod, "_list_existing_lesson_ids_for_api", lambda d: [1, 2]
-    )
+    async def _capturing_kiq(*args, **kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(task_mod.generate_next_lesson, "kiq", _capturing_kiq)
 
     mock = _MockLearningService()
-    mock._repo = _MockLearningRepo(
-        progress={("anon:x", course_id): _MockLearningProgress(
-            topic="Rust 入门", status="ready"
-        )},
+    mock.preview_responses[("anon:x", "rust--aaaabbbb")] = _MockPreviewResult(
+        next_num=1,
+        already_generated=False,
+        topic="Rust 入门",
+        session_id="sess-test",
     )
-    mock._course_dir_root = tmp_path
+    app = _build_test_app(mock)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/v2/learning/courses/rust--aaaabbbb/lessons",
+            headers={"X-Anon-Id": "x"},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["status"] == "pending"
+    # kiq 收到的 session_id == progress.session_id
+    assert captured["session_id"] == "sess-test"
+    assert captured["topic"] == "Rust 入门"
+    assert captured["course_id"] == "rust--aaaabbbb"
+
+
+async def test_post_next_lesson_forwards_goal_to_kiq(monkeypatch):
+    """``POST /courses/{id}/lessons`` 也把 preview 的 goal 透传给 kiq（task-352）。
+
+    与 session_id 透传一起练手：保证两层字段都不漏。
+    """
+    import app.plugins.task.tasks.learning as task_mod
+
+    captured: dict[str, object] = {}
+
+    async def _capturing_kiq(*args, **kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(task_mod.generate_next_lesson, "kiq", _capturing_kiq)
+
+    mock = _MockLearningService()
+    mock.preview_responses[("anon:x", "rust--aaaabbbb")] = _MockPreviewResult(
+        next_num=1,
+        already_generated=False,
+        topic="Rust 入门",
+        goal="能独立复述所有权规则",
+        session_id="sess-goal",
+    )
+    app = _build_test_app(mock)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/v2/learning/courses/rust--aaaabbbb/lessons",
+            headers={"X-Anon-Id": "x"},
+        )
+    assert resp.status_code == 200
+    assert captured["goal"] == "能独立复述所有权规则"
+    assert captured["session_id"] == "sess-goal"
+
+
+async def test_post_next_lesson_returns_already_generated_when_next_file_exists():
+    """同步预检命中（preview.already_generated=True）→ 立刻 ``already_generated``,不入队。
+
+    幂等预检现在由 ``LearningService.preview_next_lesson`` 统一承担（C1/C3）：
+    handler 只消费返回的 ``already_generated`` 标记，不再自己扫描磁盘，也不再
+    依赖为测试而生的 ``_list_existing_lesson_ids_for_api`` 别名。
+    """
+    course_id = "rust--aaaabbbb"
+    mock = _MockLearningService()
+    mock.preview_responses[("anon:x", course_id)] = _MockPreviewResult(
+        next_num=3, already_generated=True, topic="Rust 入门"
+    )
     app = _build_test_app(mock)
     transport = ASGITransport(app=app)
     async with AsyncClient(
@@ -499,15 +544,10 @@ async def test_post_next_lesson_returns_already_generated_when_next_file_exists(
     assert body["message"] == "下一课已生成"
 
 
-async def test_post_next_lesson_returns_failed_when_progress_failed(tmp_path):
-    """progress 状态为 failed → ``{status: failed, next_lesson: null}``。"""
+async def test_post_next_lesson_returns_failed_when_progress_failed():
+    """progress 状态为 failed（preview 返回 None）→ ``{status: failed, next_lesson: null}``。"""
     mock = _MockLearningService()
-    mock._repo = _MockLearningRepo(
-        progress={("anon:x", "rust--aaaabbbb"): _MockLearningProgress(
-            topic="Rust 入门", status="failed"
-        )},
-    )
-    mock._course_dir_root = tmp_path
+    mock.preview_responses[("anon:x", "rust--aaaabbbb")] = None
     app = _build_test_app(mock)
     transport = ASGITransport(app=app)
     async with AsyncClient(
@@ -573,9 +613,7 @@ async def test_list_progress_anon_uses_x_anon_id():
 
 async def test_patch_progress_marks_session_done():
     mock = _MockLearningService()
-    mock.mark_progress_responses[
-        ("anon:x", "c--00000001", 1, None)
-    ] = {
+    mock.mark_progress_responses[("anon:x", "c--00000001", 1, None)] = {
         "course_id": "c--00000001",
         "topic": "T",
         "sessions_done": [1],
@@ -604,9 +642,7 @@ async def test_patch_progress_marks_session_done():
 
 async def test_patch_progress_marks_exercise_done():
     mock = _MockLearningService()
-    mock.mark_progress_responses[
-        ("anon:x", "c--00000001", None, True)
-    ] = {
+    mock.mark_progress_responses[("anon:x", "c--00000001", None, True)] = {
         "course_id": "c--00000001",
         "topic": "T",
         "sessions_done": [],
@@ -683,7 +719,9 @@ async def test_resolve_owner_user_id_wins_over_header():
 
 async def test_resolve_owner_uses_anon_id_header_when_anon():
     req = _dummy_request({"x-anon-id": "abc-uuid"})
-    assert _resolve_learning_owner(user_id=None, request=req) == "anon:abc-uuid"
+    assert (
+        _resolve_learning_owner(user_id=None, request=req) == "anon:abc-uuid"
+    )
 
 
 async def test_resolve_owner_falls_back_to_client_ip():

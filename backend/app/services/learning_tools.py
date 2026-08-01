@@ -1,67 +1,49 @@
 """课程 agent 工具集合（agent_driven 重构第 2 步，纯新增，不接入 service）。
 
-为「单一课程 agent 通过工具自主执行」提供磁盘工具：
+为「单一课程 agent 通过工具自主执行」提供磁盘工具。C1 深化后，本模块从
+「写策略实现」降级为**薄转发适配器**：所有磁盘知识（布局 / 命名 / 编号 /
+幂等 / 原子写）统一由 :class:`CoursePackageRepo` 拥有，五个 ``@tool`` 闭包
+只做参数转发与返回消息格式化。
 
-- :func:`create_learning_tools` 是工厂：捕获 ``course_dir``（课程包根目录），
-  返回五个 ``@tool(show_result=True)`` 装饰后的 agno ``Function``。
-- ``save_lesson``：写 ``lessons/<num>-<slug>.md``。编号自动取磁盘已有最大编号
-  +1（首课 ``0001``），幂等（该编号文件已存在则跳过不重复写）。
-- ``save_resource``：写 ``resource.md``。
-- ``read_previous_lesson``：读最大编号 lesson 的 md 全文（ZPD 渐进上下文）。
-- ``save_mission``：写 ``MISSION.md``（学习使命文档），已存在则跳过（幂等，
-  天然覆盖整 run 重试）。
-- ``read_mission``：读 ``MISSION.md`` 全文（缺失返回空字符串，渐进产出溯源）。
+- :func:`create_learning_tools` 是工厂：捕获一个 ``CoursePackageRepo`` 实例
+  （service 每次 run 构造、与 exercise 配对共用同一个实例），返回五个
+  ``@tool(show_result=True)`` 装饰后的 agno ``Function``。
+- ``save_lesson``：委托 ``repo.write_lesson``，编号 / 幂等全在仓库内。
+- ``save_resource``：委托 ``repo.write_resource``（覆盖写）。
+- ``read_previous_lesson``：委托 ``repo.read_previous_lesson``（ZPD 渐进上下文）。
+- ``save_mission``：委托 ``repo.write_mission``（幂等）。
+- ``read_mission``：委托 ``repo.read_mission``。
 
-工具签名只暴露内容参数（title/slug/lesson_md/resource_md/mission_md）；编号 /
-幂等 / 路径全部由工具内部确定性控制，agent 不需要也不能传编号。
-
-复用 ``app.services.learning_utils`` 的磁盘扫描 helpers：
-``list_existing_lesson_ids`` / ``lesson_file_exists`` / ``_last_lesson_md``，
-不复制重写。
-
-文件命名沿用 learning 模块的约定：
-``lessons/{num:04d}-{slug}.md``（与 ``{num:04d}-{slug}.exercise.md`` 同源，
-解析/格式化逻辑直接复用）。
+工具签名只暴露内容参数（title/slug/lesson_md/resource_md/mission_md）——与
+prompt 契约（``COURSE_AGENT_INSTRUCTIONS``）保持字符串一致，C4 的
+「prompt ↔ 工具名」自动校验不在本候选范围。
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from agno.tools import tool
 from agno.tools.function import Function
 
-from app.services.learning_utils import (
-    _last_lesson_md,
-    _read_md,
-    _write_md,
-    lesson_file_exists,
-    list_existing_lesson_ids,
-)
+from app.repositories.course_package_repo import CoursePackageRepo
 
 
-def create_learning_tools(course_dir: str | Path) -> list[Function]:
-    """返回课程 agent 可调用的工具集合（闭包捕获 ``course_dir``）。
+def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
+    """返回课程 agent 可调用的工具集合（闭包捕获 ``repo``）。
 
     Args:
-        course_dir: 课程包根目录（含 ``lessons/`` 子目录、``resource.md`` 与
-            ``MISSION.md``）。
+        repo: 课程包仓库实例（含该课程根目录的全部磁盘知识）。
 
     Returns:
         ``[save_lesson, save_resource, read_previous_lesson, save_mission,
         read_mission]``，均为 agno ``Function``（``@tool(show_result=True)``
         装饰），可直接传给 Agent。
     """
-    root = Path(course_dir)
-    lessons_dir = root / "lessons"
-    resource_path = root / "resource.md"
-    mission_path = root / "MISSION.md"
 
     @tool(show_result=True)
     def save_lesson(title: str, slug: str, lesson_md: str) -> str:
         """写一课正文到 lessons/<num>-<slug>.md（课程包根目录内）。
 
-        编号由工具内部扫描磁盘确定：next_num = max(已有编号) + 1（首课为
+        编号由仓库内部扫描磁盘确定：next_num = max(已有编号) + 1（首课为
         0001），不要求 agent 传编号。幂等：该编号对应文件已存在（重试 / 并发
         竞争）时不再重复写入，返回已存在提示。
 
@@ -75,17 +57,13 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
             落盘文件名（如 0002-rust-ownership.md）；若该编号文件已存在，返回
             跳过提示（不重复写）。
         """
-        existing_ids = list_existing_lesson_ids(lessons_dir)
-        num = (max(existing_ids) + 1) if existing_ids else 1
-        if lesson_file_exists(lessons_dir, num):
+        written = repo.write_lesson(slug=slug, lesson_md=lesson_md)
+        if written.skipped:
             return (
-                f"lesson {num:04d} already exists, skipped writing "
+                f"lesson {written.num:04d} already exists, skipped writing "
                 f"(idempotent); keep existing file"
             )
-        lessons_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"{num:04d}-{slug}.md"
-        (lessons_dir / filename).write_text(lesson_md, encoding="utf-8")
-        return filename
+        return written.filename
 
     @tool(show_result=True)
     def save_resource(resource_md: str) -> str:
@@ -97,8 +75,7 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         Returns:
             落盘文件名 resource.md。
         """
-        _write_md(resource_path, resource_md, overwrite=True)
-        return "resource.md"
+        return repo.write_resource(resource_md)
 
     @tool(show_result=True)
     def read_previous_lesson() -> str:
@@ -110,8 +87,7 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         Returns:
             最大编号 lesson 的 md 全文；无任何课程时返回空字符串 ""。
         """
-        existing_ids = list_existing_lesson_ids(lessons_dir)
-        return _last_lesson_md(lessons_dir, existing_ids) or ""
+        return repo.read_previous_lesson()
 
     @tool(show_result=True)
     def save_mission(mission_md: str) -> str:
@@ -127,12 +103,13 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         Returns:
             落盘文件名 MISSION.md；已存在则返回跳过提示（不重复写）。
         """
-        if not _write_md(mission_path, mission_md, overwrite=False):
+        result = repo.write_mission(mission_md)
+        if result is None:
             return (
                 "MISSION.md already exists, skipped writing (idempotent); "
                 "keep existing mission"
             )
-        return "MISSION.md"
+        return result
 
     @tool(show_result=True)
     def read_mission() -> str:
@@ -144,9 +121,15 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         Returns:
             MISSION.md 全文；无该文件时返回空字符串 ""。
         """
-        return _read_md(mission_path) or ""
+        return repo.read_mission() or ""
 
-    return [save_lesson, save_resource, read_previous_lesson, save_mission, read_mission]
+    return [
+        save_lesson,
+        save_resource,
+        read_previous_lesson,
+        save_mission,
+        read_mission,
+    ]
 
 
 __all__ = ["create_learning_tools"]

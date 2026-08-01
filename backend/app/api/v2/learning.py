@@ -35,11 +35,7 @@ from app.plugins.task.tasks.learning import (
 )
 from app.schemas.learning import CourseGenerateInput
 from app.services.learning_service import LearningService
-from app.services.learning_utils import (
-    build_course_id,
-    lesson_file_exists,
-    list_existing_lesson_ids,
-)
+from app.services.learning_utils import build_course_id
 
 router = APIRouter(prefix="/learning", tags=["learning"])
 
@@ -61,6 +57,7 @@ class ProgressPatch(BaseModel):
         default=None,
         description="练习任务是否全部完成",
     )
+
 
 # 客户端生成匿名 ID 的请求头，由前端 localStorage 自管 UUID。
 ANON_ID_HEADER = "x-anon-id"
@@ -168,12 +165,11 @@ async def create_next_lesson(
 
     流程：
     1. 解析 owner（与其它端点一致）。
-    2. 读 progress：若不存在 / ``failed`` → 返回 ``{status:"failed"}`` 包（与
-       ``GET /courses/{id}`` 404 惯例对称）。
-    3. **同步** 根据 progress.topic 算出预期 ``next_lesson_num``（即已有
-       lessons 数量 + 1），扫描磁盘上是否已存在该编号文件 → 命中则立刻
-       返回 ``{status:"already_generated", next_lesson:null}``，避免重复
-       ``.kiq()`` 一个注定会 no-op 的任务。
+    2+3. **同步预检**委托 ``LearningService.preview_next_lesson``（C3 吸收进
+       C1）：progress 不存在 / ``failed`` → 返回 ``{status:"failed"}`` 包（与
+       ``GET /courses/{id}`` 404 惯例对称）；否则得到预期 ``next_lesson_num``
+       与幂等命中标记——命中则立刻返回 ``{status:"already_generated",
+       next_lesson:null}``，避免重复 ``.kiq()`` 一个注定会 no-op 的任务。
     4. 否则 ``.kiq()`` 异步任务，返回 ``{course_id, next_lesson:<预期编号>,
        status:"pending"}``；前端继续轮询 ``GET /courses/{id}`` 看 lessons
        列表增长。
@@ -187,26 +183,28 @@ async def create_next_lesson(
       重复点击 / 网络重试场景下免去一次 LLM 调用排队 —— 商业上很重要。
     - 同步预检与 worker 端再次幂等检查是分层防御：API 端错判只是会
       多排一个任务，worker 端仍以磁盘为准。
+    - 预检的磁盘规则（``next_lesson_num`` / ``lesson_file_exists``）与
+      :meth:`LearningService.generate_next_lesson` 共用
+      :class:`CoursePackageRepo` 同一份逻辑，handler 不再打穿 service 私有属性。
     """
     learning_svc: LearningService = state.learning_svc
     owner = _resolve_learning_owner(user, request)
 
-    # 2. progress 必查 — 拿到 topic 与状态
-    progress = await learning_svc._repo.get_progress(owner, course_id)
-    if progress is None or progress.status == "failed":
+    # 2+3. 同步预检：一次调用带回进度状态 + 预期 next_num + 幂等命中标记 +
+    #      kiq 转发所需字段（topic / goal / session_id）。
+    ctx = await learning_svc.preview_next_lesson(owner, course_id)
+    if ctx is None:
         return APIResponse(
-            data={"course_id": course_id, "next_lesson": None, "status": "failed"},
+            data={
+                "course_id": course_id,
+                "next_lesson": None,
+                "status": "failed",
+            },
             message="课程不存在或生成失败",
         )
 
-    # 3. 同步幂等预检：扫描 lessons/ 找 next_num
-    course_dir = learning_svc._course_dir(course_id)
-    lessons_dir = course_dir / "lessons"
-    existing_ids = _list_existing_lesson_ids_for_api(lessons_dir)
-    next_lesson_num = (max(existing_ids) + 1) if existing_ids else 1
-
     # 4. 同步预检命中：直接返回，不再走 .kiq()
-    if lesson_file_exists(lessons_dir, next_lesson_num):
+    if ctx.already_generated:
         return APIResponse(
             data={
                 "course_id": course_id,
@@ -216,13 +214,14 @@ async def create_next_lesson(
             message="下一课已生成",
         )
 
-    # 5. 正常的异步路径（goal 随 progress 读出转发，让后续课 prompt 与
-    #    MISSION.md 目标保持一致）
+    # 5. 正常的异步路径（goal / session_id 随 ctx 转发，让后续课 prompt 与
+    #    MISSION.md 目标保持一致、渐进产出复用首课锚定的 agno 会话（task-373））
     await generate_next_lesson.kiq(
-        topic=progress.topic,
+        topic=ctx.topic,
         owner=owner,
         course_id=course_id,
-        goal=progress.goal,
+        goal=ctx.goal,
+        session_id=ctx.session_id,
     )
     logger.bind(course_id=course_id, owner=owner).info(
         "learning: next-lesson generation queued"
@@ -230,7 +229,7 @@ async def create_next_lesson(
     return APIResponse(
         data={
             "course_id": course_id,
-            "next_lesson": next_lesson_num,
+            "next_lesson": ctx.next_num,
             "status": "pending",
         },
         message="下一课生成任务已提交",
@@ -276,14 +275,3 @@ async def patch_progress(
             message="进度不存在",
         )
     return APIResponse(data=progress, message="success")
-
-
-# 幂等预检 helpers 复用 ``learning_service`` 的公共扫描函数
-# （``list_existing_lesson_ids`` / ``lesson_file_exists``），避免在路由里
-# 复制一份课文件名正则与扫描逻辑。Worker 端仍以
-# :func:`LearningService.generate_next_lesson` 内部扫描为准，**不**依赖 API
-# 层的同步预检结果。
-#
-# ``_list_existing_lesson_ids_for_api`` 保留为别名，供测试 monkeypatch 定点替换。
-
-_list_existing_lesson_ids_for_api = list_existing_lesson_ids

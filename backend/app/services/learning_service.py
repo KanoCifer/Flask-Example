@@ -7,9 +7,10 @@ agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 age
   内自主完成「写课 + 写 resource + 出题」，最终响应解析为 ``ExerciseBundle``。
 - 一课一文件落盘到 ``<learning-root>/<course-id>/lessons/0001-<slug>.md``
   （learning-root 默认 ``<backend>/tmp/learning``，可用 ``LEARNING_ROOT_DIR``
-  环境变量配置，见 :meth:`_course_dir`）；
-  同目录 ``0001-<slug>.exercise.md`` 由 service 在 run 后按「最大编号 + 同名
-  slug」落盘，与 lesson body 严格同名对应；``resource.md`` 由 agent 经
+  环境变量配置；课程包布局统一由 :class:`CoursePackageRepo` 拥有）；
+  同目录 ``0001-<slug>.exercise.md`` 由 service 在 run 后消费
+  ``repo.last_written_lesson`` 的 ``num / slug`` 落盘（显式交接，不再从磁盘
+  反推），与 lesson body 严格同名对应；``resource.md`` 由 agent 经
   ``save_resource`` 写盘。YAML front matter 用 ``yaml.safe_dump`` 序列化。
 - ``LearningProgress`` 统一经 ``LearningRepo`` 持久化（upsert / 查询 / 合并）。
 
@@ -24,8 +25,10 @@ agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 age
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from agno.agent import Agent
 from agno.models.base import Model
@@ -44,19 +47,14 @@ from app.core.llm_prompts import (
     DEFAULT_GOAL_HINT,
 )
 from app.core.logger import logger
+from app.repositories.course_package_repo import CoursePackageRepo
 from app.repositories.learning_repo import LearningRepo
 from app.schemas.learning import CoursePackage, Exercise
 from app.services.learning_tools import create_learning_tools
 from app.services.learning_utils import (
-    _assemble_lessons,
-    _lesson_slug_for_num,
     _progress_to_dict,
-    _read_md,
-    _render_exercise_md,
     _unwrap_model,
     build_course_id,
-    lesson_file_exists,
-    list_existing_lesson_ids,
 )
 
 # ── 顶层 schema ─────────────────────────────────────────────────────── #
@@ -83,7 +81,25 @@ class LessonResourceOutput(BaseModel):
 class ExerciseBundle(BaseModel):
     """course agent run 的 output_schema：一课练习任务清单。"""
 
-    exercises: list[Exercise] = Field(default_factory=list)
+    exercises: list[Exercise] = Field(
+        default_factory=list, description="每个Lesson的练习题"
+    )
+
+
+@dataclass(frozen=True)
+class NextLessonContext:
+    """``preview_next_lesson`` 的返回：进度 + 磁盘预检结果（C3 吸收进 C1）。
+
+    一次调用带回 handler 需要的全部信息——幂等预检（``next_num`` /
+    ``already_generated``）与 ``.kiq()`` 转发所需的 topic / goal / session_id
+    ——让 API 层不再打穿 service 私有属性。
+    """
+
+    next_num: int
+    already_generated: bool
+    topic: str
+    goal: str | None
+    session_id: str | None
 
 
 # ── service ─────────────────────────────────────────────────────────── #
@@ -147,18 +163,19 @@ class LearningService:
             RuntimeError: 单次 agent run 失败或 ``ExerciseBundle`` 响应无法解析。
         """
         course_id = build_course_id(topic)
-        course_dir = self._course_dir(course_id)
-        lessons_dir = course_dir / "lessons"
-        lessons_dir.mkdir(parents=True, exist_ok=True)
+        # 锚定 agno 会话 ID：第一课生成时落地，后续渐进产出复用同一 session_id
+        # 让 agno 把前序 run 的消息回放进 context，实现跨轮会话记忆。
+        session_id = uuid4().hex
 
-        # 一步生成第 1 课（无上一课上下文），落盘三文件。
+        # 一步生成第 1 课（无上一课上下文），落盘三文件。课程包布局 / 编号 /
+        # 写盘全部由 CoursePackageRepo 内部决定，service 不再碰磁盘路径。
         await self._generate_lesson(
             topic=topic,
             course_id=course_id,
-            lessons_dir=lessons_dir,
             owner=owner,
             lesson_num=1,
             goal=goal,
+            session_id=session_id,
         )
 
         # 落盘成功后再持久化进度，避免半成品状态。
@@ -168,11 +185,12 @@ class LearningService:
             topic=topic,
             status="ready",
             goal=goal,
+            session_id=session_id,
         )
 
-        logger.bind(
-            course_id=course_id, owner=owner, lesson_num=1
-        ).info("learning course lesson 1 generated")
+        logger.bind(course_id=course_id, owner=owner, lesson_num=1).info(
+            "learning course lesson 1 generated"
+        )
         return course_id
 
     async def generate_next_lesson(
@@ -181,6 +199,7 @@ class LearningService:
         owner: str,
         course_id: str,
         goal: str | None = None,
+        session_id: str | None = None,
     ) -> int | None:
         """渐进产出：生成**下一课**并落盘。
 
@@ -191,40 +210,46 @@ class LearningService:
         ZPD（最近发展区）上下文：由 agent 通过 ``read_previous_lesson()`` 工具
         自读上一课正文，service 不再拼进 prompt。
 
+        会话记忆（task-373）：``session_id`` 由 API/task 层从
+        ``LearningProgress.session_id`` 读出后透传，复用首课锚定的同一 agno
+        会话，让前几轮的对话 / 工具记录被回放进 context，agent 跨轮记住上下文。
+
         Args:
             topic: 原始主题（用于 prompt）。
             owner: 进度归属（仅用于日志，不再写 progress）。
             course_id: 课程 ID。
+            session_id: 已锚定的 agno 会话 ID（可选）；非 None 时传给 agent，
+                否则按 agno 默认行为新开会话（仅用于单元测试 / 历史调用）。
 
         Returns:
             新课的编号；若有冲突（已存在）则返回 None。
         """
-        course_dir = self._course_dir(course_id)
-        lessons_dir = course_dir / "lessons"
-
-        # 1. 扫 lessons/ 找 next_num（idempotent：已存在 → 直接返回 None）
-        existing_ids = list_existing_lesson_ids(lessons_dir)
-        next_num = (max(existing_ids) + 1) if existing_ids else 1
+        # 1. 扫 lessons/ 找 next_num（idempotent：已存在 → 直接返回 None）。
+        #    编号 / 扫描委托 CoursePackageRepo，与 agent 工具内 write_lesson 的
+        #    编号逻辑同一份。
+        repo = CoursePackageRepo(course_id=course_id, tmp_dir=self._tmp_dir)
+        next_num = repo.next_lesson_num()
 
         # 防御：极端 race（两个 worker 同时跑同一个 course），文件已存在 →
         # 视为幂等成功。
-        if lesson_file_exists(lessons_dir, next_num):
+        if repo.lesson_file_exists(next_num):
             logger.bind(
                 course_id=course_id, owner=owner, lesson_num=next_num
             ).info("learning next lesson already exists, skipping")
             return None
 
-        lessons_dir.mkdir(parents=True, exist_ok=True)
-
         # 2. 生成并落盘下一课（ZPD 衔接由 agent 经 read_previous_lesson 工具完成；
-        #    goal 转发保证 prompt 与 MISSION.md 目标一致）
+        #    goal 转发保证 prompt 与 MISSION.md 目标一致；session_id 复用首课
+        #    锚定的会话，让 agent 跨轮记住前序 run 的消息；repo 与 agent 工具
+        #    共用同一实例，exercise 配对直接消费 repo.last_written_lesson）
         await self._generate_lesson(
             topic=topic,
             course_id=course_id,
-            lessons_dir=lessons_dir,
             owner=owner,
             lesson_num=next_num,
             goal=goal,
+            session_id=session_id,
+            repo=repo,
         )
 
         logger.bind(
@@ -256,17 +281,14 @@ class LearningService:
         if progress.status == "pending":
             return {"status": "pending"}
 
-        course_dir = self._course_dir(course_id)
-        lessons_dir = course_dir / "lessons"
-        resource_path = course_dir / "resource.md"
-        mission_path = course_dir / "MISSION.md"
-        if not lessons_dir.exists() or not resource_path.exists():
+        repo = CoursePackageRepo(course_id=course_id, tmp_dir=self._tmp_dir)
+        if not repo.has_lessons() or not repo.has_resource():
             return None
 
-        lessons = _assemble_lessons(lessons_dir)
-        resource_md = resource_path.read_text(encoding="utf-8")
+        lessons = repo.assemble_lessons()
+        resource_md = repo.read_resource() or ""
         # MISSION.md 缺失（旧课程 / 未生成）→ mission_md 为 None，前端隐藏展示。
-        mission_md = _read_md(mission_path)
+        mission_md = repo.read_mission()
 
         return {
             "status": "ready",
@@ -299,7 +321,9 @@ class LearningService:
         """
         doc = None
         if session_done is not None:
-            doc = await self._repo.add_session_done(owner, course_id, session_done)
+            doc = await self._repo.add_session_done(
+                owner, course_id, session_done
+            )
         if exercise_done is not None:
             doc = await self._repo.set_exercise_done(
                 owner, course_id, exercise_done
@@ -338,6 +362,43 @@ class LearningService:
             goal=goal,
         )
 
+    async def preview_next_lesson(
+        self, owner: str, course_id: str
+    ) -> NextLessonContext | None:
+        """同步预检「下一课」：进度 + 磁盘 next_num，供 API 层做幂等预检。
+
+        C3 吸收进 C1 后的接缝修复：handler 不再打穿 ``_repo`` / ``_course_dir``
+        / 裸扫描磁盘，只调本公开方法。一次调用带回：
+
+        - ``next_num``：预期下一课编号（磁盘最大编号 + 1）；
+        - ``already_generated``：该编号文件是否已存在（幂等命中）；
+        - ``topic`` / ``goal`` / ``session_id``：``.kiq()`` 转发所需的进度字段。
+
+        磁盘规则委托 :class:`CoursePackageRepo`，与
+        :meth:`generate_next_lesson` 内部用的是同一份逻辑，handler 与 worker
+        不再可能算错两版。
+
+        Args:
+            owner: 进度归属（user_id 或 anon_id）。
+            course_id: 课程 ID。
+
+        Returns:
+            进度不存在 / ``failed`` → None；否则 :class:`NextLessonContext`。
+        """
+        progress = await self._repo.get_progress(owner, course_id)
+        if progress is None or progress.status == "failed":
+            return None
+
+        repo = CoursePackageRepo(course_id=course_id, tmp_dir=self._tmp_dir)
+        next_num = repo.next_lesson_num()
+        return NextLessonContext(
+            next_num=next_num,
+            already_generated=repo.lesson_file_exists(next_num),
+            topic=progress.topic,
+            goal=progress.goal,
+            session_id=progress.session_id,
+        )
+
     async def merge_progress(self, anon_owner: str, user_owner: str) -> int:
         """登录合并：将 anon_owner 进度合入 user_owner（并集 / OR）。
 
@@ -373,7 +434,7 @@ class LearningService:
 
     # ── 内部 ──────────────────────────────────────────────────────── #
 
-    def _build_course_agent(self, course_dir: str | Path) -> Agent:
+    def _build_course_agent(self, repo: CoursePackageRepo) -> Agent:
         """构建**单一课程 agent**（agent_driven 重构核心路径，task-3553 已切换）。
 
         为「一次主 agent run」提供 agent：
@@ -391,13 +452,14 @@ class LearningService:
         （``json_object``），不支持原生 ``json_schema``。
 
         Args:
-            course_dir: 课程包根目录，传给 :func:`create_learning_tools` 闭包。
+            repo: 课程包仓库实例，传给 :func:`create_learning_tools` 薄适配器
+                （与 service 的 exercise 配对共用同一实例）。
 
         Returns:
             已绑定 learning tools（+ 可选研究工具）与
             :data:`COURSE_AGENT_INSTRUCTIONS` 的 :class:`Agent`。
         """
-        tools = list(create_learning_tools(course_dir))
+        tools = list(create_learning_tools(repo))
 
         exa_api_key = get_settings().EXA_API_KEY
         if exa_api_key:
@@ -443,21 +505,32 @@ class LearningService:
         *,
         topic: str,
         course_id: str,
-        lessons_dir: Path,
         owner: str,
         lesson_num: int,
         goal: str | None = None,
+        session_id: str | None = None,
+        repo: CoursePackageRepo | None = None,
     ) -> None:
         """一次主 agent run 生成一课 + service 落盘 exercise 文件（task-3553）。
 
         - 不再有独立研究步：研究由主 agent 的 ExaTools（配置了
           ``EXA_API_KEY`` 时）自主接管。
         - lesson body / resource.md 由 agent 在 run 内通过 save_lesson /
-          save_resource 工具写盘（编号 / 幂等全在工具内）。
+          save_resource 工具写盘（编号 / 幂等全在 :class:`CoursePackageRepo`）。
         - ZPD 衔接由 agent 经 ``read_previous_lesson()`` 工具自读，service
           不拼进 prompt。
         - 最终响应解析为 ``ExerciseBundle``；exercise 文件由 service 在 run
-          后按「最大编号 + 同名 slug」落盘，与 lesson body 严格同名对应。
+          后消费 ``repo.last_written_lesson``（本次 run 刚写的 ``num / slug``）
+          落盘，与 lesson body 严格同名对应——不再从磁盘反推，一次 run 写多课
+          或重试顺序变化不会错位。
+
+        会话记忆（task-373）：把 ``session_id`` 传给 ``Agent.arun``，让 agno
+        复用同一会话（``create_agent`` 已硬编码 ``add_history_to_context=True,
+        num_history_runs=20``），前序 run 的消息会被回放进 context。首课时
+        ``session_id`` 由 :meth:`generate_course` 锚定并落库到
+        ``LearningProgress.session_id``；后续 :meth:`generate_next_lesson` 从
+        progress 读出后透传。两轮都传同一个 session_id（包括兜底重试的
+        attempt 2），agent 能看到上一轮为何失败。
 
         兜底重试（task-3554）：run 结束后的「磁盘缺 body 文件」或
         「ExerciseBundle 解析失败」触发**整 run 重试一次**——第二次 run 用
@@ -466,7 +539,12 @@ class LearningService:
         失败则抛 ``RuntimeError``。重试只覆盖 run **之后**的校验失败；
         ``arun`` 本身抛错不重试（直接上抛）。
         """
-        course_agent = self._build_course_agent(lessons_dir.parent)
+        # 共享 repo：agent 工具写盘与 service 的 exercise 配对用同一实例，run 后
+        # 直接消费 repo.last_written_lesson，不做磁盘反推。
+        repo = repo or CoursePackageRepo(
+            course_id=course_id, tmp_dir=self._tmp_dir
+        )
+        course_agent = self._build_course_agent(repo)
         base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
             topic=topic,
             course_id=course_id,
@@ -478,38 +556,32 @@ class LearningService:
         for attempt in (1, 2):
             prompt = retry_prompt if attempt == 2 else base_prompt
             response = await course_agent.arun(
-                prompt, output_schema=ExerciseBundle
+                prompt, output_schema=ExerciseBundle, session_id=session_id
             )
             try:
                 bundle = _unwrap_model(response, ExerciseBundle, "CourseAgent")
 
-                # exercise 文件名确定：工具已在 run 内写盘 lesson body，service
-                # 无从得知 num/slug，只能从磁盘反向推导 —— 本次 run 刚写的课 =
-                # 最大编号，再 glob 该编号的 lesson body 文件名取 slug（与
-                # _parse_lesson_filename 共用同一命名约定）。
-                existing_ids = list_existing_lesson_ids(lessons_dir)
-                num = max(existing_ids) if existing_ids else lesson_num
-                slug = _lesson_slug_for_num(lessons_dir, num)
-                if slug is None:
+                # exercise 文件名确定：本次 run 内 save_lesson 已把
+                # (num, slug) 记录在 repo.last_written_lesson。缺新课（agent 漏调
+                # save_lesson）→ RuntimeError 触发整 run 重试（task-3554）。
+                written = repo.last_written_lesson
+                if written is None or written.skipped:
                     raise RuntimeError(
-                        f"CourseAgent run 后未在 {lessons_dir} 找到 lesson body "
-                        f"(num={num})，无法落盘 exercise 文件"
+                        "CourseAgent run 后未写新课，无法落盘 exercise 文件"
                     )
 
-                (lessons_dir / f"{num:04d}-{slug}.exercise.md").write_text(
-                    _render_exercise_md(
-                        title=f"课程练习:{topic}",
-                        course_id=course_id,
-                        exercises=bundle.exercises,
-                    ),
-                    encoding="utf-8",
+                repo.write_exercise(
+                    num=written.num,
+                    slug=written.slug,
+                    title=f"课程练习:{topic}",
+                    exercises=bundle.exercises,
                 )
 
                 logger.bind(
                     course_id=course_id,
                     owner=owner,
-                    lesson_num=num,
-                    slug=slug,
+                    lesson_num=written.num,
+                    slug=written.slug,
                     attempt=attempt,
                 ).info("learning lesson generated")
                 return
@@ -531,21 +603,10 @@ class LearningService:
             f"CourseAgent 生成课程失败（已重试一次）: {last_error}"
         ) from last_error
 
-    def _course_dir(self, course_id: str) -> Path:
-        """课程包根目录：``self._tmp_dir`` 注入 > ``LEARNING_ROOT_DIR`` env > 默认值。"""
-        root = self._tmp_dir
-        if root is None:
-            configured = get_settings().LEARNING_ROOT_DIR
-            root = Path(configured) if configured else (
-                Path(__file__).resolve().parent.parent.parent
-                / "tmp"
-                / "learning"
-            )
-        return Path(root) / course_id
-
 
 __all__ = [
     "ExerciseBundle",
     "LearningService",
     "LessonResourceOutput",
+    "NextLessonContext",
 ]
