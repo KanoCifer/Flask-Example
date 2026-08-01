@@ -7,18 +7,13 @@
 
 from __future__ import annotations
 
-import asyncio
-import sys
-import types
-from collections.abc import AsyncIterator
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from app.core.agent import AiAgent
 from app.schemas.aiagent import WeatherAnalysisInput
-
 
 # ── Helpers ────────────────────────────────────────────────────────── #
 
@@ -55,18 +50,18 @@ def _make_db(sessions: list | None = None) -> MagicMock:
 
 def _content_frames(texts: list[str]) -> list[dict]:
     """把裸字符串列表转成新信封的 content 帧(便于断言)。"""
-    return [{"type": "content", "content": t} for t in texts]  # type: ignore[list-item]  # noqa: E501
+    return [{"type": "content", "content": t} for t in texts]  # type: ignore[list-item]
 
 
 @pytest.fixture
 def mock_factory(monkeypatch) -> dict[str, MagicMock]:
     """Patch llm_factory 的三个创建函数，返回 mock 引用供断言。"""
     mocks = {
-        "create_redis_db": MagicMock(return_value=_make_db()),
+        "create_postgres_db": MagicMock(return_value=_make_db()),
         "create_llm_model": MagicMock(return_value=_make_model()),
         "create_agent": MagicMock(return_value=_make_agent()),
     }
-    monkeypatch.setattr("app.core.agent.create_redis_db", mocks["create_redis_db"])
+    monkeypatch.setattr("app.core.agent.create_postgres_db", mocks["create_postgres_db"])
     monkeypatch.setattr("app.core.agent.create_llm_model", mocks["create_llm_model"])
     monkeypatch.setattr("app.core.agent.create_agent", mocks["create_agent"])
     return mocks
@@ -83,14 +78,14 @@ def api_key_set(monkeypatch) -> None:
 
 
 class TestInit:
-    def test_uses_create_redis_db_when_no_db_provided(self, mock_factory):
+    def test_uses_create_postgres_db_when_no_db_provided(self, mock_factory):
         AiAgent()
-        mock_factory["create_redis_db"].assert_called_once()
+        mock_factory["create_postgres_db"].assert_called_once()
 
     def test_uses_provided_db_directly(self, mock_factory):
         db = _make_db()
         agent = AiAgent(db=db)
-        mock_factory["create_redis_db"].assert_not_called()
+        mock_factory["create_postgres_db"].assert_not_called()
         assert agent._db is db
 
     def test_default_weights_build_prompt(self, mock_factory):

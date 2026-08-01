@@ -221,6 +221,20 @@ def _step2_payload() -> MissionBundle:
     )
 
 
+async def _step1_payload_mock(self, topic, course_id, **kwargs):
+    """``_run_step1`` 的 async mock：返回第 1 课 payload。
+
+    ``_run_step1`` 已改为 async（挂 async db，用 ``await agent.arun``），
+    测试 mock 也必须返回 awaitable。
+    """
+    return _step1_payload(course_id)
+
+
+async def _step2_payload_mock(self, topic, course_id):
+    """``_run_step2`` 的 async mock：返回 mission list。"""
+    return _step2_payload().missions
+
+
 # ── build_course_id ────────────────────────────────────────────────────
 
 
@@ -337,12 +351,12 @@ async def test_generate_course_writes_three_files(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
 
     svc = LearningService(
@@ -393,12 +407,12 @@ async def test_generate_course_upserts_progress_with_ready_status(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
 
     repo = LearningRepo()
@@ -424,12 +438,12 @@ async def test_generate_course_is_idempotent(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
 
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
@@ -480,10 +494,10 @@ async def test_generate_course_raises_when_step2_fails_twice(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
 
-    def _always_fail(self, topic, course_id):
+    async def _always_fail(self, topic, course_id):
         raise RuntimeError("step2 boom")
 
     monkeypatch.setattr(LearningService, "_run_step2", _always_fail)
@@ -506,7 +520,7 @@ async def test_generate_next_lesson_writes_next_file(
     """
     received_previous: list[str] = []
 
-    def _step1_next(self, topic, course_id, **kwargs):
+    async def _step1_next(self, topic, course_id, **kwargs):
         received_previous.append(kwargs.get("previous_lesson_md", ""))
         return _next_step1_payload(
             course_id, num=2, slug="lesson-2"
@@ -517,14 +531,14 @@ async def test_generate_next_lesson_writes_next_file(
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
 
     # 先用普通 step1 准备第 1 课
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
@@ -557,7 +571,7 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
     """
     step1_called = {"n": 0}
 
-    def _step1(self, topic, course_id, **kwargs):
+    async def _step1(self, topic, course_id, **kwargs):
         step1_called["n"] += 1
         return _next_step1_payload(course_id, num=2, slug="lesson-2")
 
@@ -567,12 +581,12 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
@@ -598,17 +612,17 @@ async def test_get_course_assembles_multiple_lessons_in_order(
     第 1 课 + 追加的第 2 课 → 装配时 id 升序,共享 resource.md 仍只有一份。
     """
 
-    def _step1_first(self, topic, course_id, **kwargs):
+    async def _step1_first(self, topic, course_id, **kwargs):
         return _step1_payload(course_id)
 
-    def _step1_next(self, topic, course_id, **kwargs):
+    async def _step1_next(self, topic, course_id, **kwargs):
         return _next_step1_payload(course_id, num=2, slug="lesson-2")
 
     monkeypatch.setattr(LearningService, "_run_research", _noop_research)
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
 
     monkeypatch.setattr(LearningService, "_run_step1", _step1_first)
@@ -686,12 +700,12 @@ async def test_get_course_returns_full_package_when_ready(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
 
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
@@ -730,12 +744,12 @@ async def test_mark_progress_appends_session_done_idempotently(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
     repo = LearningRepo()
     svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
@@ -763,12 +777,12 @@ async def test_mark_progress_sets_mission_done(
     monkeypatch.setattr(
         LearningService,
         "_run_step1",
-        lambda self, topic, course_id, **kwargs: _step1_payload(course_id),
+        _step1_payload_mock,
     )
     monkeypatch.setattr(
         LearningService,
         "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
+        _step2_payload_mock,
     )
     repo = LearningRepo()
     svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)

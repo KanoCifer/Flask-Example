@@ -159,7 +159,7 @@ class LearningService:
         research_summary = await self._run_research(topic=topic)
 
         # Step 1 — 单课 lesson + 共享 resource（无 previous_lesson_md）
-        bundle: LessonResourceOutput = self._run_step1(
+        bundle: LessonResourceOutput = await self._run_step1(
             topic=topic,
             course_id=course_id,
             research_summary=research_summary,
@@ -168,7 +168,7 @@ class LearningService:
         slug = bundle.slug
 
         # Step 2 — 该课的练习题
-        missions = self._run_step2(topic=topic, course_id=course_id)
+        missions = await self._run_step2(topic=topic, course_id=course_id)
 
         # 写入磁盘：lesson body + exercise + resource
         lesson_path = lessons_dir / f"{lesson_num:04d}-{slug}.md"
@@ -243,7 +243,7 @@ class LearningService:
         research_summary = await self._run_research(topic=topic)
 
         # 3. Step 1 — 单课 + 共享 resource（喂上一课尾巴 + 研究摘要）
-        bundle = self._run_step1(
+        bundle = await self._run_step1(
             topic=topic,
             course_id=course_id,
             previous_lesson_md=previous_md,
@@ -252,7 +252,7 @@ class LearningService:
         slug = bundle.slug
 
         # 4. Step 2 — 该课的练习题
-        missions = self._run_step2(topic=topic, course_id=course_id)
+        missions = await self._run_step2(topic=topic, course_id=course_id)
 
         # 5. 落盘两文件；resource.md 同步刷新（Step1 会重写共享资源）
         lesson_path = lessons_dir / f"{next_num:04d}-{slug}.md"
@@ -424,8 +424,7 @@ class LearningService:
           空字符串（课程生成照常，优雅降级）；配置了 → 走
           :func:`create_research_agent` 构建 agent。
         - MCPTools 是 async context manager（须 connect / close），生命周期
-          在 ``async with`` 内管理；run 用同步 ``.run``（agno Agent 同步
-          接口，内部仍走 async tool）。
+          在 ``async with`` 内管理。
         - 研究失败不拖垮课程：异常仅记日志，返回空字符串。
 
         Returns:
@@ -472,10 +471,12 @@ class LearningService:
           一份并覆写 ``instructions``。不直接 ``deepcopy(agent)`` —— agno
           Agent 持有 run state / session 缓存，``deepcopy`` 会克隆它们，造
           成跨 step 的共享状态。
-        - 否则走 factory：``create_deepseek_model()`` + Redis db。
-          DeepSeek 仅支持 json_object 模式，必须 ``use_json_mode=True`` 才
-          能让 ``response_format`` 走 ``{"type": "json_object"}``，否则 agno
-          会把 Pydantic schema 直传 DeepSeek，DeepSeek 会拒绝。
+        - 否则走 factory：``create_deepseek_model()`` +
+          ``create_postgres_db()``（异步 db，因此 step 调用必须用
+          ``await agent.arun``）。DeepSeek 仅支持 json_object 模式，必须
+          ``use_json_mode=True`` 才能让 ``response_format`` 走
+          ``{"type": "json_object"}``，否则 agno 会把 Pydantic schema 直传
+          DeepSeek，DeepSeek 会拒绝。
         """
         if self._agent is not None:
             return create_agent(
@@ -506,7 +507,7 @@ class LearningService:
             )
         return Path(root) / course_id
 
-    def _run_step1(
+    async def _run_step1(
         self,
         *,
         topic: str,
@@ -521,6 +522,10 @@ class LearningService:
 
         ``research_summary`` 非空时，把研究摘要（带来源）注入 prompt，
         让 lesson / resource 引用关键事实与规格（Exa + Context7 研究步）。
+
+        Step agent 挂 :func:`create_postgres_db`（异步 db），必须用
+        ``await agent.arun`` 而非同步 ``.run``（agno 同步接口会抛
+        "use arun instead"）。
         """
         step_agent = self._build_step_agent(STEP1_INSTRUCTIONS)
         prompt = STEP1_USER_PROMPT_TEMPLATE.format(
@@ -539,7 +544,9 @@ class LearningService:
                 f"在写新课时请衔接上文，避免重复或跳跃：\n\n"
                 f"```markdown\n{tail}\n```"
             )
-        response = step_agent.run(prompt, output_schema=LessonResourceOutput)
+        response = await step_agent.arun(
+            prompt, output_schema=LessonResourceOutput
+        )
         return self._unwrap_step1(response)
 
     def _unwrap_step1(self, response: Any) -> LessonResourceOutput:
@@ -559,7 +566,7 @@ class LearningService:
             f"{type(content).__name__}）；raw={content!r}"
         )
 
-    def _run_step2(
+    async def _run_step2(
         self,
         topic: str,
         course_id: str,
@@ -575,7 +582,9 @@ class LearningService:
             user_prompt = (
                 prompt if attempt == 1 else f"{prompt}\n\n{STEP2_RETRY_HINT}"
             )
-            response = step_agent.run(user_prompt, output_schema=MissionBundle)
+            response = await step_agent.arun(
+                user_prompt, output_schema=MissionBundle
+            )
             try:
                 return self._unwrap_step2(response)
             except RuntimeError as exc:
