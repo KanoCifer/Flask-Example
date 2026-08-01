@@ -7,7 +7,7 @@
 //   2. loadCourse(courseId) 装载已 ready 的课程包(直接 GET)。pending 会自动
 //      启动轮询。
 //   3. loadProgress() 列出当前 owner 的全部进度。
-//   4. markSessionDone / markMissionDone 写入 PATCH 进度端点。
+//   4. markSessionDone / markExerciseDone 写入 PATCH 进度端点。
 //   5. generateNextLesson(courseId) 渐进产出（task-352）— 触发生成下一课；
 //      若返回 `pending`，调用方需 poll `loadCourse` 等 lessons 列表增长。
 //
@@ -67,18 +67,25 @@ export function useLearningCourse() {
    * 提交主题 → 启动轮询。返回 `{course_id, course}`,ready 后 `course`
    * 已经填充完毕;调用方可直接 router.push 到课程详情。
    *
+   * @param inputTopic 学习主题。
+   * @param inputGoal 学习目标(可选),后端用于组织 MISSION.md 文案。
+   *
    * 失败语义:
    *   - 后端返回 failed:抛错并将 error 写为可读中文提示。
    *   - 轮询超过 120s:同上(超时)。
    *   - 中途组件卸载:由 onUnmounted 清理 timer,`error` 不写入。
    */
-  async function submitTopic(inputTopic: string): Promise<SubmittedCourse> {
+  async function submitTopic(
+    inputTopic: string,
+    inputGoal?: string,
+  ): Promise<SubmittedCourse> {
     const trimmed = inputTopic.trim();
     if (!trimmed) {
       const msg = '请输入要学习的主题';
       error.value = msg;
       throw new Error(msg);
     }
+    const goal = inputGoal?.trim() || undefined;
 
     // 并发保护:上一个还没结束,直接拒绝(避免双 timer)。
     if (submitting.value) {
@@ -94,7 +101,7 @@ export function useLearningCourse() {
     courseStatus.value = null;
 
     try {
-      const created = await learningGateway.createCourse(trimmed);
+      const created = await learningGateway.createCourse(trimmed, goal);
       pendingCourseId.value = created.course_id;
 
       // 立即 GET 一次,可能后端同步生成好,直接拿到 ready 走 fast-path。
@@ -339,12 +346,12 @@ export function useLearningCourse() {
   }
 
   /** 标记所有练习完成。返回后端下发的最新进度项;失败抛错。 */
-  async function markMissionDone(
+  async function markExerciseDone(
     courseId: string,
   ): Promise<LearningProgressItem> {
     try {
       const updated = await learningGateway.markProgress(courseId, {
-        mission_done: true,
+        exercise_done: true,
       });
       upsertProgress(updated);
       return updated;
@@ -407,7 +414,7 @@ export function useLearningCourse() {
     generateNextLesson,
     pollForLesson,
     markSessionDone,
-    markMissionDone,
+    markExerciseDone,
     findLesson,
     clearError,
   };

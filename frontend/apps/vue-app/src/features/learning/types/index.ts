@@ -3,9 +3,9 @@
 export type {
   LearningCourse,
   LearningLesson,
-  Mission,
-  MissionOption,
-  MissionType,
+  Exercise,
+  ExerciseOption,
+  ExerciseType,
   CourseStatus,
   CourseStatusResponse,
   LearningProgressItem,

@@ -4,7 +4,7 @@ agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 age
 
 - 单一课程 agent 绑定三个磁盘工具（save_lesson / save_resource /
   read_previous_lesson）+ 可选研究工具（Exa + Context7），在一次 ``arun``
-  内自主完成「写课 + 写 resource + 出题」，最终响应解析为 ``MissionBundle``。
+  内自主完成「写课 + 写 resource + 出题」，最终响应解析为 ``ExerciseBundle``。
 - 一课一文件落盘到 ``<learning-root>/<course-id>/lessons/0001-<slug>.md``
   （learning-root 默认 ``<backend>/tmp/learning``，可用 ``LEARNING_ROOT_DIR``
   环境变量配置，见 :meth:`_course_dir`）；
@@ -44,13 +44,13 @@ from app.core.llm_prompts import (
 )
 from app.core.logger import logger
 from app.repositories.learning_repo import LearningRepo
-from app.schemas.learning import CoursePackage, Mission
+from app.schemas.learning import CoursePackage, Exercise
 from app.services.learning_tools import create_learning_tools
 from app.services.learning_utils import (
     _assemble_lessons,
     _lesson_slug_for_num,
     _progress_to_dict,
-    _render_mission_md,
+    _render_exercise_md,
     _unwrap_model,
     build_course_id,
     lesson_file_exists,
@@ -78,10 +78,10 @@ class LessonResourceOutput(BaseModel):
     resource_md: str = Field(..., description="resource.md 全文（课程共享）")
 
 
-class MissionBundle(BaseModel):
+class ExerciseBundle(BaseModel):
     """course agent run 的 output_schema：一课练习任务清单。"""
 
-    missions: list[Mission] = Field(default_factory=list)
+    exercises: list[Exercise] = Field(default_factory=list)
 
 
 # ── service ─────────────────────────────────────────────────────────── #
@@ -118,7 +118,9 @@ class LearningService:
 
     # ── 公开 API ────────────────────────────────────────────────────── #
 
-    async def generate_course(self, topic: str, owner: str) -> str:
+    async def generate_course(
+        self, topic: str, owner: str, goal: str | None = None
+    ) -> str:
         """生成**第 1 课**并落盘，同步写一条 ``LearningProgress(status="ready")``。
 
         落盘结构：
@@ -134,12 +136,13 @@ class LearningService:
         Args:
             topic: 用户输入的学习主题。
             owner: 进度归属（user_id 或 anon_id）。
+            goal: 学习目标（可选），透传给课程 agent 组织 MISSION.md 文案。
 
         Returns:
             ``course_id``，格式 ``<slug>--<8hex>``。
 
         Raises:
-            RuntimeError: 单次 agent run 失败或 ``MissionBundle`` 响应无法解析。
+            RuntimeError: 单次 agent run 失败或 ``ExerciseBundle`` 响应无法解析。
         """
         course_id = build_course_id(topic)
         course_dir = self._course_dir(course_id)
@@ -153,11 +156,16 @@ class LearningService:
             lessons_dir=lessons_dir,
             owner=owner,
             lesson_num=1,
+            goal=goal,
         )
 
         # 落盘成功后再持久化进度，避免半成品状态。
         await self._repo.upsert_progress(
-            owner=owner, course_id=course_id, topic=topic, status="ready"
+            owner=owner,
+            course_id=course_id,
+            topic=topic,
+            status="ready",
+            goal=goal,
         )
 
         logger.bind(
@@ -243,11 +251,18 @@ class LearningService:
         course_dir = self._course_dir(course_id)
         lessons_dir = course_dir / "lessons"
         resource_path = course_dir / "resource.md"
+        mission_path = course_dir / "MISSION.md"
         if not lessons_dir.exists() or not resource_path.exists():
             return None
 
         lessons = _assemble_lessons(lessons_dir)
         resource_md = resource_path.read_text(encoding="utf-8")
+        # MISSION.md 缺失（旧课程 / 未生成）→ mission_md 为 None，前端隐藏展示。
+        mission_md = (
+            mission_path.read_text(encoding="utf-8")
+            if mission_path.exists()
+            else None
+        )
 
         return {
             "status": "ready",
@@ -256,6 +271,7 @@ class LearningService:
                 topic=progress.topic,
                 lessons=lessons,
                 resource_md=resource_md,
+                mission_md=mission_md,
             ),
         }
 
@@ -270,9 +286,9 @@ class LearningService:
         course_id: str,
         *,
         session_done: int | None = None,
-        mission_done: bool | None = None,
+        exercise_done: bool | None = None,
     ) -> dict[str, Any] | None:
-        """标记进度：追加完成的 session 或设置 mission_done（幂等）。
+        """标记进度：追加完成的 session 或设置 exercise_done（幂等）。
 
         Returns:
             更新后的进度 dict；进度不存在返回 None。
@@ -280,8 +296,10 @@ class LearningService:
         doc = None
         if session_done is not None:
             doc = await self._repo.add_session_done(owner, course_id, session_done)
-        if mission_done is not None:
-            doc = await self._repo.set_mission_done(owner, course_id, mission_done)
+        if exercise_done is not None:
+            doc = await self._repo.set_exercise_done(
+                owner, course_id, exercise_done
+            )
         if doc is None:
             # 无 mutation 时补读一次；mutation 已返回同步后的最新文档。
             doc = await self._repo.get_progress(owner, course_id)
@@ -290,7 +308,7 @@ class LearningService:
         return _progress_to_dict(doc)
 
     async def create_pending(
-        self, owner: str, course_id: str, topic: str
+        self, owner: str, course_id: str, topic: str, goal: str | None = None
     ) -> None:
         """API 提交阶段：先 upsert 一条 ``LearningProgress(status="pending")``。
 
@@ -300,10 +318,20 @@ class LearningService:
 
         复用 :meth:`LearningRepo.upsert_progress` 的并发安全语义（按唯一索引
         ``(owner, course_id)`` 处理 ``DuplicateKeyError``），原
-        ``sessions_done`` / ``mission_done`` 不会被覆盖。
+        ``sessions_done`` / ``exercise_done`` 不会被覆盖。
+
+        Args:
+            owner: 进度归属。
+            course_id: 课程 ID。
+            topic: 学习主题。
+            goal: 学习目标（可选），随 pending 记录落库。
         """
         await self._repo.upsert_progress(
-            owner=owner, course_id=course_id, topic=topic, status="pending"
+            owner=owner,
+            course_id=course_id,
+            topic=topic,
+            status="pending",
+            goal=goal,
         )
 
     async def merge_progress(self, anon_owner: str, user_owner: str) -> int:
@@ -414,6 +442,7 @@ class LearningService:
         lessons_dir: Path,
         owner: str,
         lesson_num: int,
+        goal: str | None = None,
     ) -> None:
         """一次主 agent run 生成一课 + service 落盘 exercise 文件（task-3553）。
 
@@ -423,19 +452,21 @@ class LearningService:
           save_resource 工具写盘（编号 / 幂等全在工具内）。
         - ZPD 衔接由 agent 经 ``read_previous_lesson()`` 工具自读，service
           不拼进 prompt。
-        - 最终响应解析为 ``MissionBundle``；exercise 文件由 service 在 run
+        - 最终响应解析为 ``ExerciseBundle``；exercise 文件由 service 在 run
           后按「最大编号 + 同名 slug」落盘，与 lesson body 严格同名对应。
 
         兜底重试（task-3554）：run 结束后的「磁盘缺 body 文件」或
-        「MissionBundle 解析失败」触发**整 run 重试一次**——第二次 run 用
+        「ExerciseBundle 解析失败」触发**整 run 重试一次**——第二次 run 用
         :data:`COURSE_AGENT_RETRY_HINT` 追加到用户消息，指示 agent 补调
-        ``save_lesson`` 落盘、返回严格合法的 ``MissionBundle`` JSON；两次均
+        ``save_lesson`` 落盘、返回严格合法的 ``ExerciseBundle`` JSON；两次均
         失败则抛 ``RuntimeError``。重试只覆盖 run **之后**的校验失败；
         ``arun`` 本身抛错不重试（直接上抛）。
         """
         course_agent = self._build_course_agent(lessons_dir.parent)
         base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
-            topic=topic, course_id=course_id
+            topic=topic,
+            course_id=course_id,
+            goal=goal or "未提供,请从主题推断学习目标",
         )
         retry_prompt = base_prompt + "\n\n" + COURSE_AGENT_RETRY_HINT
 
@@ -443,10 +474,10 @@ class LearningService:
         for attempt in (1, 2):
             prompt = retry_prompt if attempt == 2 else base_prompt
             response = await course_agent.arun(
-                prompt, output_schema=MissionBundle
+                prompt, output_schema=ExerciseBundle
             )
             try:
-                bundle = _unwrap_model(response, MissionBundle, "CourseAgent")
+                bundle = _unwrap_model(response, ExerciseBundle, "CourseAgent")
 
                 # exercise 文件名确定：工具已在 run 内写盘 lesson body，service
                 # 无从得知 num/slug，只能从磁盘反向推导 —— 本次 run 刚写的课 =
@@ -462,10 +493,10 @@ class LearningService:
                     )
 
                 (lessons_dir / f"{num:04d}-{slug}.exercise.md").write_text(
-                    _render_mission_md(
+                    _render_exercise_md(
                         title=f"课程练习:{topic}",
                         course_id=course_id,
-                        missions=bundle.missions,
+                        exercises=bundle.exercises,
                     ),
                     encoding="utf-8",
                 )
@@ -510,7 +541,7 @@ class LearningService:
 
 
 __all__ = [
+    "ExerciseBundle",
     "LearningService",
     "LessonResourceOutput",
-    "MissionBundle",
 ]

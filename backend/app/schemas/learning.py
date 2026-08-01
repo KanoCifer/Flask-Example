@@ -13,6 +13,9 @@ class CourseGenerateInput(BaseModel):
     """用户提交的学习主题"""
 
     topic: str = Field(..., min_length=1, description="要学习的主题")
+    goal: str | None = Field(
+        default=None, description="学习目标（可选），用于组织 MISSION.md 具体文案"
+    )
 
 
 class CourseStatus:
@@ -26,17 +29,17 @@ class CourseStatus:
 CourseStatusLiteral = Literal["pending", "ready", "failed"]
 
 
-# ── 练习（Mission） ─────────────────────────────────────────────────────── #
+# ── 练习（Exercise） ───────────────────────────────────────────────────── #
 
 
-class MissionOption(BaseModel):
+class ExerciseOption(BaseModel):
     """选择题选项"""
 
     key: str = Field(..., description="选项键，如 A/B/C/D")
     text: str = Field(..., description="选项文案")
 
 
-class Mission(BaseModel):
+class Exercise(BaseModel):
     """单个练习题"""
 
     id: int = Field(..., ge=1, description="题号，从 1 开始")
@@ -70,7 +73,7 @@ class LessonItem(BaseModel):
     title: str = Field(..., description="课标题")
     slug: str = Field(..., description="dash-case 课标识，用于文件名")
     md: str = Field(..., description="该课正文全文")
-    exercises: list[Mission] = Field(
+    exercises: list[Exercise] = Field(
         default_factory=list,
         description="该课练习（解析自 <num>-<slug>.exercise.md 的 front matter）",
     )
@@ -81,6 +84,7 @@ class CoursePackage(BaseModel):
 
     - ``lessons`` 只含**已生成**的课（渐进产出时列表随 ``POST /lessons`` 增长）。
     - ``resource_md`` 是全课程共享参考资料，独立于各课。
+    - ``mission_md`` 是本课程学习使命文档（MISSION.md 全文），缺失为 None。
     """
 
     course_id: str = Field(..., description="课程唯一 ID")
@@ -89,3 +93,6 @@ class CoursePackage(BaseModel):
         default_factory=list, description="已生成的课列表（渐进产出时增长）"
     )
     resource_md: str = Field(..., description="resource.md 全文")
+    mission_md: str | None = Field(
+        default=None, description="MISSION.md 全文（学习使命文档），缺失为 None"
+    )

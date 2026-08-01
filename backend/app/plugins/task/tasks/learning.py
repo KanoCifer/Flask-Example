@@ -36,6 +36,7 @@ async def generate_course(
     topic: str,
     owner: str,
     course_id: str,
+    goal: str | None = None,
 ) -> None:
     """生成课程包并落盘；最终把 ``LearningProgress`` 置 ``ready``。
 
@@ -46,6 +47,7 @@ async def generate_course(
     :param owner: 进度归属（user_id 或 anon_id）。
     :param course_id: 课程 ID（API 层预计算并已 upsert 了一条
         ``status="pending"`` 记录）。
+    :param goal: 学习目标（可选），透传给 service 组织 MISSION.md 文案。
     """
     logger.bind(course_id=course_id, owner=owner, topic=topic).info(
         "learning: course generation task started"
@@ -57,7 +59,9 @@ async def generate_course(
         from app.main import app
 
         learning_svc: LearningService = app.state.services.learning_svc
-        await learning_svc.generate_course(topic=topic, owner=owner)
+        await learning_svc.generate_course(
+            topic=topic, owner=owner, goal=goal
+        )
     except Exception as exc:
         logger.bind(course_id=course_id, owner=owner).error(
             f"learning: course generation task failed: {exc!r}"

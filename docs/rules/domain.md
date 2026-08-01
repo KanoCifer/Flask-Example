@@ -18,3 +18,12 @@
 | Admin             | 非角色系统。硬编码 `user.id in ADMIN_USER_IDS` 为管理员，用于内容审核、部署触发、系统监控    |
 | GalleryImage      | 图库图片，PostgreSQL `pic` 表 + 瀑布流展示                                                   |
 | Event             | 系统事件（PostgreSQL `event` 表），承载 startup / deploy / notify_failure 等业务事件         |
+| Mission           | 课程目标文档 `MISSION.md`：为什么学 / 成功长什么样 / 约束 / 不做范围，每门课程根目录一份，是课程 agent 每个教学决策可溯源的目标依据（task-365）。原「mission」术语 2026-08 统一改名至此，练习题改称 Exercise，勿再混用 |
+| Exercise          | 练习题，`<num>-<slug>.exercise.md` front matter 的 `exercises` 列表；原「mission」术语 2026-08 统一改名至此，进度标志为 `exercise_done` |
+
+## 存量说明（2026-08 术语统一）
+
+- `LearningProgress.mission_done` 字段与旧 `missions:` YAML key **不迁移**：
+  存量数据保持原样，需要时手动重新标记（`exercise_done`）或重新生成课程即可。
+- `MISSION.md` 只在课程根目录存在一份，旧 `mission.md` / `missions:` 产物不
+  自动读取或转换；重试/渐进产出由 `save_mission` 工具幂等保护，不覆盖已存在内容。

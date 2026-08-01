@@ -14,7 +14,7 @@ class LearningRepo:
 
     设计要点：
     - 唯一索引 (owner, course_id) 是 upsert / merge 的边界，重复 key 由调用方处理。
-    - sessions_done / mission_done 写入使用 $addToSet / $set，保证幂等。
+    - sessions_done / exercise_done 写入使用 $addToSet / $set，保证幂等。
     - merge_anon_into_user 用 set union + OR 合并，不做简单覆盖。
     """
 
@@ -43,26 +43,35 @@ class LearningRepo:
         course_id: str,
         topic: str,
         status: str,
+        goal: str | None = None,
     ) -> LearningProgress:
         """创建或替换一条进度记录（按唯一索引 (owner, course_id)）。
 
-        - 已存在：以 (topic, status) 替换，原 sessions_done / mission_done 保留。
+        - 已存在：以 (topic, status, goal) 替换，原 sessions_done / exercise_done 保留。
         - 不存在：插入新行，created_at 由模型默认值生成。
+
+        ``goal`` 为可选：传入 ``None`` 时已存在记录保留原 goal，新记录不写该字段
+        （存量旧字段不迁移，见 task-365）。
         """
         existing = await self.get_progress(owner, course_id)
         if existing is not None:
             existing.topic = topic
             existing.status = status
+            if goal is not None:
+                existing.goal = goal
             await existing.save()
             return existing
 
-        new_doc = LearningProgress(
-            owner=owner,
-            course_id=course_id,
-            topic=topic,
-            status=status,
-            created_at=datetime.now(UTC),
-        )
+        kwargs: dict[str, object] = {
+            "owner": owner,
+            "course_id": course_id,
+            "topic": topic,
+            "status": status,
+            "created_at": datetime.now(UTC),
+        }
+        if goal is not None:
+            kwargs["goal"] = goal
+        new_doc = LearningProgress(**kwargs)
         try:
             await new_doc.insert()
         except DuplicateKeyError:
@@ -72,6 +81,8 @@ class LearningRepo:
                 raise
             existing.topic = topic
             existing.status = status
+            if goal is not None:
+                existing.goal = goal
             await existing.save()
             return existing
         return new_doc
@@ -91,14 +102,14 @@ class LearningRepo:
         await doc.sync()
         return doc
 
-    async def set_mission_done(
+    async def set_exercise_done(
         self, owner: str, course_id: str, done: bool = True
     ) -> LearningProgress | None:
-        """幂等设置 mission_done。"""
+        """幂等设置 exercise_done。"""
         doc = await self.get_progress(owner, course_id)
         if doc is None:
             return None
-        await doc.update({"$set": {"mission_done": done}})
+        await doc.update({"$set": {"exercise_done": done}})
         await doc.sync()
         return doc
 
@@ -120,7 +131,7 @@ class LearningRepo:
 
         合并规则（按 course_id 分组）：
         - sessions_done：取两侧集合的并集（去重 + 排序）。
-        - mission_done：任一侧为 True 即为 True。
+        - exercise_done：任一侧为 True 即为 True。
         - topic / status / created_at：以 user_owner 已存在记录为准；
           若 user_owner 没有对应记录，则把匿名文档迁过去并改 owner。
 
@@ -146,12 +157,14 @@ class LearningRepo:
             merged_sessions = sorted(
                 set(user_doc.sessions_done) | set(anon.sessions_done)
             )
-            merged_mission = bool(user_doc.mission_done or anon.mission_done)
+            merged_exercise_done = bool(
+                user_doc.exercise_done or anon.exercise_done
+            )
             await user_doc.update(
                 {
                     "$set": {
                         "sessions_done": merged_sessions,
-                        "mission_done": merged_mission,
+                        "exercise_done": merged_exercise_done,
                     }
                 }
             )

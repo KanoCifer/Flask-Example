@@ -27,6 +27,7 @@ import {
   Loader2,
   RefreshCcw,
   Sparkles,
+  Target,
 } from '@lucide/vue';
 import { Button } from '@/components';
 import { renderMarkdown } from '@/composables';
@@ -64,6 +65,12 @@ const resourceOpen = ref(false);
 const resourceHtml = computed(() =>
   course.value ? renderMarkdown(course.value.resource_md) : '',
 );
+
+/** 学习使命（MISSION.md）渲染：缺失 / 空串时整块隐藏。 */
+const missionHtml = computed(() =>
+  course.value?.mission_md?.trim() ? renderMarkdown(course.value.mission_md) : '',
+);
+const hasMission = computed(() => missionHtml.value.length > 0);
 
 /** 当前课程在 progressList 里的最新条目;可能 undefined(冷启动)。 */
 const progressItem = computed<LearningProgressItem | undefined>(() =>
@@ -302,6 +309,21 @@ useHead({
             />
           </div>
         </header>
+
+        <!-- Mission (task-365):学习使命文档,缺失时整块隐藏 -->
+        <section
+          v-if="hasMission"
+          class="bg-card ring-border/40 mb-5 rounded-2xl ring-1"
+        >
+          <div class="border-border/40 flex items-center gap-2 border-b px-4 py-3 sm:px-5">
+            <Target class="text-accent h-4 w-4" aria-hidden="true" />
+            <span class="text-ink flex-1 text-sm font-medium"> 学习使命 </span>
+          </div>
+          <article
+            class="prose prose-sm text-ink max-w-none px-4 py-4 sm:px-5"
+            v-html="missionHtml"
+          />
+        </section>
 
         <!-- Lesson list -->
         <section

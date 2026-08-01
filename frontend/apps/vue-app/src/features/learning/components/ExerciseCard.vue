@@ -1,12 +1,12 @@
 <!--
-  MissionCard — 单个练习题卡.
+  ExerciseCard — 单个练习题卡.
 
   行为契约:
-   - 根据 mission.type 渲染三种 UI:
+   - 根据 exercise.type 渲染三种 UI:
        single_choice → radio(单选)
        multi_choice  → checkbox(多选)
        true_false    → 对/错 两按钮
-   - 提交后做客户端判分:比较 selection 与 mission.answer。
+   - 提交后做客户端判分:比较 selection 与 exercise.answer。
        single_choice  →  string 全等
        multi_choice   →  array 排序后逐项相等(顺序无关)
        true_false     →  boolean 全等
@@ -17,12 +17,12 @@
 <script setup lang="ts">
 import { Check, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import type { Mission } from '@/features/learning/types';
+import type { Exercise } from '@/features/learning/types';
 
-defineOptions({ name: 'MissionCard' });
+defineOptions({ name: 'ExerciseCard' });
 
 const props = defineProps<{
-  mission: Mission;
+  exercise: Exercise;
   /** 题号(从 1 开始),仅用于展示,不参与判分。 */
   index: number;
 }>();
@@ -39,12 +39,12 @@ const submitted = ref(false);
 /** 判分结果;null = 未判分。 */
 const result = ref<boolean | null>(null);
 
-const isMulti = computed(() => props.mission.type === 'multi_choice');
+const isMulti = computed(() => props.exercise.type === 'multi_choice');
 const isTrueFalse = computed(
-  () => props.mission.type === 'true_false',
+  () => props.exercise.type === 'true_false',
 );
 const correctAnswerLabel = computed(() => {
-  const a = props.mission.answer;
+  const a = props.exercise.answer;
   if (Array.isArray(a)) return a.join(' / ');
   if (typeof a === 'boolean') return a ? '对' : '错';
   return a;
@@ -52,7 +52,7 @@ const correctAnswerLabel = computed(() => {
 
 /** 模板辅助:某选项 key 是否命中参考答案(用于提交后高亮正确选项)。 */
 function isCorrectOption(key: string): boolean {
-  const a = props.mission.answer;
+  const a = props.exercise.answer;
   if (typeof a === 'string') return a === key;
   if (Array.isArray(a)) return a.includes(key);
   return false;
@@ -94,7 +94,7 @@ const canSubmit = computed(() => {
 // ── 判分 ─────────────────────────────────────────────────────────────────
 function submit() {
   if (!canSubmit.value) return;
-  result.value = grade(props.mission, selection.value);
+  result.value = grade(props.exercise, selection.value);
   submitted.value = true;
   emit('answered', result.value);
 }
@@ -105,20 +105,20 @@ function submit() {
  *  - multi_choice :排序后逐项相等(顺序无关)
  *  - true_false   :严格 boolean 相等
  */
-function grade(m: Mission, sel: string | boolean | string[] | null): boolean {
+function grade(e: Exercise, sel: string | boolean | string[] | null): boolean {
   if (sel === null) return false;
-  if (m.type === 'single_choice') {
-    return typeof sel === 'string' && sel === m.answer;
+  if (e.type === 'single_choice') {
+    return typeof sel === 'string' && sel === e.answer;
   }
-  if (m.type === 'multi_choice') {
-    if (!Array.isArray(sel) || !Array.isArray(m.answer)) return false;
+  if (e.type === 'multi_choice') {
+    if (!Array.isArray(sel) || !Array.isArray(e.answer)) return false;
     const a = [...sel].sort();
-    const b = [...m.answer].sort();
+    const b = [...e.answer].sort();
     if (a.length !== b.length) return false;
     return a.every((k, i) => k === b[i]);
   }
   // true_false
-  return typeof sel === 'boolean' && sel === m.answer;
+  return typeof sel === 'boolean' && sel === e.answer;
 }
 
 function reset() {
@@ -157,28 +157,28 @@ function isWrongChoice(key: string): boolean {
         </span>
         <span class="text-muted text-xs">
           {{
-            mission.type === 'single_choice'
+            exercise.type === 'single_choice'
               ? '单选'
-              : mission.type === 'multi_choice'
+              : exercise.type === 'multi_choice'
                 ? '多选'
                 : '判断'
           }}
         </span>
       </div>
       <span class="text-muted font-mono text-[11px]">
-        {{ mission.points }} 分 · 难度 {{ mission.difficulty }}
+        {{ exercise.points }} 分 · 难度 {{ exercise.difficulty }}
       </span>
     </header>
 
     <!-- Prompt -->
     <p class="text-ink mb-4 text-sm leading-relaxed font-medium">
-      {{ mission.prompt }}
+      {{ exercise.prompt }}
     </p>
 
     <!-- Choice options (single + multi) -->
     <div v-if="!isTrueFalse" class="space-y-2">
       <button
-        v-for="opt in mission.options ?? []"
+        v-for="opt in exercise.options ?? []"
         :key="opt.key"
         type="button"
         :disabled="submitted"
@@ -223,10 +223,10 @@ function isWrongChoice(key: string): boolean {
         class="border-border/60 bg-surface/30 text-ink hover:bg-surface/60 focus-visible:ring-ring/40 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         :class="[
           !submitted && selection === true ? 'bg-accent/10 border-accent/40' : '',
-          submitted && mission.answer === true
+          submitted && exercise.answer === true
             ? 'ring-success/40 bg-success/10 border-success/40'
             : '',
-          submitted && selection === true && mission.answer !== true
+          submitted && selection === true && exercise.answer !== true
             ? 'ring-destructive/40 bg-destructive/10 border-destructive/40'
             : '',
         ]"
@@ -240,10 +240,10 @@ function isWrongChoice(key: string): boolean {
         class="border-border/60 bg-surface/30 text-ink hover:bg-surface/60 focus-visible:ring-ring/40 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         :class="[
           !submitted && selection === false ? 'bg-accent/10 border-accent/40' : '',
-          submitted && mission.answer === false
+          submitted && exercise.answer === false
             ? 'ring-success/40 bg-success/10 border-success/40'
             : '',
-          submitted && selection === false && mission.answer !== false
+          submitted && selection === false && exercise.answer !== false
             ? 'ring-destructive/40 bg-destructive/10 border-destructive/40'
             : '',
         ]"
@@ -282,7 +282,7 @@ function isWrongChoice(key: string): boolean {
             {{ result ? '答对了' : `答错了 — 正确答案: ${correctAnswerLabel}` }}
           </span>
         </div>
-        <p class="text-ink/80 text-xs">{{ mission.explanation }}</p>
+        <p class="text-ink/80 text-xs">{{ exercise.explanation }}</p>
       </div>
 
       <div v-if="submitted" class="flex justify-end">

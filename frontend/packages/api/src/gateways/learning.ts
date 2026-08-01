@@ -19,7 +19,7 @@ import type {
 /** `PATCH /v2/learning/progress/{course_id}` 的请求体。 */
 export interface ProgressPatchBody {
   session_done?: number;
-  mission_done?: boolean;
+  exercise_done?: boolean;
 }
 
 /** `POST /v2/learning/courses` 返回的极简确认包。 */
@@ -29,8 +29,12 @@ export interface CourseCreateResponse {
 }
 
 export interface LearningGateway {
-  /** 提交主题，异步生成课程包；返回 `pending` 状态供前端轮询。 */
-  createCourse(topic: string): Promise<CourseCreateResponse>;
+  /**
+   * 提交主题，异步生成课程包；返回 `pending` 状态供前端轮询。
+   * @param topic 学习主题
+   * @param goal 学习目标（可选），后端用于组织 MISSION.md 具体文案。
+   */
+  createCourse(topic: string, goal?: string): Promise<CourseCreateResponse>;
   /** 轮询课程状态：`pending` / `ready` / `failed`。 */
   getCourse(courseId: string): Promise<CourseStatusResponse>;
   /**
@@ -42,7 +46,7 @@ export interface LearningGateway {
   generateNextLesson(courseId: string): Promise<NextLessonResponse>;
   /** 列出当前 owner 的全部课程进度。 */
   listProgress(): Promise<LearningProgressItem[]>;
-  /** 标记 session_done / mission_done（任一字段可独立更新）。 */
+  /** 标记 session_done / exercise_done（任一字段可独立更新）。 */
   markProgress(
     courseId: string,
     body: ProgressPatchBody,
@@ -55,10 +59,12 @@ function anonIdHeaders(): { headers: Record<string, string> } {
 }
 
 export const learningGateway: LearningGateway = {
-  async createCourse(topic: string): Promise<CourseCreateResponse> {
+  async createCourse(topic: string, goal?: string): Promise<CourseCreateResponse> {
+    const body: Record<string, string> = { topic };
+    if (goal && goal.trim()) body.goal = goal.trim();
     const res = await apiClient.post<{ data: CourseCreateResponse }>(
       'v2/learning/courses',
-      { topic },
+      body,
       anonIdHeaders(),
     );
     return res.data.data;
@@ -105,8 +111,8 @@ export const learningGateway: LearningGateway = {
 // ── 便利 re-export ─────────────────────────────────────────────────────────
 export type {
   LearningCourse,
-  Mission,
-  MissionOption,
+  Exercise,
+  ExerciseOption,
   CourseStatus,
   CourseStatusResponse,
   LearningProgressItem,

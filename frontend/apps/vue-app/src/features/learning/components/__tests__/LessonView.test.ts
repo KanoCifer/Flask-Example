@@ -5,7 +5,7 @@
  *  - 挂载时自动 loadCourse + loadProgress
  *  - 渲染 lesson 标题、Markdown 正文 (v-html)
  *  - tab 切换:正文 / 练习
- *  - MissionCard 集成:答对 + 答错,本地 scoreState 累加
+ *  - ExerciseCard 集成:答对 + 答错,本地 scoreState 累加
  *  - 「本节完成」:练习全对时按钮亮起,点击 → markSessionDone
  *  - 「下一课」:点击 → generateNextLesson,pending/already_generated 跳转
  *  - 「找不到该课节」空态(lesson id 不在 course.lessons)
@@ -20,7 +20,7 @@ import type {
   LearningCourse,
   LearningLesson,
   LearningProgressItem,
-  Mission,
+  Exercise,
   NextLessonResponse,
 } from '@readinglist/types';
 import LessonView from '../LessonView.vue';
@@ -74,7 +74,7 @@ vi.mock('@vueuse/head', () => ({
 
 // ── helpers ────────────────────────────────────────────────────────────
 
-function makeSingleChoice(): Mission {
+function makeSingleChoice(): Exercise {
   return {
     id: 1,
     type: 'single_choice',
@@ -111,6 +111,7 @@ function makeCourse(
     topic: 'Rust 入门',
     lessons: [makeLesson()],
     resource_md: '# R',
+    mission_md: null,
     ...overrides,
   };
 }
@@ -126,7 +127,7 @@ function makeProgressItem(
     course_id: 'rust--abcd1234',
     topic: 'Rust 入门',
     sessions_done: [],
-    mission_done: false,
+    exercise_done: false,
     status: 'ready',
     next_session: 1,
     ...overrides,
@@ -182,7 +183,7 @@ async function mountView(opts: MountOpts = {}): Promise<VueWrapper> {
       stubs: {
         RouterLink: { template: '<a><slot /></a>' },
         Button: { template: '<button><slot /></button>' },
-        // MissionCard 真实渲染(它有自己的客户端判分测试),但避免 lucide 拖 SVG
+        // ExerciseCard 真实渲染(它有自己的客户端判分测试),但避免 lucide 拖 SVG
       },
     },
   });
@@ -232,7 +233,7 @@ describe('LessonView', () => {
     expect(article.exists()).toBe(true);
   });
 
-  it('tab 切换到「练习」显示 MissionCard', async () => {
+  it('tab 切换到「练习」显示 ExerciseCard', async () => {
     const wrapper = await mountView({
       course: makeCourse({
         lessons: [makeLesson({ exercises: [makeSingleChoice()] })],
@@ -248,9 +249,9 @@ describe('LessonView', () => {
     await exerciseTab!.trigger('click');
     await flushPromises();
 
-    // MissionCard 渲染了 prompt 文案
+    // ExerciseCard 渲染了 prompt 文案
     expect(wrapper.text()).toContain('? 是什么?');
-    // 找到 MissionCard 里的「提交」按钮
+    // 找到 ExerciseCard 里的「提交」按钮
     const submitBtn = wrapper
       .findAll('button')
       .find((b) => b.text().trim() === '提交');

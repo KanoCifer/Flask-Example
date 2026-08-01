@@ -62,7 +62,7 @@ function makeProgressItem(
     course_id: 'rust--abcd1234',
     topic: 'Rust 入门',
     sessions_done: [],
-    mission_done: false,
+    exercise_done: false,
     status: 'ready',
     next_session: 1,
     ...overrides,
@@ -71,7 +71,7 @@ function makeProgressItem(
 
 function makeReadyCourse(course_id: string): CourseStatusResponse {
   // task-351 契约:已生成课程在 ``lessons: LearningLesson[]`` 列表中,
-  // 每个 lesson 含该课练习 ``exercises: Mission[]``。
+  // 每个 lesson 含该课练习 ``exercises: Exercise[]``。
   const lesson: LearningLesson = {
     id: 1,
     title: '第 1 课',
@@ -84,6 +84,7 @@ function makeReadyCourse(course_id: string): CourseStatusResponse {
     topic: 'Rust 入门',
     lessons: [lesson],
     resource_md: '# R',
+    mission_md: null,
   };
   return { status: 'ready', course };
 }
@@ -159,7 +160,7 @@ describe('LearningList', () => {
           topic: 'Go 入门',
           status: 'ready',
           next_session: null,
-          mission_done: true,
+          exercise_done: true,
           sessions_done: [1, 2, 3],
         }),
       ],
@@ -205,7 +206,7 @@ describe('LearningList', () => {
     const wrapper = await mountList();
     await flushPromises();
 
-    // 找到 input
+    // 找到 topic input
     const input = wrapper.find('input[type="text"]');
     expect(input.exists()).toBe(true);
     await input.setValue('Rust 入门');
@@ -222,7 +223,8 @@ describe('LearningList', () => {
     await flushPromises();
     await flushPromises();
 
-    expect(createCourseMock).toHaveBeenCalledWith('Rust 入门');
+    // 不填目标 → createCourse(topic, undefined)
+    expect(createCourseMock).toHaveBeenCalledWith('Rust 入门', undefined);
     expect(getCourseMock).toHaveBeenCalledWith('rust--abc12345');
     // submitTopic 完成后 router.push 到课程详情
     expect(pushMock).toHaveBeenCalledWith(
@@ -230,6 +232,32 @@ describe('LearningList', () => {
         name: 'learning-course',
         params: { courseId: 'rust--abc12345' },
       }),
+    );
+  });
+
+  it('填写学习目标 → createCourse(topic, goal) 携带 goal', async () => {
+    const wrapper = await mountList();
+    await flushPromises();
+
+    const inputs = wrapper.findAll('input[type="text"]');
+    // [0] topic, [1] goal
+    expect(inputs.length).toBeGreaterThanOrEqual(2);
+    await inputs[0].setValue('Rust 入门');
+    await inputs[1].setValue('能独立复述所有权规则');
+
+    const generateBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('生成课程'));
+    expect(generateBtn).toBeDefined();
+    await generateBtn!.trigger('click');
+
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    expect(createCourseMock).toHaveBeenCalledWith(
+      'Rust 入门',
+      '能独立复述所有权规则',
     );
   });
 

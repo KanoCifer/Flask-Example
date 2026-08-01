@@ -4,7 +4,7 @@ export {
   LearningList,
   CourseView,
   LessonView,
-  MissionCard,
+  ExerciseCard,
 } from './components';
 export { useLearningCourse } from './composables/useLearningCourse';
 export type { SubmittedCourse } from './composables/useLearningCourse';
@@ -18,9 +18,9 @@ export type {
 export type {
   LearningCourse,
   LearningLesson,
-  Mission,
-  MissionOption,
-  MissionType,
+  Exercise,
+  ExerciseOption,
+  ExerciseType,
   CourseStatus,
   CourseStatusResponse,
   LearningProgressItem,

@@ -5,26 +5,26 @@
 // 消费方拿到的就是这里的形状。
 
 /** 选择题单选题选项 */
-export interface MissionOption {
+export interface ExerciseOption {
   key: string;
   text: string;
 }
 
 /** 题型字面量 */
-export type MissionType = 'single_choice' | 'multi_choice' | 'true_false';
+export type ExerciseType = 'single_choice' | 'multi_choice' | 'true_false';
 
 /** 课程生成状态字面量 */
 export type CourseStatus = 'pending' | 'ready' | 'failed';
 
-/** 单个练习题（来自 mission.md 解析） */
-export interface Mission {
+/** 单个练习题（来自 exercise.md 解析） */
+export interface Exercise {
   id: number;
-  type: MissionType;
+  type: ExerciseType;
   difficulty: number;
   points: number;
   prompt: string;
   /** 选择题必有；判断题恒为 `null` */
-  options: MissionOption[] | null;
+  options: ExerciseOption[] | null;
   /** 单选 `string` / 多选 `string[]` / 判断 `boolean` */
   answer: string | string[] | boolean;
   explanation: string;
@@ -38,7 +38,7 @@ export interface LearningLesson {
   /** 该课正文全文 */
   md: string;
   /** 该课练习（解析自 `<num>-<slug>.exercise.md` 的 front matter） */
-  exercises: Mission[];
+  exercises: Exercise[];
 }
 
 /** 完整课程包（`ready` 时随 `GET /courses/{id}` 一起下发） */
@@ -48,6 +48,8 @@ export interface LearningCourse {
   /** 已生成的课（渐进产出时列表增长） */
   lessons: LearningLesson[];
   resource_md: string;
+  /** 学习使命文档（MISSION.md 全文）；缺失（旧课程 / 未生成）为 `null` */
+  mission_md: string | null;
 }
 
 /** 课程进度项（来自 `GET /v2/learning/progress`） */
@@ -55,7 +57,7 @@ export interface LearningProgressItem {
   course_id: string;
   topic: string;
   sessions_done: number[];
-  mission_done: boolean;
+  exercise_done: boolean;
   status: CourseStatus;
   next_session: number | null;
 }

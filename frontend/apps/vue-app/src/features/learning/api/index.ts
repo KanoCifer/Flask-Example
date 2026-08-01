@@ -12,9 +12,9 @@ export type {
 
 export type {
   LearningCourse,
-  Mission,
-  MissionOption,
-  MissionType,
+  Exercise,
+  ExerciseOption,
+  ExerciseType,
   CourseStatus,
   CourseStatusResponse,
   LearningProgressItem,

@@ -1,5 +1,5 @@
 /**
- * MissionCard 单测 — 客户端判分契约 (任务 3310 验收 #4)。
+ * ExerciseCard 单测 — 客户端判分契约 (任务 3310 验收 #4)。
  *
  * 覆盖:
  *  - single_choice:字符串相等
@@ -12,10 +12,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import type { Mission } from '@readinglist/types';
-import MissionCard from '../MissionCard.vue';
+import type { Exercise } from '@readinglist/types';
+import ExerciseCard from '../ExerciseCard.vue';
 
-function makeSingleChoice(): Mission {
+function makeSingleChoice(): Exercise {
   return {
     id: 1,
     type: 'single_choice',
@@ -33,7 +33,7 @@ function makeSingleChoice(): Mission {
   };
 }
 
-function makeMultiChoice(): Mission {
+function makeMultiChoice(): Exercise {
   return {
     id: 2,
     type: 'multi_choice',
@@ -51,7 +51,7 @@ function makeMultiChoice(): Mission {
   };
 }
 
-function makeTrueFalse(): Mission {
+function makeTrueFalse(): Exercise {
   return {
     id: 3,
     type: 'true_false',
@@ -68,12 +68,12 @@ function findSubmitBtn(wrapper: ReturnType<typeof mount>) {
   return wrapper.findAll('button').find((b) => b.text().includes('提交'));
 }
 
-describe('MissionCard', () => {
+describe('ExerciseCard', () => {
   // ── single_choice ─────────────────────────────────────────────────────
 
   it('single_choice:正确答案 → emit answered(true) 并展示 explanation', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeSingleChoice(), index: 1 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeSingleChoice(), index: 1 },
     });
 
     // 找到 B 按钮
@@ -98,8 +98,8 @@ describe('MissionCard', () => {
   });
 
   it('single_choice:错误答案 → emit answered(false) 并展示正确答案', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeSingleChoice(), index: 1 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeSingleChoice(), index: 1 },
     });
 
     const aBtn = wrapper
@@ -119,8 +119,8 @@ describe('MissionCard', () => {
   // ── multi_choice ──────────────────────────────────────────────────────
 
   it('multi_choice:顺序无关(打乱选择也判为正确)', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeMultiChoice(), index: 2 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeMultiChoice(), index: 2 },
     });
 
     // 选择顺序 A → D → C(打乱参考答案顺序 A C D)
@@ -138,8 +138,8 @@ describe('MissionCard', () => {
   });
 
   it('multi_choice:多选/漏选 → 判错', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeMultiChoice(), index: 2 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeMultiChoice(), index: 2 },
     });
 
     // 只选 A — 漏了 C/D
@@ -158,8 +158,8 @@ describe('MissionCard', () => {
   // ── true_false ────────────────────────────────────────────────────────
 
   it('true_false:答 true(答错,answer 是 false) → emit answered(false)', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeTrueFalse(), index: 3 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeTrueFalse(), index: 3 },
     });
 
     // 找「对」按钮
@@ -176,8 +176,8 @@ describe('MissionCard', () => {
   });
 
   it('true_false:答 false → emit answered(true)', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeTrueFalse(), index: 3 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeTrueFalse(), index: 3 },
     });
 
     const falseBtn = wrapper
@@ -193,8 +193,8 @@ describe('MissionCard', () => {
   // ── 「重做」reset ────────────────────────────────────────────────────
 
   it('「重做」按钮 reset 选择/状态,可重新作答', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeSingleChoice(), index: 1 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeSingleChoice(), index: 1 },
     });
 
     // 选 A,提交 → answered(false)
@@ -231,8 +231,8 @@ describe('MissionCard', () => {
   // ── canSubmit gate ───────────────────────────────────────────────────
 
   it('未选择时「提交」按钮被禁用', async () => {
-    const wrapper = mount(MissionCard, {
-      props: { mission: makeSingleChoice(), index: 1 },
+    const wrapper = mount(ExerciseCard, {
+      props: { exercise: makeSingleChoice(), index: 1 },
     });
     const submit = findSubmitBtn(wrapper);
     expect(submit).toBeDefined();

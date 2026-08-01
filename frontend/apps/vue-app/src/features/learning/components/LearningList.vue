@@ -43,15 +43,18 @@ const {
 
 /** 输入框的本地状态(同步到 composable.topic 也行,这里保留本地草稿)。 */
 const draft = ref('');
+/** 学习目标(可选)的本地草稿。 */
+const goalDraft = ref('');
 
 /** 触发生成;ready 后跳转。 */
 async function onGenerate() {
   const t = draft.value.trim();
   if (!t) return;
   try {
-    const { course_id } = await submitTopic(t);
+    const { course_id } = await submitTopic(t, goalDraft.value);
     // 跳转前清掉草稿,这样回到首页不会看到残留文本
     draft.value = '';
+    goalDraft.value = '';
     await router.push({
       name: 'learning-course',
       params: { courseId: course_id },
@@ -142,6 +145,20 @@ function statusLabel(item: LearningProgressItem): string {
           </Button>
         </div>
 
+        <!-- 可选学习目标 -->
+        <label class="text-muted mt-4 mb-2 block text-xs tracking-widest">
+          学习目标（可选）
+        </label>
+        <input
+          v-model="goalDraft"
+          type="text"
+          :disabled="submitting"
+          placeholder="例如:能独立复述先验演绎的论证结构,并完成 5 道自测题"
+          maxlength="200"
+          class="text-ink placeholder-muted bg-surface/40 focus-visible:ring-ring/40 border-border/60 w-full rounded-lg border px-3 py-2.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+          @keydown.enter="onGenerate"
+        />
+
         <p v-if="error" class="text-destructive mt-3 text-xs leading-relaxed">
           {{ error }}
           <button
@@ -212,7 +229,7 @@ function statusLabel(item: LearningProgressItem): string {
                 </h3>
                 <p class="text-muted mt-1 text-xs">
                   {{ statusLabel(item) }}
-                  <span v-if="item.mission_done" class="text-success ml-1">
+                  <span v-if="item.exercise_done" class="text-success ml-1">
                     · 练习已完成
                   </span>
                 </p>

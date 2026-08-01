@@ -11,7 +11,7 @@
   返回 ``{status:"already_generated", next_lesson:null}``，避免无谓排队。
 - ``GET  /v2/learning/progress`` — 列出 owner 的全部进度。
 - ``PATCH /v2/learning/progress/{course_id}`` — 标记 session_done /
-  mission_done（幂等）。
+  exercise_done（幂等）。
 
 owner 解析（``_resolve_learning_owner``）：登录用户用 ``str(user_id)``，
 匿名用户优先取 ``X-Anon-Id`` 头（前端 localStorage 自管 UUID），缺则退
@@ -57,7 +57,7 @@ class ProgressPatch(BaseModel):
         ge=1,
         description="刚完成的 Session 编号（追加幂等）",
     )
-    mission_done: bool | None = Field(
+    exercise_done: bool | None = Field(
         default=None,
         description="练习任务是否全部完成",
     )
@@ -102,17 +102,20 @@ async def create_course(
     """
     learning_svc: LearningService = state.learning_svc
     topic = payload.topic
+    goal = payload.goal
     owner = _resolve_learning_owner(user, request)
     course_id = build_course_id(topic)
 
     # 先 upsert pending，失败也能让前端立刻拿到稳定 course_id 进入轮询。
     await learning_svc.create_pending(
-        owner=owner, course_id=course_id, topic=topic
+        owner=owner, course_id=course_id, topic=topic, goal=goal
     )
     # 再 kiq：worker 端完成两步生成后会把同一条 (owner, course_id) 记录
     # 置 ready；失败由 service 内部重试一次，再失败由任务层 _mark_failed
     # 把状态置 failed（让前端轮询体现终态）。
-    await generate_course.kiq(topic=topic, owner=owner, course_id=course_id)
+    await generate_course.kiq(
+        topic=topic, owner=owner, course_id=course_id, goal=goal
+    )
 
     logger.bind(course_id=course_id, owner=owner).info(
         "learning: course generation queued"
@@ -254,14 +257,14 @@ async def patch_progress(
     user: int | None = Depends(optional_user),
     state: AppState = Depends(get_app_state),
 ):
-    """标记进度：``session_done`` / ``mission_done`` 可独立更新（幂等）。"""
+    """标记进度：``session_done`` / ``exercise_done`` 可独立更新（幂等）。"""
     learning_svc: LearningService = state.learning_svc
     owner = _resolve_learning_owner(user, request)
     progress = await learning_svc.mark_progress(
         owner,
         course_id,
         session_done=payload.session_done,
-        mission_done=payload.mission_done,
+        exercise_done=payload.exercise_done,
     )
     if progress is None:
         return APIResponse(

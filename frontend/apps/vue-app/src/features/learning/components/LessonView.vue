@@ -4,7 +4,7 @@
   行为契约 (task-353 重构):
    - 挂载时 loadCourse(courseId) → 在 course.lessons 中按 id 找当前 lesson;
      找不到则显示空态。
-   - 两个 tab:正文(renderMarkdown(lesson.md))+ 练习(lesson.exercises → MissionCard 列表)。
+   - 两个 tab:正文(renderMarkdown(lesson.md))+ 练习(lesson.exercises → ExerciseCard 列表)。
    - 练习全部判分正确时,「本节完成」按钮亮起;点击 → markSessionDone(courseId, lesson.id)。
    - 「下一课」 → generateNextLesson(courseId):
        pending:轮询 course 直到 lessons 列表增长,然后 router.push 到新 lesson
@@ -29,7 +29,7 @@ import { Button } from '@/components';
 import { renderMarkdown } from '@/composables';
 import { useLearningCourse } from '@/features/learning/composables/useLearningCourse';
 import type { LearningLesson, LearningProgressItem } from '@/features/learning/types';
-import MissionCard from '@/features/learning/components/MissionCard.vue';
+import ExerciseCard from '@/features/learning/components/ExerciseCard.vue';
 
 defineOptions({ name: 'LessonView' });
 
@@ -87,7 +87,7 @@ const scoreState = ref<{ correct: number; total: number }>({
   correct: 0,
   total: 0,
 });
-const allMissionsAnsweredCorrectly = computed(
+const allExercisesAnsweredCorrectly = computed(
   () =>
     exercises.value.length > 0 &&
     scoreState.value.total >= exercises.value.length &&
@@ -120,7 +120,7 @@ onMounted(() => {
   void load();
 });
 
-function onMissionAnswered(correct: boolean) {
+function onExerciseAnswered(correct: boolean) {
   scoreState.value.total += 1;
   if (correct) scoreState.value.correct += 1;
 }
@@ -343,12 +343,12 @@ useHead({
           >
             这节课还没有练习题。
           </div>
-          <MissionCard
+          <ExerciseCard
             v-for="(m, idx) in exercises"
             :key="m.id"
-            :mission="m"
+            :exercise="m"
             :index="idx + 1"
-            @answered="onMissionAnswered"
+            @answered="onExerciseAnswered"
           />
 
           <!-- Action row -->
@@ -374,7 +374,7 @@ useHead({
               <Button
                 size="sm"
                 variant="outline"
-                :disabled="isSessionDone || !allMissionsAnsweredCorrectly"
+                :disabled="isSessionDone || !allExercisesAnsweredCorrectly"
                 @click="onMarkSessionDone"
               >
                 <Check class="h-3.5 w-3.5" aria-hidden="true" />

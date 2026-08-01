@@ -63,7 +63,7 @@ def _make(
     topic: str = "Rust 入门",
     status: str = "ready",
     sessions_done: list[int] | None = None,
-    mission_done: bool = False,
+    exercise_done: bool = False,
 ) -> LearningProgress:
     return LearningProgress(
         owner=owner,
@@ -71,7 +71,7 @@ def _make(
         topic=topic,
         status=status,
         sessions_done=list(sessions_done or []),
-        mission_done=mission_done,
+        exercise_done=exercise_done,
         created_at=datetime.now(UTC),
     )
 
@@ -130,14 +130,58 @@ async def test_upsert_progress_creates_then_updates(repo, clean_collection):
     assert second.topic == "Renamed"
 
 
-async def test_upsert_progress_preserves_sessions_and_mission_done(
+async def test_upsert_progress_stores_goal(repo, clean_collection):
+    """可选 goal 字段随 pending 落库;ready 覆盖时不传则保留原 goal。"""
+    first = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="pending",
+        goal="能独立复述所有权规则",
+    )
+    assert first.goal == "能独立复述所有权规则"
+
+    # ready 覆盖时不再传 goal → 保留已存 goal（不覆盖为 None）
+    second = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="ready",
+    )
+    assert second.goal == "能独立复述所有权规则"
+
+    # 显式传新 goal → 覆盖
+    third = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="ready",
+        goal="新目标",
+    )
+    assert third.goal == "新目标"
+
+
+async def test_upsert_progress_goal_none_when_never_provided(
+    repo, clean_collection
+):
+    """不传 goal 的新记录 → goal 为 None(不写字段,存量兼容)。"""
+    doc = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000002",
+        topic="Go 入门",
+        status="pending",
+    )
+    assert doc.goal is None
+
+
+async def test_upsert_progress_preserves_sessions_and_exercise_done(
     repo, clean_collection
 ):
     doc = _make(
         owner="u1",
         course_id="c--00000001",
         sessions_done=[1, 2],
-        mission_done=True,
+        exercise_done=True,
     )
     await doc.insert()
 
@@ -148,7 +192,7 @@ async def test_upsert_progress_preserves_sessions_and_mission_done(
         status="ready",
     )
     assert updated.sessions_done == [1, 2]
-    assert updated.mission_done is True
+    assert updated.exercise_done is True
 
 
 # ── add_session_done ($addToSet 幂等) ────────────────────────────────────
@@ -170,16 +214,16 @@ async def test_add_session_done_returns_none_for_missing(repo, clean_collection)
     assert result is None
 
 
-# ── set_mission_done / set_status ───────────────────────────────────────
+# ── set_exercise_done / set_status ──────────────────────────────────────
 
 
-async def test_set_mission_done_round_trip(repo, clean_collection):
+async def test_set_exercise_done_round_trip(repo, clean_collection):
     await _make(owner="u1", course_id="c--00000001").insert()
-    await repo.set_mission_done("u1", "c--00000001", True)
+    await repo.set_exercise_done("u1", "c--00000001", True)
 
     doc = await repo.get_progress("u1", "c--00000001")
     assert doc is not None
-    assert doc.mission_done is True
+    assert doc.exercise_done is True
 
 
 async def test_set_status_pending_to_ready(repo, clean_collection):
@@ -256,12 +300,12 @@ async def test_next_session_property_derives_correctly(
     )
     assert doc.next_session == 2
 
-    # [1,2,3] -> 4 (max+1;用 mission_done 判定完成,next_session 永远返回下一个待学编号)
+    # [1,2,3] -> 4 (max+1;用 exercise_done 判定完成,next_session 永远返回下一个待学编号)
     doc = _make(
         owner="u1",
         course_id="c--00000005",
         sessions_done=[1, 2, 3],
-        mission_done=True,
+        exercise_done=True,
     )
     assert doc.next_session == 4
 
@@ -274,13 +318,13 @@ async def test_merge_anon_into_user_unions_sessions(repo, clean_collection):
         owner="anon:abc",
         course_id="c--00000001",
         sessions_done=[1, 3],
-        mission_done=False,
+        exercise_done=False,
     ).insert()
     await _make(
         owner="42",
         course_id="c--00000001",
         sessions_done=[2],
-        mission_done=True,
+        exercise_done=True,
     ).insert()
 
     merged = await repo.merge_anon_into_user(
@@ -291,7 +335,7 @@ async def test_merge_anon_into_user_unions_sessions(repo, clean_collection):
     user_doc = await repo.get_progress("42", "c--00000001")
     assert user_doc is not None
     assert sorted(user_doc.sessions_done) == [1, 2, 3]
-    assert user_doc.mission_done is True
+    assert user_doc.exercise_done is True
 
     # 匿名文档应已删除
     assert (

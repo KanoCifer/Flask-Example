@@ -8,7 +8,7 @@
 - 课程 ID：:func:`build_course_id` / :func:`_slugify` — ``<topic-slug>--<8hex>``。
 - 磁盘扫描 / 文件名：``_parse_lesson_filename`` / ``list_existing_lesson_ids`` /
   ``lesson_file_exists`` / ``_lesson_slug_for_num`` / ``_last_lesson_md``。
-- 课程装配 / 练习：``_assemble_lessons`` / ``_parse_missions`` / ``_render_mission_md``
+- 课程装配 / 练习：``_assemble_lessons`` / ``_parse_exercises`` / ``_render_exercise_md``
   及 YAML front matter 解析（``_parse_front_matter`` / ``_extract_title_from_front_matter``）。
 
 被 ``learning_service``、``learning_tools``、``api/v2/learning`` 与测试共同引用；
@@ -27,7 +27,7 @@ from pydantic import BaseModel
 
 from app.core.llm_prompts import LANGUAGE
 from app.models.learning import LearningProgress
-from app.schemas.learning import LessonItem, Mission
+from app.schemas.learning import Exercise, LessonItem
 
 # ── 响应解析 ──────────────────────────────────────────────────────────── #
 
@@ -59,7 +59,7 @@ def _progress_to_dict(doc: LearningProgress) -> dict[str, Any]:
         "course_id": doc.course_id,
         "topic": doc.topic,
         "sessions_done": doc.sessions_done,
-        "mission_done": doc.mission_done,
+        "exercise_done": doc.exercise_done,
         "status": doc.status,
         "next_session": doc.next_session,
     }
@@ -175,9 +175,9 @@ def _assemble_lessons(lessons_dir: Path) -> list[LessonItem]:
         )
 
         exercise_path = lessons_dir / f"{lesson_id:04d}-{slug}.exercise.md"
-        exercises: list[Mission] = []
+        exercises: list[Exercise] = []
         if exercise_path.exists():
-            exercises = _parse_missions(
+            exercises = _parse_exercises(
                 exercise_path.read_text(encoding="utf-8")
             )
 
@@ -218,43 +218,43 @@ def _extract_title_from_front_matter(md_text: str) -> str | None:
     return None
 
 
-def _parse_missions(md_text: str) -> list[Mission]:
-    """从 mission.md 的 YAML front matter 解析出 ``missions`` 列表。
+def _parse_exercises(md_text: str) -> list[Exercise]:
+    """从 exercise.md 的 YAML front matter 解析出 ``exercises`` 列表。
 
     找不到 front matter 或字段缺失时返回空列表（不抛错，便于容错）。
     """
     payload = _parse_front_matter(md_text) or {}
-    missions = payload.get("missions", [])
-    if not isinstance(missions, list):
+    exercises = payload.get("exercises", [])
+    if not isinstance(exercises, list):
         return []
-    parsed: list[Mission] = []
-    for item in missions:
+    parsed: list[Exercise] = []
+    for item in exercises:
         if isinstance(item, dict):
             try:
-                parsed.append(Mission.model_validate(item))
+                parsed.append(Exercise.model_validate(item))
             except Exception:
                 continue
     return parsed
 
 
-def _render_mission_md(
+def _render_exercise_md(
     *,
     title: str,
     course_id: str,
-    missions: list[Mission],
+    exercises: list[Exercise],
 ) -> str:
-    """渲染 mission.md：YAML front matter（missions 列表原样序列化）+ 正文模板。
+    """渲染 exercise.md：YAML front matter（exercises 列表原样序列化）+ 正文模板。
 
-    YAML front matter 用 ``yaml.safe_dump`` 序列化，``missions`` 列表通过
-    ``Mission.model_dump(mode="json")`` 转成原生 Python 对象，避免 ``!!python/object`` 标签。
+    YAML front matter 用 ``yaml.safe_dump`` 序列化，``exercises`` 列表通过
+    ``Exercise.model_dump(mode="json")`` 转成原生 Python 对象，避免 ``!!python/object`` 标签。
     """
     payload = {
         "title": title,
         "course_id": course_id,
         "language": LANGUAGE,
-        "mission_count": len(missions),
+        "exercise_count": len(exercises),
         "passing_score": 80,
-        "missions": [m.model_dump(mode="json") for m in missions],
+        "exercises": [m.model_dump(mode="json") for m in exercises],
     }
     body_yaml = yaml.safe_dump(
         payload,
@@ -264,7 +264,7 @@ def _render_mission_md(
     )
     body_template = (
         "\n# 练习任务\n\n"
-        "按顺序完成以下 mission。**通过标准：≥ 80 分（总分 100）。**\n\n"
+        "按顺序完成以下 exercise。**通过标准：≥ 80 分（总分 100）。**\n\n"
         "## 做题说明\n\n"
         "- **选择题（single_choice / multi_choice）**：提交选项后立即判分，"
         "答错会看到 `explanation`。\n"
@@ -272,7 +272,7 @@ def _render_mission_md(
         "同样会看到 `explanation`。\n"
         "- 全部完成后回到课程首页查看完成度与错题。\n\n"
         "## 完成标准\n\n"
-        "- [ ] 全部 mission 提交后即时判分\n"
+        "- [ ] 全部 exercise 提交后即时判分\n"
         "- [ ] 总分 ≥ 80 / 100，课程标记为完成"
     )
     return f"---\n{body_yaml}---{body_template}"

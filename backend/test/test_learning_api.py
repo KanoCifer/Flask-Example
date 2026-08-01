@@ -40,7 +40,9 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 class _MockLearningService:
     """Records calls so tests can assert ordering / payloads."""
 
-    create_pending_calls: list[tuple[str, str, str]] = field(default_factory=list)
+    create_pending_calls: list[tuple[str, str, str, str | None]] = field(
+        default_factory=list
+    )
     get_course_calls: list[tuple[str, str]] = field(default_factory=list)
     list_progress_calls: list[str] = field(default_factory=list)
     mark_progress_calls: list[tuple[str, str, dict[str, Any]]] = field(
@@ -67,9 +69,13 @@ class _MockLearningService:
         return root / course_id
 
     async def create_pending(
-        self, owner: str, course_id: str, topic: str
+        self,
+        owner: str,
+        course_id: str,
+        topic: str,
+        goal: str | None = None,
     ) -> None:
-        self.create_pending_calls.append((owner, course_id, topic))
+        self.create_pending_calls.append((owner, course_id, topic, goal))
 
     async def get_course(
         self, owner: str, course_id: str
@@ -87,17 +93,17 @@ class _MockLearningService:
         course_id: str,
         *,
         session_done: int | None = None,
-        mission_done: bool | None = None,
+        exercise_done: bool | None = None,
     ) -> dict[str, Any] | None:
         self.mark_progress_calls.append(
             (
                 owner,
                 course_id,
-                {"session_done": session_done, "mission_done": mission_done},
+                {"session_done": session_done, "exercise_done": exercise_done},
             )
         )
         return self.mark_progress_responses.get(
-            (owner, course_id, session_done, mission_done)
+            (owner, course_id, session_done, exercise_done)
         )
 
 
@@ -213,9 +219,46 @@ async def test_post_courses_returns_pending_with_anon_owner():
 
     # create_pending 收到 anon owner 字符串(anon:uuid)
     assert len(mock.create_pending_calls) == 1
-    owner, _course_id, topic = mock.create_pending_calls[0]
+    owner, _course_id, topic, goal = mock.create_pending_calls[0]
     assert owner == "anon:anon-uuid-1"
     assert topic == "Rust 入门"
+    # 不传 goal → 为 None
+    assert goal is None
+
+
+async def test_post_courses_passes_goal_to_create_pending_and_kiq(monkeypatch):
+    """可选 goal 字段透传:create_pending 收到 goal,generate_course.kiq 也带 goal。"""
+    import app.plugins.task.tasks.learning as task_mod
+
+    captured: dict[str, object] = {}
+
+    async def _capturing_kiq(*args, **kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(task_mod.generate_course, "kiq", _capturing_kiq)
+
+    mock = _MockLearningService()
+    app = _build_test_app(mock, logged_in_user_id=None)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/v2/learning/courses",
+            json={"topic": "Rust 入门", "goal": "能独立复述所有权规则"},
+            headers={"X-Anon-Id": "anon-uuid-1"},
+        )
+
+    assert resp.status_code == 200
+    owner, _course_id, topic, goal = mock.create_pending_calls[0]
+    assert owner == "anon:anon-uuid-1"
+    assert topic == "Rust 入门"
+    assert goal == "能独立复述所有权规则"
+    # kiq 透传 goal
+    assert captured["goal"] == "能独立复述所有权规则"
+    assert captured["topic"] == "Rust 入门"
+    assert str(captured["course_id"]).startswith("rust--")  # build_course_id 生成
 
 
 async def test_post_courses_uses_user_id_owner_when_logged_in():
@@ -233,7 +276,7 @@ async def test_post_courses_uses_user_id_owner_when_logged_in():
         )
 
     assert resp.status_code == 200
-    owner, _cid, _topic = mock.create_pending_calls[0]
+    owner, _cid, _topic, _goal = mock.create_pending_calls[0]
     assert owner == "42"
 
 
@@ -297,7 +340,7 @@ async def test_get_course_returns_ready_payload_with_course_dict():
     校验 ready 响应通过 ``course.model_dump(mode='json')`` 后,
     ``lessons[*].exercises`` 也嵌套序列化为数组。
     """
-    from app.schemas.learning import CoursePackage, LessonItem, Mission
+    from app.schemas.learning import CoursePackage, Exercise, LessonItem
 
     course = CoursePackage(
         course_id="c--00000001",
@@ -309,7 +352,7 @@ async def test_get_course_returns_ready_payload_with_course_dict():
                 slug="lesson-1",
                 md="# lesson",
                 exercises=[
-                    Mission(
+                    Exercise(
                         id=1,
                         type="single_choice",
                         difficulty=1,
@@ -342,7 +385,7 @@ async def test_get_course_returns_ready_payload_with_course_dict():
     payload = resp.json()["data"]
     assert payload["status"] == "ready"
     assert payload["course"]["course_id"] == "c--00000001"
-    # task-351:lessons[] 替代顶层 lesson_md / missions
+    # task-351:lessons[] 替代顶层 lesson_md / exercises
     assert len(payload["course"]["lessons"]) == 1
     lesson0 = payload["course"]["lessons"][0]
     assert lesson0["id"] == 1
@@ -351,6 +394,8 @@ async def test_get_course_returns_ready_payload_with_course_dict():
     assert lesson0["md"] == "# lesson"
     assert len(lesson0["exercises"]) == 1
     assert payload["course"]["resource_md"] == "# resource"
+    # task-365：无 MISSION.md 的课程 → mission_md 为 null（前端隐藏展示）
+    assert payload["course"]["mission_md"] is None
 
 
 # ── POST /v2/learning/courses/{course_id}/lessons (task-352) ────────────
@@ -487,7 +532,7 @@ async def test_list_progress_returns_items_with_owner():
             "course_id": "c1--00000001",
             "topic": "T1",
             "sessions_done": [1],
-            "mission_done": False,
+            "exercise_done": False,
             "status": "ready",
             "next_session": 2,
         }
@@ -533,7 +578,7 @@ async def test_patch_progress_marks_session_done():
         "course_id": "c--00000001",
         "topic": "T",
         "sessions_done": [1],
-        "mission_done": False,
+        "exercise_done": False,
         "status": "ready",
         "next_session": 2,
     }
@@ -553,10 +598,10 @@ async def test_patch_progress_marks_session_done():
     call = mock.mark_progress_calls[0]
     assert call[0] == "anon:x"
     assert call[1] == "c--00000001"
-    assert call[2] == {"session_done": 1, "mission_done": None}
+    assert call[2] == {"session_done": 1, "exercise_done": None}
 
 
-async def test_patch_progress_marks_mission_done():
+async def test_patch_progress_marks_exercise_done():
     mock = _MockLearningService()
     mock.mark_progress_responses[
         ("anon:x", "c--00000001", None, True)
@@ -564,7 +609,7 @@ async def test_patch_progress_marks_mission_done():
         "course_id": "c--00000001",
         "topic": "T",
         "sessions_done": [],
-        "mission_done": True,
+        "exercise_done": True,
         "status": "ready",
         "next_session": 1,
     }
@@ -575,11 +620,11 @@ async def test_patch_progress_marks_mission_done():
     ) as client:
         resp = await client.patch(
             "/v2/learning/progress/c--00000001",
-            json={"mission_done": True},
+            json={"exercise_done": True},
             headers={"X-Anon-Id": "x"},
         )
     assert resp.status_code == 200
-    assert resp.json()["data"]["mission_done"] is True
+    assert resp.json()["data"]["exercise_done"] is True
 
 
 async def test_patch_progress_returns_missing_payload_when_not_found():

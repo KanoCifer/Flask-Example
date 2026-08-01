@@ -3,14 +3,17 @@
 为「单一课程 agent 通过工具自主执行」提供磁盘工具：
 
 - :func:`create_learning_tools` 是工厂：捕获 ``course_dir``（课程包根目录），
-  返回三个 ``@tool(show_result=True)`` 装饰后的 agno ``Function``。
+  返回五个 ``@tool(show_result=True)`` 装饰后的 agno ``Function``。
 - ``save_lesson``：写 ``lessons/<num>-<slug>.md``。编号自动取磁盘已有最大编号
   +1（首课 ``0001``），幂等（该编号文件已存在则跳过不重复写）。
 - ``save_resource``：写 ``resource.md``。
 - ``read_previous_lesson``：读最大编号 lesson 的 md 全文（ZPD 渐进上下文）。
+- ``save_mission``：写 ``MISSION.md``（学习使命文档），已存在则跳过（幂等，
+  天然覆盖整 run 重试）。
+- ``read_mission``：读 ``MISSION.md`` 全文（缺失返回空字符串，渐进产出溯源）。
 
-工具签名只暴露内容参数（title/slug/lesson_md/resource_md）；编号 / 幂等 /
-路径全部由工具内部确定性控制，agent 不需要也不能传编号。
+工具签名只暴露内容参数（title/slug/lesson_md/resource_md/mission_md）；编号 /
+幂等 / 路径全部由工具内部确定性控制，agent 不需要也不能传编号。
 
 复用 ``app.services.learning_utils`` 的磁盘扫描 helpers：
 ``list_existing_lesson_ids`` / ``lesson_file_exists`` / ``_last_lesson_md``，
@@ -39,15 +42,18 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
     """返回课程 agent 可调用的工具集合（闭包捕获 ``course_dir``）。
 
     Args:
-        course_dir: 课程包根目录（含 ``lessons/`` 子目录与 ``resource.md``）。
+        course_dir: 课程包根目录（含 ``lessons/`` 子目录、``resource.md`` 与
+            ``MISSION.md``）。
 
     Returns:
-        ``[save_lesson, save_resource, read_previous_lesson]``，均为 agno
-        ``Function``（``@tool(show_result=True)`` 装饰），可直接传给 Agent。
+        ``[save_lesson, save_resource, read_previous_lesson, save_mission,
+        read_mission]``，均为 agno ``Function``（``@tool(show_result=True)``
+        装饰），可直接传给 Agent。
     """
     root = Path(course_dir)
     lessons_dir = root / "lessons"
     resource_path = root / "resource.md"
+    mission_path = root / "MISSION.md"
 
     @tool(show_result=True)
     def save_lesson(title: str, slug: str, lesson_md: str) -> str:
@@ -106,7 +112,44 @@ def create_learning_tools(course_dir: str | Path) -> list[Function]:
         existing_ids = list_existing_lesson_ids(lessons_dir)
         return _last_lesson_md(lessons_dir, existing_ids) or ""
 
-    return [save_lesson, save_resource, read_previous_lesson]
+    @tool(show_result=True)
+    def save_mission(mission_md: str) -> str:
+        """写学习使命文档 MISSION.md 到课程包根目录（task-365）。
+
+        每门课程根目录一份，记录「为什么学 / 成功长什么样 / 约束 / 不做范围」，
+        是后续每课教学决策可溯源的目标依据。幂等：文件已存在（渐进产出 / 整 run
+        重试）时不覆盖，返回跳过提示。
+
+        Args:
+            mission_md: MISSION.md 全文（严格按模板，keep it short）。
+
+        Returns:
+            落盘文件名 MISSION.md；已存在则返回跳过提示（不重复写）。
+        """
+        if mission_path.exists():
+            return (
+                "MISSION.md already exists, skipped writing (idempotent); "
+                "keep existing mission"
+            )
+        root.mkdir(parents=True, exist_ok=True)
+        mission_path.write_text(mission_md, encoding="utf-8")
+        return "MISSION.md"
+
+    @tool(show_result=True)
+    def read_mission() -> str:
+        """读学习使命文档 MISSION.md 全文（task-365 溯源）。
+
+        每课生成前调用，把教学决策对齐到课程目标（Why / Success looks like /
+        Constraints / Out of scope）。文件缺失时返回空字符串。
+
+        Returns:
+            MISSION.md 全文；无该文件时返回空字符串 ""。
+        """
+        if not mission_path.exists():
+            return ""
+        return mission_path.read_text(encoding="utf-8")
+
+    return [save_lesson, save_resource, read_previous_lesson, save_mission, read_mission]
 
 
 __all__ = ["create_learning_tools"]

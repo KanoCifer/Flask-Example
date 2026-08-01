@@ -92,6 +92,7 @@ function makeCourse(
     topic: 'Rust 入门',
     lessons: [makeLesson()],
     resource_md: '# 资源内容',
+    mission_md: null,
     ...overrides,
   };
 }
@@ -107,7 +108,7 @@ function makeProgressItem(
     course_id: 'rust--abcd1234',
     topic: 'Rust 入门',
     sessions_done: [],
-    mission_done: false,
+    exercise_done: false,
     status: 'ready',
     next_session: 1,
     ...overrides,
@@ -320,6 +321,37 @@ describe('CourseView', () => {
     );
   });
 
+  it('渲染学习使命(MISSION.md)内容,缺失时整块隐藏', async () => {
+    const wrapper = await mountView({
+      course: makeCourse({
+        mission_md:
+          '# Mission: Rust 入门\n\n## Why\n- 能独立复述所有权规则。\n\n## Out of scope\n- 不涉及宏。',
+      }),
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('学习使命');
+    // v-html 渲染后的文本(HTML 标签被去掉后的文本节点)
+    expect(wrapper.find('article').text()).toContain('Mission: Rust 入门');
+    expect(wrapper.find('article').text()).toContain('Why');
+  });
+
+  it('mission_md 为 null 时隐藏学习使命区块', async () => {
+    const wrapper = await mountView({
+      course: makeCourse({ mission_md: null }),
+    });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('学习使命');
+  });
+
+  it('mission_md 为空字符串时隐藏学习使命区块', async () => {
+    const wrapper = await mountView({
+      course: makeCourse({ mission_md: '' }),
+    });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('学习使命');
+  });
+
   it('资源面板:默认折叠,点击标题展开 v-html 内容', async () => {
     const wrapper = await mountView({
       course: makeCourse({ resource_md: '## 资源标题\n内容' }),
@@ -363,7 +395,7 @@ describe('CourseView', () => {
       progressList: [
         makeProgressItem({
           sessions_done: [1, 2],
-          mission_done: true,
+          exercise_done: true,
           next_session: null,
         }),
       ],

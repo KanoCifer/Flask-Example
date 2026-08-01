@@ -20,11 +20,14 @@ class LearningProgress(Document):
     owner: str = Field(..., description="进度归属：user_id 或 anon_id")
     course_id: str = Field(..., description="课程 ID")
     topic: str = Field(..., description="生成时的主题")
+    goal: str | None = Field(
+        default=None, description="学习目标（可选），用于组织 MISSION.md 具体文案"
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     sessions_done: list[int] = Field(
         default_factory=list, description="已完成的 Session 编号列表"
     )
-    mission_done: bool = Field(default=False, description="练习任务是否全部完成")
+    exercise_done: bool = Field(default=False, description="练习任务是否全部完成")
     status: str = Field(
         default="pending",
         description="课程生成状态：pending / ready / failed",
