@@ -14,7 +14,7 @@ from app.core.config import get_settings
 from app.core.llm_factory import (
     create_agent,
     create_llm_model,
-    create_redis_db,
+    create_postgres_db,
 )
 from app.core.logger import logger
 from app.schemas.aiagent import (
@@ -183,7 +183,7 @@ class AiAgent:
         db: RedisDb | None = None,
         expert_weights: dict[str, float] | None = None,
     ) -> None:
-        self._db = db or create_redis_db()
+        self._db = db or create_postgres_db()
         weights = expert_weights or self._DEFAULT_WEIGHTS
         weights_line = ", ".join(
             f"{self._WEIGHT_NAMES.get(k, k)}={v:.4f}"

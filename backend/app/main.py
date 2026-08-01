@@ -22,6 +22,7 @@ from app.middleware import register_middleware
 from app.models.changelog import Changelog
 from app.models.fishing import FishingModelMeta, FishingRecord
 from app.models.friendlink import FriendLinks
+from app.models.learning import LearningProgress
 from app.models.rss import RssArticle
 from app.models.subscription import SubscriptionLog
 from app.plugins.cache import close_cache_redis
@@ -43,6 +44,7 @@ async def initialize_resources(app: FastAPI):
             FishingModelMeta,
             FriendLinks,
             Changelog,
+            LearningProgress,
         ],
     )
     app.state.redis = await init_redis()

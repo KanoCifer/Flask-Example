@@ -29,6 +29,7 @@ from app.services.device_service import DeviceService
 from app.services.fishing.fishing_service import FishingService
 from app.services.friendlink_service import FriendLinkService
 from app.services.gallery_service import GalleryService
+from app.services.learning_service import LearningService
 from app.services.notification_service import NotificationService
 from app.services.public_service import PublicService
 from app.services.rss_service import RssService
@@ -60,6 +61,7 @@ class AppState:
     fishing_svc: FishingService
     friendlink_svc: FriendLinkService
     ai_svc: AiService
+    learning_svc: LearningService
 
 
 def new_app_state(redis: AsyncRedis) -> AppState:
@@ -109,6 +111,7 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         ai_agent=ai_agent,
         fishing_svc=fishing_svc,
     )
+    learning_svc = LearningService()
 
     return AppState(
         user_svc=user_svc,
@@ -125,6 +128,7 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         fishing_svc=fishing_svc,
         friendlink_svc=friendlink_svc,
         ai_svc=ai_svc,
+        learning_svc=learning_svc,
     )
 
 

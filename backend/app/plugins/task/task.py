@@ -73,6 +73,7 @@ async def _on_worker_startup(state: TaskiqState) -> None:
     state.mongo_client = AsyncMongoClient(get_settings().MONGO_URI)
     mongo_db = state.mongo_client["readinglist"]
 
+    from app.models.learning import LearningProgress
     from app.models.rss import RssArticle, RssFeed
     from app.models.subscription import SubscriptionLog
 
@@ -82,6 +83,7 @@ async def _on_worker_startup(state: TaskiqState) -> None:
             RssArticle,
             RssFeed,
             SubscriptionLog,
+            LearningProgress,
         ],
     )
     state.mongo = mongo_db

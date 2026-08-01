@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     API_TITLE: str = "Reading List API"
     API_DESCRIPTION: str = "API文档。Personal reading tracker API built with FastAPI, PostgreSQL, and MongoDB. Manage your reading list, track progress, and get book recommendations."
     API_KEY: str = ""
+    # DeepSeek 接入（Learning 模块专用）。为空字符串时 create_deepseek_model()
+    # 会立即抛错，便于部署期检查；与 API_KEY（AntLLM）解耦，老特性不受影响。
+    DEEPSEEK_API_KEY: str = ""
+    # Exa 接入（Learning 模块研究步骤专用）。为空字符串时 create_research_agent()
+    # 会立即抛错，便于部署期检查；与 API_KEY（AntLLM）/ DEEPSEEK_API_KEY 解耦，
+    # 老特性不受影响。
+    EXA_API_KEY: str = ""
+    LEARNING_DATABASE_URL: str = ""
     # WebAuthn / Passkey settings
     WEBAUTHN_RP_ID: str = "kanocifer.chat"
     WEBAUTHN_ORIGIN: str = "https://kanocifer.chat"

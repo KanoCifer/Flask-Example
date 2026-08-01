@@ -21,6 +21,16 @@
 | `MEDIA_PATH`    | 上传文件存储根目录（绝对路径或相对路径）。                                          |
 | `MAX_UPLOAD_MB` | 单文件上传上限（MB），默认 `10`；超出返回 413                                       |
 
+### Learning 模块 — DeepSeek
+
+| Variable            | Description                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `DEEPSEEK_API_KEY`  | DeepSeek API key（Learning 模块专用，独立于 AntLLM 的 `API_KEY`）。为空时 `create_deepseek_model()` 立即抛 `RuntimeError`，老特性不受影响。 |
+
+- base_url：`https://api.deepseek.com`（`create_deepseek_model` 内置，无需环境变量）。
+- 支持的 model id：`deepseek-v4-pro`、`deepseek-v4-flash`（白名单硬编码，传入其他值会抛 `ValueError`）。
+- **DeepSeek 仅支持 JSON mode（`json_object`），不支持原生 `json_schema`** —— 必须显式 `use_json_mode=True`，否则 `output_schema` 直传会被 DeepSeek 拒绝。
+
 ### Go 端额外变量
 
 | Variable                                                            | Description                               |

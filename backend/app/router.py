@@ -6,6 +6,7 @@ from app.api.v2 import (
     device,
     fishing,
     friendlinks,
+    learning,
     llm,
     rss,
     subscriptions,
@@ -26,3 +27,4 @@ def register_router(app: FastAPI):
     app.include_router(router=public_v2.router, prefix="/v2")
     app.include_router(router=friendlinks.router, prefix="/v2")
     app.include_router(router=rss.router, prefix="/v2")
+    app.include_router(router=learning.router, prefix="/v2")
