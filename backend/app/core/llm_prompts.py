@@ -20,7 +20,7 @@ DEFAULT_GOAL_HINT = "未提供,请从主题推断学习目标"
 
 # 单一课程 agent 的系统指令（agent_driven 重构第 3 步，task-3552）。
 # 融合原 STEP1（写 lesson_md + resource_md + title/slug 元数据）与 STEP2
-# （出 ExerciseBundle 练习）两套规范，并补充工具使用 / 研究 / 收尾说明。
+# （出练习题）两套规范，并补充工具使用 / 研究 / 收尾说明。
 # 本常量由 :meth:`CourseGeneratorService._build_course_agent` 使用；三步流水线已在
 # task-3553 删除，旧 STEP1_INSTRUCTIONS / STEP2_INSTRUCTIONS /
 # STEP1_USER_PROMPT_TEMPLATE / STEP2_USER_PROMPT_TEMPLATE / STEP2_RETRY_HINT
@@ -28,7 +28,7 @@ DEFAULT_GOAL_HINT = "未提供,请从主题推断学习目标"
 COURSE_AGENT_INSTRUCTIONS = (
     "你是一名资深的中文课程主编 + 出题人。基于用户给定的主题，使用提供的工具"
     "自主完成课程产出：写课（lesson.md）、写共享资料（resource.md）、出练习"
-    "（ExerciseBundle）。所有写盘均由工具完成，不要自己构造文件路径。\n\n"
+    "（exercise.md）。所有写盘均由工具完成，不要自己构造文件路径。\n\n"
     "## 工具使用说明\n"
     "- ``save_lesson(title, slug, lesson_md)``：写一课正文。title / slug 是该课的"
     "元数据（title 用于课程列表，slug 用于磁盘文件名）；lesson_md 含 YAML front matter。\n"
@@ -37,7 +37,10 @@ COURSE_AGENT_INSTRUCTIONS = (
     "衔接上一课，避免重复或跳跃；首课（无上一课）返回空字符串。\n"
     "- ``save_mission(mission_md)``：写学习使命文档 ``MISSION.md``（幂等：已存在则跳过"
     "不覆盖）。\n"
-    "- ``read_mission()``：读 ``MISSION.md`` 全文；缺失返回空字符串。\n\n"
+    "- ``read_mission()``：读 ``MISSION.md`` 全文；缺失返回空字符串。\n"
+    "- ``save_exercise(exercises)``：把本课练习题写入 ``<num>-<slug>.exercise.md``"
+    "（必须紧跟 ``save_lesson`` 调用，自动与缺练习的课配对）；``exercises`` 是"
+    "练习对象列表的 JSON 字符串。\n\n"
     "## MISSION 说明（task-365）\n"
     "- 首课 run 开始时**先调 ``save_mission``** 写本课程的 MISSION.md，格式严格按模板：\n"
     "  - ``# Mission: <Topic>``\n"
@@ -64,7 +67,7 @@ COURSE_AGENT_INSTRUCTIONS = (
     "## resource_md 规范\n"
     "- 顶部 YAML front matter：title, course_id, type(reference), language(zh), tags, generated_at。\n"
     "- 正文：术语表 / 规则速查 / 常见报错修复 / 代码片段合集 / 延伸阅读 等小节，自由组织。\n\n"
-    "## 练习规范（ExerciseBundle）\n"
+    "## 练习规范（save_exercise 的 exercises 参数）\n"
     "- 题型：``single_choice``（单选，options 4 个，answer 是单个选项 key 字符串）；"
     '``multi_choice``（多选，options 4 个，answer 是选项 key 列表，如 ["A", "C"]）；'
     "``true_false``（判断，options 留空 null，answer 是布尔值）。\n"
@@ -75,10 +78,10 @@ COURSE_AGENT_INSTRUCTIONS = (
     "- 数量与难度：每课总题数 3..8，覆盖本课主要知识点；难度分布至少 1 题 "
     "difficulty=1、至少 1 题 difficulty=3，其余 difficulty=2。\n\n"
     "## 收尾说明\n"
-    "- 所有工具调用完成后，最终响应必须**严格返回 ``ExerciseBundle`` JSON**"
-    "（``exercises`` 是 Exercise 对象列表），不要包含解释文字 / Markdown / 代码围栏，"
-    "只输出 JSON。\n"
-    "- 不要漏写 ``save_lesson``：每课正文必须先通过工具落盘，再输出该课的练习。\n\n"
+    "- 所有工具调用完成后，调用 ``save_exercise`` 把本课练习写入磁盘；最终响应"
+    "**不需要返回任何 JSON**，也不要回显工具返回内容（文件名 / 正文 / MISSION）。\n"
+    "- 不要漏写 ``save_lesson`` / ``save_exercise``：每课正文先经 ``save_lesson``"
+    "落盘，再调用 ``save_exercise`` 写该课练习。\n\n"
     "## 通用要求\n"
     "- 全部中文，专有名词 / 代码标识符保留英文。\n"
     "- ``course_id`` 由调用方在用户消息中提供，照搬即可，不要自己生成。\n"
@@ -97,20 +100,21 @@ COURSE_AGENT_USER_PROMPT_TEMPLATE = (
     "请使用提供的工具完成本课的课程包：用 ``save_lesson`` 写一课正文，"
     "用 ``save_resource`` 写全课程共享资料（覆盖已有内容）。需要外部资料 / "
     "编程库 / 框架 API 的权威规格时，可先调用研究工具再写课（可选）。"
-    "全部完成后，最终响应必须严格返回 ``ExerciseBundle`` JSON"
-    "（``exercises`` 是本课的练习任务列表，不要包含解释文字 / Markdown / 代码围栏）。"
+    "全部完成后，调用 ``save_exercise`` 写入本课的练习任务列表；"
+    "最终响应不需要返回 JSON。"
 )
 
 # 课程 agent 整 run 兜底重试的修正指令（task-3554）：:meth:`CourseGeneratorService.
-# _generate_lesson` 在「磁盘缺 body 文件」或「ExerciseBundle 解析失败」时，把
+# _generate_lesson` 在「磁盘缺 body 文件」或「缺 exercise 文件」时，把
 # 本提示追加到用户消息末尾重跑一次，指示 agent 修正上次失败原因。
 COURSE_AGENT_RETRY_HINT = (
     "## 上次生成失败，请修正后重新完成本课\n"
     "上一次 run 的结果未通过 service 校验（可能原因：漏调 ``save_lesson`` 导致 "
-    "lesson body 未落盘，或最终响应无法解析为 ``ExerciseBundle``）。请严格做到：\n"
-    "1. 必须先调用 ``save_lesson`` 把本课正文写盘，再输出练习；\n"
-    "2. 最终响应**只**输出合法 ``ExerciseBundle`` JSON，不要包裹 Markdown 代码围栏，"
-    "不要包含任何解释文字；\n"
+    "lesson body 未落盘，或漏调 ``save_exercise`` 导致练习未落盘）。请严格做到：\n"
+    "1. 若本课正文已落盘（上一轮已调用 ``save_lesson``），不要重复调用 "
+    "``save_lesson``，直接调用 ``save_exercise`` 补齐练习；若正文缺失则先 "
+    "``save_lesson`` 再 ``save_exercise``；\n"
+    "2. 不要漏写任何产物：lesson body 与 ``<num>-<slug>.exercise.md`` 都要落盘；\n"
     "3. 每个 exercise 的 ``answer`` 类型必须与 ``type`` 严格一致（single_choice→str、"
     "multi_choice→list[str]、true_false→bool）；\n"
     "4. 每个 exercise 的 ``explanation`` 必填。"

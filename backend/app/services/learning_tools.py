@@ -2,17 +2,20 @@
 
 为「单一课程 agent 通过工具自主执行」提供磁盘工具。C1 深化后，本模块从
 「写策略实现」降级为**薄转发适配器**：所有磁盘知识（布局 / 命名 / 编号 /
-幂等 / 原子写）统一由 :class:`CoursePackageRepo` 拥有，五个 ``@tool`` 闭包
+幂等 / 原子写）统一由 :class:`CoursePackageRepo` 拥有，六个 ``@tool`` 闭包
 只做参数转发与返回消息格式化。
 
 - :func:`create_learning_tools` 是工厂：捕获一个 ``CoursePackageRepo`` 实例
-  （service 每次 run 构造、与 exercise 配对共用同一个实例），返回五个
+  （service 每次 run 构造、与 exercise 配对共用同一个实例），返回六个
   ``@tool(show_result=True)`` 装饰后的 agno ``Function``。
 - ``save_lesson``：委托 ``repo.write_lesson``，编号 / 幂等全在仓库内。
 - ``save_resource``：委托 ``repo.write_resource``（覆盖写）。
 - ``read_previous_lesson``：委托 ``repo.read_previous_lesson``（ZPD 渐进上下文）。
 - ``save_mission``：委托 ``repo.write_mission``（幂等）。
 - ``read_mission``：委托 ``repo.read_mission``。
+- ``save_exercise``：委托 ``repo.write_exercise`` 把练习题写入
+  ``<num>-<slug>.exercise.md``，按 ``repo.latest_lesson_without_exercises()``
+  与缺练习的课配对；``exercises`` 是 JSON 字符串，仓库侧按 ``Exercise`` 校验。
 
 工具签名只暴露内容参数（title/slug/lesson_md/resource_md/mission_md）——与
 prompt 契约（``COURSE_AGENT_INSTRUCTIONS``）保持字符串一致，C4 的
@@ -21,10 +24,13 @@ prompt 契约（``COURSE_AGENT_INSTRUCTIONS``）保持字符串一致，C4 的
 
 from __future__ import annotations
 
+import json
+
 from agno.tools import tool
 from agno.tools.function import Function
 
 from app.repositories.course_package_repo import CoursePackageRepo
+from app.schemas.learning import Exercise
 
 
 def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
@@ -35,8 +41,8 @@ def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
 
     Returns:
         ``[save_lesson, save_resource, read_previous_lesson, save_mission,
-        read_mission]``，均为 agno ``Function``（``@tool(show_result=True)``
-        装饰），可直接传给 Agent。
+        read_mission, save_exercise]``，均为 agno ``Function``
+        （``@tool(show_result=True)`` 装饰），可直接传给 Agent。
     """
 
     @tool(show_result=True)
@@ -123,12 +129,56 @@ def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
         """
         return repo.read_mission() or ""
 
+    @tool(show_result=True)
+    def save_exercise(exercises: str) -> str:
+        """把练习题写入 ``<num>-<slug>.exercise.md``（与缺练习的课配对）。
+
+        配对目标 = 磁盘上**有 body 但没有对应 exercise 文件**的最近一课
+        （``repo.latest_lesson_without_exercises``）：正常流程匹配刚写的本课；
+        整 run 重试时（body 已在上一轮落盘）仍能补到缺练习的那一课，不要求
+        传编号。
+
+        Args:
+            exercises: Exercise 对象列表的 JSON 字符串。字段规则见
+                ``COURSE_AGENT_INSTRUCTIONS``「练习规范」：``answer`` 类型必须
+                与 ``type`` 严格一致（single_choice→str / multi_choice→list[str] /
+                true_false→bool），``explanation`` 必填。
+
+        Returns:
+            落盘文件名（如 0001-rust-ownership.exercise.md）；没有需要配对的
+            lesson 或 ``exercises`` 非法（非 JSON / 字段不符）时返回错误说明，
+            agent 可修正后重新调用本工具。
+        """
+        target = repo.latest_lesson_without_exercises()
+        if target is None:
+            return (
+                "save_exercise 失败：未找到需要配对的课程（请先调用 "
+                "save_lesson 写本课正文）。"
+            )
+        num, slug = target
+        try:
+            items = [
+                Exercise.model_validate(item) for item in json.loads(exercises)
+            ]
+        except Exception as exc:
+            return (
+                f"save_exercise 失败：exercises 不是合法 JSON 或字段不符合 "
+                f"Exercise 规范（{exc}）。请修正后重新调用本工具。"
+            )
+        return repo.write_exercise(
+            num=num,
+            slug=slug,
+            title="课程练习",
+            exercises=items,
+        )
+
     return [
         save_lesson,
         save_resource,
         read_previous_lesson,
         save_mission,
         read_mission,
+        save_exercise,
     ]
 
 

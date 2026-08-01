@@ -8,12 +8,13 @@ mark_progress / list_progress / merge_progress）留在旧文件，由 task-377 
 
 Mocking strategy (task-3555)：agent_driven 重构后 service 不再跑三步流水线
 （``_run_research`` / ``_run_step1`` / ``_run_step2`` 已删除），只调一次
-``_build_course_agent(...).arun(prompt, output_schema=ExerciseBundle)``。
+``_build_course_agent(...).arun(prompt)``（**无 ``output_schema``**——练习由
+``save_exercise`` 工具落盘，最终响应内容被忽略）。
 测试用 ``_StubAgent`` monkeypatch ``CourseGeneratorService._build_course_agent``：
-stub 的 ``arun`` 模拟 agent 调用磁盘工具，但**写语义委托真实
-``CoursePackageRepo``**（C1：与生产 ``create_learning_tools`` 薄适配器共用
-同一仓库，不再在 stub 里重新实现写规则，消除漂移），并返回
-``ExerciseBundle``，不触碰网络 / Redis / DeepSeek。
+stub 的 ``arun`` 模拟 agent 调用磁盘工具（含 ``save_exercise`` 写练习），
+**写语义委托真实 ``CoursePackageRepo``**（C1：与生产 ``create_learning_tools``
+薄适配器共用同一仓库，不再在 stub 里重新实现写规则，消除漂移），不触碰网络 /
+Redis / DeepSeek。
   - The beanie ``LearningProgress`` upsert that ``generate_course`` performs
     （经注入的 ``LearningProgressService.mark_ready``）uses a real MongoDB
     collection (``readinglist_test``) per the conftest fixture, so we also
@@ -41,10 +42,7 @@ from app.repositories.course_package_repo import (
 )
 from app.repositories.learning_repo import LearningRepo
 from app.schemas.learning import Exercise
-from app.services.course_generator_service import (
-    CourseGeneratorService,
-    ExerciseBundle,
-)
+from app.services.course_generator_service import CourseGeneratorService
 from app.services.learning_progress_service import LearningProgressService
 from app.services.learning_utils import build_course_id
 
@@ -227,23 +225,22 @@ def _next_lesson_payload(
     )
 
 
-def _step2_payload() -> ExerciseBundle:
-    return ExerciseBundle(
-        exercises=[
-            _single_choice_exercise(),
-            _multi_choice_exercise(),
-            _true_false_exercise(),
-        ]
-    )
+def _step2_exercises() -> list[Exercise]:
+    return [
+        _single_choice_exercise(),
+        _multi_choice_exercise(),
+        _true_false_exercise(),
+    ]
 
 
 class _StubAgent:
-    """Stub 课程 agent：在 ``arun`` 内模拟工具写盘并返回 ExerciseBundle。
+    """Stub 课程 agent：在 ``arun`` 内模拟工具写盘（无 output_schema）。
 
     task-3553 后 service 不再调 ``_run_step1`` / ``_run_step2``，只调一次
-    ``_build_course_agent(...).arun(prompt, output_schema=ExerciseBundle)``。
-    本 stub 替代旧的 step1/step2 monkeypatch：``arun`` 内按真实工具语义模拟
-    五个磁盘工具，但**写盘全部委托 :class:`CoursePackageRepo`**（C1）——
+    ``_build_course_agent(...).arun(prompt, session_id=...)``，**最终响应内容
+    被忽略**（练习由 ``save_exercise`` 工具落盘）。本 stub 替代旧的 step1/step2
+    monkeypatch：``arun`` 内按真实工具语义模拟磁盘工具，但**写盘全部委托
+    :class:`CoursePackageRepo`**（C1）——
 
     - ``read_previous_lesson``（ZPD）：委托 ``repo.read_previous_lesson``，
       结果记录到 :attr:`read_previous_lesson_outputs` 供断言。
@@ -254,15 +251,19 @@ class _StubAgent:
       写入次数记录到 :attr:`save_mission_calls`。
     - ``read_mission``（task-365）：委托 ``repo.read_mission``，缺失返回 ""；
       结果记录到 :attr:`read_mission_outputs`。
+    - ``save_exercise``：委托 ``repo.write_exercise``，按
+      ``repo.latest_lesson_without_exercises()`` 与缺练习的课配对（与生产
+      :func:`save_exercise` 同语义）。
 
-    返回 ``SimpleNamespace(content=ExerciseBundle(...))``，供
-    :func:`_unwrap_model` 命中 ``content`` 字段。
+    兜底重试（task-3554）控制：
+    - ``write_body_after_calls=N``：前 N 次 arun **不**模拟 ``save_lesson``
+      （body 不落盘），模拟「漏调 save_lesson → 磁盘校验失败 → 重试」。
+    - ``write_exercises_after_calls=N``：前 N 次 arun **不**模拟
+      ``save_exercise``（练习不落盘），模拟「漏调 save_exercise → 练习缺失 →
+      重试」。
+    - 模拟 retry hint 的理想 agent：重试时若已有一课缺练习（body 已在上一轮
+      落盘），**不再写新课**、只补 ``save_exercise``，避免重复落盘两课。
 
-    兜底重试（task-3554）控制：``arun`` 可按调用次数分阶段返回——
-    ``parse_fail_contents[i]`` 覆盖第 i+1 次 arun 的返回 content（耗尽后回到
-    ``bundle``），模拟「首轮坏 content → 重试 → 第二轮合法」；
-    ``write_body_after_calls=N`` 让前 N 次 arun **不**模拟 ``save_lesson``
-    （body 不落盘），模拟「漏调 save_lesson → 磁盘校验失败 → 重试」。
     调用次数记录在 :attr:`arun_call_count` 供断言重试确实发生。
     """
 
@@ -271,18 +272,20 @@ class _StubAgent:
         *,
         repo: CoursePackageRepo,
         payload: types.SimpleNamespace,
-        bundle: ExerciseBundle | None = None,
+        exercises: list[Exercise] | None = None,
         fail_on_arun: Exception | None = None,
-        parse_fail_contents: list[object] | None = None,
         write_body_after_calls: int = 0,
+        write_exercises_after_calls: int = 0,
         topic: str = "Rust 入门",
     ) -> None:
         self._repo = repo
         self._payload = payload
-        self._bundle = bundle if bundle is not None else _step2_payload()
+        self._exercises = (
+            exercises if exercises is not None else _step2_exercises()
+        )
         self._fail_on_arun = fail_on_arun
-        self._parse_fail_contents = list(parse_fail_contents or [])
         self._write_body_after_calls = write_body_after_calls
+        self._write_exercises_after_calls = write_exercises_after_calls
         self._topic = topic
         # ``arun`` 被调次数（task-3554 重试断言用）。
         self.arun_call_count = 0
@@ -296,7 +299,7 @@ class _StubAgent:
         self.session_ids_received: list[str | None] = []
 
     async def arun(
-        self, prompt: str, output_schema=None, session_id: str | None = None
+        self, prompt: str, session_id: str | None = None
     ):
         self.arun_call_count += 1
         self.session_ids_received.append(session_id)
@@ -320,17 +323,27 @@ class _StubAgent:
 
         # 模拟 save_lesson：编号 / 幂等由真实仓库决定（与生产工具同语义）；
         # 前 write_body_after_calls 次不写（模拟漏调 save_lesson）。
-        if self.arun_call_count > self._write_body_after_calls:
+        # 重试时若已有一课缺练习（body 已落盘），不再写新课，只补练习。
+        if (
+            self.arun_call_count > self._write_body_after_calls
+            and self._repo.latest_lesson_without_exercises() is None
+        ):
             self._repo.write_lesson(
                 slug=self._payload.slug, lesson_md=self._payload.lesson_md
             )
 
-        idx = self.arun_call_count - 1
-        if idx < len(self._parse_fail_contents):
-            return types.SimpleNamespace(
-                content=self._parse_fail_contents[idx]
-            )
-        return types.SimpleNamespace(content=self._bundle)
+        # 模拟 save_exercise：按 repo.latest_lesson_without_exercises() 配对；
+        # 前 write_exercises_after_calls 次不写（模拟漏调 save_exercise）。
+        if self.arun_call_count > self._write_exercises_after_calls:
+            target = self._repo.latest_lesson_without_exercises()
+            if target is not None:
+                num, slug = target
+                self._repo.write_exercise(
+                    num=num,
+                    slug=slug,
+                    title="课程练习",
+                    exercises=self._exercises,
+                )
 
 
 def _patch_course_agent(monkeypatch, stub_factory) -> None:
@@ -574,11 +587,11 @@ async def test_generate_course_raises_when_agent_run_fails(
         await svc.generate_course(topic="Rust 入门", owner="user-1")
 
 
-async def test_generate_course_retries_when_output_schema_parse_fails(
+async def test_generate_course_retries_when_exercises_missing(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    """首轮返回无法解析的 content → 触发整 run 重试（task-3554）→ 第二轮返回
-    合法 ``ExerciseBundle`` → 生成成功（不再抛错），且只落盘一课。
+    """首轮写 body 但漏调 ``save_exercise``（练习未落盘）→ 触发整 run 重试
+    （task-3554）→ 第二轮只补练习（不再写新课）→ 生成成功，且只落盘一课。
     """
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
@@ -587,8 +600,7 @@ async def test_generate_course_retries_when_output_schema_parse_fails(
         _stub_factory(
             holder,
             payload=_lesson_payload(cid),
-            parse_fail_contents=["<raw json string, not a ExerciseBundle>"],
-            write_body_after_calls=1,  # 首轮不写 body：解析失败且不残留半成品
+            write_exercises_after_calls=1,  # 首轮不写练习（模拟漏调 save_exercise）
         ),
     )
 
@@ -614,8 +626,8 @@ async def test_generate_course_retries_when_output_schema_parse_fails(
 async def test_generate_course_retries_when_lesson_body_missing(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    """首轮返回合法 ``ExerciseBundle`` 但漏调 ``save_lesson``（body 未落盘）
-    → 磁盘校验失败 → 触发整 run 重试 → 第二轮正常写盘 → 成功。
+    """首轮漏调 ``save_lesson``（body 未落盘）→ 磁盘校验失败 → 触发整 run
+    重试 → 第二轮正常写盘 → 成功。
     """
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
@@ -650,7 +662,8 @@ async def test_generate_course_retries_when_lesson_body_missing(
 async def test_generate_course_raises_after_both_attempts_fail(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    """两轮都解析失败 → 重试耗尽 → 抛 ``RuntimeError``，且 arun 恰好被调 2 次。"""
+    """两轮都漏调 ``save_exercise``（练习未落盘）→ 重试耗尽 → 抛
+    ``RuntimeError``，且 arun 恰好被调 2 次。"""
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
@@ -658,8 +671,7 @@ async def test_generate_course_raises_after_both_attempts_fail(
         _stub_factory(
             holder,
             payload=_lesson_payload(cid),
-            parse_fail_contents=["<bad 1>", "<bad 2>"],
-            write_body_after_calls=2,  # 两轮都不写 body（纯解析失败场景）
+            write_exercises_after_calls=2,  # 两轮都不写练习（漏调 save_exercise）
         ),
     )
 

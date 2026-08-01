@@ -3,8 +3,8 @@
 从 fat :class:`app.services.learning_service.LearningService` 拆出的**生成侧**
 service：课程生成编排（``generate_course`` / ``generate_next_lesson``）、两个
 混合读（``get_course`` / ``preview_next_lesson``）与 course agent 构造
-（``_build_course_agent`` / ``_generate_lesson``）。模块同时持有顶层 schema
-``ExerciseBundle`` / ``NextLessonContext``。
+（``_build_course_agent`` / ``_generate_lesson``）。模块持有顶层 schema
+``NextLessonContext``。
 
 与纯进度侧 :class:`app.services.learning_progress_service.LearningProgressService`
 的边界（C2）：本类**不直接持有 ``LearningRepo``**，进度读写全部在构造时注入
@@ -21,10 +21,12 @@ service：课程生成编排（``generate_course`` / ``generate_next_lesson``）
 
 agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 agent run**：
 
-- 单一课程 agent 绑定五个磁盘工具（save_lesson / save_resource /
-  read_previous_lesson / save_mission / read_mission）+ 可选研究工具（Exa +
-  Context7），在一次 ``arun`` 内自主完成「写课 + 写 resource + 出题」，最终
-  响应解析为 ``ExerciseBundle``。
+- 单一课程 agent 绑定六个磁盘工具（save_lesson / save_resource /
+  read_previous_lesson / save_mission / read_mission / save_exercise）+ 可选
+  研究工具（Exa + Context7），在一次 ``arun`` 内自主完成「写课 + 写 resource +
+  出题」——四件套（lesson / resource / mission / exercise）全部由 agent 经工具
+  落盘，service 在 run 结束后只从磁盘读回，**不解析最终响应**（无
+  ``output_schema``）。
 - 一课一文件落盘到 ``<learning-root>/<course-id>/lessons/0001-<slug>.md``
   （learning-root 默认 ``<backend>/tmp/learning``，可用 ``LEARNING_ROOT_DIR``
   环境变量配置；课程包布局统一由 :class:`CoursePackageRepo` 拥有）。
@@ -35,10 +37,9 @@ agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 age
 - spec：``task-334``（PR #22 决策 #24 课程包结构）、``task-351``（一课一文件 +
   渐进产出）、``task-3553``（三步流水线 → 一次 course agent run）、
   ``task-374``（C2 拆分 fat LearningService）
-- DeepSeek 仅支持 JSON mode（``json_object``），不支持原生 json_schema；
-  ``agno.models.deepseek.DeepSeek.supports_native_structured_outputs=False``
-  → 必须在 ``create_agent`` 显式 ``use_json_mode=True``，否则
-  ``response_format`` 仍走 ``output_schema`` 直传，DeepSeek 会拒绝。
+- 无 ``output_schema``（练习由 ``save_exercise`` 工具落盘）→ 不再依赖 DeepSeek
+  JSON mode，``use_json_mode=False``；``arun`` 的最终响应内容被忽略，根治了
+  「模型把工具结果回显进最终响应 → 解析失败 → 整轮重试」这一类问题。
 """
 
 from __future__ import annotations
@@ -50,7 +51,6 @@ from uuid import uuid4
 
 from agno.agent import Agent
 from agno.models.base import Model
-from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.core.llm_factory import (
@@ -66,23 +66,12 @@ from app.core.llm_prompts import (
 )
 from app.core.logger import logger
 from app.repositories.course_package_repo import CoursePackageRepo
-from app.schemas.learning import CoursePackage, Exercise
+from app.schemas.learning import CoursePackage
 from app.services.learning_progress_service import LearningProgressService
 from app.services.learning_tools import create_learning_tools
-from app.services.learning_utils import (
-    _unwrap_model,
-    build_course_id,
-)
+from app.services.learning_utils import build_course_id
 
 # ── 顶层 schema ─────────────────────────────────────────────────────── #
-
-
-class ExerciseBundle(BaseModel):
-    """course agent run 的 output_schema：一课练习任务清单。"""
-
-    exercises: list[Exercise] = Field(
-        default_factory=list, description="每个Lesson的练习题"
-    )
 
 
 @dataclass(frozen=True)
@@ -162,7 +151,8 @@ class CourseGeneratorService:
             ``course_id``，格式 ``<slug>--<8hex>``。
 
         Raises:
-            RuntimeError: 单次 agent run 失败或 ``ExerciseBundle`` 响应无法解析。
+            RuntimeError: 单次 agent run 失败或 run 后产物缺失（body /
+                exercise 文件未落盘）。
         """
         course_id = build_course_id(topic)
         # 锚定 agno 会话 ID：第一课生成时落地，后续渐进产出复用同一 session_id
@@ -357,8 +347,8 @@ class CourseGeneratorService:
         - 注入 ``self._agent`` 时以其 model / db 为模板新建一份；否则走 factory
           ``create_deepseek_model`` + ``create_postgres_db``。
 
-        ``use_json_mode=True`` 必须保留：DeepSeek 仅支持 JSON mode
-        （``json_object``），不支持原生 ``json_schema``。
+        无 ``output_schema``（练习由 ``save_exercise`` 工具落盘）→
+        ``use_json_mode=False``，不再要求 DeepSeek JSON-mode 合规。
 
         Args:
             repo: 课程包仓库实例，传给 :func:`create_learning_tools` 薄适配器
@@ -390,8 +380,8 @@ class CourseGeneratorService:
 
         if self._agent is not None:
             # 只透传 create_agent 不硬编码、且不会与默认值冲突的模板属性
-            # （model / db / tools / use_json_mode）。markdown / add_history_to_context
-            # / num_history_runs 被 create_agent 硬编码，透传会触发
+            # （model / db / tools）。markdown / add_history_to_context /
+            # num_history_runs 被 create_agent 硬编码，透传会触发
             # "got multiple values for keyword argument"（注入路径的既有缺陷，
             # 本方法不复刻）。
             return create_agent(
@@ -399,14 +389,14 @@ class CourseGeneratorService:
                 instructions=COURSE_AGENT_INSTRUCTIONS,
                 db=self._agent.db,
                 tools=tools,
-                use_json_mode=getattr(self._agent, "use_json_mode", True),
+                use_json_mode=False,
             )
         return create_agent(
             model=self._model or create_deepseek_model(),
             instructions=COURSE_AGENT_INSTRUCTIONS,
             db=create_postgres_db(),
             tools=tools,
-            use_json_mode=True,
+            use_json_mode=False,
         )
 
     async def _generate_lesson(
@@ -420,18 +410,17 @@ class CourseGeneratorService:
         session_id: str | None = None,
         repo: CoursePackageRepo | None = None,
     ) -> None:
-        """一次主 agent run 生成一课 + service 落盘 exercise 文件（task-3553）。
+        """一次主 agent run 生成一课：四件套全部由 agent 经工具写盘。
 
         - 不再有独立研究步：研究由主 agent 的 ExaTools（配置了
           ``EXA_API_KEY`` 时）自主接管。
-        - lesson body / resource.md 由 agent 在 run 内通过 save_lesson /
-          save_resource 工具写盘（编号 / 幂等全在 :class:`CoursePackageRepo`）。
-        - ZPD 衔接由 agent 经 ``read_previous_lesson()`` 工具自读，service
-          不拼进 prompt。
-        - 最终响应解析为 ``ExerciseBundle``；exercise 文件由 service 在 run
-          后消费 ``repo.last_written_lesson``（本次 run 刚写的 ``num / slug``）
-          落盘，与 lesson body 严格同名对应——不再从磁盘反推，一次 run 写多课
-          或重试顺序变化不会错位。
+        - lesson body / resource.md / MISSION.md / exercise.md **全部由 agent
+          在 run 内经工具写盘**（编号 / 幂等全在 :class:`CoursePackageRepo`）；
+          ``arun`` **不带 ``output_schema``**，最终响应内容被忽略。
+        - run 结束后 service 只从磁盘读回：``repo.last_written_lesson``
+          （本次 run 刚写的 ``num / slug``）+ :meth:`CoursePackageRepo.read_exercises`
+          解析练习题——与 lesson body 严格同名配对，不再从磁盘反推，一次 run
+          写多课或重试顺序变化不会错位。
 
         会话记忆（task-373）：把 ``session_id`` 传给 ``Agent.arun``，让 agno
         复用同一会话（``create_agent`` 已硬编码 ``add_history_to_context=True,
@@ -441,12 +430,12 @@ class CourseGeneratorService:
         progress 读出后透传。两轮都传同一个 session_id（包括兜底重试的
         attempt 2），agent 能看到上一轮为何失败。
 
-        兜底重试（task-3554）：run 结束后的「磁盘缺 body 文件」或
-        「ExerciseBundle 解析失败」触发**整 run 重试一次**——第二次 run 用
+        兜底重试（task-3554）：run 结束后的「磁盘缺 body 文件」或「缺 exercise
+        文件」触发**整 run 重试一次**——第二次 run 用
         :data:`COURSE_AGENT_RETRY_HINT` 追加到用户消息，指示 agent 补调
-        ``save_lesson`` 落盘、返回严格合法的 ``ExerciseBundle`` JSON；两次均
-        失败则抛 ``RuntimeError``。重试只覆盖 run **之后**的校验失败；
-        ``arun`` 本身抛错不重试（直接上抛）。
+        ``save_lesson`` / ``save_exercise`` 落盘；两次均失败则抛
+        ``RuntimeError``。重试只覆盖 run **之后**的校验失败；``arun`` 本身抛错
+        不重试（直接上抛）。
         """
         # 共享 repo：agent 工具写盘与 service 的 exercise 配对用同一实例，run 后
         # 直接消费 repo.last_written_lesson，不做磁盘反推。
@@ -464,14 +453,11 @@ class CourseGeneratorService:
         last_error: RuntimeError | None = None
         for attempt in (1, 2):
             prompt = retry_prompt if attempt == 2 else base_prompt
-            response = await course_agent.arun(
-                prompt, output_schema=ExerciseBundle, session_id=session_id
-            )
+            # 无 output_schema：产物全部由 agent 经工具落盘，最终响应内容忽略。
+            await course_agent.arun(prompt, session_id=session_id)
             try:
-                bundle = _unwrap_model(response, ExerciseBundle, "CourseAgent")
-
-                # exercise 文件名确定：本次 run 内 save_lesson 已把
-                # (num, slug) 记录在 repo.last_written_lesson。缺新课（agent 漏调
+                # exercise 文件配对：本次 run 内 save_lesson 已把 (num, slug)
+                # 记录在 repo.last_written_lesson。缺新课（agent 漏调
                 # save_lesson）→ RuntimeError 触发整 run 重试（task-3554）。
                 written = repo.last_written_lesson
                 if written is None or written.skipped:
@@ -479,12 +465,14 @@ class CourseGeneratorService:
                         "CourseAgent run 后未写新课，无法落盘 exercise 文件"
                     )
 
-                repo.write_exercise(
-                    num=written.num,
-                    slug=written.slug,
-                    title=f"课程练习:{topic}",
-                    exercises=bundle.exercises,
-                )
+                # 练习题由 agent 经 save_exercise 工具直接落盘，run 后从磁盘读回；
+                # 缺文件 / 解析为空（agent 漏调 save_exercise 或内容非法）→ 重试。
+                exercises = repo.read_exercises(written.num, written.slug)
+                if not exercises:
+                    raise RuntimeError(
+                        "CourseAgent run 后未落盘练习题（未调用 save_exercise 或"
+                        "内容非法），无法配对 exercise 文件"
+                    )
 
                 logger.bind(
                     course_id=course_id,
@@ -492,6 +480,7 @@ class CourseGeneratorService:
                     lesson_num=written.num,
                     slug=written.slug,
                     attempt=attempt,
+                    exercise_count=len(exercises),
                 ).info("learning lesson generated")
                 return
             except RuntimeError as exc:
@@ -515,6 +504,5 @@ class CourseGeneratorService:
 
 __all__ = [
     "CourseGeneratorService",
-    "ExerciseBundle",
     "NextLessonContext",
 ]

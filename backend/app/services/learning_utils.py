@@ -3,8 +3,6 @@
 与 :class:`CourseGeneratorService` / :class:`LearningProgressService` 无实例状态
 关联的纯函数集中于此，便于独立单测与复用：
 
-- 响应解析：:func:`_unwrap_model` — agent run 响应 → Pydantic 模型
-  （``isinstance`` 命中 / dict 兜底 / str 失败）。
 - 进度序列化：:func:`_progress_to_dict` — ``LearningProgress`` → API 响应 dict。
 - 课程 ID：:func:`build_course_id` / :func:`_slugify` — ``<topic-slug>--<8hex>``。
 
@@ -21,34 +19,9 @@ import hashlib
 import re
 from typing import Any
 
-from pydantic import BaseModel
-
 from app.models.learning import LearningProgress
 
-# ── 响应解析 ──────────────────────────────────────────────────────────── #
-
-
-def _unwrap_model(
-    response: Any, model_cls: type[BaseModel], label: str
-) -> Any:
-    """解析 agent 响应：``isinstance`` 命中 / dict 兜底 / str 失败。
-
-    ``label`` 仅用于错误信息。
-    """
-    content = getattr(response, "content", None)
-    if isinstance(content, model_cls):
-        return content
-    if isinstance(content, dict):
-        try:
-            return model_cls.model_validate(content)
-        except Exception as exc:
-            raise RuntimeError(
-                f"{label} dict 校验失败: {exc}; raw={content!r}"
-            ) from exc
-    raise RuntimeError(
-        f"{label} 解析失败：content 不是 {model_cls.__name__}（type="
-        f"{type(content).__name__}）；raw={content!r}"
-    )
+# ── 进度序列化 ──────────────────────────────────────────────────────── #
 
 
 def _progress_to_dict(doc: LearningProgress) -> dict[str, Any]:

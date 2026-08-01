@@ -22,8 +22,7 @@
 需要也不能传编号。
 
 与 :class:`app.services.learning_utils` 的边界：本类只做磁盘课程包知识；
-``_unwrap_model`` / ``_progress_to_dict`` / ``build_course_id`` 等纯工具
-仍留在 utils。
+``_progress_to_dict`` / ``build_course_id`` 等纯工具仍留在 utils。
 """
 
 from __future__ import annotations
@@ -245,6 +244,37 @@ class CoursePackageRepo:
     def read_resource(self) -> str | None:
         """读 resource.md 全文；缺失或读失败返回 None。"""
         return _read_md(self.resource_path)
+
+    def read_exercises(self, num: int, slug: str) -> list[Exercise]:
+        """读 ``<num>-<slug>.exercise.md`` 的练习题（缺失 / 非法返回空列表）。
+
+        agent 经 ``save_exercise`` 工具落盘的练习文件，service 在 run 后读回；
+        与 :meth:`assemble_lessons` 共用 ``_parse_exercises`` 解析路径。
+        """
+        path = self.lessons_dir / f"{num:04d}-{slug}.exercise.md"
+        if not path.exists():
+            return []
+        return _parse_exercises(path.read_text(encoding="utf-8"))
+
+    def latest_lesson_without_exercises(self) -> tuple[int, str] | None:
+        """取「有 body 文件但没有对应 exercise 文件」的最近一课 ``(num, slug)``。
+
+        ``save_exercise`` 用它配对练习文件：正常流程下匹配刚写的本课；整 run
+        重试时（body 已在上一轮落盘）仍能匹配到缺练习的那一课，避免重复写新课。
+        无 body 文件或全部已配对时返回 None。
+        """
+        if not self.lessons_dir.exists():
+            return None
+        for path in sorted(self.lessons_dir.glob("*.md"), reverse=True):
+            parsed = self.parse_lesson_filename(path.name)
+            if parsed is None:
+                continue
+            lesson_id, slug = parsed
+            if not (
+                self.lessons_dir / f"{lesson_id:04d}-{slug}.exercise.md"
+            ).exists():
+                return (lesson_id, slug)
+        return None
 
     def assemble_lessons(self) -> list[LessonItem]:
         """扫描 ``lessons/`` 装配 :class:`LessonItem` 列表：按编号排序；

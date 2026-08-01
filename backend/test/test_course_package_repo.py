@@ -268,6 +268,49 @@ def test_read_previous_lesson_returns_last_lesson(tmp_path):
     assert repo.read_previous_lesson() == _lesson_md("c--1", num=2)
 
 
+def test_read_exercises_reads_paired_file(tmp_path):
+    """read_exercises：读回 write_exercise 落盘的练习题；缺失返回空列表。"""
+    repo = _make_repo(tmp_path)
+    written = repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+    assert repo.read_exercises(written.num, written.slug) == []
+
+    repo.write_exercise(
+        num=written.num,
+        slug=written.slug,
+        title="课程练习",
+        exercises=[_single_choice_exercise()],
+    )
+    parsed = repo.read_exercises(written.num, written.slug)
+    assert len(parsed) == 1
+    assert parsed[0].answer == "B"
+
+
+def test_latest_lesson_without_exercises_pairs_incomplete_lesson(tmp_path):
+    """latest_lesson_without_exercises：只挑「有 body 缺练习」的最近一课；
+    全部配对后返回 None。"""
+    repo = _make_repo(tmp_path)
+    assert repo.latest_lesson_without_exercises() is None
+
+    w1 = repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+    repo.write_exercise(
+        num=w1.num,
+        slug=w1.slug,
+        title="课程练习",
+        exercises=[_single_choice_exercise()],
+    )
+    w2 = repo.write_lesson(slug="lesson-2", lesson_md=_lesson_md("c--1", num=2))
+    # 第 1 课已配练习 → 最近缺练习的是第 2 课
+    assert repo.latest_lesson_without_exercises() == (2, "lesson-2")
+
+    repo.write_exercise(
+        num=w2.num,
+        slug=w2.slug,
+        title="课程练习",
+        exercises=[_multi_choice_exercise()],
+    )
+    assert repo.latest_lesson_without_exercises() is None
+
+
 def test_read_mission_missing_returns_none(tmp_path):
     repo = _make_repo(tmp_path)
     assert repo.read_mission() is None
