@@ -4,7 +4,7 @@
 service：课程生成编排（``generate_course`` / ``generate_next_lesson``）、两个
 混合读（``get_course`` / ``preview_next_lesson``）与 course agent 构造
 （``_build_course_agent`` / ``_generate_lesson``）。模块同时持有顶层 schema
-``ExerciseBundle`` / ``LessonResourceOutput`` / ``NextLessonContext``。
+``ExerciseBundle`` / ``NextLessonContext``。
 
 与纯进度侧 :class:`app.services.learning_progress_service.LearningProgressService`
 的边界（C2）：本类**不直接持有 ``LearningRepo``**，进度读写全部在构造时注入
@@ -75,24 +75,6 @@ from app.services.learning_utils import (
 )
 
 # ── 顶层 schema ─────────────────────────────────────────────────────── #
-
-
-class LessonResourceOutput(BaseModel):
-    """Step 1 的 output_schema：agent 同时回传单课 md + 共享 resource。
-
-    - ``title`` / ``slug`` 由 LLM 生成（基于用户主题 / 上一课上下文），用于
-      磁盘文件名 ``<num>-<slug>.md`` 与 :class:`LessonItem` 字段。
-    - ``lesson_md`` 是该课的**单课**正文（不再是整门课程 3-8 Session 拼装版）；
-      ``resource_md`` 是全课程共享参考资料，独立成文。
-    """
-
-    title: str = Field(..., description="本课标题（用于 LessonItem.title）")
-    slug: str = Field(
-        ...,
-        description="本课 dash-case slug（用于文件名 <num>-<slug>.md）",
-    )
-    lesson_md: str = Field(..., description="本课 lesson.md 全文（正文）")
-    resource_md: str = Field(..., description="resource.md 全文（课程共享）")
 
 
 class ExerciseBundle(BaseModel):
@@ -534,6 +516,5 @@ class CourseGeneratorService:
 __all__ = [
     "CourseGeneratorService",
     "ExerciseBundle",
-    "LessonResourceOutput",
     "NextLessonContext",
 ]

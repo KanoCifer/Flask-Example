@@ -20,17 +20,6 @@ class CourseGenerateInput(BaseModel):
     )
 
 
-class CourseStatus:
-    """课程生成状态字面量集合。"""
-
-    PENDING: Literal["pending"] = "pending"
-    READY: Literal["ready"] = "ready"
-    FAILED: Literal["failed"] = "failed"
-
-
-CourseStatusLiteral = Literal["pending", "ready", "failed"]
-
-
 # ── 练习（Exercise） ───────────────────────────────────────────────────── #
 
 

@@ -44,7 +44,6 @@ from app.schemas.learning import Exercise
 from app.services.course_generator_service import (
     CourseGeneratorService,
     ExerciseBundle,
-    LessonResourceOutput,
 )
 from app.services.learning_progress_service import LearningProgressService
 from app.services.learning_utils import build_course_id
@@ -208,21 +207,20 @@ def _mission_md(topic: str) -> str:
     )
 
 
-def _step1_payload(course_id: str) -> LessonResourceOutput:
-    return LessonResourceOutput(
-        title="Rust 入门 · 第 1 课",
+def _lesson_payload(course_id: str) -> types.SimpleNamespace:
+    """stub 的写盘 payload：模拟 save_lesson / save_resource 的写入参数。"""
+    return types.SimpleNamespace(
         slug="lesson-1",
         lesson_md=_lesson_md(course_id),
         resource_md=_resource_md(course_id),
     )
 
 
-def _next_step1_payload(
+def _next_lesson_payload(
     course_id: str, *, num: int, slug: str
-) -> LessonResourceOutput:
-    """为 ``generate_next_lesson`` 准备的 mock payload:每课带独立 title/slug。"""
-    return LessonResourceOutput(
-        title=f"Rust 入门 · 第 {num} 课",
+) -> types.SimpleNamespace:
+    """为 ``generate_next_lesson`` 准备的 mock payload：每课带独立 slug。"""
+    return types.SimpleNamespace(
         slug=slug,
         lesson_md=_lesson_md_for(num, course_id),
         resource_md=_resource_md(course_id),
@@ -272,7 +270,7 @@ class _StubAgent:
         self,
         *,
         repo: CoursePackageRepo,
-        payload: LessonResourceOutput,
+        payload: types.SimpleNamespace,
         bundle: ExerciseBundle | None = None,
         fail_on_arun: Exception | None = None,
         parse_fail_contents: list[object] | None = None,
@@ -426,7 +424,7 @@ async def test_generate_course_writes_three_files(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
     )
 
     svc = CourseGeneratorService(
@@ -476,7 +474,7 @@ async def test_generate_course_upserts_progress_with_ready_status(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
     )
 
     repo = LearningRepo()
@@ -503,7 +501,7 @@ async def test_generate_course_persists_goal_when_provided(
     def _factory(repo):
         return _StubAgent(
             repo=repo,
-            payload=_step1_payload(cid),
+            payload=_lesson_payload(cid),
         )
 
     _patch_course_agent(monkeypatch, _factory)
@@ -537,7 +535,7 @@ async def test_generate_course_is_idempotent(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
     )
 
     svc = CourseGeneratorService(
@@ -563,7 +561,7 @@ async def test_generate_course_raises_when_agent_run_fails(
         monkeypatch,
         lambda repo: _StubAgent(
             repo=repo,
-            payload=_step1_payload(cid),
+            payload=_lesson_payload(cid),
             fail_on_arun=RuntimeError("course agent boom"),
         ),
     )
@@ -588,7 +586,7 @@ async def test_generate_course_retries_when_output_schema_parse_fails(
         monkeypatch,
         _stub_factory(
             holder,
-            payload=_step1_payload(cid),
+            payload=_lesson_payload(cid),
             parse_fail_contents=["<raw json string, not a ExerciseBundle>"],
             write_body_after_calls=1,  # 首轮不写 body：解析失败且不残留半成品
         ),
@@ -625,7 +623,7 @@ async def test_generate_course_retries_when_lesson_body_missing(
         monkeypatch,
         _stub_factory(
             holder,
-            payload=_step1_payload(cid),
+            payload=_lesson_payload(cid),
             write_body_after_calls=1,  # 首轮不写 body（模拟漏调 save_lesson）
         ),
     )
@@ -659,7 +657,7 @@ async def test_generate_course_raises_after_both_attempts_fail(
         monkeypatch,
         _stub_factory(
             holder,
-            payload=_step1_payload(cid),
+            payload=_lesson_payload(cid),
             parse_fail_contents=["<bad 1>", "<bad 2>"],
             write_body_after_calls=2,  # 两轮都不写 body（纯解析失败场景）
         ),
@@ -685,7 +683,7 @@ async def test_generate_course_writes_mission_md(
     holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(holder, payload=_step1_payload(cid)),
+        _stub_factory(holder, payload=_lesson_payload(cid)),
     )
 
     svc = CourseGeneratorService(
@@ -722,7 +720,7 @@ async def test_generate_next_lesson_keeps_mission_md(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_step1_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload(cid)),
     )
     await svc.generate_course(topic="Rust 入门", owner="u1")
     stub_first = first_holder["stub"]
@@ -736,7 +734,7 @@ async def test_generate_next_lesson_keeps_mission_md(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_step1_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
         ),
     )
     await svc.generate_next_lesson(
@@ -758,7 +756,7 @@ async def test_get_course_includes_mission_md(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
     )
     svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
@@ -802,7 +800,7 @@ async def test_generate_next_lesson_writes_next_file(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_step1_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload(cid)),
     )
     await svc.generate_course(topic="Rust 入门", owner="u1")
 
@@ -812,7 +810,7 @@ async def test_generate_next_lesson_writes_next_file(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_step1_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
         ),
     )
     next_num = await svc.generate_next_lesson(
@@ -850,12 +848,12 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
 
     def _counting_factory(repo):
         build_course_agent_called["n"] += 1
-        return _StubAgent(repo=repo, payload=_step1_payload(cid))
+        return _StubAgent(repo=repo, payload=_lesson_payload(cid))
 
     # 准备第 1 课
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
     )
     svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
@@ -891,7 +889,7 @@ async def test_get_course_assembles_multiple_lessons_in_order(
 
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
     )
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
@@ -900,7 +898,7 @@ async def test_get_course_assembles_multiple_lessons_in_order(
         monkeypatch,
         lambda repo: _StubAgent(
             repo=repo,
-            payload=_next_step1_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
         ),
     )
     n2 = await svc.generate_next_lesson(
@@ -974,7 +972,7 @@ async def test_get_course_returns_full_package_when_ready(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_step1_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
     )
 
     svc = CourseGeneratorService(
@@ -1014,7 +1012,7 @@ async def test_generate_course_persists_session_id(
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
-        monkeypatch, _stub_factory(holder, payload=_step1_payload(cid))
+        monkeypatch, _stub_factory(holder, payload=_lesson_payload(cid))
     )
 
     repo = LearningRepo()
@@ -1049,7 +1047,7 @@ async def test_generate_next_lesson_reuses_session_id(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_step1_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload(cid)),
     )
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
@@ -1066,7 +1064,7 @@ async def test_generate_next_lesson_reuses_session_id(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_step1_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
         ),
     )
     next_num = await svc.generate_next_lesson(
