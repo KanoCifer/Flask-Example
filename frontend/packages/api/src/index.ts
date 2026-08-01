@@ -109,3 +109,11 @@ export type { SubscriptionItem } from '@readinglist/types';
 // ── ai / LLM ─────────────────────────────────────────────────────────
 export { aiGateway } from './gateways/ai';
 export type { AiGateway } from './gateways/ai';
+
+// ── learning ────────────────────────────────────────────────────────
+export { learningGateway } from './gateways/learning';
+export type {
+  LearningGateway,
+  ProgressPatchBody,
+  CourseCreateResponse,
+} from './gateways/learning';

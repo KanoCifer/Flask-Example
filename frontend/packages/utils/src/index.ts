@@ -6,6 +6,7 @@
 
 export { tokenService } from './tokenService';
 export { getVisitorId } from './visitorId';
+export { getAnonId } from './anonId';
 export { collectVisitorData } from './visitorTrack';
 export type { VisitorData } from './visitorTrack';
 export { buildWsUrl } from './buildWsUrl';

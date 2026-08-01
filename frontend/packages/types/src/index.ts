@@ -18,3 +18,4 @@ export * from './analytics';
 export * from './subscription';
 export * from './device';
 export * from './ai';
+export * from './learning';

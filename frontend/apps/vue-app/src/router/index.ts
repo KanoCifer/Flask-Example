@@ -139,6 +139,39 @@ const router = createRouter({
       },
     },
     {
+      path: '/learning',
+      name: 'learning',
+      component: () => import('@/features/learning/components/LearningList.vue'),
+      meta: {
+        title: "学习 - Kuroome's Blog",
+        description: 'AI 课程生成 · 自主练习 · 客户端判分。',
+        keywords: '学习,AI课程,练习,学习工作台',
+        transition: 'fade',
+      },
+    },
+    {
+      path: '/learning/course/:courseId',
+      name: 'learning-course',
+      component: () => import('@/features/learning/components/CourseView.vue'),
+      meta: {
+        title: "课程详情 - Kuroome's Blog",
+        description: '课程讲义、资源与练习。',
+        keywords: '课程详情,学习,练习',
+        transition: 'fade',
+      },
+    },
+    {
+      path: '/learning/course/:courseId/lesson/:lessonId',
+      name: 'learning-lesson',
+      component: () => import('@/features/learning/components/LessonView.vue'),
+      meta: {
+        title: "单课详情 - Kuroome's Blog",
+        description: '单课正文与练习。',
+        keywords: '单课,学习,练习',
+        transition: 'fade',
+      },
+    },
+    {
       path: '/blog',
       name: 'blog-list',
       component: () => import('@/features/blog/BlogListView.vue'),
