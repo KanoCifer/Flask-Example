@@ -138,6 +138,27 @@ class _MockPreviewResult:
     session_id: str | None = None
 
 
+class _FakeKicker:
+    """``kicker().with_labels(...).kiq(...)`` 的桩：捕获 kwargs，不真投递。
+
+    handler 经 kicker 链投递（携带 ``enqueued_at`` 标签做投递时延观测），
+    ``.kiq()`` 打桩已拦不住这条链，需把桩挂在 ``kicker`` 层。
+    """
+
+    def __init__(self, captured: dict[str, object] | None = None) -> None:
+        self.captured = captured
+        self.labels: dict[str, object] = {}
+
+    def with_labels(self, **labels: object) -> "_FakeKicker":
+        self.labels.update(labels)
+        return self
+
+    async def kiq(self, *args: object, **kwargs: object) -> None:
+        if self.captured is not None:
+            self.captured.update(kwargs)
+        return None
+
+
 def _build_test_app(
     progress_mock: _MockProgressService,
     generator_mock: _MockGeneratorService,
@@ -190,7 +211,9 @@ def _patch_kiq(monkeypatch):
     """No-op the broker kick so we don't need a running Taskiq broker.
 
     task-352 多了 ``generate_next_lesson`` — 也 patch 一下,避免测试里无意触发
-    真实的 broker 投递路径。
+    真实的 broker 投递路径。handler 现经 ``kicker().with_labels().kiq()`` 投递
+    （携带 enqueued_at 标签做投递时延观测），桩需挂在 ``kicker`` 层；
+    ``generate_course`` 仍直接 ``.kiq()``，桩法不变。
     """
     import app.plugins.task.tasks.learning as task_mod
 
@@ -199,6 +222,9 @@ def _patch_kiq(monkeypatch):
 
     monkeypatch.setattr(task_mod.generate_course, "kiq", _fake_kiq)
     monkeypatch.setattr(task_mod.generate_next_lesson, "kiq", _fake_kiq)
+    monkeypatch.setattr(
+        task_mod.generate_next_lesson, "kicker", lambda: _FakeKicker()
+    )
     yield
 
 
@@ -466,11 +492,9 @@ async def test_post_next_lesson_forwards_session_id_to_kiq(monkeypatch):
 
     captured: dict[str, object] = {}
 
-    async def _capturing_kiq(*args, **kwargs):
-        captured.update(kwargs)
-        return None
-
-    monkeypatch.setattr(task_mod.generate_next_lesson, "kiq", _capturing_kiq)
+    monkeypatch.setattr(
+        task_mod.generate_next_lesson, "kicker", lambda: _FakeKicker(captured)
+    )
 
     mock = _MockGeneratorService()
     mock.preview_responses[("anon:x", "rust--aaaabbbb")] = _MockPreviewResult(
@@ -505,11 +529,9 @@ async def test_post_next_lesson_forwards_goal_to_kiq(monkeypatch):
 
     captured: dict[str, object] = {}
 
-    async def _capturing_kiq(*args, **kwargs):
-        captured.update(kwargs)
-        return None
-
-    monkeypatch.setattr(task_mod.generate_next_lesson, "kiq", _capturing_kiq)
+    monkeypatch.setattr(
+        task_mod.generate_next_lesson, "kicker", lambda: _FakeKicker(captured)
+    )
 
     mock = _MockGeneratorService()
     mock.preview_responses[("anon:x", "rust--aaaabbbb")] = _MockPreviewResult(

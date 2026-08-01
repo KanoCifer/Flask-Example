@@ -21,6 +21,8 @@ owner 解析（``_resolve_learning_owner``）：登录用户用 ``str(user_id)``
 
 from __future__ import annotations
 
+import time
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
@@ -217,16 +219,21 @@ async def create_next_lesson(
 
     # 5. 正常的异步路径（goal / session_id 随 ctx 转发，让后续课 prompt 与
     #    MISSION.md 目标保持一致、渐进产出复用首课锚定的 agno 会话（task-373））
-    await generate_next_lesson.kiq(
+    #    enqueued_at 标签随消息投递，worker 侧 TraceMiddleware 据此打印
+    #    "投递→收到" 端到端时延（delivery_ms），定位 kiq 后迟迟不执行的问题。
+    enqueued_at = time.time()
+    await generate_next_lesson.kicker().with_labels(enqueued_at=enqueued_at).kiq(
         topic=ctx.topic,
         owner=owner,
         course_id=course_id,
         goal=ctx.goal,
         session_id=ctx.session_id,
     )
-    logger.bind(course_id=course_id, owner=owner).info(
-        "learning: next-lesson generation queued"
-    )
+    logger.bind(
+        course_id=course_id,
+        owner=owner,
+        enqueue_ms=round((time.time() - enqueued_at) * 1000, 1),
+    ).info("learning: next-lesson generation queued")
     return APIResponse(
         data={
             "course_id": course_id,

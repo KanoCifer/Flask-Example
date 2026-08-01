@@ -8,10 +8,12 @@ worker 端 ``pre_execute`` hook 在任务体 ``await`` 前、同一协程链里�
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Any
 
 from taskiq.abc.middleware import TaskiqMiddleware
 
+from app.core.logger import logger
 from app.core.logging_context import reset_trace_id, set_trace_id
 
 if TYPE_CHECKING:
@@ -32,6 +34,15 @@ class TraceMiddleware(TaskiqMiddleware):
         self, message: TaskiqMessage
     ) -> TaskiqMessage:
         self._tokens[message.task_id] = set_trace_id()
+        # 投递延迟：handler 侧 .kiq() 时把 enqueued_at（wall-clock unix 时间戳）
+        # 放进消息标签，此处距任务执行最近，打印"投递→收到"时延（跨进程可比）。
+        enqueued_at = message.labels.get("enqueued_at")
+        if enqueued_at is not None:
+            logger.bind(
+                task_id=message.task_id,
+                task_name=message.task_name,
+                delivery_ms=round((time.time() - float(enqueued_at)) * 1000, 1),
+            ).info("taskiq: task received by worker")
         return message
 
     async def post_execute(
