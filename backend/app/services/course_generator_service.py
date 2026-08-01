@@ -21,12 +21,12 @@ service：课程生成编排（``generate_course`` / ``generate_next_lesson``）
 
 agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 agent run**：
 
-- 单一课程 agent 绑定六个磁盘工具（save_lesson / save_resource /
-  read_previous_lesson / save_mission / read_mission / save_exercise）+ 可选
-  研究工具（Exa + Context7），在一次 ``arun`` 内自主完成「写课 + 写 resource +
-  出题」——四件套（lesson / resource / mission / exercise）全部由 agent 经工具
-  落盘，service 在 run 结束后只从磁盘读回，**不解析最终响应**（无
-  ``output_schema``）。
+- 单一课程 agent 绑定四个写磁盘工具（save_lesson / save_resource /
+  save_mission / save_exercise）+ 一个只读 ``FileTools(base_dir=repo.root)``
+  + 可选研究工具（Exa + Context7），在一次 ``arun`` 内自主完成「写课 + 写
+  resource + 出题」——四件套（lesson / resource / mission / exercise）全部由
+  agent 经工具落盘，service 在 run 结束后只从磁盘读回，**不解析最终响应**
+  （无 ``output_schema``）。
 - 一课一文件落盘到 ``<learning-root>/<course-id>/lessons/0001-<slug>.md``
   （learning-root 默认 ``<backend>/tmp/learning``，可用 ``LEARNING_ROOT_DIR``
   环境变量配置；课程包布局统一由 :class:`CoursePackageRepo` 拥有）。
@@ -128,7 +128,11 @@ class CourseGeneratorService:
     # ── 公开 API ────────────────────────────────────────────────────── #
 
     async def generate_course(
-        self, topic: str, owner: str, goal: str | None = None
+        self,
+        topic: str,
+        owner: str,
+        goal: str | None = None,
+        course_id: str | None = None,
     ) -> str:
         """生成**第 1 课**并落盘，经 ``progress_svc.mark_ready`` 落 ready 进度。
 
@@ -146,6 +150,9 @@ class CourseGeneratorService:
             topic: 用户输入的学习主题。
             owner: 进度归属（user_id 或 anon_id）。
             goal: 学习目标（可选），透传给课程 agent 组织 MISSION.md 文案。
+            course_id: 课程 ID。由调用方（API 层已生成并 upsert pending）传入，
+                保证同一请求内 pending 与 ready 指向同一条记录；为 None 时内部
+                用 :func:`build_course_id` 新生成一个（每次不同，不幂等）。
 
         Returns:
             ``course_id``，格式 ``<slug>--<8hex>``。
@@ -154,13 +161,18 @@ class CourseGeneratorService:
             RuntimeError: 单次 agent run 失败或 run 后产物缺失（body /
                 exercise 文件未落盘）。
         """
-        course_id = build_course_id(topic)
-        # 锚定 agno 会话 ID：第一课生成时落地，后续渐进产出复用同一 session_id
-        # 让 agno 把前序 run 的消息回放进 context，实现跨轮会话记忆。
+        ## 生成course_id session_id 不重复
+        course_id = course_id or build_course_id(topic)
         session_id = uuid4().hex
 
+        logger.bind(
+            course_id=course_id,
+            session_id=session_id,
+            topic=topic,
+            owner=owner,
+        ).info("func:generate_course: start")
+
         # 一步生成第 1 课（无上一课上下文），落盘三文件。课程包布局 / 编号 /
-        # 写盘全部由 CoursePackageRepo 内部决定，service 不再碰磁盘路径。
         await self._generate_lesson(
             topic=topic,
             course_id=course_id,
@@ -170,8 +182,7 @@ class CourseGeneratorService:
             session_id=session_id,
         )
 
-        # 落盘成功后再持久化进度，避免半成品状态。C2 拆分后置 ready 委托
-        # 注入的 progress_svc（本类不持有 LearningRepo）。
+        # 标记进度为ready
         await self._progress_svc.mark_ready(
             owner=owner,
             course_id=course_id,
@@ -181,7 +192,7 @@ class CourseGeneratorService:
         )
 
         logger.bind(course_id=course_id, owner=owner, lesson_num=1).info(
-            "learning course lesson 1 generated"
+            "learning course lesson-0001 generated"
         )
         return course_id
 
@@ -199,7 +210,7 @@ class CourseGeneratorService:
         ``next_num = max(existing ids) + 1``；若该编号对应的文件已存在
         （重试 / 并发场景），**直接返回 None**，不重复生成。
 
-        ZPD（最近发展区）上下文：由 agent 通过 ``read_previous_lesson()`` 工具
+        ZPD（最近发展区）上下文：由 agent 通过 ``FileTools.read_file`` 工具
         自读上一课正文，service 不再拼进 prompt。
 
         会话记忆（task-373）：``session_id`` 由 API/task 层从
@@ -339,11 +350,12 @@ class CourseGeneratorService:
 
         - **instructions** 用融合的 :data:`COURSE_AGENT_INSTRUCTIONS`
           （写课 + 出题 + 工具使用 + 研究 + ZPD 说明），不再分 Step1 / Step2。
-        - **tools 显式传**：:func:`create_learning_tools` 返回的五个磁盘工具
-          （save_lesson / save_resource / read_previous_lesson / save_mission /
-          read_mission）为基底；配置了 ``EXA_API_KEY`` 时再追加研究工具
-          （ExaTools + Context7 MCPTools），未配置则不挂（优雅降级——agent
-          上下文里没有搜索工具，自然跳过研究）。
+        - **tools 显式传**：:func:`create_learning_tools` 返回的四个写磁盘工具
+          （save_lesson / save_resource / save_mission / save_exercise）+ 一个
+          只读 ``FileTools(base_dir=repo.root, enable_read_file=True)`` 为基底；
+          配置了 ``EXA_API_KEY`` 时再追加研究工具（ExaTools + Context7
+          MCPTools），未配置则不挂（优雅降级——agent 上下文里没有搜索工具，
+          自然跳过研究）。
         - 注入 ``self._agent`` 时以其 model / db 为模板新建一份；否则走 factory
           ``create_deepseek_model`` + ``create_postgres_db``。
 
@@ -369,7 +381,7 @@ class CourseGeneratorService:
             from agno.tools.mcp import MCPTools
 
             tools.extend(
-                [
+                [  # pyright: ignore[reportArgumentType]
                     ExaTools(api_key=exa_api_key, all=True, show_results=True),
                     MCPTools(
                         transport="streamable-http",
@@ -385,9 +397,9 @@ class CourseGeneratorService:
             # "got multiple values for keyword argument"（注入路径的既有缺陷，
             # 本方法不复刻）。
             return create_agent(
-                model=self._agent.model,
+                model=self._agent.model,  # pyright: ignore[reportArgumentType]
                 instructions=COURSE_AGENT_INSTRUCTIONS,
-                db=self._agent.db,
+                db=self._agent.db,  # pyright: ignore[reportArgumentType]
                 tools=tools,
                 use_json_mode=False,
             )

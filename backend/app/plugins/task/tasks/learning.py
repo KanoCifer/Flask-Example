@@ -62,14 +62,12 @@ async def generate_course(
             app.state.services.course_gen_svc
         )
         await course_gen_svc.generate_course(
-            topic=topic, owner=owner, goal=goal
+            topic=topic, owner=owner, goal=goal, course_id=course_id
         )
     except Exception as exc:
         logger.bind(course_id=course_id, owner=owner).error(
             f"learning: course generation task failed: {exc!r}"
         )
-        # 任务只执行一次（失败由 service 内部重试一次），到这里直接标记
-        # failed，让前端轮询体现终态。
         await _mark_failed(course_id=course_id, owner=owner)
         raise
     else:

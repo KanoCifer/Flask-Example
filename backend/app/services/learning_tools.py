@@ -2,24 +2,27 @@
 
 为「单一课程 agent 通过工具自主执行」提供磁盘工具。C1 深化后，本模块从
 「写策略实现」降级为**薄转发适配器**：所有磁盘知识（布局 / 命名 / 编号 /
-幂等 / 原子写）统一由 :class:`CoursePackageRepo` 拥有，六个 ``@tool`` 闭包
+幂等 / 原子写）统一由 :class:`CoursePackageRepo` 拥有，写侧 ``@tool`` 闭包
 只做参数转发与返回消息格式化。
 
+读路径不再暴露语义化 ``@tool``，改由 agent 通过 agno :class:`FileTools`
+按需 ``read_file``——``base_dir`` 由工厂锁定到 ``repo.root``（课程包根目录），
+``save_file`` / ``delete_file`` / ``list_files`` / ``search_files`` /
+``search_content`` / ``read_file_chunk`` / ``replace_file_chunk`` 全部禁用，
+避免与写侧单一入口冲突或越权。
+
 - :func:`create_learning_tools` 是工厂：捕获一个 ``CoursePackageRepo`` 实例
-  （service 每次 run 构造、与 exercise 配对共用同一个实例），返回六个
-  ``@tool(show_result=True)`` 装饰后的 agno ``Function``。
+  （service 每次 run 构造、与 exercise 配对共用同一个实例），返回四个写
+  ``@tool`` 装饰后的 agno ``Function`` 加一个只读 ``FileTools`` 实例。
 - ``save_lesson``：委托 ``repo.write_lesson``，编号 / 幂等全在仓库内。
 - ``save_resource``：委托 ``repo.write_resource``（覆盖写）。
-- ``read_previous_lesson``：委托 ``repo.read_previous_lesson``（ZPD 渐进上下文）。
 - ``save_mission``：委托 ``repo.write_mission``（幂等）。
-- ``read_mission``：委托 ``repo.read_mission``。
 - ``save_exercise``：委托 ``repo.write_exercise`` 把练习题写入
   ``<num>-<slug>.exercise.md``，按 ``repo.latest_lesson_without_exercises()``
   与缺练习的课配对；``exercises`` 是 JSON 字符串，仓库侧按 ``Exercise`` 校验。
 
-工具签名只暴露内容参数（title/slug/lesson_md/resource_md/mission_md）——与
-prompt 契约（``COURSE_AGENT_INSTRUCTIONS``）保持字符串一致，C4 的
-「prompt ↔ 工具名」自动校验不在本候选范围。
+写工具签名只暴露内容参数（title/slug/lesson_md/resource_md/mission_md）——
+与 prompt 契约（``COURSE_AGENT_INSTRUCTIONS``）保持字符串一致。
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ from __future__ import annotations
 import json
 
 from agno.tools import tool
+from agno.tools.file import FileTools
 from agno.tools.function import Function
 
 from app.repositories.course_package_repo import CoursePackageRepo
@@ -34,15 +38,20 @@ from app.schemas.learning import Exercise
 
 
 def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
-    """返回课程 agent 可调用的工具集合（闭包捕获 ``repo``）。
+    """返回课程 agent 可调用的工具集合（写侧 ``@tool`` 闭包 + 只读 ``FileTools``）。
+
+    写工具闭包捕获 ``repo``，读工具是 agno ``FileTools(base_dir=repo.root)``——
+    ``base_dir`` 锁定为课程包根目录，agent 通过相对路径读 ``MISSION.md`` /
+    ``resource.md`` / ``lessons/<num>-<slug>.md``；所有非只读 FileTools 能力
+    显式禁用（写工具已有专门 ``@tool`` 入口，list/search 留着会引入歧义）。
 
     Args:
         repo: 课程包仓库实例（含该课程根目录的全部磁盘知识）。
 
     Returns:
-        ``[save_lesson, save_resource, read_previous_lesson, save_mission,
-        read_mission, save_exercise]``，均为 agno ``Function``
-        （``@tool(show_result=True)`` 装饰），可直接传给 Agent。
+        ``[save_lesson, save_resource, save_mission, save_exercise]`` + 一个
+        ``FileTools(base_dir=repo.root, enable_read_file=True, 其余 enable
+        全 False)``，可直接传给 Agent。
     """
 
     @tool(show_result=True)
@@ -69,7 +78,7 @@ def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
                 f"lesson {written.num:04d} already exists, skipped writing "
                 f"(idempotent); keep existing file"
             )
-        return written.filename
+        return written.filename if written.filename else ""
 
     @tool(show_result=True)
     def save_resource(resource_md: str) -> str:
@@ -84,20 +93,8 @@ def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
         return repo.write_resource(resource_md)
 
     @tool(show_result=True)
-    def read_previous_lesson() -> str:
-        """读最大编号 lesson 的 md 全文（ZPD 渐进上下文）。
-
-        用于生成新课前衔接上一课，避免重复或跳跃。没有已生成课程时返回空
-        字符串。
-
-        Returns:
-            最大编号 lesson 的 md 全文；无任何课程时返回空字符串 ""。
-        """
-        return repo.read_previous_lesson()
-
-    @tool(show_result=True)
     def save_mission(mission_md: str) -> str:
-        """写学习使命文档 MISSION.md 到课程包根目录（task-365）。
+        """写学习使命文档 MISSION.md 到课程包根目录。
 
         每门课程根目录一份，记录「为什么学 / 成功长什么样 / 约束 / 不做范围」，
         是后续每课教学决策可溯源的目标依据。幂等：文件已存在（渐进产出 / 整 run
@@ -116,18 +113,6 @@ def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
                 "keep existing mission"
             )
         return result
-
-    @tool(show_result=True)
-    def read_mission() -> str:
-        """读学习使命文档 MISSION.md 全文（task-365 溯源）。
-
-        每课生成前调用，把教学决策对齐到课程目标（Why / Success looks like /
-        Constraints / Out of scope）。文件缺失时返回空字符串。
-
-        Returns:
-            MISSION.md 全文；无该文件时返回空字符串 ""。
-        """
-        return repo.read_mission() or ""
 
     @tool(show_result=True)
     def save_exercise(exercises: str) -> str:
@@ -172,13 +157,18 @@ def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
             exercises=items,
         )
 
+    reader = FileTools(
+        base_dir=repo.root,
+        enable_read_file=True,
+        enable_save_file=False,
+    )
+
     return [
         save_lesson,
         save_resource,
-        read_previous_lesson,
         save_mission,
-        read_mission,
         save_exercise,
+        reader,
     ]
 
 

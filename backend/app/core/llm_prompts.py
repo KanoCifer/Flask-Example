@@ -33,14 +33,17 @@ COURSE_AGENT_INSTRUCTIONS = (
     "- ``save_lesson(title, slug, lesson_md)``：写一课正文。title / slug 是该课的"
     "元数据（title 用于课程列表，slug 用于磁盘文件名）；lesson_md 含 YAML front matter。\n"
     "- ``save_resource(resource_md)``：写全课程共享 ``resource.md``（覆盖已有内容）。\n"
-    "- ``read_previous_lesson()``：读上一课正文（ZPD 渐进上下文）。生成新课前先调用，"
-    "衔接上一课，避免重复或跳跃；首课（无上一课）返回空字符串。\n"
     "- ``save_mission(mission_md)``：写学习使命文档 ``MISSION.md``（幂等：已存在则跳过"
     "不覆盖）。\n"
-    "- ``read_mission()``：读 ``MISSION.md`` 全文；缺失返回空字符串。\n"
     "- ``save_exercise(exercises)``：把本课练习题写入 ``<num>-<slug>.exercise.md``"
     "（必须紧跟 ``save_lesson`` 调用，自动与缺练习的课配对）；``exercises`` 是"
-    "练习对象列表的 JSON 字符串。\n\n"
+    "练习对象列表的 JSON 字符串。\n"
+    "- 读路径：直接调 FileTools 的 ``read_file`` 读课程包根目录下的文件"
+    "（``MISSION.md`` / ``resource.md`` / ``lessons/<num>-<slug>.md`` 均可），"
+    "``base_dir`` 已限定为课程包根目录，跨目录访问会被工具拒绝。"
+    "生成新课前读 ``lessons/`` 下编号最大的 lesson md（ZPD 渐进上下文，"
+    "首课时不存在返回空串），后续每课生成前读 ``MISSION.md`` 让教学决策溯源"
+    "到课程目标。\n\n"
     "## MISSION 说明（task-365）\n"
     "- 首课 run 开始时**先调 ``save_mission``** 写本课程的 MISSION.md，格式严格按模板：\n"
     "  - ``# Mission: <Topic>``\n"
@@ -48,8 +51,8 @@ COURSE_AGENT_INSTRUCTIONS = (
     "  - ``## Success looks like``（- 可观察的具体结果）\n"
     "  - ``## Constraints``（- 时间/预算/学习偏好等边界）\n"
     "  - ``## Out of scope``（- 明确不想现在学的相邻主题）\n"
-    "- 后续每课生成前用 ``read_mission()`` 读 MISSION.md，让教学决策溯源到课程目标；"
-    "keep it short（不超过一屏）。\n\n"
+    "- 后续每课生成前用 FileTools 的 ``read_file`` 读 ``MISSION.md``，让教学决策"
+    "溯源到课程目标；keep it short（不超过一屏）。\n\n"
     "## 研究说明\n"
     "- 环境配有研究工具（Exa 搜索 + Context7 文档查询）。当需要外部资料 / 编程库 / "
     "框架 API 的权威规格时，先调用研究工具再写课，不要凭记忆编造；研究结果会自动进入"
@@ -89,8 +92,9 @@ COURSE_AGENT_INSTRUCTIONS = (
 )
 
 # 单一课程 agent 的用户消息模板（task-3553 切换后 service 拼给一次 arun）。
-# ZPD 不再由 service 拼进 prompt——``read_previous_lesson()`` 工具由 agent
-# 自读；研究由 agent 自主决定是否调用（研究工具可选挂载）。
+# ZPD 不再由 service 拼进 prompt——上一课正文由 agent 通过 FileTools
+# ``read_file`` 读 ``lessons/`` 下编号最大的 lesson md 自取；研究由 agent
+# 自主决定是否调用（研究工具可选挂载）。
 # ``{goal}`` 槽（task-3654/3655）：学习目标。service 负责缺省——
 # 用户没提供时传 :data:`DEFAULT_GOAL_HINT`，本模板只留占位。
 COURSE_AGENT_USER_PROMPT_TEMPLATE = (

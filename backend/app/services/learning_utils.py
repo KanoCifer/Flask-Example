@@ -4,7 +4,8 @@
 关联的纯函数集中于此，便于独立单测与复用：
 
 - 进度序列化：:func:`_progress_to_dict` — ``LearningProgress`` → API 响应 dict。
-- 课程 ID：:func:`build_course_id` / :func:`_slugify` — ``<topic-slug>--<8hex>``。
+- 课程 ID：:func:`build_course_id` / :func:`_slugify` — ``<topic-slug>--<8hex>``，
+  后缀为随机 uuid（同 topic 每次调用都生成新课，不再幂等复用）。
 
 C1 深化（CoursePackageStore）后，本模块**不再**拥有任何磁盘课程包知识：
 布局 / 命名约定 / 扫描 / 原子写 / 装配 / 练习解析渲染已全部迁入
@@ -15,9 +16,9 @@ C1 深化（CoursePackageStore）后，本模块**不再**拥有任何磁盘课�
 
 from __future__ import annotations
 
-import hashlib
 import re
 from typing import Any
+from uuid import uuid4
 
 from app.models.learning import LearningProgress
 
@@ -40,14 +41,14 @@ def _progress_to_dict(doc: LearningProgress) -> dict[str, Any]:
 
 
 def build_course_id(topic: str) -> str:
-    """``course_id = <topic-slug>--<8hex>``，8hex 是 topic 文本的 sha1 前 8 位。
+    """``course_id = <topic-slug>--<8hex>``，8hex 是**随机** uuid 前 8 位。
 
-    使用 sha1 而非 md5 以避免历史碰撞顾虑；截断到 8 字符是 prototype
-    约定的格式。slug 用 kebab-case（ASCII 小写 + 数字 + 连字符，合并
-    连续分隔符）。
+    同 topic 每次调用都返回不同 course_id（不幂等）——每次生成都是一门新课，
+    不再按 topic 复用同一课程目录。slug 用 kebab-case（ASCII 小写 + 数字 +
+    连字符，合并连续分隔符）。
     """
     slug = _slugify(topic)
-    digest = hashlib.sha1(topic.strip().encode("utf-8")).hexdigest()[:8]
+    digest = uuid4().hex[:8]
     return f"{slug}--{digest}"
 
 
