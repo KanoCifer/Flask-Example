@@ -5,12 +5,6 @@
 幂等 / 原子写）统一由 :class:`CoursePackageRepo` 拥有，写侧 ``@tool`` 闭包
 只做参数转发与返回消息格式化。
 
-读路径不再暴露语义化 ``@tool``，改由 agent 通过 agno :class:`FileTools`
-按需 ``read_file``——``base_dir`` 由工厂锁定到 ``repo.root``（课程包根目录），
-``save_file`` / ``delete_file`` / ``list_files`` / ``search_files`` /
-``search_content`` / ``read_file_chunk`` / ``replace_file_chunk`` 全部禁用，
-避免与写侧单一入口冲突或越权。
-
 - :func:`create_learning_tools` 是工厂：捕获一个 ``CoursePackageRepo`` 实例
   （service 每次 run 构造、与 exercise 配对共用同一个实例），返回四个写
   ``@tool`` 装饰后的 agno ``Function`` 加一个只读 ``FileTools`` 实例。
@@ -168,7 +162,7 @@ def create_learning_tools(repo: CoursePackageRepo) -> list[Function]:
         save_resource,
         save_mission,
         save_exercise,
-        reader,
+        reader,  # pyright: ignore[reportReturnType]
     ]
 
 
