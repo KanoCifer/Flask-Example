@@ -56,3 +56,4 @@ stdout
 backend/tmp/
 scripts/db-backup/
 design-demos/
+backend/tmp/learning/

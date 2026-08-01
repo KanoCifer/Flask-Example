@@ -103,16 +103,7 @@ def create_deepseek_model(
     return DeepSeek(
         id=model_id,
         api_key=api_key,
-        base_url="https://api.deepseek.com",
-        timeout=timeout,
-        use_thinking=use_thinking,
-        role_map={
-            "system": "system",
-            "user": "user",
-            "assistant": "assistant",
-            "tool": "tool",
-            "model": "assistant",
-        },
+        reasoning_effort="high",
     )
 
 
