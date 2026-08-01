@@ -27,7 +27,6 @@ TEST_DATABASE_URL = "postgresql+asyncpg://liudetao:root@localhost/postgres_test"
 @pytest.fixture(scope="session")
 def settings():
     """Return settings with a deterministic secret for tests."""
-    get_settings.cache_clear()
     return get_settings()
 
 

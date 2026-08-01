@@ -3,7 +3,6 @@ from app.core.config import get_env_file_path, get_settings
 
 def test_config_loading():
     # 测试配置是否正确加载
-    get_settings.cache_clear()  # 清除缓存以确保重新加载配置
     print(get_settings().DATABASE_URL)
     print(get_settings().MONGO_URI)
     print(get_env_file_path())
