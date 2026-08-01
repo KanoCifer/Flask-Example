@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import inspect
+import time
+from typing import Any, Callable
+
 from agno.agent import Agent
 from agno.db.postgres import AsyncPostgresDb
 from agno.models.base import Model
@@ -10,6 +14,7 @@ from agno.models.openai import OpenAIChat
 from agno.tools.websearch import WebSearchTools
 
 from app.core.config import get_settings
+from app.core.logger import logger
 
 
 def create_postgres_db() -> AsyncPostgresDb:
@@ -98,19 +103,47 @@ def create_web_search_tools() -> WebSearchTools:
     return WebSearchTools(backend="bing")
 
 
+async def _log_tool_call(
+    function_name: str, function_call: Callable, arguments: dict[str, Any]
+) -> Any:
+    """每次工具调用的耗时日志（tool_hooks 中间件）。
+
+    Agno tool hook（``(function_name, function_call, arguments)`` 契约）：
+    包一层调用、记录耗时，结构化字段 ``tool`` / ``args_keys`` / ``duration``
+    交给 structlog（message 纯英文，数值不手拼进字符串）。
+
+    所有 agent 均以 ``arun`` 异步执行，故本 hook 为 async；``function_call``
+    同步/异步都兼容（agno 文档 Async Variant 模式）——``isawaitable`` 判断
+    并在需要时 ``await``。异常直接上抛，不在此吞掉。
+    """
+    start = time.monotonic()
+    result = function_call(**arguments)
+    if inspect.isawaitable(result):
+        result = await result
+    logger.info(
+        "tool call finished",
+        tool=function_name,
+        args_keys=sorted(arguments),
+        duration=round(time.monotonic() - start, 4),
+    )
+    return result
+
+
 def create_agent(
     *,
     model: Model,
     instructions: str,
     db: AsyncPostgresDb,
     tools: list | None = None,
+    tool_hooks: list | None = None,
     **kwargs,
 ) -> Agent:
-    """创建 Agno Agent 实例。"""
+    """创建 Agno Agent 实例（默认挂 ``_log_tool_call`` 耗时 hook）。"""
     return Agent(
         model=model,
         instructions=instructions,
         tools=tools or [create_web_search_tools()],
+        tool_hooks=tool_hooks if tool_hooks is not None else [_log_tool_call],
         db=db,
         markdown=True,
         add_history_to_context=True,
