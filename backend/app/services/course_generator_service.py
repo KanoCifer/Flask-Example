@@ -343,7 +343,7 @@ class CourseGeneratorService:
 
     # ── 内部 ──────────────────────────────────────────────────────── #
 
-    def _build_course_agent(self, repo: CoursePackageRepo) -> Agent:
+    async def _build_course_agent(self, repo: CoursePackageRepo) -> Agent:
         """构建**单一课程 agent**（agent_driven 重构核心路径，task-3553 已切换）。
 
         为「一次主 agent run」提供 agent：
@@ -380,14 +380,24 @@ class CourseGeneratorService:
             from agno.tools.exa import ExaTools
             from agno.tools.mcp import MCPTools
 
-            tools.extend(
-                [  # pyright: ignore[reportArgumentType]
-                    ExaTools(api_key=exa_api_key, all=True, show_results=True),
-                    MCPTools(
-                        transport="streamable-http",
-                        url="https://mcp.context7.com/mcp",
-                    ),
-                ]
+            ctx7 = MCPTools(
+                transport="streamable-http",
+                url="https://mcp.context7.com/mcp",
+            )
+            try:
+                await ctx7.connect()
+            except Exception as exc:
+                logger.warning(
+                    "Context7 MCP connect failed, dropping tool",
+                    error=str(exc),
+                )
+                await ctx7.close()  # 失败也 close 清理
+                ctx7 = None
+            if ctx7 is not None:
+                tools.append(ctx7)  # pyright: ignore[reportArgumentType]
+
+            tools.append(
+                ExaTools(api_key=exa_api_key, all=True, show_results=True),  # pyright: ignore[reportArgumentType]
             )
 
         if self._agent is not None:
@@ -454,7 +464,7 @@ class CourseGeneratorService:
         repo = repo or CoursePackageRepo(
             course_id=course_id, tmp_dir=self._tmp_dir
         )
-        course_agent = self._build_course_agent(repo)
+        course_agent = await self._build_course_agent(repo)
         base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
             topic=topic,
             course_id=course_id,
