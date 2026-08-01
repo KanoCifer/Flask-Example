@@ -31,7 +31,10 @@ import {
 import { Button } from '@/components';
 import { renderMarkdown } from '@/composables';
 import { useLearningCourse } from '@/features/learning/composables/useLearningCourse';
-import type { LearningLesson, LearningProgressItem } from '@/features/learning/types';
+import type {
+  LearningLesson,
+  LearningProgressItem,
+} from '@/features/learning/types';
 
 defineOptions({ name: 'CourseView' });
 
@@ -229,7 +232,7 @@ useHead({
 
 <template>
   <main class="bg-page min-h-screen w-full">
-    <div class="mx-auto w-full max-w-4xl px-5 py-8 sm:py-12">
+    <div class="mx-auto w-full max-w-4xl px-5 py-8 sm:py-25">
       <!-- Top nav -->
       <button
         type="button"
@@ -249,9 +252,7 @@ useHead({
           class="text-accent h-6 w-6 animate-spin motion-reduce:animate-none"
           aria-hidden="true"
         />
-        <p class="text-ink text-sm font-medium">
-          正在为你生成课程包…
-        </p>
+        <p class="text-ink text-sm font-medium">正在为你生成课程包…</p>
         <p class="text-muted text-xs">
           讲义 · 资源 · 练习 三件套正在准备中,请稍候
         </p>
@@ -282,10 +283,7 @@ useHead({
             <span>{{ lessons.length }} 节课</span>
             <span aria-hidden="true">·</span>
             <span>{{ doneSessions }} / {{ totalSessions }} 节已完成</span>
-            <span
-              v-if="isCourseDone"
-              class="text-success ml-1"
-            >
+            <span v-if="isCourseDone" class="text-success ml-1">
               · 已全部完成
             </span>
           </div>
@@ -311,10 +309,7 @@ useHead({
           class="bg-card ring-border/40 mb-5 rounded-2xl ring-1"
         >
           <ul class="divide-border/40 divide-y">
-            <li
-              v-for="lesson in lessons"
-              :key="lesson.id"
-            >
+            <li v-for="lesson in lessons" :key="lesson.id">
               <button
                 type="button"
                 class="hover:bg-surface/40 focus-visible:ring-ring/40 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 sm:px-5"
@@ -369,18 +364,17 @@ useHead({
                   padId(nextLessonId)
                 }}</span>
                 <span
-                  v-if="progressItem?.next_session !== null && progressItem?.next_session !== undefined"
+                  v-if="
+                    progressItem?.next_session !== null &&
+                    progressItem?.next_session !== undefined
+                  "
                   class="ml-2"
                 >
                   · 由进度决定
                 </span>
               </template>
-              <template v-else-if="isCourseDone">
-                所有课节已完成,棒!
-              </template>
-              <template v-else>
-                下一节尚未生成,点击右侧按钮产出。
-              </template>
+              <template v-else-if="isCourseDone"> 所有课节已完成,棒! </template>
+              <template v-else> 下一节尚未生成,点击右侧按钮产出。 </template>
             </p>
           </div>
           <div class="flex shrink-0 gap-2">
@@ -395,11 +389,7 @@ useHead({
                 class="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
                 aria-hidden="true"
               />
-              <Sparkles
-                v-else
-                class="h-3.5 w-3.5"
-                aria-hidden="true"
-              />
+              <Sparkles v-else class="h-3.5 w-3.5" aria-hidden="true" />
               <span>{{ generating ? '生成中…' : '继续下一课' }}</span>
             </Button>
           </div>
@@ -417,9 +407,7 @@ useHead({
             @click="resourceOpen = !resourceOpen"
           >
             <Library class="text-muted h-4 w-4" aria-hidden="true" />
-            <span class="text-ink flex-1 text-sm font-medium">
-              学习资源
-            </span>
+            <span class="text-ink flex-1 text-sm font-medium"> 学习资源 </span>
             <ChevronRight
               class="text-muted h-4 w-4 transition-transform motion-reduce:transition-none"
               :class="resourceOpen ? 'rotate-90' : ''"
@@ -434,10 +422,7 @@ useHead({
         </section>
 
         <!-- Footer hint -->
-        <p
-          v-if="lessons.length === 0"
-          class="text-muted text-center text-xs"
-        >
+        <p v-if="lessons.length === 0" class="text-muted text-center text-xs">
           <BookOpen class="mb-1 inline h-3.5 w-3.5" aria-hidden="true" />
           这门课程将按你点「继续下一课」逐步产出课节。
         </p>

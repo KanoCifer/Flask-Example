@@ -91,7 +91,7 @@ function statusLabel(item: LearningProgressItem): string {
 
 <template>
   <main class="bg-page min-h-screen w-full">
-    <div class="mx-auto w-full max-w-3xl px-5 py-10 sm:py-14">
+    <div class="mx-auto w-full max-w-3xl px-5 py-10 sm:py-25">
       <!-- Header -->
       <header class="mb-10 text-center">
         <div
@@ -108,9 +108,7 @@ function statusLabel(item: LearningProgressItem): string {
       </header>
 
       <!-- Topic input -->
-      <section
-        class="bg-card ring-border/40 rounded-2xl p-5 ring-1 sm:p-6"
-      >
+      <section class="bg-card ring-border/40 rounded-2xl p-5 ring-1 sm:p-6">
         <label class="text-muted mb-2 block text-xs tracking-widest">
           想要学习的主题
         </label>
@@ -144,10 +142,7 @@ function statusLabel(item: LearningProgressItem): string {
           </Button>
         </div>
 
-        <p
-          v-if="error"
-          class="text-destructive mt-3 text-xs leading-relaxed"
-        >
+        <p v-if="error" class="text-destructive mt-3 text-xs leading-relaxed">
           {{ error }}
           <button
             type="button"
@@ -165,9 +160,7 @@ function statusLabel(item: LearningProgressItem): string {
       <!-- Progress list -->
       <section class="mt-10">
         <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-ink font-serif text-base font-medium">
-            我的学习
-          </h2>
+          <h2 class="text-ink font-serif text-base font-medium">我的学习</h2>
           <button
             type="button"
             class="text-muted hover:text-ink focus-visible:ring-ring/40 inline-flex items-center gap-1 text-xs transition-colors focus:outline-none focus-visible:ring-2"
@@ -177,9 +170,7 @@ function statusLabel(item: LearningProgressItem): string {
             <RotateCcw
               class="h-3 w-3"
               :class="
-                progressLoading
-                  ? 'animate-spin motion-reduce:animate-none'
-                  : ''
+                progressLoading ? 'animate-spin motion-reduce:animate-none' : ''
               "
               aria-hidden="true"
             />
@@ -221,10 +212,7 @@ function statusLabel(item: LearningProgressItem): string {
                 </h3>
                 <p class="text-muted mt-1 text-xs">
                   {{ statusLabel(item) }}
-                  <span
-                    v-if="item.mission_done"
-                    class="text-success ml-1"
-                  >
+                  <span v-if="item.mission_done" class="text-success ml-1">
                     · 练习已完成
                   </span>
                 </p>
