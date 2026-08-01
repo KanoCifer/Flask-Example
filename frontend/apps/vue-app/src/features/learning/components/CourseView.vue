@@ -60,7 +60,9 @@ const courseId = computed(() => String(route.params.courseId ?? ''));
 /** 触发渐进产出的本地 loading。 */
 const generating = ref(false);
 
-/** 资源面板展开/折叠。 */
+/** 学习使命面板展开/折叠:与学习资源同模式(grid-template-rows 0fr↔1fr 过渡)。 */
+const missionOpen = ref(false);
+/** 资源面板展开/折叠:与学习使命同模式(grid-template-rows 0fr↔1fr 过渡)。 */
 const resourceOpen = ref(false);
 const resourceHtml = computed(() =>
   course.value ? renderMarkdown(course.value.resource_md) : '',
@@ -309,19 +311,39 @@ useHead({
           </div>
         </header>
 
-        <!-- Mission (task-365):学习使命文档,缺失时整块隐藏 -->
+        <!-- Mission (task-365):学习使命文档,缺失时整块隐藏。默认折叠,与学习资源同模式。 -->
         <section
           v-if="missionHtml"
           class="bg-card ring-border/40 mb-5 rounded-2xl ring-1"
         >
-          <div class="border-border/40 flex items-center gap-2 border-b px-4 py-3 sm:px-5">
+          <button
+            type="button"
+            class="border-border/40 hover:bg-surface/40 focus-visible:ring-ring/40 flex w-full items-center gap-2 border-b px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 sm:px-5"
+            :aria-expanded="missionOpen"
+            aria-controls="mission-panel"
+            @click="missionOpen = !missionOpen"
+          >
             <Target class="text-accent h-4 w-4" aria-hidden="true" />
             <span class="text-ink flex-1 text-sm font-medium"> 学习使命 </span>
+            <ChevronRight
+              class="text-muted h-4 w-4 transition-transform motion-reduce:transition-none"
+              :class="missionOpen ? 'rotate-90' : ''"
+              aria-hidden="true"
+            />
+          </button>
+          <div
+            id="mission-panel"
+            class="collapsible grid"
+            :class="missionOpen ? 'is-open' : ''"
+            :aria-hidden="!missionOpen"
+          >
+            <div class="collapsible-inner min-w-0 overflow-hidden">
+              <article
+                class="prose prose-sm text-ink max-w-none px-4 py-4 sm:px-5"
+                v-html="missionHtml"
+              />
+            </div>
           </div>
-          <article
-            class="prose prose-sm text-ink max-w-none px-4 py-4 sm:px-5"
-            v-html="missionHtml"
-          />
         </section>
 
         <!-- Lesson list -->
@@ -416,7 +438,7 @@ useHead({
           </div>
         </div>
 
-        <!-- Resource panel -->
+        <!-- Resource panel:与学习使命同模式(grid-template-rows 0fr↔1fr 折叠过渡)。 -->
         <section
           v-if="course.resource_md.trim().length > 0"
           class="bg-card ring-border/40 rounded-2xl ring-1"
@@ -425,6 +447,7 @@ useHead({
             type="button"
             class="hover:bg-surface/40 focus-visible:ring-ring/40 flex w-full items-center gap-2 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 sm:px-5"
             :aria-expanded="resourceOpen"
+            aria-controls="resource-panel"
             @click="resourceOpen = !resourceOpen"
           >
             <Library class="text-muted h-4 w-4" aria-hidden="true" />
@@ -435,11 +458,19 @@ useHead({
               aria-hidden="true"
             />
           </button>
-          <article
-            v-if="resourceOpen"
-            class="prose prose-sm text-ink max-w-none px-4 pb-5 sm:px-5"
-            v-html="resourceHtml"
-          />
+          <div
+            id="resource-panel"
+            class="collapsible grid"
+            :class="resourceOpen ? 'is-open' : ''"
+            :aria-hidden="!resourceOpen"
+          >
+            <div class="collapsible-inner min-w-0 overflow-hidden">
+              <article
+                class="prose prose-sm text-ink max-w-none px-4 pb-5 sm:px-5"
+                v-html="resourceHtml"
+              />
+            </div>
+          </div>
         </section>
 
         <!-- Footer hint -->
@@ -451,3 +482,26 @@ useHead({
     </div>
   </main>
 </template>
+
+<style scoped>
+/* 折叠容器：grid 单行，行高 0fr ↔ 1fr 平滑过渡。
+   grid-template-rows 不支持 fr 数值动画,但从 0fr → 1fr 可过渡
+   （CSS Grid Level 2 行为，现代浏览器均支持）。
+   内层加 min-w-0 + overflow-hidden,否则子元素撑开无法折叠。 */
+.collapsible {
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.collapsible.is-open {
+  grid-template-rows: 1fr;
+}
+.collapsible-inner {
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapsible {
+    transition: none;
+  }
+}
+</style>

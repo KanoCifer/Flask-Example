@@ -46,7 +46,7 @@
           :class="{ 'opacity-40 hover:opacity-70': !isActive(item.to) }"
         >
           <component :is="item.icon" :size="24" stroke-width="2" />
-          <span class="text-[11px]">{{ item.label }}</span>
+          <span class="text-[11px] whitespace-nowrap">{{ item.label }}</span>
         </RouterLink>
       </li>
       <!-- Others: hover dropdown — routes not shown in the pill strip -->
@@ -112,6 +112,7 @@ import {
   Ellipsis,
   CreditCard,
   Globe,
+  GraduationCap,
   House,
   Images,
   Info,
@@ -158,6 +159,12 @@ const navItems: NavItem[] = [
     label: 'Bookshelf',
     icon: BookOpenText,
     ariaLabel: 'Bookshelf',
+  },
+  {
+    to: '/learning',
+    label: 'Learning',
+    icon: GraduationCap,
+    ariaLabel: 'Learning',
   },
   { to: '/gallery', label: 'Gallery', icon: Images, ariaLabel: 'Gallery' },
   {

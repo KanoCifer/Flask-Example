@@ -231,8 +231,16 @@ function statusLabel(item: LearningProgressItem): string {
                 <h3 class="text-ink truncate text-sm font-medium">
                   {{ item.topic }}
                 </h3>
-                <p class="text-muted mt-1 text-xs">
-                  {{ statusLabel(item) }}
+                <p
+                  class="text-muted mt-1 flex items-center gap-1.5 text-xs"
+                  :class="{ 'text-accent': item.status === 'pending' }"
+                >
+                  <Loader2
+                    v-if="item.status === 'pending'"
+                    class="h-3 w-3 animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                  <span>{{ statusLabel(item) }}</span>
                   <span v-if="item.exercise_done" class="text-success ml-1">
                     · 练习已完成
                   </span>
@@ -241,10 +249,23 @@ function statusLabel(item: LearningProgressItem): string {
               <button
                 v-if="item.next_session !== null"
                 type="button"
-                class="bg-accent/10 text-accent hover:bg-accent/20 focus-visible:ring-ring/40 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2"
+                class="bg-accent/10 text-accent hover:bg-accent/20 focus-visible:ring-ring/40 inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="item.status === 'pending'"
+                :aria-label="
+                  item.status === 'pending'
+                    ? '课程生成中,暂时无法继续'
+                    : '继续学习'
+                "
                 @click="onContinue(item)"
               >
-                继续学习 →
+                <Loader2
+                  v-if="item.status === 'pending'"
+                  class="h-3 w-3 animate-spin motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+                <span>{{
+                  item.status === 'pending' ? '生成中…' : '继续学习 →'
+                }}</span>
               </button>
               <span
                 v-else
