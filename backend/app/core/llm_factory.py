@@ -10,7 +10,6 @@ from agno.models.openai import OpenAIChat
 from agno.tools.websearch import WebSearchTools
 
 from app.core.config import get_settings
-from app.core.llm_prompts import RESEARCH_INSTRUCTIONS_TEMPLATE
 
 
 def create_postgres_db() -> AsyncPostgresDb:
@@ -110,75 +109,6 @@ def create_deepseek_model(
 def create_web_search_tools() -> WebSearchTools:
     """创建 WebSearchTools 实例。"""
     return WebSearchTools(backend="bing")
-
-
-# ExaTools 的搜索/取内容/找相似/生成回答子工具集合。"all=True" 把
-# ``search_exa`` / ``get_contents`` / ``find_similar`` / ``exa_answer`` 全部
-# 打开；研究步骤需要"搜 + 抓正文 + 总结回答"全链路，少一个都拼不出可用的
-# markdown 摘要。"show_results=True" 在服务端日志打印每轮搜索 query，便于
-# 排查 LLM 是否把 sub-query 拆得合理。
-_RESEARCH_TOOLS_KWARGS = {"all": True, "show_results": True}
-
-
-def create_research_agent(
-    topic: str,
-    *,
-    model: Model | None = None,
-    db: AsyncPostgresDb | None = None,
-) -> Agent:
-    """创建主题研究 Agent（Learning 编排前调研一步专用）。
-
-    与 :func:`create_agent` 同阶的 factory，但用途不同：
-
-    - **复用** :func:`create_deepseek_model` 拿模型；允许调用方注入 ``model``
-      覆盖（测试 / 切到 AntLLM 路径均可）。
-    - **专属工具** :class:`agno.tools.exa.ExaTools`，全子工具打开，让 LLM
-      能搜 / 取正文 / 找相似 / 给出基于源的总结回答。
-    - **Session 持久化**：注入 ``db`` 则直接复用；否则走 :func:`create_redis_db`
-      —— 调研一般跨多 sub-query，保留会话能让 LLM 回顾前几轮抓到的源。
-    - **静默失败策略**：``EXA_API_KEY`` 为空字符串时直接抛
-      :class:`RuntimeError`，与 :func:`create_deepseek_model` 对齐 —— 部署期
-      一眼定位缺失配置，不静默退化返回"无证据"的研究结果。
-
-    Args:
-        topic: 研究主题。会被拼入 instructions 作为 LLM 的任务陈述。
-        model: 可选模型覆盖；默认 :func:`create_deepseek_model`。
-        db: 可选 RedisDb 覆盖；默认 :func:`create_redis_db`。
-
-    Returns:
-        已绑定 ExaTools + instructions 的 :class:`Agent`。工厂自身不持久化
-        任何状态 —— 是否落库由调用方传入的 ``db`` 决定。
-
-    Raises:
-        RuntimeError: ``EXA_API_KEY`` 未配置；或 :func:`create_deepseek_model`
-            转发的 ``DEEPSEEK_API_KEY`` 未配置。
-    """
-    api_key = get_settings().EXA_API_KEY
-    if not api_key:
-        raise RuntimeError(
-            "AI 服务未配置 EXA_API_KEY（Learning 模块研究步骤依赖）"
-        )
-
-    from agno.tools.exa import ExaTools
-    from agno.tools.mcp import MCPTools
-
-    context7 = MCPTools(
-        transport="streamable-http",
-        url="https://mcp.context7.com/mcp",
-    )
-    exa_tools = ExaTools(api_key=api_key, **_RESEARCH_TOOLS_KWARGS)
-
-    instructions = RESEARCH_INSTRUCTIONS_TEMPLATE.format(topic=topic)
-
-    return Agent(
-        model=model or create_deepseek_model(),
-        instructions=instructions,
-        tools=[exa_tools, context7],
-        db=db or create_postgres_db(),
-        markdown=True,
-        add_history_to_context=True,
-        num_history_runs=20,
-    )
 
 
 def create_agent(

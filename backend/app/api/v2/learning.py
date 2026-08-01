@@ -34,8 +34,8 @@ from app.plugins.task.tasks.learning import (
     generate_next_lesson,
 )
 from app.schemas.learning import CourseGenerateInput
-from app.services.learning_service import (
-    LearningService,
+from app.services.learning_service import LearningService
+from app.services.learning_utils import (
     build_course_id,
     lesson_file_exists,
     list_existing_lesson_ids,
@@ -110,7 +110,8 @@ async def create_course(
         owner=owner, course_id=course_id, topic=topic
     )
     # 再 kiq：worker 端完成两步生成后会把同一条 (owner, course_id) 记录
-    # 置 ready；SmartRetryMiddleware 在 3 次重试失败后置 failed。
+    # 置 ready；失败由 service 内部重试一次，再失败由任务层 _mark_failed
+    # 把状态置 failed（让前端轮询体现终态）。
     await generate_course.kiq(topic=topic, owner=owner, course_id=course_id)
 
     logger.bind(course_id=course_id, owner=owner).info(

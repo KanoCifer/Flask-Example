@@ -1,19 +1,23 @@
 """Service tests for ``app.services.learning_service.LearningService``.
 
-Mocking strategy:
-  - Step 1 / Step 2 agno Agent calls are patched by monkeypatching
-    ``LearningService._run_step1`` / ``_run_step2`` so no network, no Redis,
-    no DeepSeek is touched.
+Mocking strategy (task-3555)：agent_driven 重构后 service 不再跑三步流水线
+（``_run_research`` / ``_run_step1`` / ``_run_step2`` 已删除），只调一次
+``_build_course_agent(...).arun(prompt, output_schema=MissionBundle)``。
+测试用 ``_StubAgent`` monkeypatch ``LearningService._build_course_agent``：
+stub 的 ``arun`` 模拟三个磁盘工具（save_lesson / save_resource /
+read_previous_lesson）写盘并返回 ``MissionBundle``，不触碰网络 / Redis /
+DeepSeek。
   - The beanie ``LearningProgress`` upsert that ``generate_course`` performs
     uses a real MongoDB collection (``readinglist_test``) per the conftest
     fixture, so we also exercise the ready-state upsert path.
   - The course tmp dir is injected via the ``tmp_dir`` constructor arg so the
-    three markdown files land in a per-test tempdir we control.
+    markdown files land in a per-test tempdir we control.
 """
 
 from __future__ import annotations
 
 import re
+import types
 from pathlib import Path
 
 import pytest
@@ -29,9 +33,13 @@ from app.services.learning_service import (
     LearningService,
     LessonResourceOutput,
     MissionBundle,
+)
+from app.services.learning_utils import (
+    _last_lesson_md,
     _parse_missions,
     _render_mission_md,
     build_course_id,
+    list_existing_lesson_ids,
 )
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
@@ -199,18 +207,6 @@ def _next_step1_payload(
     )
 
 
-async def _noop_research(*args, **kwargs) -> str:
-    """``_run_research`` 的 no-op mock — 测试里跳过研究步(task-3312)。
-
-    生产路径会调 :func:`create_research_agent`(Exa + Context7);测试不需要
-    真正跑研究,直接返回空字符串即可,让后续 step1 跟原来一样被 mock。
-
-    接收 ``*args, **kwargs`` 是因为生产侧 ``_run_research(topic=topic)`` 用
-    关键字调用,后续若加新参数也不会打破 mock。
-    """
-    return ""
-
-
 def _step2_payload() -> MissionBundle:
     return MissionBundle(
         missions=[
@@ -221,18 +217,99 @@ def _step2_payload() -> MissionBundle:
     )
 
 
-async def _step1_payload_mock(self, topic, course_id, **kwargs):
-    """``_run_step1`` 的 async mock：返回第 1 课 payload。
+class _StubAgent:
+    """Stub 课程 agent：在 ``arun`` 内模拟工具写盘并返回 MissionBundle。
 
-    ``_run_step1`` 已改为 async（挂 async db，用 ``await agent.arun``），
-    测试 mock 也必须返回 awaitable。
+    task-3553 后 service 不再调 ``_run_step1`` / ``_run_step2``，只调一次
+    ``_build_course_agent(...).arun(prompt, output_schema=MissionBundle)``。
+    本 stub 替代旧的 step1/step2 monkeypatch：``arun`` 内按真实工具语义模拟
+    三个磁盘工具——
+
+    - ``read_previous_lesson``（ZPD）：写新课前读最大编号 lesson 的 md 全文，
+      结果记录到 :attr:`read_previous_lesson_outputs` 供断言。
+    - ``save_resource``：写 ``course_dir/resource.md``（覆盖已有内容）。
+    - ``save_lesson``：写 ``lessons/{num:04d}-{slug}.md``，编号自动取磁盘
+      已有最大编号 +1（与 :func:`create_learning_tools` 同语义）。
+
+    返回 ``SimpleNamespace(content=MissionBundle(...))``，供
+    :func:`_unwrap_model` 命中 ``content`` 字段。
+
+    兜底重试（task-3554）控制：``arun`` 可按调用次数分阶段返回——
+    ``parse_fail_contents[i]`` 覆盖第 i+1 次 arun 的返回 content（耗尽后回到
+    ``bundle``），模拟「首轮坏 content → 重试 → 第二轮合法」；
+    ``write_body_after_calls=N`` 让前 N 次 arun **不**模拟 ``save_lesson``
+    （body 不落盘），模拟「漏调 save_lesson → 磁盘校验失败 → 重试」。
+    调用次数记录在 :attr:`arun_call_count` 供断言重试确实发生。
     """
-    return _step1_payload(course_id)
+
+    def __init__(
+        self,
+        *,
+        course_dir: str | Path,
+        payload: LessonResourceOutput,
+        bundle: MissionBundle | None = None,
+        fail_on_arun: Exception | None = None,
+        parse_fail_contents: list[object] | None = None,
+        write_body_after_calls: int = 0,
+    ) -> None:
+        self._course_dir = Path(course_dir)
+        self._payload = payload
+        self._bundle = bundle if bundle is not None else _step2_payload()
+        self._fail_on_arun = fail_on_arun
+        self._parse_fail_contents = list(parse_fail_contents or [])
+        self._write_body_after_calls = write_body_after_calls
+        # ``arun`` 被调次数（task-3554 重试断言用）。
+        self.arun_call_count = 0
+        # ``arun`` 内模拟 read_previous_lesson 的返回值（ZPD 衔接断言用）。
+        self.read_previous_lesson_outputs: list[str] = []
+
+    async def arun(self, prompt: str, output_schema=None):
+        self.arun_call_count += 1
+        if self._fail_on_arun is not None:
+            raise self._fail_on_arun
+
+        lessons_dir = self._course_dir / "lessons"
+        lessons_dir.mkdir(parents=True, exist_ok=True)
+
+        # 模拟 read_previous_lesson：写新课前读最大编号 lesson 的 md（ZPD）。
+        existing_ids = list_existing_lesson_ids(lessons_dir)
+        prev_md = _last_lesson_md(lessons_dir, existing_ids) or ""
+        self.read_previous_lesson_outputs.append(prev_md)
+
+        # 模拟 save_resource：写全课程共享资料（覆盖已有内容）。
+        (self._course_dir / "resource.md").write_text(
+            self._payload.resource_md, encoding="utf-8"
+        )
+
+        # 模拟 save_lesson：编号自动取磁盘最大 + 1（与真实工具同语义）；
+        # 前 write_body_after_calls 次不写（模拟漏调 save_lesson）。
+        if self.arun_call_count > self._write_body_after_calls:
+            existing_ids = list_existing_lesson_ids(lessons_dir)
+            num = (max(existing_ids) + 1) if existing_ids else 1
+            (lessons_dir / f"{num:04d}-{self._payload.slug}.md").write_text(
+                self._payload.lesson_md, encoding="utf-8"
+            )
+
+        idx = self.arun_call_count - 1
+        if idx < len(self._parse_fail_contents):
+            return types.SimpleNamespace(
+                content=self._parse_fail_contents[idx]
+            )
+        return types.SimpleNamespace(content=self._bundle)
 
 
-async def _step2_payload_mock(self, topic, course_id):
-    """``_run_step2`` 的 async mock：返回 mission list。"""
-    return _step2_payload().missions
+def _patch_course_agent(monkeypatch, stub_factory) -> None:
+    """把 ``LearningService._build_course_agent`` 替换为返回 stub 的工厂。
+
+    Args:
+        stub_factory: ``Callable[[Path], _StubAgent]`` — 接收 service 传入的
+            ``course_dir``，返回配置好的 stub agent。
+    """
+    monkeypatch.setattr(
+        LearningService,
+        "_build_course_agent",
+        lambda self, course_dir: stub_factory(Path(course_dir)),
+    )
 
 
 # ── build_course_id ────────────────────────────────────────────────────
@@ -319,7 +396,7 @@ async def test_parse_missions_ignores_malformed_items():
     assert isinstance(parsed, list)
 
 
-# ── generate_course (mocked step1/step2) ──────────────────────────────
+# ── generate_course (stub course agent) ────────────────────────────────
 
 
 async def test_generate_course_writes_three_files(
@@ -335,28 +412,15 @@ async def test_generate_course_writes_three_files(
             0001-<slug>.exercise.md ← 该课练习
           resource.md                ← 课程共享资源
 
-    task-3312 又在 step1 之前加了可选的「研究步」（Exa + Context7）;
-    用 ``_run_research`` 的 no-op mock 跳过它,避免依赖外部 API key。
+    新流程（task-3553）下 lesson body / resource.md 由 stub agent 在 run 内
+    经 save_lesson / save_resource 工具写盘，service 只落盘 exercise 文件。
     """
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
+    cid = build_course_id("Rust 入门")
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
     )
 
     svc = LearningService(
@@ -399,20 +463,12 @@ async def test_generate_course_writes_three_files(
 async def test_generate_course_upserts_progress_with_ready_status(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
+    cid = build_course_id("Rust 入门")
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
     )
 
     repo = LearningRepo()
@@ -430,20 +486,12 @@ async def test_generate_course_is_idempotent(
     monkeypatch, tmp_course_dir, clean_collection
 ):
     """重复调用同一 topic+owner 不应创建第二条 progress(覆盖写文件)。"""
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
+    cid = build_course_id("Rust 入门")
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
     )
 
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
@@ -457,54 +505,101 @@ async def test_generate_course_is_idempotent(
     assert len(docs) == 1
 
 
-async def test_generate_course_raises_when_step1_fails(
+async def test_generate_course_raises_when_agent_run_fails(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        lambda self, topic, course_id, **kwargs: (_ for _ in ()).throw(
-            RuntimeError("step1 boom")
+    """新流程没有 step1：stub agent 的 ``arun`` 抛错 → ``generate_course`` 抛错。"""
+    cid = build_course_id("Rust 入门")
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir,
+            payload=_step1_payload(cid),
+            fail_on_arun=RuntimeError("course agent boom"),
         ),
     )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        lambda self, topic, course_id: _step2_payload().missions,
-    )
 
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    with pytest.raises(RuntimeError, match="step1 boom"):
+    with pytest.raises(RuntimeError, match="course agent boom"):
         await svc.generate_course(topic="Rust 入门", owner="user-1")
 
 
-async def test_generate_course_raises_when_step2_fails_twice(
+async def test_generate_course_retries_when_output_schema_parse_fails(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
+    """首轮返回无法解析的 content → 触发整 run 重试（task-3554）→ 第二轮返回
+    合法 ``MissionBundle`` → 生成成功（不再抛错），且只落盘一课。
+    """
+    cid = build_course_id("Rust 入门")
+    stub = _StubAgent(
+        course_dir=tmp_course_dir / cid,
+        payload=_step1_payload(cid),
+        parse_fail_contents=["<raw json string, not a MissionBundle>"],
+        write_body_after_calls=1,  # 首轮不写 body：解析失败且不残留半成品
     )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-
-    async def _always_fail(self, topic, course_id):
-        raise RuntimeError("step2 boom")
-
-    monkeypatch.setattr(LearningService, "_run_step2", _always_fail)
+    _patch_course_agent(monkeypatch, lambda course_dir: stub)
 
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    with pytest.raises(RuntimeError, match="step2 boom"):
+    cid = await svc.generate_course(topic="Rust 入门", owner="user-1")
+
+    # 重试确实发生（arun 被调 2 次），最终只落盘一课
+    assert stub.arun_call_count == 2
+    lessons_dir = tmp_course_dir / cid / "lessons"
+    body_files = sorted(
+        p
+        for p in lessons_dir.glob("*.md")
+        if not p.name.endswith(".exercise.md")
+    )
+    assert [p.name for p in body_files] == ["0001-lesson-1.md"]
+    assert (lessons_dir / "0001-lesson-1.exercise.md").exists()
+
+
+async def test_generate_course_retries_when_lesson_body_missing(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """首轮返回合法 ``MissionBundle`` 但漏调 ``save_lesson``（body 未落盘）
+    → 磁盘校验失败 → 触发整 run 重试 → 第二轮正常写盘 → 成功。
+    """
+    cid = build_course_id("Rust 入门")
+    stub = _StubAgent(
+        course_dir=tmp_course_dir / cid,
+        payload=_step1_payload(cid),
+        write_body_after_calls=1,  # 首轮不写 body（模拟漏调 save_lesson）
+    )
+    _patch_course_agent(monkeypatch, lambda course_dir: stub)
+
+    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    cid = await svc.generate_course(topic="Rust 入门", owner="user-1")
+
+    # 重试确实发生（arun 被调 2 次），最终只落盘一课
+    assert stub.arun_call_count == 2
+    lessons_dir = tmp_course_dir / cid / "lessons"
+    body_files = sorted(
+        p
+        for p in lessons_dir.glob("*.md")
+        if not p.name.endswith(".exercise.md")
+    )
+    assert [p.name for p in body_files] == ["0001-lesson-1.md"]
+    assert (lessons_dir / "0001-lesson-1.exercise.md").exists()
+
+
+async def test_generate_course_raises_after_both_attempts_fail(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """两轮都解析失败 → 重试耗尽 → 抛 ``RuntimeError``，且 arun 恰好被调 2 次。"""
+    cid = build_course_id("Rust 入门")
+    stub = _StubAgent(
+        course_dir=tmp_course_dir / cid,
+        payload=_step1_payload(cid),
+        parse_fail_contents=["<bad 1>", "<bad 2>"],
+        write_body_after_calls=2,  # 两轮都不写 body（纯解析失败场景）
+    )
+    _patch_course_agent(monkeypatch, lambda course_dir: stub)
+
+    svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+    with pytest.raises(RuntimeError, match="CourseAgent"):
         await svc.generate_course(topic="Rust 入门", owner="user-1")
+    assert stub.arun_call_count == 2
 
 
 # ── generate_next_lesson (渐进产出,task-352) ──────────────────────────────
@@ -516,35 +611,34 @@ async def test_generate_next_lesson_writes_next_file(
     """已有第 1 课 → ``generate_next_lesson`` 写入 0002-<slug>.md + exercise。
 
     断言:返回 next_num=2;磁盘上 0001 / 0002 两份 lesson + resource.md 都在;
-    step1 收到上一课 md 尾部(``previous_lesson_md`` kwarg 非空)以衔接上下文。
+    ZPD 由 ``read_previous_lesson`` 工具承担——stub 模拟该工具时读到上一课 md
+    全文非空,衔接上下文仍被保证。
     """
-    received_previous: list[str] = []
-
-    async def _step1_next(self, topic, course_id, **kwargs):
-        received_previous.append(kwargs.get("previous_lesson_md", ""))
-        return _next_step1_payload(
-            course_id, num=2, slug="lesson-2"
-        )
-
-    monkeypatch.setattr(LearningService, "_run_research", _noop_research)
-    monkeypatch.setattr(LearningService, "_run_step1", _step1_next)
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
-    )
-
-    # 先用普通 step1 准备第 1 课
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
+    cid = build_course_id("Rust 入门")
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
-    # 切到「next」step1 mock,跑 generate_next_lesson
-    monkeypatch.setattr(LearningService, "_run_step1", _step1_next)
+    # 先用「首课」stub 准备第 1 课(写 0001-lesson-1.md)
+    stub_first = _StubAgent(
+        course_dir=tmp_course_dir / cid,
+        payload=_step1_payload(cid),
+    )
+    monkeypatch.setattr(
+        LearningService,
+        "_build_course_agent",
+        lambda self, course_dir: stub_first,
+    )
+    await svc.generate_course(topic="Rust 入门", owner="u1")
+
+    # 切到「next」stub 跑 generate_next_lesson(写 0002-lesson-2.md)
+    stub_next = _StubAgent(
+        course_dir=tmp_course_dir / cid,
+        payload=_next_step1_payload(cid, num=2, slug="lesson-2"),
+    )
+    monkeypatch.setattr(
+        LearningService,
+        "_build_course_agent",
+        lambda self, course_dir: stub_next,
+    )
     next_num = await svc.generate_next_lesson(
         topic="Rust 入门", owner="u1", course_id=cid
     )
@@ -556,8 +650,9 @@ async def test_generate_next_lesson_writes_next_file(
         "0001-lesson-1.md",
         "0002-lesson-2.md",
     ]
-    # step1 收到上一课 md 全文(ZPD 衔接)— 至少非空
-    assert received_previous and received_previous[0]
+    # ZPD:stub 模拟 read_previous_lesson 时读到上一课 md 全文(非空)
+    assert stub_next.read_previous_lesson_outputs
+    assert stub_next.read_previous_lesson_outputs[0]
 
 
 async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
@@ -569,24 +664,19 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
     glob 命中,**但**不含 lowercase slug,不会被 ``_LESSON_FILE_RE`` 解析为
     lesson body,所以 ``existing_ids`` 仍 = ``[1]``,``next_num`` = 2 命中早返。
     """
-    step1_called = {"n": 0}
+    cid = build_course_id("Rust 入门")
+    build_course_agent_called = {"n": 0}
 
-    async def _step1(self, topic, course_id, **kwargs):
-        step1_called["n"] += 1
-        return _next_step1_payload(course_id, num=2, slug="lesson-2")
-
-    monkeypatch.setattr(LearningService, "_run_research", _noop_research)
+    def _counting_factory(course_dir):
+        build_course_agent_called["n"] += 1
+        return _StubAgent(course_dir=course_dir, payload=_step1_payload(cid))
 
     # 准备第 1 课
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
     )
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
@@ -595,13 +685,13 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
     lessons_dir = tmp_course_dir / cid / "lessons"
     (lessons_dir / "0002-PENDING.md").write_text("# race placeholder")
 
-    # 切到「计数」step1 mock 验证不被调
-    monkeypatch.setattr(LearningService, "_run_step1", _step1)
+    # 切到「计数」stub 工厂验证 _build_course_agent 不被调
+    _patch_course_agent(monkeypatch, _counting_factory)
     n = await svc.generate_next_lesson(
         topic="Rust 入门", owner="u1", course_id=cid
     )
     assert n is None
-    assert step1_called["n"] == 0
+    assert build_course_agent_called["n"] == 0
 
 
 async def test_get_course_assembles_multiple_lessons_in_order(
@@ -611,26 +701,25 @@ async def test_get_course_assembles_multiple_lessons_in_order(
 
     第 1 课 + 追加的第 2 课 → 装配时 id 升序,共享 resource.md 仍只有一份。
     """
-
-    async def _step1_first(self, topic, course_id, **kwargs):
-        return _step1_payload(course_id)
-
-    async def _step1_next(self, topic, course_id, **kwargs):
-        return _next_step1_payload(course_id, num=2, slug="lesson-2")
-
-    monkeypatch.setattr(LearningService, "_run_research", _noop_research)
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
-    )
-
-    monkeypatch.setattr(LearningService, "_run_step1", _step1_first)
+    cid = build_course_id("Rust 入门")
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
+
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
+    )
     cid = await svc.generate_course(topic="Rust 入门", owner="u1")
 
     # 追加第 2 课
-    monkeypatch.setattr(LearningService, "_run_step1", _step1_next)
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir,
+            payload=_next_step1_payload(cid, num=2, slug="lesson-2"),
+        ),
+    )
     n2 = await svc.generate_next_lesson(
         topic="Rust 入门", owner="u1", course_id=cid
     )
@@ -692,20 +781,12 @@ async def test_get_course_returns_none_when_status_is_failed(
 async def test_get_course_returns_full_package_when_ready(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
+    cid = build_course_id("Rust 入门")
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
     )
 
     svc = LearningService(tmp_dir=tmp_course_dir, repo=LearningRepo())
@@ -736,20 +817,12 @@ async def test_get_course_returns_full_package_when_ready(
 async def test_mark_progress_appends_session_done_idempotently(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
+    cid = build_course_id("Rust 入门")
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
     )
     repo = LearningRepo()
     svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)
@@ -769,20 +842,12 @@ async def test_mark_progress_appends_session_done_idempotently(
 async def test_mark_progress_sets_mission_done(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    monkeypatch.setattr(
-        LearningService,
-        "_run_research",
-        _noop_research,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step1",
-        _step1_payload_mock,
-    )
-    monkeypatch.setattr(
-        LearningService,
-        "_run_step2",
-        _step2_payload_mock,
+    cid = build_course_id("Rust 入门")
+    _patch_course_agent(
+        monkeypatch,
+        lambda course_dir: _StubAgent(
+            course_dir=course_dir, payload=_step1_payload(cid)
+        ),
     )
     repo = LearningRepo()
     svc = LearningService(tmp_dir=tmp_course_dir, repo=repo)

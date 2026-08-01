@@ -26,11 +26,16 @@ class Settings(BaseSettings):
     # DeepSeek 接入（Learning 模块专用）。为空字符串时 create_deepseek_model()
     # 会立即抛错，便于部署期检查；与 API_KEY（AntLLM）解耦，老特性不受影响。
     DEEPSEEK_API_KEY: str = ""
-    # Exa 接入（Learning 模块研究步骤专用）。为空字符串时 create_research_agent()
-    # 会立即抛错，便于部署期检查；与 API_KEY（AntLLM）/ DEEPSEEK_API_KEY 解耦，
+    # Exa 接入（Learning 课程 agent 研究工具裁剪，task-3553）。为空字符串时
+    # _build_course_agent() 不挂研究工具（优雅降级），配置后则给课程 agent 追加
+    # ExaTools + Context7 MCPTools；与 API_KEY（AntLLM）/ DEEPSEEK_API_KEY 解耦，
     # 老特性不受影响。
     EXA_API_KEY: str = ""
     LEARNING_DATABASE_URL: str = ""
+    # Learning 课程包根目录（所有学习资源的根，courses 包一层在其下）。
+    # 为空字符串时用默认值 <backend>/tmp/learning；配置为绝对或相对路径时
+    # 作为课程包根目录（相对路径相对于进程 CWD）。
+    LEARNING_ROOT_DIR: str = ""
     # WebAuthn / Passkey settings
     WEBAUTHN_RP_ID: str = "kanocifer.chat"
     WEBAUTHN_ORIGIN: str = "https://kanocifer.chat"

@@ -1,21 +1,21 @@
-"""Learning course generation service (D2/D3 决策, task-351 重构).
+"""Learning course generation service (D2/D3 决策, task-351 重构, task-3553 切换 agent_driven).
 
-渐进产出（per-lesson file / 渐进 course）：
+agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 agent run**：
 
-- Step 1 — 单课 md：agent 产出 ``lesson_md``（单课正文，含 YAML front matter
-  元数据）、``title`` + ``slug``（用于文件名）。``output_schema=LessonResourceOutput``
-  把这几份以字段形式回传，方便结构化校验。
-- Step 2 — 结构化：agent ``output_schema=MissionBundle``（``missions: list[Mission]``）。
-  校验失败（content 仍是 ``str``）则用更明确的指令重试一次，仍失败则
-  抛出 ``RuntimeError``。
-
-一课一文件落盘到 ``tmp/learning/<course-id>/lessons/0001-<slug>.md`` 与
-同目录 ``0001-<slug>.exercise.md``；``resource.md`` 仍是全课程共享。YAML
-front matter 用 ``yaml.safe_dump`` 序列化。``LearningProgress`` 统一经
-``LearningRepo`` 持久化（upsert / 查询 / 合并）。
+- 单一课程 agent 绑定三个磁盘工具（save_lesson / save_resource /
+  read_previous_lesson）+ 可选研究工具（Exa + Context7），在一次 ``arun``
+  内自主完成「写课 + 写 resource + 出题」，最终响应解析为 ``MissionBundle``。
+- 一课一文件落盘到 ``<learning-root>/<course-id>/lessons/0001-<slug>.md``
+  （learning-root 默认 ``<backend>/tmp/learning``，可用 ``LEARNING_ROOT_DIR``
+  环境变量配置，见 :meth:`_course_dir`）；
+  同目录 ``0001-<slug>.exercise.md`` 由 service 在 run 后按「最大编号 + 同名
+  slug」落盘，与 lesson body 严格同名对应；``resource.md`` 由 agent 经
+  ``save_resource`` 写盘。YAML front matter 用 ``yaml.safe_dump`` 序列化。
+- ``LearningProgress`` 统一经 ``LearningRepo`` 持久化（upsert / 查询 / 合并）。
 
 设计依据：
-- spec：``task-334``（PR #22 决策 #24 课程包结构）、``task-351``（一课一文件 + 渐进产出）
+- spec：``task-334``（PR #22 决策 #24 课程包结构）、``task-351``（一课一文件 + 渐进产出）、
+  ``task-3553``（三步流水线 → 一次 course agent run）
 - DeepSeek 仅支持 JSON mode（``json_object``），不支持原生 json_schema；
   ``agno.models.deepseek.DeepSeek.supports_native_structured_outputs=False``
   → 必须在 ``create_agent`` 显式 ``use_json_mode=True``，否则
@@ -24,12 +24,9 @@ front matter 用 ``yaml.safe_dump`` 序列化。``LearningProgress`` 统一经
 
 from __future__ import annotations
 
-import hashlib
-import re
 from pathlib import Path
 from typing import Any
 
-import yaml
 from agno.agent import Agent
 from agno.models.base import Model
 from pydantic import BaseModel, Field
@@ -39,23 +36,26 @@ from app.core.llm_factory import (
     create_agent,
     create_deepseek_model,
     create_postgres_db,
-    create_research_agent,
-    create_web_search_tools,
 )
 from app.core.llm_prompts import (
-    LANGUAGE,
-    RESEARCH_CONTEXT_HINT,
-    RESEARCH_USER_PROMPT_TEMPLATE,
-    STEP1_INSTRUCTIONS,
-    STEP1_USER_PROMPT_TEMPLATE,
-    STEP2_INSTRUCTIONS,
-    STEP2_RETRY_HINT,
-    STEP2_USER_PROMPT_TEMPLATE,
+    COURSE_AGENT_INSTRUCTIONS,
+    COURSE_AGENT_RETRY_HINT,
+    COURSE_AGENT_USER_PROMPT_TEMPLATE,
 )
 from app.core.logger import logger
-from app.models.learning import LearningProgress
 from app.repositories.learning_repo import LearningRepo
-from app.schemas.learning import CoursePackage, LessonItem, Mission
+from app.schemas.learning import CoursePackage, Mission
+from app.services.learning_tools import create_learning_tools
+from app.services.learning_utils import (
+    _assemble_lessons,
+    _lesson_slug_for_num,
+    _progress_to_dict,
+    _render_mission_md,
+    _unwrap_model,
+    build_course_id,
+    lesson_file_exists,
+    list_existing_lesson_ids,
+)
 
 # ── 顶层 schema ─────────────────────────────────────────────────────── #
 
@@ -79,7 +79,7 @@ class LessonResourceOutput(BaseModel):
 
 
 class MissionBundle(BaseModel):
-    """Step 2 的 output_schema：练习任务清单。"""
+    """course agent run 的 output_schema：一课练习任务清单。"""
 
     missions: list[Mission] = Field(default_factory=list)
 
@@ -88,21 +88,19 @@ class MissionBundle(BaseModel):
 
 
 class LearningService:
-    """课程生成 service：单课一步生成 + 一课一文件 + 渐进产出。
+    """课程生成 service：一次 course agent run + 一课一文件 + 渐进产出。
 
     Args:
-        model: 可选注入；为 None 时用 ``create_deepseek_model()`` 默认值
-            (``deepseek-v4-pro``)。测试时可注入 mock。
-        agent: 可选注入；为 None 时按 model + 默认 db 即时构建（每次 step
-            重建一份，避免 ``deepcopy(agent)`` 复制 run state / session 缓存
-            带来的共享状态风险）。
-        tmp_dir: 课程包根目录；为 None 时用 ``<backend>/tmp/learning``。
-            单元测试可注入 :class:`pathlib.Path` 指向临时目录。
-        research_agent: 可选注入的**研究 Agent**（Exa + Context7 双工具）。
-            为 None 时按 ``EXA_API_KEY`` 是否配置决定：配置了才构建研究步，
-            未配置则跳过研究直接生成课程（优雅降级，课程生成不受影响）。
-        research_db: 可选注入的研究 Agent 会话存储；为 None 时沿用
-            :func:`create_postgres_db` 默认值。
+        model: 可选注入；为 None 时用 ``create_deepseek_model()`` 默认值。
+            测试时可注入 mock。
+        agent: 可选注入；为 None 时按 model + 默认 db 即时构建。
+            :meth:`_build_course_agent` 注入时以其 model / db 为模板新建一份，
+            避免 ``deepcopy(agent)`` 复制 run state / session 缓存带来的
+            共享状态风险。
+        tmp_dir: 课程包根目录；为 None 时依次取 ``LEARNING_ROOT_DIR`` 环境变量、
+            无则回退 ``<backend>/tmp/learning``。单元测试可注入 :class:`pathlib.Path`
+            指向临时目录。
+        repo: 可选的进度仓库；为 None 时用 :class:`LearningRepo` 默认实例。
     """
 
     def __init__(
@@ -112,15 +110,11 @@ class LearningService:
         agent: Agent | None = None,
         tmp_dir: Path | None = None,
         repo: LearningRepo | None = None,
-        research_agent: Agent | None = None,
-        research_db: Any | None = None,
     ) -> None:
         self._model = model
         self._agent = agent
         self._tmp_dir = tmp_dir
         self._repo = repo or LearningRepo()
-        self._research_agent = research_agent
-        self._research_db = research_db
 
     # ── 公开 API ────────────────────────────────────────────────────── #
 
@@ -145,7 +139,7 @@ class LearningService:
             ``course_id``，格式 ``<slug>--<8hex>``。
 
         Raises:
-            RuntimeError: 两步生成中任一步连续两次解析失败。
+            RuntimeError: 单次 agent run 失败或 ``MissionBundle`` 响应无法解析。
         """
         course_id = build_course_id(topic)
         course_dir = self._course_dir(course_id)
@@ -157,7 +151,6 @@ class LearningService:
             topic=topic,
             course_id=course_id,
             lessons_dir=lessons_dir,
-            resource_path=course_dir / "resource.md",
             owner=owner,
             lesson_num=1,
         )
@@ -181,8 +174,8 @@ class LearningService:
         ``next_num = max(existing ids) + 1``；若该编号对应的文件已存在
         （重试 / 并发场景），**直接返回 None**，不重复生成。
 
-        ZPD（最近发展区）上下文：调 Step1 时把上一课 ``md`` 的尾部（默认
-        1500 字符）拼进 user prompt，让 LLM 既不重复也不跳跃。
+        ZPD（最近发展区）上下文：由 agent 通过 ``read_previous_lesson()`` 工具
+        自读上一课正文，service 不再拼进 prompt。
 
         Args:
             topic: 原始主题（用于 prompt）。
@@ -209,18 +202,13 @@ class LearningService:
 
         lessons_dir.mkdir(parents=True, exist_ok=True)
 
-        # 2. 上一课 md 全文（缺失则空字符串）——做 ZPD 衔接上下文
-        previous_md = _last_lesson_md(lessons_dir, existing_ids) or ""
-
-        # 3. 生成并落盘下一课（喂上一课尾巴 + 研究摘要）
+        # 2. 生成并落盘下一课（ZPD 衔接由 agent 经 read_previous_lesson 工具完成）
         await self._generate_lesson(
             topic=topic,
             course_id=course_id,
             lessons_dir=lessons_dir,
-            resource_path=course_dir / "resource.md",
             owner=owner,
             lesson_num=next_num,
-            previous_lesson_md=previous_md,
         )
 
         logger.bind(
@@ -353,84 +341,68 @@ class LearningService:
 
     # ── 内部 ──────────────────────────────────────────────────────── #
 
-    async def _run_research(self, topic: str) -> str:
-        """课程生成前的**研究步**（Exa + Context7 双工具，可选增强）。
+    def _build_course_agent(self, course_dir: str | Path) -> Agent:
+        """构建**单一课程 agent**（agent_driven 重构核心路径，task-3553 已切换）。
 
-        - ``self._research_agent`` 已注入：直接用它（测试 / 定制路径）。
-        - 否则按 ``EXA_API_KEY`` 是否配置决定：未配置 → 跳过研究，返回
-          空字符串（课程生成照常，优雅降级）；配置了 → 走
-          :func:`create_research_agent` 构建 agent。
-        - MCPTools 是 async context manager（须 connect / close），生命周期
-          在 ``async with`` 内管理。
-        - 研究失败不拖垮课程：异常仅记日志，返回空字符串。
+        为「一次主 agent run」提供 agent：
+
+        - **instructions** 用融合的 :data:`COURSE_AGENT_INSTRUCTIONS`
+          （写课 + 出题 + 工具使用 + 研究 + ZPD 说明），不再分 Step1 / Step2。
+        - **tools 显式传**：:func:`create_learning_tools` 返回的三个磁盘工具
+          （save_lesson / save_resource / read_previous_lesson）为基底；配置了
+          ``EXA_API_KEY`` 时再追加研究工具（ExaTools + Context7 MCPTools），
+          未配置则不挂（优雅降级——agent 上下文里没有搜索工具，自然跳过研究）。
+        - 注入 ``self._agent`` 时以其 model / db 为模板新建一份；否则走 factory
+          ``create_deepseek_model`` + ``create_postgres_db``。
+
+        ``use_json_mode=True`` 必须保留：DeepSeek 仅支持 JSON mode
+        （``json_object``），不支持原生 ``json_schema``。
+
+        Args:
+            course_dir: 课程包根目录，传给 :func:`create_learning_tools` 闭包。
 
         Returns:
-            研究摘要 markdown（带来源 URL）；跳过或失败时为空字符串。
+            已绑定 learning tools（+ 可选研究工具）与
+            :data:`COURSE_AGENT_INSTRUCTIONS` 的 :class:`Agent`。
         """
-        agent: Agent | None = self._research_agent
-        if agent is None:
-            # 未配置 EXA_API_KEY → 跳过研究（优雅降级）。
-            if not get_settings().EXA_API_KEY:
-                logger.bind(topic=topic).debug(
-                    "learning research skipped: EXA_API_KEY not configured"
-                )
-                return ""
-            try:
-                agent = create_research_agent(
-                    topic=topic, db=self._research_db
-                )
-            except Exception as exc:
-                logger.bind(topic=topic).warning(
-                    f"learning research agent init failed, skipping: {exc!r}"
-                )
-                return ""
+        tools = list(create_learning_tools(course_dir))
 
-        prompt = RESEARCH_USER_PROMPT_TEMPLATE.format(topic=topic)
-        try:
-            # 研究 agent 挂了 AsyncPostgresDb（异步 db）→ 必须用 ``arun``，
-            # ``run`` 同步接口会抛 "use arun instead"。
-            response = await agent.arun(prompt)
-            summary = getattr(response, "content", "") or ""
-            logger.bind(topic=topic, summary_len=len(str(summary))).info(
-                "learning research step completed"
+        exa_api_key = get_settings().EXA_API_KEY
+        if exa_api_key:
+            # 课程 agent 研究工具裁剪（task-3553）：Exa 全子工具 + Context7
+            # MCPTools。MCPTools 作为 agent 常驻工具时生命周期由 agno 自动管理
+            # （arun 内 connect / 结束后 disconnect），无需手动 async with。
+            from agno.tools.exa import ExaTools
+            from agno.tools.mcp import MCPTools
+
+            tools.extend(
+                [
+                    ExaTools(api_key=exa_api_key, all=True, show_results=True),
+                    MCPTools(
+                        transport="streamable-http",
+                        url="https://mcp.context7.com/mcp",
+                    ),
+                ]
             )
-            return str(summary)
-        except Exception as exc:
-            logger.bind(topic=topic).warning(
-                f"learning research step failed, continuing without: {exc!r}"
-            )
-            return ""
 
-    def _build_step_agent(self, instructions: str) -> Agent:
-        """构建一份 step 专用 agent。
-
-        - 若 ``self._agent`` 已注入（生产路径），以其 model / db 为模板新建
-          一份并覆写 ``instructions``。不直接 ``deepcopy(agent)`` —— agno
-          Agent 持有 run state / session 缓存，``deepcopy`` 会克隆它们，造
-          成跨 step 的共享状态。
-        - 否则走 factory：``create_deepseek_model()`` +
-          ``create_postgres_db()``（异步 db，因此 step 调用必须用
-          ``await agent.arun``）。DeepSeek 仅支持 json_object 模式，必须
-          ``use_json_mode=True`` 才能让 ``response_format`` 走
-          ``{"type": "json_object"}``，否则 agno 会把 Pydantic schema 直传
-          DeepSeek，DeepSeek 会拒绝。
-        """
         if self._agent is not None:
+            # 只透传 create_agent 不硬编码、且不会与默认值冲突的模板属性
+            # （model / db / tools / use_json_mode）。markdown / add_history_to_context
+            # / num_history_runs 被 create_agent 硬编码，透传会触发
+            # "got multiple values for keyword argument"（注入路径的既有缺陷，
+            # 本方法不复刻）。
             return create_agent(
                 model=self._agent.model,
-                instructions=instructions,
+                instructions=COURSE_AGENT_INSTRUCTIONS,
                 db=self._agent.db,
-                tools=list(self._agent.tools or []),
+                tools=tools,
                 use_json_mode=getattr(self._agent, "use_json_mode", True),
-                markdown=self._agent.markdown,
-                add_history_to_context=self._agent.add_history_to_context,
-                num_history_runs=self._agent.num_history_runs,
             )
         return create_agent(
             model=self._model or create_deepseek_model(),
-            instructions=instructions,
+            instructions=COURSE_AGENT_INSTRUCTIONS,
             db=create_postgres_db(),
-            tools=[create_web_search_tools()],
+            tools=tools,
             use_json_mode=True,
         )
 
@@ -440,372 +412,105 @@ class LearningService:
         topic: str,
         course_id: str,
         lessons_dir: Path,
-        resource_path: Path,
         owner: str,
         lesson_num: int,
-        previous_lesson_md: str = "",
     ) -> None:
-        """研究 + step1 + step2 + 落盘三文件的公共核心。
+        """一次主 agent run 生成一课 + service 落盘 exercise 文件（task-3553）。
 
-        ``generate_course``（第 1 课）与 ``generate_next_lesson``（渐进第 N 课）
-        共享这一步；``previous_lesson_md`` 非空时喂给 step1 作 ZPD 衔接上下文。
+        - 不再有独立研究步：研究由主 agent 的 ExaTools（配置了
+          ``EXA_API_KEY`` 时）自主接管。
+        - lesson body / resource.md 由 agent 在 run 内通过 save_lesson /
+          save_resource 工具写盘（编号 / 幂等全在工具内）。
+        - ZPD 衔接由 agent 经 ``read_previous_lesson()`` 工具自读，service
+          不拼进 prompt。
+        - 最终响应解析为 ``MissionBundle``；exercise 文件由 service 在 run
+          后按「最大编号 + 同名 slug」落盘，与 lesson body 严格同名对应。
+
+        兜底重试（task-3554）：run 结束后的「磁盘缺 body 文件」或
+        「MissionBundle 解析失败」触发**整 run 重试一次**——第二次 run 用
+        :data:`COURSE_AGENT_RETRY_HINT` 追加到用户消息，指示 agent 补调
+        ``save_lesson`` 落盘、返回严格合法的 ``MissionBundle`` JSON；两次均
+        失败则抛 ``RuntimeError``。重试只覆盖 run **之后**的校验失败；
+        ``arun`` 本身抛错不重试（直接上抛）。
         """
-        research_summary = await self._run_research(topic=topic)
-        bundle = await self._run_step1(
-            topic=topic,
-            course_id=course_id,
-            previous_lesson_md=previous_lesson_md,
-            research_summary=research_summary,
+        course_agent = self._build_course_agent(lessons_dir.parent)
+        base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
+            topic=topic, course_id=course_id
         )
-        slug = bundle.slug
-        missions = await self._run_step2(topic=topic, course_id=course_id)
+        retry_prompt = base_prompt + "\n\n" + COURSE_AGENT_RETRY_HINT
 
-        (lessons_dir / f"{lesson_num:04d}-{slug}.md").write_text(
-            bundle.lesson_md, encoding="utf-8"
-        )
-        (lessons_dir / f"{lesson_num:04d}-{slug}.exercise.md").write_text(
-            _render_mission_md(
-                title=f"课程练习：{topic}",
-                course_id=course_id,
-                missions=missions,
-            ),
-            encoding="utf-8",
-        )
-        resource_path.write_text(bundle.resource_md, encoding="utf-8")
+        last_error: RuntimeError | None = None
+        for attempt in (1, 2):
+            prompt = retry_prompt if attempt == 2 else base_prompt
+            response = await course_agent.arun(
+                prompt, output_schema=MissionBundle
+            )
+            try:
+                bundle = _unwrap_model(response, MissionBundle, "CourseAgent")
 
-        logger.bind(
-            course_id=course_id,
-            owner=owner,
-            lesson_num=lesson_num,
-            slug=slug,
-        ).info("learning lesson generated")
+                # exercise 文件名确定：工具已在 run 内写盘 lesson body，service
+                # 无从得知 num/slug，只能从磁盘反向推导 —— 本次 run 刚写的课 =
+                # 最大编号，再 glob 该编号的 lesson body 文件名取 slug（与
+                # _parse_lesson_filename 共用同一命名约定）。
+                existing_ids = list_existing_lesson_ids(lessons_dir)
+                num = max(existing_ids) if existing_ids else lesson_num
+                slug = _lesson_slug_for_num(lessons_dir, num)
+                if slug is None:
+                    raise RuntimeError(
+                        f"CourseAgent run 后未在 {lessons_dir} 找到 lesson body "
+                        f"(num={num})，无法落盘 exercise 文件"
+                    )
+
+                (lessons_dir / f"{num:04d}-{slug}.exercise.md").write_text(
+                    _render_mission_md(
+                        title=f"课程练习:{topic}",
+                        course_id=course_id,
+                        missions=bundle.missions,
+                    ),
+                    encoding="utf-8",
+                )
+
+                logger.bind(
+                    course_id=course_id,
+                    owner=owner,
+                    lesson_num=num,
+                    slug=slug,
+                    attempt=attempt,
+                ).info("learning lesson generated")
+                return
+            except RuntimeError as exc:
+                last_error = exc
+                logger.bind(
+                    course_id=course_id,
+                    owner=owner,
+                    lesson_num=lesson_num,
+                    attempt=attempt,
+                ).warning(
+                    "learning lesson attempt failed, will retry once"
+                    if attempt == 1
+                    else "learning lesson failed after retry",
+                    error=str(exc),
+                )
+
+        raise RuntimeError(
+            f"CourseAgent 生成课程失败（已重试一次）: {last_error}"
+        ) from last_error
 
     def _course_dir(self, course_id: str) -> Path:
+        """课程包根目录：``self._tmp_dir`` 注入 > ``LEARNING_ROOT_DIR`` env > 默认值。"""
         root = self._tmp_dir
         if root is None:
-            root = (
+            configured = get_settings().LEARNING_ROOT_DIR
+            root = Path(configured) if configured else (
                 Path(__file__).resolve().parent.parent.parent
                 / "tmp"
                 / "learning"
             )
         return Path(root) / course_id
 
-    async def _run_step1(
-        self,
-        *,
-        topic: str,
-        course_id: str,
-        previous_lesson_md: str = "",
-        research_summary: str = "",
-    ) -> LessonResourceOutput:
-        """Step 1：调一次 agent 拿单个 lesson + 共享 resource。
-
-        ``previous_lesson_md`` 非空时，把它追加到 user prompt 末尾作为
-        "上一课" 的尾部上下文，让 LLM 生成衔接课程（ZPD）。
-
-        ``research_summary`` 非空时，把研究摘要（带来源）注入 prompt，
-        让 lesson / resource 引用关键事实与规格（Exa + Context7 研究步）。
-
-        Step agent 挂 :func:`create_postgres_db`（异步 db），必须用
-        ``await agent.arun`` 而非同步 ``.run``（agno 同步接口会抛
-        "use arun instead"）。
-        """
-        step_agent = self._build_step_agent(STEP1_INSTRUCTIONS)
-        prompt = STEP1_USER_PROMPT_TEMPLATE.format(
-            topic=topic, course_id=course_id
-        )
-        if research_summary:
-            prompt = (
-                f"{prompt}\n\n"
-                f"{RESEARCH_CONTEXT_HINT.format(research_summary=research_summary)}"
-            )
-        if previous_lesson_md:
-            tail = previous_lesson_md[-1500:].strip()
-            prompt = (
-                f"{prompt}\n\n"
-                f"## 上一课正文（尾部 1500 字）\n"
-                f"在写新课时请衔接上文，避免重复或跳跃：\n\n"
-                f"```markdown\n{tail}\n```"
-            )
-        response = await step_agent.arun(
-            prompt, output_schema=LessonResourceOutput
-        )
-        return self._unwrap_step1(response)
-
-    def _unwrap_step1(self, response: Any) -> LessonResourceOutput:
-        """解析 step1 响应：``isinstance`` 命中 / dict 兜底 / str 失败。"""
-        return _unwrap_model(response, LessonResourceOutput, "Step1")
-
-    async def _run_step2(
-        self,
-        topic: str,
-        course_id: str,
-    ) -> list[Mission]:
-        """Step 2：取 mission list。失败重试 1 次，重试用更明确的指令。"""
-        prompt = STEP2_USER_PROMPT_TEMPLATE.format(
-            topic=topic, course_id=course_id
-        )
-        step_agent = self._build_step_agent(STEP2_INSTRUCTIONS)
-
-        last_error: Exception | None = None
-        for attempt in (1, 2):
-            user_prompt = (
-                prompt if attempt == 1 else f"{prompt}\n\n{STEP2_RETRY_HINT}"
-            )
-            response = await step_agent.arun(
-                user_prompt, output_schema=MissionBundle
-            )
-            try:
-                return self._unwrap_step2(response)
-            except RuntimeError as exc:
-                last_error = exc
-            logger.bind(attempt=attempt).warning(
-                "learning step2 output_schema parse failed, retrying"
-            )
-
-        raise RuntimeError(f"Step2 两次解析均失败：{last_error!r}")
-
-    def _unwrap_step2(self, response: Any) -> list[Mission]:
-        """解析 step2 响应：``isinstance`` 命中 / dict 兜底 / str 失败。"""
-        bundle = _unwrap_model(response, MissionBundle, "Step2")
-        return bundle.missions
-
-
-# ── 自由函数 ────────────────────────────────────────────────────────── #
-
-
-def _unwrap_model(response: Any, model_cls: type[BaseModel], label: str) -> Any:
-    """解析 agent 响应：``isinstance`` 命中 / dict 兜底 / str 失败。
-
-    ``_unwrap_step1`` / ``_unwrap_step2`` 共用；``label`` 仅用于错误信息。
-    """
-    content = getattr(response, "content", None)
-    if isinstance(content, model_cls):
-        return content
-    if isinstance(content, dict):
-        try:
-            return model_cls.model_validate(content)
-        except Exception as exc:
-            raise RuntimeError(
-                f"{label} dict 校验失败: {exc}; raw={content!r}"
-            ) from exc
-    raise RuntimeError(
-        f"{label} 解析失败：content 不是 {model_cls.__name__}（type="
-        f"{type(content).__name__}）；raw={content!r}"
-    )
-
-
-def _progress_to_dict(doc: LearningProgress) -> dict[str, Any]:
-    """``LearningProgress`` → API 响应 dict（``list_progress`` / ``mark_progress`` 共用）。"""
-    return {
-        "course_id": doc.course_id,
-        "topic": doc.topic,
-        "sessions_done": doc.sessions_done,
-        "mission_done": doc.mission_done,
-        "status": doc.status,
-        "next_session": doc.next_session,
-    }
-
-
-def build_course_id(topic: str) -> str:
-    """``course_id = <topic-slug>--<8hex>``，8hex 是 topic 文本的 sha1 前 8 位。
-
-    使用 sha1 而非 md5 以避免历史碰撞顾虑；截断到 8 字符是 prototype
-    约定的格式。slug 用 kebab-case（ASCII 小写 + 数字 + 连字符，合并
-    连续分隔符）。
-    """
-    slug = _slugify(topic)
-    digest = hashlib.sha1(topic.strip().encode("utf-8")).hexdigest()[:8]
-    return f"{slug}--{digest}"
-
-
-def _slugify(topic: str) -> str:
-    """kebab-case 化：保留 ASCII 字母数字，其余折成 '-'，合并连续 '-'。"""
-    raw = topic.strip().lower()
-    slug = re.sub(r"[^a-z0-9]+", "-", raw)
-    slug = slug.strip("-")
-    return slug or "course"
-
-
-# ── 磁盘扫描 helpers ───────────────────────────────────────────────── #
-
-
-_LESSON_FILE_RE = re.compile(r"^(\d{4})-([a-z0-9][a-z0-9-]*)\.md$")
-
-
-def _parse_lesson_filename(
-    name: str,
-) -> tuple[int, str] | None:
-    """解析 ``0001-<slug>.md`` → ``(1, "<slug>")``；不匹配返回 None。"""
-    if name.endswith(".exercise.md"):
-        return None
-    m = _LESSON_FILE_RE.match(name)
-    if not m:
-        return None
-    return int(m.group(1)), m.group(2)
-
-
-def list_existing_lesson_ids(lessons_dir: Path) -> list[int]:
-    """扫描 ``lessons/`` 目录，提取所有 lesson body 文件（不含 .exercise.md）
-    的前导编号。返回的编号已排序。
-    """
-    if not lessons_dir.exists():
-        return []
-    return sorted(
-        parsed[0]
-        for path in lessons_dir.glob("*.md")
-        if (parsed := _parse_lesson_filename(path.name)) is not None
-    )
-
-
-def lesson_file_exists(lessons_dir: Path, lesson_num: int) -> bool:
-    """判断 ``<num>-<slug>.md`` 形文件是否已存在（同一编号任一 slug 都算）。"""
-    if not lessons_dir.exists():
-        return False
-    prefix = f"{lesson_num:04d}-"
-    return any(
-        p.name.startswith(prefix)
-        for p in lessons_dir.glob(f"{prefix}*.md")
-    )
-
-
-def _last_lesson_md(
-    lessons_dir: Path, existing_ids: list[int]
-) -> str | None:
-    """取**最大编号** lesson 的 md 全文作为上一课上下文。"""
-    if not existing_ids:
-        return None
-    last_id = existing_ids[-1]
-    for path in lessons_dir.glob(f"{last_id:04d}-*.md"):
-        if path.name.endswith(".exercise.md"):
-            continue
-        return path.read_text(encoding="utf-8")
-    return None
-
-
-def _assemble_lessons(lessons_dir: Path) -> list[LessonItem]:
-    """扫描 ``lessons/`` 装配 :class:`LessonItem` 列表：按编号排序；
-    每个 lesson body 从 front matter 抽 ``title``，否则回退到 slug 美化。
-    练习题从同名 ``.exercise.md`` 解析（缺失则空 list）。
-    """
-    items: list[LessonItem] = []
-    for path in sorted(lessons_dir.glob("*.md")):
-        parsed = _parse_lesson_filename(path.name)
-        if parsed is None:
-            continue
-        lesson_id, slug = parsed
-        body = path.read_text(encoding="utf-8")
-        title = _extract_title_from_front_matter(body) or slug.replace(
-            "-", " "
-        )
-
-        exercise_path = lessons_dir / f"{lesson_id:04d}-{slug}.exercise.md"
-        exercises: list[Mission] = []
-        if exercise_path.exists():
-            exercises = _parse_missions(
-                exercise_path.read_text(encoding="utf-8")
-            )
-
-        items.append(
-            LessonItem(
-                id=lesson_id,
-                title=title,
-                slug=slug,
-                md=body,
-                exercises=exercises,
-            )
-        )
-    return items
-
-
-def _parse_front_matter(md_text: str) -> dict | None:
-    """解析 md 顶部 YAML front matter；缺失 / 非法返回 None。"""
-    if not md_text.startswith("---"):
-        return None
-    end = md_text.find("\n---", 3)
-    if end == -1:
-        return None
-    try:
-        payload = yaml.safe_load(md_text[3:end])
-    except yaml.YAMLError:
-        return None
-    return payload if isinstance(payload, dict) else None
-
-
-def _extract_title_from_front_matter(md_text: str) -> str | None:
-    """从 lesson md 顶部 YAML front matter 抽 ``title``。容错优先。"""
-    payload = _parse_front_matter(md_text)
-    if payload is None:
-        return None
-    title = payload.get("title")
-    if isinstance(title, str) and title.strip():
-        return title.strip()
-    return None
-
-
-def _parse_missions(md_text: str) -> list[Mission]:
-    """从 mission.md 的 YAML front matter 解析出 ``missions`` 列表。
-
-    找不到 front matter 或字段缺失时返回空列表（不抛错，便于容错）。
-    """
-    payload = _parse_front_matter(md_text) or {}
-    missions = payload.get("missions", [])
-    if not isinstance(missions, list):
-        return []
-    parsed: list[Mission] = []
-    for item in missions:
-        if isinstance(item, dict):
-            try:
-                parsed.append(Mission.model_validate(item))
-            except Exception:
-                continue
-    return parsed
-
-
-def _render_mission_md(
-    *,
-    title: str,
-    course_id: str,
-    missions: list[Mission],
-) -> str:
-    """渲染 mission.md：YAML front matter（missions 列表原样序列化）+ 正文模板。
-
-    YAML front matter 用 ``yaml.safe_dump`` 序列化，``missions`` 列表通过
-    ``Mission.model_dump(mode="json")`` 转成原生 Python 对象，避免 ``!!python/object`` 标签。
-    """
-    payload = {
-        "title": title,
-        "course_id": course_id,
-        "language": LANGUAGE,
-        "mission_count": len(missions),
-        "passing_score": 80,
-        "missions": [m.model_dump(mode="json") for m in missions],
-    }
-    body_yaml = yaml.safe_dump(
-        payload,
-        allow_unicode=True,
-        sort_keys=False,
-        default_flow_style=False,
-    )
-    body_template = (
-        "\n# 练习任务\n\n"
-        "按顺序完成以下 mission。**通过标准：≥ 80 分（总分 100）。**\n\n"
-        "## 做题说明\n\n"
-        "- **选择题（single_choice / multi_choice）**：提交选项后立即判分，"
-        "答错会看到 `explanation`。\n"
-        "- **判断题（true_false）**：判断命题对错，提交后立即判分，"
-        "同样会看到 `explanation`。\n"
-        "- 全部完成后回到课程首页查看完成度与错题。\n\n"
-        "## 完成标准\n\n"
-        "- [ ] 全部 mission 提交后即时判分\n"
-        "- [ ] 总分 ≥ 80 / 100，课程标记为完成"
-    )
-    return f"---\n{body_yaml}---{body_template}"
-
 
 __all__ = [
     "LearningService",
     "LessonResourceOutput",
     "MissionBundle",
-    "build_course_id",
 ]
