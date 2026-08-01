@@ -174,6 +174,50 @@ async def test_upsert_progress_goal_none_when_never_provided(
     assert doc.goal is None
 
 
+async def test_upsert_progress_stores_session_id(repo, clean_collection):
+    """可选 session_id 字段随 ready 落库；后续 upsert 不传 session_id 不清除。"""
+    first = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="ready",
+        session_id="sess-abc-123",
+    )
+    assert first.session_id == "sess-abc-123"
+
+    # 后续 upsert 不传 session_id → 保留已存的 session_id（不覆盖为 None）
+    second = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="ready",
+    )
+    assert second.session_id == "sess-abc-123"
+
+    # 显式传不同 session_id → 覆盖
+    third = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="ready",
+        session_id="sess-xyz-999",
+    )
+    assert third.session_id == "sess-xyz-999"
+
+
+async def test_upsert_progress_session_id_none_when_never_provided(
+    repo, clean_collection
+):
+    """不传 session_id 的新记录 → session_id 为 None（与 goal 字段同理）。"""
+    doc = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000002",
+        topic="Go 入门",
+        status="pending",
+    )
+    assert doc.session_id is None
+
+
 async def test_upsert_progress_preserves_sessions_and_exercise_done(
     repo, clean_collection
 ):

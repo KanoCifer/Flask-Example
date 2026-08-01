@@ -23,6 +23,10 @@ class LearningProgress(Document):
     goal: str | None = Field(
         default=None, description="学习目标（可选），用于组织 MISSION.md 具体文案"
     )
+    session_id: str | None = Field(
+        default=None,
+        description="agno 会话 ID：第一课生成时锚定，渐进产出各轮复用",
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     sessions_done: list[int] = Field(
         default_factory=list, description="已完成的 Session 编号列表"

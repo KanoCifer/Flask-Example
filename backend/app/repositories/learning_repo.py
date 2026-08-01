@@ -44,18 +44,22 @@ class LearningRepo:
         topic: str,
         status: str,
         goal: str | None = None,
+        session_id: str | None = None,
     ) -> LearningProgress:
         """创建或替换一条进度记录（按唯一索引 (owner, course_id)）。
 
-        - 已存在：topic / status 无条件替换，goal 仅在非 ``None`` 时替换，
-          原 sessions_done / exercise_done 保留。
-        - 不存在：插入新行，created_at 由模型默认值生成；goal 不传则为 None。
+        - 已存在：topic / status 无条件替换，goal / session_id 仅在非 ``None``
+          时替换，原 sessions_done / exercise_done 保留。
+        - 不存在：插入新行，created_at 由模型默认值生成；goal / session_id 不
+          传则为 None。
 
         存量旧字段不迁移，见 task-365。
         """
         existing = await self.get_progress(owner, course_id)
         if existing is not None:
-            await self._apply_upsert_fields(existing, topic, status, goal)
+            await self._apply_upsert_fields(
+                existing, topic, status, goal, session_id
+            )
             return existing
 
         new_doc = LearningProgress(
@@ -64,6 +68,7 @@ class LearningRepo:
             topic=topic,
             status=status,
             goal=goal,
+            session_id=session_id,
             created_at=datetime.now(UTC),
         )
         try:
@@ -73,7 +78,9 @@ class LearningRepo:
             existing = await self.get_progress(owner, course_id)
             if existing is None:  # pragma: no cover - 极端竞态
                 raise
-            await self._apply_upsert_fields(existing, topic, status, goal)
+            await self._apply_upsert_fields(
+                existing, topic, status, goal, session_id
+            )
             return existing
         return new_doc
 
@@ -83,12 +90,15 @@ class LearningRepo:
         topic: str,
         status: str,
         goal: str | None,
+        session_id: str | None = None,
     ) -> LearningProgress:
-        """已存在分支的统一字段应用：topic/status 替换，goal 非 None 才替换。"""
+        """已存在分支的统一字段应用：topic/status 替换，goal/session_id 非 None 才替换。"""
         doc.topic = topic
         doc.status = status
         if goal is not None:
             doc.goal = goal
+        if session_id is not None:
+            doc.session_id = session_id
         await doc.save()
         return doc
 

@@ -28,7 +28,10 @@ import {
 import { Button } from '@/components';
 import { renderMarkdown } from '@/composables';
 import { useLearningCourse } from '@/features/learning/composables/useLearningCourse';
-import type { LearningLesson, LearningProgressItem } from '@/features/learning/types';
+import type {
+  LearningLesson,
+  LearningProgressItem,
+} from '@/features/learning/types';
 import ExerciseCard from '@/features/learning/components/ExerciseCard.vue';
 
 defineOptions({ name: 'LessonView' });
@@ -220,7 +223,7 @@ useHead({
 
 <template>
   <main class="bg-page min-h-screen w-full">
-    <div class="mx-auto w-full max-w-4xl px-5 py-8 sm:py-12">
+    <div class="mx-auto w-full max-w-4xl px-5 py-8 sm:py-25">
       <!-- Top nav -->
       <button
         type="button"
@@ -240,9 +243,7 @@ useHead({
           class="text-accent h-6 w-6 animate-spin motion-reduce:animate-none"
           aria-hidden="true"
         />
-        <p class="text-ink text-sm font-medium">
-          正在加载课程…
-        </p>
+        <p class="text-ink text-sm font-medium">正在加载课程…</p>
       </section>
 
       <!-- Failed -->
@@ -264,12 +265,8 @@ useHead({
         v-else-if="course && !lesson"
         class="bg-card ring-border/40 flex flex-col items-center gap-3 rounded-2xl px-5 py-12 text-center ring-1"
       >
-        <p class="text-ink text-sm font-medium">
-          找不到该课节
-        </p>
-        <p class="text-muted text-xs">
-          该课节可能尚未生成,或链接已失效。
-        </p>
+        <p class="text-ink text-sm font-medium">找不到该课节</p>
+        <p class="text-muted text-xs">该课节可能尚未生成,或链接已失效。</p>
         <Button size="sm" variant="outline" @click="goBack">
           <ArrowLeft class="h-3.5 w-3.5" aria-hidden="true" />
           返回课程概览
@@ -288,9 +285,7 @@ useHead({
               {{ lesson.id.toString().padStart(4, '0') }}
             </span>
           </div>
-          <h1
-            class="text-ink font-serif text-2xl font-medium tracking-wide"
-          >
+          <h1 class="text-ink font-serif text-2xl font-medium tracking-wide">
             {{ lesson.title }}
           </h1>
           <p
@@ -337,10 +332,7 @@ useHead({
 
         <!-- Tab content:练习 -->
         <section v-else class="space-y-4">
-          <div
-            v-if="exercises.length === 0"
-            class="text-muted text-sm"
-          >
+          <div v-if="exercises.length === 0" class="text-muted text-sm">
             这节课还没有练习题。
           </div>
           <ExerciseCard
@@ -363,10 +355,7 @@ useHead({
               }}</span>
               /
               <span class="font-mono">{{ scoreState.total }}</span>
-              <span
-                v-if="isSessionDone"
-                class="text-success ml-2"
-              >
+              <span v-if="isSessionDone" class="text-success ml-2">
                 · 本节已完成
               </span>
             </div>
@@ -380,21 +369,13 @@ useHead({
                 <Check class="h-3.5 w-3.5" aria-hidden="true" />
                 本节完成
               </Button>
-              <Button
-                size="sm"
-                :disabled="advancing"
-                @click="onAdvance"
-              >
+              <Button size="sm" :disabled="advancing" @click="onAdvance">
                 <Loader2
                   v-if="advancing"
                   class="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
                   aria-hidden="true"
                 />
-                <Sparkles
-                  v-else
-                  class="h-3.5 w-3.5"
-                  aria-hidden="true"
-                />
+                <Sparkles v-else class="h-3.5 w-3.5" aria-hidden="true" />
                 <span>{{ advancing ? '生成中…' : '下一课' }}</span>
                 <ChevronRight
                   v-if="!advancing"

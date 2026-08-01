@@ -54,26 +54,13 @@ def create_llm_model(
     )
 
 
-# DeepSeek 模型 id 白名单（V4 系列）。deepseek-chat / deepseek-reasoner 已
-# 弃用，不再允许直接传入，避免后续下线路由漂移。
 _DEEPSEEK_MODEL_IDS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 
 
 def create_deepseek_model(
-    model_id: str = "deepseek-v4-flash",
-    *,
-    timeout: int = 60,
-    use_thinking: bool | None = None,
+    model_id: str = "deepseek-v4-flash", **kwargs
 ) -> DeepSeek:
     """创建 DeepSeek 模型实例（用于 Learning 模块）。
-
-    与 AntLLM 的 ``create_llm_model`` 完全独立：
-    - 不读 ``API_KEY``，只读 ``DEEPSEEK_API_KEY``；为空时立即抛
-      :class:`RuntimeError`（部署期可一眼定位缺失配置）。
-    - 走 agno 内置 ``agno.models.deepseek.DeepSeek``，自动按 JSON 模式处理
-      structured output（DeepSeek 不支持原生 ``json_schema``，仅 ``json_object``）。
-    - 默认 ``base_url=https://api.deepseek.com``；``thinking`` 由 ``use_thinking``
-      显式控制：``None`` 用模型自身默认（v4-pro/v4-flash 开），``False`` 关闭。
 
     Args:
         model_id: 必须落在 :data:`_DEEPSEEK_MODEL_IDS` 白名单内。
@@ -119,12 +106,7 @@ def create_agent(
     tools: list | None = None,
     **kwargs,
 ) -> Agent:
-    """创建 Agno Agent 实例。
-
-    ``model`` 接受任一 :class:`agno.models.base.Model` 子类 ——
-    既支持原 AntLLM 路径下的 :class:`OpenAIChat`，也支持 Learning 模块
-    新增的 :class:`DeepSeek`。调用方按需传入对应工厂产物即可。
-    """
+    """创建 Agno Agent 实例。"""
     return Agent(
         model=model,
         instructions=instructions,
@@ -132,6 +114,6 @@ def create_agent(
         db=db,
         markdown=True,
         add_history_to_context=True,
-        num_history_runs=20,
+        num_history_runs=50,
         **kwargs,
     )
