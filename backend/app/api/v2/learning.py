@@ -21,9 +21,6 @@ owner 解析（``_resolve_learning_owner``）：登录用户用 ``str(user_id)``
 
 from __future__ import annotations
 
-import re
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
@@ -37,7 +34,12 @@ from app.plugins.task.tasks.learning import (
     generate_next_lesson,
 )
 from app.schemas.learning import CourseGenerateInput
-from app.services.learning_service import LearningService, build_course_id
+from app.services.learning_service import (
+    LearningService,
+    build_course_id,
+    lesson_file_exists,
+    list_existing_lesson_ids,
+)
 
 router = APIRouter(prefix="/learning", tags=["learning"])
 
@@ -200,7 +202,7 @@ async def create_next_lesson(
     next_lesson_num = (max(existing_ids) + 1) if existing_ids else 1
 
     # 4. 同步预检命中：直接返回，不再走 .kiq()
-    if _lesson_file_exists(lessons_dir, next_lesson_num):
+    if lesson_file_exists(lessons_dir, next_lesson_num):
         return APIResponse(
             data={
                 "course_id": course_id,
@@ -268,35 +270,12 @@ async def patch_progress(
     return APIResponse(data=progress, message="success")
 
 
-# ── 教程幂等预检 helpers ──────────────────────────────────────────────── #
+# 幂等预检 helpers 复用 ``learning_service`` 的公共扫描函数
+# （``list_existing_lesson_ids`` / ``lesson_file_exists``），避免在路由里
+# 复制一份课文件名正则与扫描逻辑。Worker 端仍以
+# :func:`LearningService.generate_next_lesson` 内部扫描为准，**不**依赖 API
+# 层的同步预检结果。
 #
-# 与 ``learning_service._list_existing_lesson_ids`` 镜像，但放 API 层
-# 是为了避免在路由里直接 ``from app.services.learning_service import ...``
-# 单点行为函数；只暴露必要的两个 helper 给 API 用于同步预检。
-# Worker 端仍以 :func:`LearningService.generate_next_lesson` 内部递归扫描
-# 为准，**不**依赖此处的预检结果。
+# ``_list_existing_lesson_ids_for_api`` 保留为别名，供测试 monkeypatch 定点替换。
 
-_LESSON_FILE_RE = re.compile(r"^(\d{4})-([a-z0-9][a-z0-9-]*)\.md$")
-
-
-def _list_existing_lesson_ids_for_api(lessons_dir: Path) -> list[int]:
-    """扫描 ``lessons/`` 抽取已存在的课编号（不含 ``.exercise.md``）。"""
-    if not lessons_dir.exists():
-        return []
-    ids: list[int] = []
-    for path in lessons_dir.glob("*.md"):
-        if path.name.endswith(".exercise.md"):
-            continue
-        m = _LESSON_FILE_RE.match(path.name)
-        if m:
-            ids.append(int(m.group(1)))
-    ids.sort()
-    return ids
-
-
-def _lesson_file_exists(lessons_dir: Path, lesson_num: int) -> bool:
-    """判断 ``<num>-<slug>.md`` 形文件是否已存在（同一编号任一 slug 都算）。"""
-    if not lessons_dir.exists():
-        return False
-    prefix = f"{lesson_num:04d}-"
-    return any(p.name.startswith(prefix) for p in lessons_dir.glob(f"{prefix}*.md"))
+_list_existing_lesson_ids_for_api = list_existing_lesson_ids

@@ -11,8 +11,8 @@
 
 一课一文件落盘到 ``tmp/learning/<course-id>/lessons/0001-<slug>.md`` 与
 同目录 ``0001-<slug>.exercise.md``；``resource.md`` 仍是全课程共享。YAML
-front matter 用 ``yaml.safe_dump`` 序列化。``LearningProgress`` 走 beanie
-Document 直存（task-335 的 ``LearningRepo`` 后续可平滑替换）。
+front matter 用 ``yaml.safe_dump`` 序列化。``LearningProgress`` 统一经
+``LearningRepo`` 持久化（upsert / 查询 / 合并）。
 
 设计依据：
 - spec：``task-334``（PR #22 决策 #24 课程包结构）、``task-351``（一课一文件 + 渐进产出）
@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import hashlib
 import re
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -34,7 +33,6 @@ import yaml
 from agno.agent import Agent
 from agno.models.base import Model
 from pydantic import BaseModel, Field
-from pymongo.errors import DuplicateKeyError
 
 from app.core.config import get_settings
 from app.core.llm_factory import (
@@ -95,7 +93,7 @@ class LearningService:
     Args:
         model: 可选注入；为 None 时用 ``create_deepseek_model()`` 默认值
             (``deepseek-v4-pro``)。测试时可注入 mock。
-        agent: 可选注入；为 None 时按 model + Redis db 即时构建（每次 step
+        agent: 可选注入；为 None 时按 model + 默认 db 即时构建（每次 step
             重建一份，避免 ``deepcopy(agent)`` 复制 run state / session 缓存
             带来的共享状态风险）。
         tmp_dir: 课程包根目录；为 None 时用 ``<backend>/tmp/learning``。
@@ -104,7 +102,7 @@ class LearningService:
             为 None 时按 ``EXA_API_KEY`` 是否配置决定：配置了才构建研究步，
             未配置则跳过研究直接生成课程（优雅降级，课程生成不受影响）。
         research_db: 可选注入的研究 Agent 会话存储；为 None 时沿用
-            :func:`create_redis_db` 默认值。
+            :func:`create_postgres_db` 默认值。
     """
 
     def __init__(
@@ -152,45 +150,25 @@ class LearningService:
         course_id = build_course_id(topic)
         course_dir = self._course_dir(course_id)
         lessons_dir = course_dir / "lessons"
-        resource_path = course_dir / "resource.md"
         lessons_dir.mkdir(parents=True, exist_ok=True)
 
-        # Step 0 — 研究步（可选）：Exa + Context7 搜集资料，喂给 step1
-        research_summary = await self._run_research(topic=topic)
-
-        # Step 1 — 单课 lesson + 共享 resource（无 previous_lesson_md）
-        bundle: LessonResourceOutput = await self._run_step1(
+        # 一步生成第 1 课（无上一课上下文），落盘三文件。
+        await self._generate_lesson(
             topic=topic,
             course_id=course_id,
-            research_summary=research_summary,
+            lessons_dir=lessons_dir,
+            resource_path=course_dir / "resource.md",
+            owner=owner,
+            lesson_num=1,
         )
-        lesson_num = 1
-        slug = bundle.slug
-
-        # Step 2 — 该课的练习题
-        missions = await self._run_step2(topic=topic, course_id=course_id)
-
-        # 写入磁盘：lesson body + exercise + resource
-        lesson_path = lessons_dir / f"{lesson_num:04d}-{slug}.md"
-        exercise_path = lessons_dir / f"{lesson_num:04d}-{slug}.exercise.md"
-        lesson_path.write_text(bundle.lesson_md, encoding="utf-8")
-        exercise_path.write_text(
-            _render_mission_md(
-                title=f"课程练习：{topic}",
-                course_id=course_id,
-                missions=missions,
-            ),
-            encoding="utf-8",
-        )
-        resource_path.write_text(bundle.resource_md, encoding="utf-8")
 
         # 落盘成功后再持久化进度，避免半成品状态。
-        await self._upsert_progress(
-            owner=owner, course_id=course_id, topic=topic
+        await self._repo.upsert_progress(
+            owner=owner, course_id=course_id, topic=topic, status="ready"
         )
 
         logger.bind(
-            course_id=course_id, owner=owner, lesson_num=lesson_num, slug=slug
+            course_id=course_id, owner=owner, lesson_num=1
         ).info("learning course lesson 1 generated")
         return course_id
 
@@ -216,19 +194,14 @@ class LearningService:
         """
         course_dir = self._course_dir(course_id)
         lessons_dir = course_dir / "lessons"
-        resource_path = course_dir / "resource.md"
 
         # 1. 扫 lessons/ 找 next_num（idempotent：已存在 → 直接返回 None）
-        existing_ids = _list_existing_lesson_ids(lessons_dir)
+        existing_ids = list_existing_lesson_ids(lessons_dir)
         next_num = (max(existing_ids) + 1) if existing_ids else 1
 
         # 防御：极端 race（两个 worker 同时跑同一个 course），文件已存在 →
         # 视为幂等成功。
-        tentative_path = lessons_dir / f"{next_num:04d}-pending.md"
-        if tentative_path.exists() or any(
-            p.name.startswith(f"{next_num:04d}-")
-            for p in lessons_dir.glob(f"{next_num:04d}-*.md")
-        ):
+        if lesson_file_exists(lessons_dir, next_num):
             logger.bind(
                 course_id=course_id, owner=owner, lesson_num=next_num
             ).info("learning next lesson already exists, skipping")
@@ -236,43 +209,24 @@ class LearningService:
 
         lessons_dir.mkdir(parents=True, exist_ok=True)
 
-        # 2. 上一课 md 尾巴（缺失则空字符串）
-        previous_md = _last_lesson_md_tail(lessons_dir, existing_ids) or ""
+        # 2. 上一课 md 全文（缺失则空字符串）——做 ZPD 衔接上下文
+        previous_md = _last_lesson_md(lessons_dir, existing_ids) or ""
 
-        # 2.5 研究步（可选）：Exa + Context7 搜集资料，喂给 step1
-        research_summary = await self._run_research(topic=topic)
-
-        # 3. Step 1 — 单课 + 共享 resource（喂上一课尾巴 + 研究摘要）
-        bundle = await self._run_step1(
+        # 3. 生成并落盘下一课（喂上一课尾巴 + 研究摘要）
+        await self._generate_lesson(
             topic=topic,
             course_id=course_id,
+            lessons_dir=lessons_dir,
+            resource_path=course_dir / "resource.md",
+            owner=owner,
+            lesson_num=next_num,
             previous_lesson_md=previous_md,
-            research_summary=research_summary,
         )
-        slug = bundle.slug
-
-        # 4. Step 2 — 该课的练习题
-        missions = await self._run_step2(topic=topic, course_id=course_id)
-
-        # 5. 落盘两文件；resource.md 同步刷新（Step1 会重写共享资源）
-        lesson_path = lessons_dir / f"{next_num:04d}-{slug}.md"
-        exercise_path = lessons_dir / f"{next_num:04d}-{slug}.exercise.md"
-        lesson_path.write_text(bundle.lesson_md, encoding="utf-8")
-        exercise_path.write_text(
-            _render_mission_md(
-                title=f"课程练习：{topic}",
-                course_id=course_id,
-                missions=missions,
-            ),
-            encoding="utf-8",
-        )
-        resource_path.write_text(bundle.resource_md, encoding="utf-8")
 
         logger.bind(
             course_id=course_id,
             owner=owner,
             lesson_num=next_num,
-            slug=slug,
         ).info("learning next lesson generated")
         return next_num
 
@@ -320,19 +274,7 @@ class LearningService:
     async def list_progress(self, owner: str) -> list[dict[str, Any]]:
         """列出 owner 的课程进度，每条含推导出的 ``next_session``。"""
         docs = await self._repo.list_progress(owner)
-        result: list[dict[str, Any]] = []
-        for doc in docs:
-            result.append(
-                {
-                    "course_id": doc.course_id,
-                    "topic": doc.topic,
-                    "sessions_done": doc.sessions_done,
-                    "mission_done": doc.mission_done,
-                    "status": doc.status,
-                    "next_session": doc.next_session,
-                }
-            )
-        return result
+        return [_progress_to_dict(doc) for doc in docs]
 
     async def mark_progress(
         self,
@@ -347,22 +289,17 @@ class LearningService:
         Returns:
             更新后的进度 dict；进度不存在返回 None。
         """
+        doc = None
         if session_done is not None:
-            await self._repo.add_session_done(owner, course_id, session_done)
+            doc = await self._repo.add_session_done(owner, course_id, session_done)
         if mission_done is not None:
-            await self._repo.set_mission_done(owner, course_id, mission_done)
-
-        doc = await self._repo.get_progress(owner, course_id)
+            doc = await self._repo.set_mission_done(owner, course_id, mission_done)
+        if doc is None:
+            # 无 mutation 时补读一次；mutation 已返回同步后的最新文档。
+            doc = await self._repo.get_progress(owner, course_id)
         if doc is None:
             return None
-        return {
-            "course_id": doc.course_id,
-            "topic": doc.topic,
-            "sessions_done": doc.sessions_done,
-            "mission_done": doc.mission_done,
-            "status": doc.status,
-            "next_session": doc.next_session,
-        }
+        return _progress_to_dict(doc)
 
     async def create_pending(
         self, owner: str, course_id: str, topic: str
@@ -497,6 +434,52 @@ class LearningService:
             use_json_mode=True,
         )
 
+    async def _generate_lesson(
+        self,
+        *,
+        topic: str,
+        course_id: str,
+        lessons_dir: Path,
+        resource_path: Path,
+        owner: str,
+        lesson_num: int,
+        previous_lesson_md: str = "",
+    ) -> None:
+        """研究 + step1 + step2 + 落盘三文件的公共核心。
+
+        ``generate_course``（第 1 课）与 ``generate_next_lesson``（渐进第 N 课）
+        共享这一步；``previous_lesson_md`` 非空时喂给 step1 作 ZPD 衔接上下文。
+        """
+        research_summary = await self._run_research(topic=topic)
+        bundle = await self._run_step1(
+            topic=topic,
+            course_id=course_id,
+            previous_lesson_md=previous_lesson_md,
+            research_summary=research_summary,
+        )
+        slug = bundle.slug
+        missions = await self._run_step2(topic=topic, course_id=course_id)
+
+        (lessons_dir / f"{lesson_num:04d}-{slug}.md").write_text(
+            bundle.lesson_md, encoding="utf-8"
+        )
+        (lessons_dir / f"{lesson_num:04d}-{slug}.exercise.md").write_text(
+            _render_mission_md(
+                title=f"课程练习：{topic}",
+                course_id=course_id,
+                missions=missions,
+            ),
+            encoding="utf-8",
+        )
+        resource_path.write_text(bundle.resource_md, encoding="utf-8")
+
+        logger.bind(
+            course_id=course_id,
+            owner=owner,
+            lesson_num=lesson_num,
+            slug=slug,
+        ).info("learning lesson generated")
+
     def _course_dir(self, course_id: str) -> Path:
         root = self._tmp_dir
         if root is None:
@@ -551,20 +534,7 @@ class LearningService:
 
     def _unwrap_step1(self, response: Any) -> LessonResourceOutput:
         """解析 step1 响应：``isinstance`` 命中 / dict 兜底 / str 失败。"""
-        content = getattr(response, "content", None)
-        if isinstance(content, LessonResourceOutput):
-            return content
-        if isinstance(content, dict):
-            try:
-                return LessonResourceOutput.model_validate(content)
-            except Exception as exc:
-                raise RuntimeError(
-                    f"Step1 dict 校验失败: {exc}; raw={content!r}"
-                ) from exc
-        raise RuntimeError(
-            f"Step1 解析失败：content 不是 LessonResourceOutput（type="
-            f"{type(content).__name__}）；raw={content!r}"
-        )
+        return _unwrap_model(response, LessonResourceOutput, "Step1")
 
     async def _run_step2(
         self,
@@ -597,58 +567,44 @@ class LearningService:
 
     def _unwrap_step2(self, response: Any) -> list[Mission]:
         """解析 step2 响应：``isinstance`` 命中 / dict 兜底 / str 失败。"""
-        content = getattr(response, "content", None)
-        if isinstance(content, MissionBundle):
-            return content.missions
-        if isinstance(content, dict):
-            try:
-                bundle = MissionBundle.model_validate(content)
-                return bundle.missions
-            except Exception as exc:
-                raise RuntimeError(
-                    f"Step2 dict 校验失败: {exc}; raw={content!r}"
-                ) from exc
-        raise RuntimeError(
-            f"Step2 解析失败：content 不是 MissionBundle（type="
-            f"{type(content).__name__}）；raw={content!r}"
-        )
-
-    async def _upsert_progress(
-        self, *, owner: str, course_id: str, topic: str
-    ) -> None:
-        """upsert ``LearningProgress``，状态置 ``ready``。
-
-        暂时直接走 beanie Document 直存（task-335 的 ``LearningRepo`` 后续可
-        平滑替换为 ``LearningRepo.upsert_progress``；唯一索引 (owner, course_id)
-        的并发语义在两侧保持一致）。
-        """
-        existing = await _find_progress(owner, course_id)
-        if existing is not None:
-            existing.topic = topic
-            existing.status = "ready"
-            await existing.save()
-            return
-
-        doc = LearningProgress(
-            owner=owner,
-            course_id=course_id,
-            topic=topic,
-            status="ready",
-            created_at=datetime.now(UTC),
-        )
-        try:
-            await doc.insert()
-        except DuplicateKeyError:
-            # 并发：另一请求先插入，回退到 update 分支。
-            existing = await _find_progress(owner, course_id)
-            if existing is None:  # pragma: no cover - 极端竞态
-                raise
-            existing.topic = topic
-            existing.status = "ready"
-            await existing.save()
+        bundle = _unwrap_model(response, MissionBundle, "Step2")
+        return bundle.missions
 
 
 # ── 自由函数 ────────────────────────────────────────────────────────── #
+
+
+def _unwrap_model(response: Any, model_cls: type[BaseModel], label: str) -> Any:
+    """解析 agent 响应：``isinstance`` 命中 / dict 兜底 / str 失败。
+
+    ``_unwrap_step1`` / ``_unwrap_step2`` 共用；``label`` 仅用于错误信息。
+    """
+    content = getattr(response, "content", None)
+    if isinstance(content, model_cls):
+        return content
+    if isinstance(content, dict):
+        try:
+            return model_cls.model_validate(content)
+        except Exception as exc:
+            raise RuntimeError(
+                f"{label} dict 校验失败: {exc}; raw={content!r}"
+            ) from exc
+    raise RuntimeError(
+        f"{label} 解析失败：content 不是 {model_cls.__name__}（type="
+        f"{type(content).__name__}）；raw={content!r}"
+    )
+
+
+def _progress_to_dict(doc: LearningProgress) -> dict[str, Any]:
+    """``LearningProgress`` → API 响应 dict（``list_progress`` / ``mark_progress`` 共用）。"""
+    return {
+        "course_id": doc.course_id,
+        "topic": doc.topic,
+        "sessions_done": doc.sessions_done,
+        "mission_done": doc.mission_done,
+        "status": doc.status,
+        "next_session": doc.next_session,
+    }
 
 
 def build_course_id(topic: str) -> str:
@@ -671,43 +627,10 @@ def _slugify(topic: str) -> str:
     return slug or "course"
 
 
-def _slugify_label(text: str) -> str:
-    """为 LLM 生成的 ``slug`` 字段兜底：同 ``_slugify`` 语义，但允许在
-    ``text`` 为空 / 纯非 ASCII 时回退到 ``lesson``。
-    """
-    return _slugify(text) or "lesson"
-
-
-async def _find_progress(
-    owner: str, course_id: str
-) -> LearningProgress | None:
-    return await LearningProgress.find_one(
-        LearningProgress.owner == owner,
-        LearningProgress.course_id == course_id,
-    )
-
-
 # ── 磁盘扫描 helpers ───────────────────────────────────────────────── #
 
 
 _LESSON_FILE_RE = re.compile(r"^(\d{4})-([a-z0-9][a-z0-9-]*)\.md$")
-
-
-def _list_existing_lesson_ids(lessons_dir: Path) -> list[int]:
-    """扫描 ``lessons/`` 目录，提取所有 lesson body 文件（不含 .exercise.md）
-    的前导编号。返回的编号已排序。
-    """
-    if not lessons_dir.exists():
-        return []
-    ids: list[int] = []
-    for path in lessons_dir.glob("*.md"):
-        if path.name.endswith(".exercise.md"):
-            continue
-        m = _LESSON_FILE_RE.match(path.name)
-        if m:
-            ids.append(int(m.group(1)))
-    ids.sort()
-    return ids
 
 
 def _parse_lesson_filename(
@@ -722,7 +645,31 @@ def _parse_lesson_filename(
     return int(m.group(1)), m.group(2)
 
 
-def _last_lesson_md_tail(
+def list_existing_lesson_ids(lessons_dir: Path) -> list[int]:
+    """扫描 ``lessons/`` 目录，提取所有 lesson body 文件（不含 .exercise.md）
+    的前导编号。返回的编号已排序。
+    """
+    if not lessons_dir.exists():
+        return []
+    return sorted(
+        parsed[0]
+        for path in lessons_dir.glob("*.md")
+        if (parsed := _parse_lesson_filename(path.name)) is not None
+    )
+
+
+def lesson_file_exists(lessons_dir: Path, lesson_num: int) -> bool:
+    """判断 ``<num>-<slug>.md`` 形文件是否已存在（同一编号任一 slug 都算）。"""
+    if not lessons_dir.exists():
+        return False
+    prefix = f"{lesson_num:04d}-"
+    return any(
+        p.name.startswith(prefix)
+        for p in lessons_dir.glob(f"{prefix}*.md")
+    )
+
+
+def _last_lesson_md(
     lessons_dir: Path, existing_ids: list[int]
 ) -> str | None:
     """取**最大编号** lesson 的 md 全文作为上一课上下文。"""
@@ -771,19 +718,24 @@ def _assemble_lessons(lessons_dir: Path) -> list[LessonItem]:
     return items
 
 
-def _extract_title_from_front_matter(md_text: str) -> str | None:
-    """从 lesson md 顶部 YAML front matter 抽 ``title``。容错优先。"""
+def _parse_front_matter(md_text: str) -> dict | None:
+    """解析 md 顶部 YAML front matter；缺失 / 非法返回 None。"""
     if not md_text.startswith("---"):
         return None
     end = md_text.find("\n---", 3)
     if end == -1:
         return None
-    front_raw = md_text[3:end]
     try:
-        payload = yaml.safe_load(front_raw)
+        payload = yaml.safe_load(md_text[3:end])
     except yaml.YAMLError:
         return None
-    if not isinstance(payload, dict):
+    return payload if isinstance(payload, dict) else None
+
+
+def _extract_title_from_front_matter(md_text: str) -> str | None:
+    """从 lesson md 顶部 YAML front matter 抽 ``title``。容错优先。"""
+    payload = _parse_front_matter(md_text)
+    if payload is None:
         return None
     title = payload.get("title")
     if isinstance(title, str) and title.strip():
@@ -796,17 +748,8 @@ def _parse_missions(md_text: str) -> list[Mission]:
 
     找不到 front matter 或字段缺失时返回空列表（不抛错，便于容错）。
     """
-    if not md_text.startswith("---"):
-        return []
-    end = md_text.find("\n---", 3)
-    if end == -1:
-        return []
-    front_raw = md_text[3:end]
-    try:
-        payload = yaml.safe_load(front_raw)
-    except yaml.YAMLError:
-        return []
-    missions = (payload or {}).get("missions", [])
+    payload = _parse_front_matter(md_text) or {}
+    missions = payload.get("missions", [])
     if not isinstance(missions, list):
         return []
     parsed: list[Mission] = []
