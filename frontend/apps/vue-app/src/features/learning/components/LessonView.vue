@@ -226,6 +226,30 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'exercises', label: '练习' },
 ];
 
+/** tablist 根节点:用于在箭头键移动时定位 tab 按钮。 */
+const tablistEl = ref<HTMLElement | null>(null);
+
+/** APG tab 模式:左右箭头 / Home / End 在 tab 间移动 roving tabindex。 */
+function onTablistKeydown(e: KeyboardEvent) {
+  const tabButtons = Array.from(
+    tablistEl.value?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [],
+  );
+  const current = tabButtons.indexOf(document.activeElement as HTMLElement);
+  if (current === -1) return;
+
+  let next: number | null = null;
+  if (e.key === 'ArrowRight') next = (current + 1) % tabButtons.length;
+  else if (e.key === 'ArrowLeft') next = (current - 1 + tabButtons.length) % tabButtons.length;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = tabButtons.length - 1;
+
+  if (next !== null) {
+    e.preventDefault();
+    activeTab.value = tabs[next].key;
+    nextTick(() => tabButtons[next]?.focus());
+  }
+}
+
 useHead({
   title: () => {
     if (lesson.value && course.value) {
@@ -266,7 +290,7 @@ useHead({
         v-else-if="courseStatus === 'failed' || error"
         class="bg-card text-muted flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center shadow-md"
       >
-        <p class="text-destructive text-sm font-medium">
+        <p class="text-ink text-sm font-medium">
           {{ error || '课程生成失败' }}
         </p>
         <Button size="sm" variant="outline" @click="retry">
@@ -313,25 +337,31 @@ useHead({
           </h1>
           <p
             v-if="isSessionDone"
-            class="bg-success/15 text-success mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase shadow-sm"
+            class="text-ink bg-success/15 mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1 font-mono text-[11px] font-medium tracking-[0.18em] uppercase shadow-sm"
           >
             <Check class="h-3 w-3" aria-hidden="true" />
             本节已完成
           </p>
         </header>
 
-        <!-- Tabs (pill) -->
+        <!-- Tabs (pill) — APG tab pattern -->
         <nav
+          ref="tablistEl"
           class="bg-card mb-6 inline-flex rounded-full p-1 shadow-sm"
           role="tablist"
+          aria-label="课程内容"
+          @keydown="onTablistKeydown"
         >
           <button
             v-for="t in tabs"
             :key="t.key"
             type="button"
             role="tab"
+            :id="`tab-${t.key}`"
             :aria-selected="activeTab === t.key"
-            class="focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
+            :aria-controls="`tabpanel-${t.key}`"
+            :tabindex="activeTab === t.key ? 0 : -1"
+            class="focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[11px] font-medium tracking-[0.18em] uppercase transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             :class="
               activeTab === t.key
                 ? 'bg-accent text-contrast shadow-accent/30 shadow-md'
@@ -342,8 +372,8 @@ useHead({
             {{ t.label }}
             <span
               v-if="t.key === 'exercises'"
-              class="font-mono text-[10px] tabular-nums"
-              :class="activeTab === t.key ? 'text-contrast/80' : 'text-muted'"
+              class="font-mono text-[11px] font-medium tabular-nums"
+              :class="activeTab === t.key ? 'text-contrast' : 'text-muted'"
             >
               {{ exercises.length }}
             </span>
@@ -351,17 +381,32 @@ useHead({
         </nav>
 
         <!-- Tab content:正文 -->
-        <article
+        <div
           v-if="activeTab === 'lesson'"
-          class="bg-card prose prose-sm text-ink max-w-none rounded-2xl px-6 py-6 shadow-sm sm:px-8 sm:py-8"
-          v-html="lessonHtml"
-        />
+          id="tabpanel-lesson"
+          role="tabpanel"
+          aria-labelledby="tab-lesson"
+          tabindex="0"
+        >
+          <div class="mx-auto max-w-2xl">
+            <article
+              class="bg-card prose prose-sm text-ink max-w-none rounded-2xl px-6 py-6 shadow-sm sm:px-8 sm:py-8"
+              v-html="lessonHtml"
+            />
+          </div>
+        </div>
 
         <!-- Tab content:练习 -->
-        <section
+        <div
           v-else
-          class="bg-card space-y-4 rounded-2xl px-5 py-5 shadow-sm sm:px-6 sm:py-6"
+          id="tabpanel-exercises"
+          role="tabpanel"
+          aria-labelledby="tab-exercises"
+          tabindex="0"
         >
+          <section
+            class="bg-card space-y-4 rounded-2xl px-5 py-5 shadow-sm sm:px-6 sm:py-6"
+          >
           <div v-if="exercises.length === 0" class="text-muted text-sm">
             这节课还没有练习题。
           </div>
@@ -382,12 +427,14 @@ useHead({
               class="text-muted font-mono text-[11px] tracking-[0.12em] uppercase"
             >
               正确
-              <span class="text-success font-mono tabular-nums">{{
+              <span class="text-ink font-mono font-medium tabular-nums">{{
                 scoreState.correct
               }}</span>
               /
-              <span class="font-mono tabular-nums">{{ scoreState.total }}</span>
-              <span v-if="isSessionDone" class="text-success ml-2">
+              <span class="text-ink font-mono font-medium tabular-nums">{{
+                scoreState.total
+              }}</span>
+              <span v-if="isSessionDone" class="text-ink ml-2">
                 · 本节已完成
               </span>
             </div>
@@ -424,6 +471,7 @@ useHead({
             </div>
           </div>
         </section>
+        </div>
       </template>
     </div>
   </main>

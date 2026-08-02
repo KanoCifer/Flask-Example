@@ -17,6 +17,7 @@
 -->
 <script setup lang="ts">
 import { ArrowRight, BookOpen, Loader2, RotateCcw } from '@lucide/vue';
+import { useMediaQuery } from '@vueuse/core';
 import { motion } from 'motion-v';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -79,6 +80,9 @@ function onContinue(item: LearningProgressItem) {
 function refreshProgress() {
   void loadProgress();
 }
+
+/** prefers-reduced-motion:开启时禁用入场动画。 */
+const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
 onMounted(() => {
   void loadProgress();
@@ -175,7 +179,7 @@ function statusLabel(item: LearningProgressItem): string {
 
           <p
             v-if="error"
-            class="text-destructive bg-destructive/10 mt-4 rounded-full px-4 py-2 text-xs leading-relaxed shadow-sm"
+            class="text-ink bg-destructive/10 mt-4 rounded-full px-4 py-2 text-xs leading-relaxed shadow-sm"
           >
             {{ error }}
             <button
@@ -242,15 +246,15 @@ function statusLabel(item: LearningProgressItem): string {
           <motion.li
             v-for="(item, idx) in progressList"
             :key="item.course_id"
-            :initial="{ opacity: 0, y: 8, filter: 'blur(4px)' }"
-            :animate="{ opacity: 1, y: 0, filter: 'blur(0px)' }"
+            :initial="reducedMotion ? false : { opacity: 0, y: 8, filter: 'blur(4px)' }"
+            :animate="reducedMotion ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }"
             :transition="{ ...EASE, delay: 0.5 + idx * 0.06, type: 'spring' }"
           >
             <div
               class="bg-card hover:shadow-accent/10 flex items-center gap-4 rounded-2xl px-5 py-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <span
-                class="bg-surface/60 text-muted inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-xs tabular-nums shadow-inner"
+                class="bg-surface/60 text-ink inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-xs font-medium tabular-nums shadow-inner"
                 aria-hidden="true"
               >
                 {{ String(idx + 1).padStart(3, '0') }}
@@ -260,7 +264,7 @@ function statusLabel(item: LearningProgressItem): string {
                   {{ item.topic }}
                 </h3>
                 <p
-                  class="text-muted mt-1 flex items-center gap-1.5 font-mono text-[11px] tracking-[0.12em] uppercase"
+                  class="text-muted mt-1 flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-[0.12em] uppercase"
                   :class="{ 'text-accent': item.status === 'pending' }"
                 >
                   <Loader2
@@ -269,36 +273,35 @@ function statusLabel(item: LearningProgressItem): string {
                     aria-hidden="true"
                   />
                   <span>{{ statusLabel(item) }}</span>
-                  <span v-if="item.exercise_done" class="text-success ml-1">
+                  <span v-if="item.exercise_done" class="text-ink ml-1">
                     · 练习已完成
                   </span>
                 </p>
               </div>
               <button
-                v-if="item.next_session !== null"
+                v-if="item.status === 'pending'"
                 type="button"
-                class="bg-accent text-contrast hover:bg-accent/90 focus-visible:ring-ring shadow-accent/30 focus-visible:ring-offset-card inline-flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="item.status === 'pending'"
-                :aria-label="
-                  item.status === 'pending'
-                    ? '课程生成中,暂时无法继续'
-                    : '继续学习'
-                "
-                @click="onContinue(item)"
+                class="bg-accent/20 text-accent cursor-not-allowed inline-flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 font-mono text-[11px] font-medium tracking-[0.18em] uppercase shadow-sm"
+                disabled
               >
                 <Loader2
-                  v-if="item.status === 'pending'"
                   class="h-3 w-3 animate-spin motion-reduce:animate-none"
                   aria-hidden="true"
                 />
-                <BookOpen v-else class="h-3 w-3" aria-hidden="true" />
-                <span>{{
-                  item.status === 'pending' ? '生成中…' : '继续学习 →'
-                }}</span>
+                生成中…
+              </button>
+              <button
+                v-else-if="item.next_session !== null"
+                type="button"
+                class="bg-accent text-contrast hover:bg-accent/90 focus-visible:ring-ring shadow-accent/30 focus-visible:ring-offset-card inline-flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 font-mono text-[11px] font-medium tracking-[0.18em] uppercase shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                @click="onContinue(item)"
+              >
+                <BookOpen class="h-3 w-3" aria-hidden="true" />
+                <span>继续学习 →</span>
               </button>
               <span
                 v-else
-                class="bg-success/15 text-success shrink-0 rounded-full px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase shadow-sm"
+                class="text-ink bg-success/15 shrink-0 rounded-full px-3 py-1 font-mono text-[11px] font-medium tracking-[0.18em] uppercase shadow-sm"
               >
                 已完成
               </span>

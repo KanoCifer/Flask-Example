@@ -357,7 +357,7 @@ useHead({
         v-else-if="courseStatus === 'failed' || error"
         class="bg-card text-muted flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center shadow-md"
       >
-        <p class="text-destructive text-sm font-medium">
+        <p class="text-ink text-sm font-medium">
           {{ error || '课程生成失败' }}
         </p>
         <Button size="sm" variant="outline" @click="retry">
@@ -410,13 +410,13 @@ useHead({
             </span>
             <span aria-hidden="true">·</span>
             <span
-              class="bg-surface/60 inline-flex items-center rounded-full px-2.5 py-0.5 shadow-inner"
+              class="bg-surface/60 inline-flex items-center rounded-full px-2.5 py-0.5 font-mono tabular-nums shadow-inner"
             >
               {{ doneSessions }} / {{ totalSessions }} 节已完成
             </span>
             <span
               v-if="isCourseDone"
-              class="bg-success/15 text-success inline-flex items-center rounded-full px-2.5 py-0.5 shadow-sm"
+              class="text-ink bg-success/15 inline-flex items-center rounded-full px-2.5 py-0.5 font-mono font-medium shadow-sm"
             >
               已全部完成
             </span>
@@ -440,7 +440,7 @@ useHead({
         <!-- 下载失败提示（不替换主视图，仅当下载出错时出现）。 -->
         <p
           v-if="downloadError"
-          class="text-destructive bg-destructive/10 mb-4 rounded-xl px-4 py-2.5 text-sm shadow-sm"
+          class="text-ink bg-destructive/10 mb-4 rounded-xl px-4 py-2.5 text-sm shadow-sm"
           role="alert"
         >
           {{ downloadError }}
@@ -453,14 +453,14 @@ useHead({
         >
           <button
             type="button"
-            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-6"
+            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:px-6"
             :aria-expanded="missionOpen"
             aria-controls="mission-panel"
             @click="missionOpen = !missionOpen"
           >
             <Target class="text-accent h-4 w-4" aria-hidden="true" />
             <span
-              class="text-ink flex-1 font-mono text-[11px] tracking-[0.18em] uppercase"
+              class="text-ink flex-1 font-mono text-[11px] font-medium tracking-[0.18em] uppercase"
             >
               学习使命
             </span>
@@ -477,10 +477,12 @@ useHead({
             :aria-hidden="!missionOpen"
           >
             <div class="collapsible-inner min-w-0 overflow-hidden">
-              <article
-                class="prose prose-sm text-ink max-w-none px-5 py-4 sm:px-6"
-                v-html="missionHtml"
-              />
+              <div class="mx-auto max-w-2xl">
+                <article
+                  class="prose prose-sm text-ink max-w-none px-5 py-4 sm:px-6"
+                  v-html="missionHtml"
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -495,15 +497,15 @@ useHead({
             <li v-for="lesson in lessons" :key="lesson.id">
               <button
                 type="button"
-                class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-baseline gap-3 rounded-xl py-2.5 pr-3 pl-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
+                class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-baseline gap-3 rounded-xl py-2.5 pr-3 pl-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 :class="rowContainerCls(statusOf(lesson))"
                 @click="openLesson(lesson)"
               >
                 <span
-                  class="font-mono text-xs tabular-nums"
+                  class="font-mono text-xs font-medium tabular-nums"
                   :class="
                     statusOf(lesson) === 'done'
-                      ? 'text-success'
+                      ? 'text-ink'
                       : statusOf(lesson) === 'current'
                         ? 'text-accent'
                         : 'text-muted'
@@ -515,13 +517,13 @@ useHead({
                   {{ lesson.title }}
                 </span>
                 <span
-                  class="shrink-0 rounded-full px-2.5 py-0.5 font-mono text-[11px] tracking-[0.18em] uppercase"
+                  class="shrink-0 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium tracking-[0.18em] uppercase"
                   :class="
                     statusOf(lesson) === 'done'
-                      ? 'bg-success/15 text-success'
+                      ? 'text-ink bg-success/15'
                       : statusOf(lesson) === 'current'
-                        ? 'bg-accent/15 text-accent'
-                        : 'bg-muted/40 text-muted'
+                        ? 'bg-accent/15 text-ink'
+                        : 'bg-muted/40 text-ink'
                   "
                 >
                   {{ statusLabel(statusOf(lesson)) }}
@@ -564,7 +566,7 @@ useHead({
                 · 由进度决定
               </span>
             </template>
-            <template v-else-if="isCourseDone"> 所有课节已完成,棒! </template>
+            <template v-else-if="isCourseDone"> 已全部完成 </template>
             <template v-else> 下一节尚未生成,点击右侧按钮产出。 </template>
           </div>
           <div class="flex shrink-0 gap-2">
@@ -595,14 +597,14 @@ useHead({
         >
           <button
             type="button"
-            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-6"
+            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:px-6"
             :aria-expanded="resourceOpen"
             aria-controls="resource-panel"
             @click="resourceOpen = !resourceOpen"
           >
             <Library class="text-muted h-4 w-4" aria-hidden="true" />
             <span
-              class="text-ink flex-1 font-mono text-[11px] tracking-[0.18em] uppercase"
+              class="text-ink flex-1 font-mono text-[11px] font-medium tracking-[0.18em] uppercase"
             >
               学习资源
             </span>
@@ -619,10 +621,12 @@ useHead({
             :aria-hidden="!resourceOpen"
           >
             <div class="collapsible-inner min-w-0 overflow-hidden">
-              <article
-                class="prose prose-sm text-ink max-w-none px-5 pb-6 sm:px-6"
-                v-html="resourceHtml"
-              />
+              <div class="mx-auto max-w-2xl">
+                <article
+                  class="prose prose-sm text-ink max-w-none px-5 pb-6 sm:px-6"
+                  v-html="resourceHtml"
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -632,14 +636,14 @@ useHead({
         <section class="bg-card mt-4 overflow-hidden rounded-2xl shadow-sm">
           <button
             type="button"
-            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-6"
+            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:px-6"
             :aria-expanded="filesOpen"
             aria-controls="files-panel"
             @click="toggleFilesPanel"
           >
             <FolderOpen class="text-muted h-4 w-4" aria-hidden="true" />
             <span
-              class="text-ink flex-1 font-mono text-[11px] tracking-[0.18em] uppercase"
+              class="text-ink flex-1 font-mono text-[11px] font-medium tracking-[0.18em] uppercase"
             >
               原始文件
             </span>

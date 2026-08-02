@@ -145,10 +145,10 @@ function isWrongChoice(key: string): boolean {
 function optionContainerCls(key: string): string {
   if (submitted.value) {
     if (isCorrectOption(key)) {
-      return 'bg-success/10 text-success shadow-success/20 shadow-sm';
+      return 'text-ink bg-success/10 shadow-success/20 shadow-sm';
     }
     if (isWrongChoice(key)) {
-      return 'bg-destructive/10 text-destructive shadow-destructive/20 shadow-sm';
+      return 'text-ink bg-destructive/10 shadow-destructive/20 shadow-sm';
     }
     return 'bg-card text-muted';
   }
@@ -164,10 +164,10 @@ function optionContainerCls(key: string): string {
 }
 
 function optionKeyCls(key: string): string {
-  const base = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] shadow-inner';
+  const base = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-medium shadow-inner';
   if (submitted.value) {
-    if (isCorrectOption(key)) return `${base} bg-success/20 text-success`;
-    if (isWrongChoice(key)) return `${base} bg-destructive/20 text-destructive`;
+    if (isCorrectOption(key)) return `${base} bg-success/20 text-ink`;
+    if (isWrongChoice(key)) return `${base} bg-destructive/20 text-ink`;
     return `${base} bg-surface/60 text-muted`;
   }
   if (isMulti.value) {
@@ -196,12 +196,12 @@ function optionKeyCls(key: string): string {
     <header class="mb-4 flex items-baseline justify-between gap-3">
       <div class="flex items-baseline gap-2">
         <span
-          class="bg-accent/15 text-accent rounded-full px-2.5 py-0.5 font-mono text-xs tabular-nums"
+          class="bg-accent/15 text-accent rounded-full px-2.5 py-0.5 font-mono text-xs font-medium tabular-nums"
         >
           Q{{ String(index).padStart(2, '0') }}
         </span>
         <span
-          class="text-muted font-mono text-[11px] tracking-[0.18em] uppercase"
+          class="text-muted font-mono text-[11px] font-medium tracking-[0.18em] uppercase"
         >
           {{
             exercise.type === 'single_choice'
@@ -213,7 +213,7 @@ function optionKeyCls(key: string): string {
         </span>
       </div>
       <span
-        class="bg-surface/60 text-muted rounded-full px-2.5 py-0.5 font-mono text-[11px] tracking-[0.12em] uppercase tabular-nums shadow-inner"
+        class="bg-surface/60 text-muted rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium tracking-[0.12em] uppercase tabular-nums shadow-inner"
       >
         {{ exercise.points }} 分 · 难度 {{ exercise.difficulty }}
       </span>
@@ -231,7 +231,7 @@ function optionKeyCls(key: string): string {
         :key="opt.key"
         type="button"
         :disabled="submitted"
-        class="hover:bg-surface/60 focus-visible:ring-ring flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-70"
+        class="hover:bg-surface/60 focus-visible:ring-ring flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-70"
         :class="optionContainerCls(opt.key)"
         @click="isMulti ? toggleMulti(opt.key) : pickSingle(opt.key)"
       >
@@ -252,13 +252,13 @@ function optionKeyCls(key: string): string {
       <button
         type="button"
         :disabled="submitted"
-        class="rounded-2xl py-4 text-center font-mono text-sm transition-all duration-300 focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-70"
+        class="rounded-2xl py-4 text-center font-mono text-sm transition-all duration-300 focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-70"
         :class="
           submitted
             ? exercise.answer === true
-              ? 'bg-success/15 text-success shadow-success/20 shadow-md'
+              ? 'text-ink bg-success/15 shadow-success/20 shadow-md'
               : selection === true
-                ? 'bg-destructive/10 text-destructive shadow-destructive/20 shadow-md'
+                ? 'text-ink bg-destructive/10 shadow-destructive/20 shadow-md'
                 : 'bg-card text-muted shadow-sm'
             : selection === true
               ? 'bg-accent/10 text-accent shadow-accent/20 -translate-y-0.5 shadow-md'
@@ -271,13 +271,13 @@ function optionKeyCls(key: string): string {
       <button
         type="button"
         :disabled="submitted"
-        class="rounded-2xl py-4 text-center font-mono text-sm transition-all duration-300 focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-70"
+        class="rounded-2xl py-4 text-center font-mono text-sm transition-all duration-300 focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-70"
         :class="
           submitted
             ? exercise.answer === false
-              ? 'bg-success/15 text-success shadow-success/20 shadow-md'
+              ? 'text-ink bg-success/15 shadow-success/20 shadow-md'
               : selection === false
-                ? 'bg-destructive/10 text-destructive shadow-destructive/20 shadow-md'
+                ? 'text-ink bg-destructive/10 shadow-destructive/20 shadow-md'
                 : 'bg-card text-muted shadow-sm'
             : selection === false
               ? 'bg-accent/10 text-accent shadow-accent/20 -translate-y-0.5 shadow-md'
@@ -294,7 +294,7 @@ function optionKeyCls(key: string): string {
       <div v-if="!submitted" class="flex justify-end">
         <button
           type="button"
-          class="bg-accent text-contrast shadow-accent/30 rounded-full px-5 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-50"
+          class="bg-accent text-contrast shadow-accent/30 rounded-full px-5 py-1.5 font-mono text-[11px] font-medium tracking-[0.18em] uppercase shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!canSubmit"
           @click="submit"
         >
@@ -304,18 +304,22 @@ function optionKeyCls(key: string): string {
 
       <div
         v-else
-        class="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
+        class="text-ink rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
         :class="
           result
-            ? 'bg-success/10 text-success shadow-success/15'
-            : 'bg-destructive/10 text-destructive shadow-destructive/15'
+            ? 'bg-success/10 shadow-success/15'
+            : 'bg-destructive/10 shadow-destructive/15'
         "
       >
         <div
-          class="mb-1 flex items-center gap-2 font-mono text-[11px] tracking-[0.18em] uppercase"
+          class="mb-1 flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.18em] uppercase"
         >
-          <Check v-if="result" class="h-3.5 w-3.5" aria-hidden="true" />
-          <X v-else class="h-3.5 w-3.5" aria-hidden="true" />
+          <Check
+            v-if="result"
+            class="text-success h-3.5 w-3.5"
+            aria-hidden="true"
+          />
+          <X v-else class="text-destructive h-3.5 w-3.5" aria-hidden="true" />
           <span>
             {{ result ? '答对了' : `答错了 — 正确答案: ${correctAnswerLabel}` }}
           </span>
@@ -326,7 +330,7 @@ function optionKeyCls(key: string): string {
       <div v-if="submitted" class="flex justify-end">
         <button
           type="button"
-          class="text-muted hover:text-ink focus-visible:ring-ring rounded-full px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
+          class="text-muted hover:text-ink focus-visible:ring-ring rounded-full px-3 py-1 font-mono text-[11px] font-medium tracking-[0.18em] uppercase transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           @click="reset"
         >
           重做
