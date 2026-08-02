@@ -26,6 +26,8 @@
 
 from __future__ import annotations
 
+from taskiq import Context, TaskiqDepends
+
 from app.core.logger import logger
 from app.plugins.task.task import broker
 from app.services.course_generator_service import CourseGeneratorService
@@ -37,6 +39,7 @@ async def generate_course(
     owner: str,
     course_id: str,
     goal: str | None = None,
+    context: Context = TaskiqDepends(),
 ) -> None:
     """生成课程包并落盘；最终把 ``LearningProgress`` 置 ``ready``。
 
@@ -55,11 +58,9 @@ async def generate_course(
 
     try:
         # 与 email.py / scheduled.py 一致：worker 启动时已在
-        # _on_worker_startup 把 new_app_state 挂到 app.state.services。
-        from app.main import app
-
+        # _on_worker_startup 把 new_app_state 挂到 TaskiqState.state.services。
         course_gen_svc: CourseGeneratorService = (
-            app.state.services.course_gen_svc
+            context.state.services.course_gen_svc
         )
         await course_gen_svc.generate_course(
             topic=topic, owner=owner, goal=goal, course_id=course_id
@@ -68,7 +69,7 @@ async def generate_course(
         logger.bind(course_id=course_id, owner=owner).error(
             f"learning: course generation task failed: {exc!r}"
         )
-        await _mark_failed(course_id=course_id, owner=owner)
+        await _mark_failed(course_id=course_id, owner=owner, context=context)
         raise
     else:
         logger.bind(course_id=course_id, owner=owner).info(
@@ -83,6 +84,7 @@ async def generate_next_lesson(
     course_id: str,
     goal: str | None = None,
     session_id: str | None = None,
+    context: Context = TaskiqDepends(),
 ) -> int | None:
     """渐进产出：在已有课程下生成下一课并落盘（task-352）。
 
@@ -109,10 +111,9 @@ async def generate_next_lesson(
     )
 
     try:
-        from app.main import app
-
+        # 见 generate_course：services 来自 TaskiqState.state.services。
         course_gen_svc: CourseGeneratorService = (
-            app.state.services.course_gen_svc
+            context.state.services.course_gen_svc
         )
         next_num = await course_gen_svc.generate_next_lesson(
             topic=topic,
@@ -136,16 +137,24 @@ async def generate_next_lesson(
         return next_num
 
 
-async def _mark_failed(*, course_id: str, owner: str) -> None:
+async def _mark_failed(
+    *,
+    course_id: str,
+    owner: str,
+    context: Context,
+) -> None:
     """把 ``LearningProgress`` 状态置 ``failed``，失败仅记日志不回滚。
 
     不再打穿 ``_repo`` 私有属性：C2 拆分后状态切换统一经
     :meth:`LearningProgressService.mark_failed`。
+
+    ``context`` 为必填关键字参数：``_mark_failed`` 不是 ``@broker.task`` 装饰
+    的函数，taskiq 不会注入默认值；调用方（generate_course）必须把已解析的
+    Context 显式传入。
     """
     try:
-        from app.main import app
-
-        progress_svc = app.state.services.progress_svc
+        # services 来自 TaskiqState.state.services（_on_worker_startup 装配）。
+        progress_svc = context.state.services.progress_svc
         await progress_svc.mark_failed(owner=owner, course_id=course_id)
         logger.bind(course_id=course_id, owner=owner).warning(
             "learning: course progress marked failed"

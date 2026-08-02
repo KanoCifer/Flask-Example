@@ -78,12 +78,13 @@ async def _on_worker_startup(state: TaskiqState) -> None:
     )
     state.mongo = mongo_db
 
-    # 构造 AppState 单例并挂载到 app.state.services，对齐 web 进程
-    # initialize_resources()（main.py:62）。
+    # 构造 AppState 单例并挂载到 TaskiqState，对齐 web 进程的
+    # initialize_resources()（main.py:53）。worker 进程无 FastAPI app，
+    # task body 通过 ``context.state.services.<svc>`` 取服务，取代旧的
+    # ``from app.main import app; app.state.services.<svc>`` 反模式。
     from app.appstate import new_app_state
-    from app.main import app
 
-    app.state.services = new_app_state(state.redis)
+    state.services = new_app_state(state.redis)
 
 
 @broker.on_event(TaskiqEvents.WORKER_SHUTDOWN)

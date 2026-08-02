@@ -73,9 +73,8 @@ async def save_to_mongo(
     :param user_id: 当前用户 ID
     """
     try:
-        from app.main import app
-
-        saved_count = await app.state.services.rss_svc.save_entries_to_mongo(
+        # services 来自 TaskiqState.state.services（_on_worker_startup 装配）。
+        saved_count = await context.state.services.rss_svc.save_entries_to_mongo(
             feed_url=feed_url,
             entries=entries,
         )
