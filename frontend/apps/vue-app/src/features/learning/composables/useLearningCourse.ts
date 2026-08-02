@@ -3,7 +3,7 @@
 // 责任范围:
 //   1. submitTopic(topic) 提交学习主题,得到 course_id 后异步轮询 getCourse 直至
 //      ready 或 failed。后端生成异步,前端以 setInterval 驱动轮询,轮询节奏取
-//      1.5s — 短到体感实时,长到不会压垮 LLM 生成中的后端。
+//      3s — 体感接近实时,且不会压垮 LLM 生成中的后端。
 //   2. loadCourse(courseId) 装载已 ready 的课程包(直接 GET)。pending 会自动
 //      启动轮询。
 //   3. loadProgress() 列出当前 owner 的全部进度。
@@ -30,12 +30,15 @@ const FALLBACK_MODELS: LearningModel[] = [
   { id: 'deepseek-v4-flash', label: 'Flash（快速）', is_premium: false },
 ];
 
-/** 轮询节奏:1.5s — 后端 LLM 一次生成大约 10–30s,体感接近实时即可。 */
-const POLL_INTERVAL_MS = 1500;
-/** 单次课程生成总超时:120s,超过即视为 failed,清理 timer。 */
-const POLL_TIMEOUT_MS = 120_000;
-/** 渐进产出下一课的轮询超时:90s。 */
-const LESSON_POLL_TIMEOUT_MS = 90_000;
+/** 轮询节奏:3s — 后端 LLM 一次生成大约 10–30s,长 prompt + 冷启动可
+ *  能更久;3s 既能反映状态变化,也不会压垮后端。 */
+const POLL_INTERVAL_MS = 3_000;
+/** 单次课程生成总超时:300s(5 分钟),超过即视为 failed,清理 timer。
+ *  长 prompt + 冷启动兜底用 — 5 分钟足够覆盖大多数生成场景。 */
+const POLL_TIMEOUT_MS = 300_000;
+/** 渐进产出下一课的轮询超时:180s(3 分钟)。
+ *  单课比整门课小,但冷启动可能也撑,留 3 分钟兜底。 */
+const LESSON_POLL_TIMEOUT_MS = 180_000;
 
 export interface SubmittedCourse {
   course_id: string;
@@ -83,7 +86,7 @@ export function useLearningCourse() {
    *
    * 失败语义:
    *   - 后端返回 failed:抛错并将 error 写为可读中文提示。
-   *   - 轮询超过 120s:同上(超时)。
+   *   - 轮询超过 300s:同上(超时,见 `POLL_TIMEOUT_MS`)。
    *   - 中途组件卸载:由 onUnmounted 清理 timer,`error` 不写入。
    */
   async function submitTopic(
@@ -265,7 +268,7 @@ export function useLearningCourse() {
    * `lessons.length >= targetLessonCount`(通常是 next_lesson 编号,或当前
    * length+1)。settle 后自动更新 course.value。
    *
-   * 超时 90s(单课生成通常 10–30s,90s 足够覆盖冷启动/长 prompt)。
+   * 超时 180s(单课生成通常 10–30s,180s 足够覆盖冷启动/长 prompt)。
    */
   function pollForLesson(
     courseId: string,

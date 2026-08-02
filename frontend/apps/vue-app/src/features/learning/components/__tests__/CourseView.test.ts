@@ -10,8 +10,8 @@
  *  - 「返回学习列表」→ router.push learning
  *  - 失败态渲染 + retry 触发
  *
- * mock 策略与 ``LearningList.test.ts`` 一致:把 ``learningGateway`` 整体
- * 替成 ``vi.fn()``,``vue-router`` 用 ``useRouter()`` push 捕获。
+ * mock 策略:把 ``learningGateway`` 整体替成 ``vi.fn()``,``vue-router`` 用
+ * ``useRouter()`` push 捕获。
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
@@ -258,7 +258,7 @@ describe('CourseView', () => {
   });
 
   it('「继续下一课」点击 → generateNextLesson 被调;pending 时轮询后跳转 lesson 详情', async () => {
-    // useFakeTimers 推进 ``pollForLesson`` 里的 setInterval(1500ms)
+    // useFakeTimers 推进 ``pollForLesson`` 里的 setInterval(3000ms)
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout'] });
     try {
       const newCourse = makeCourse({
@@ -288,7 +288,7 @@ describe('CourseView', () => {
       await nextBtn!.trigger('click');
       await flushPromises();
       // 让 setInterval 的回调跑起来 → getCourse 第二次 → poll 命中
-      await vi.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(3500);
       await flushPromises();
       await flushPromises();
 

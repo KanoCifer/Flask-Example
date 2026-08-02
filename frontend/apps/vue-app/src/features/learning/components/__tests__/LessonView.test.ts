@@ -339,7 +339,7 @@ describe('LessonView', () => {
       expect(nextBtn).toBeDefined();
       await nextBtn!.trigger('click');
       await flushPromises();
-      await vi.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(3500);
       await flushPromises();
       await flushPromises();
 
