@@ -341,7 +341,7 @@ const ContactCard = (props: { label: string; value: string; href: string }) =>
     >
       <!-- ============= Article ============= -->
       <article
-        class="text-ink max-w-2xl text-[15.5px] leading-[1.85] sm:text-base"
+        class="text-ink max-w-4xl text-[15.5px] leading-[1.85] sm:text-base"
       >
         <!-- ----- 引言 ----- -->
         <p

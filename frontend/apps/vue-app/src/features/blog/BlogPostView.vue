@@ -393,7 +393,7 @@ onUnmounted(() => {
     >
       <!-- grid-row 1: 文章主体 -->
       <div class="contents">
-        <div class="mx-auto max-w-2xl pt-30"></div>
+        <div class="mx-auto max-w-4xl pt-30"></div>
 
         <ArticlePreview
           :post-id="post._id"
@@ -412,7 +412,7 @@ onUnmounted(() => {
           <!-- AI 阅读伴侣：内嵌到正文之前 -->
           <template #ai-companion>
             <AiCompanion
-              class="mx-auto max-w-2xl"
+              class="mx-auto max-w-4xl"
               :title="post.title"
               :content="post.body || ''"
             />
@@ -498,7 +498,7 @@ onUnmounted(() => {
         </ArticlePreview>
 
         <!-- 展开按钮：文章正文之后 -->
-        <div class="mx-auto max-w-2xl px-6 pb-8">
+        <div class="mx-auto max-w-4xl px-6 pb-8">
           <button
             v-if="post"
             type="button"
@@ -511,7 +511,7 @@ onUnmounted(() => {
 
         <!-- 评论区折叠/展开 -->
         <div
-          class="mx-auto grid max-w-2xl grid-rows-[0fr] transition-[grid-template-rows] duration-300"
+          class="mx-auto grid max-w-4xl grid-rows-[0fr] transition-[grid-template-rows] duration-300"
           :class="commentsExpanded ? 'grid-rows-[1fr]' : ''"
         >
           <div class="min-h-0 overflow-hidden px-6 pb-24">

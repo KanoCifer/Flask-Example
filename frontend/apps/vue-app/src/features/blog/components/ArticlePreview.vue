@@ -92,7 +92,7 @@ const onBodyClick = (event: MouseEvent) => {
 </script>
 
 <template>
-  <article class="mx-auto w-full max-w-2xl px-6 pt-10 pb-14">
+  <article class="mx-auto w-full max-w-4xl px-6 pt-10 pb-14">
     <!-- 封面置顶：主视觉先行 -->
     <figure v-if="coverSrc" class="mb-10 overflow-hidden rounded-xl">
       <div class="bg-surface aspect-[16/9] w-full overflow-hidden">

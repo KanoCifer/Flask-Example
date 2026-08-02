@@ -39,10 +39,7 @@ import {
 } from '@lucide/vue';
 import { Button } from '@/components';
 import { renderMarkdown } from '@/composables';
-import {
-  learningGateway,
-  type CourseFileEntry,
-} from '@/features/learning/api';
+import { learningGateway, type CourseFileEntry } from '@/features/learning/api';
 import { useLearningCourse } from '@/features/learning/composables/useLearningCourse';
 import type {
   LearningLesson,
@@ -125,7 +122,9 @@ async function runDownload(target: string, action: () => Promise<void>) {
 
 /** 下载整门课程 ZIP（文件名 ``<course_id>.zip``，由服务端 Content-Disposition 决定）。 */
 function onDownloadBundle() {
-  void runDownload('bundle', () => learningGateway.downloadBundle(courseId.value));
+  void runDownload('bundle', () =>
+    learningGateway.downloadBundle(courseId.value),
+  );
 }
 
 /** 下载单个原始 md 文件（默认文件名取 rel_path 末段 basename）。 */
@@ -445,7 +444,7 @@ useHead({
         >
           <button
             type="button"
-            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:px-6"
+            class="hover:bg-surface/40 focus-visible:ring-ring focus-visible:ring-offset-card flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-6"
             :aria-expanded="missionOpen"
             aria-controls="mission-panel"
             @click="missionOpen = !missionOpen"
@@ -469,7 +468,7 @@ useHead({
             :aria-hidden="!missionOpen"
           >
             <div class="collapsible-inner min-w-0 overflow-hidden">
-              <div class="mx-auto max-w-2xl">
+              <div class="mx-auto max-w-4xl">
                 <article
                   class="prose prose-sm text-ink max-w-none px-5 py-4 sm:px-6"
                   v-html="missionHtml"
@@ -489,7 +488,7 @@ useHead({
             <li v-for="lesson in lessons" :key="lesson.id">
               <button
                 type="button"
-                class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-baseline gap-3 rounded-xl py-2.5 pr-3 pl-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                class="hover:bg-surface/40 focus-visible:ring-ring focus-visible:ring-offset-card flex w-full items-baseline gap-3 rounded-xl py-2.5 pr-3 pl-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 :class="rowContainerCls(statusOf(lesson))"
                 @click="openLesson(lesson)"
               >
@@ -589,7 +588,7 @@ useHead({
         >
           <button
             type="button"
-            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:px-6"
+            class="hover:bg-surface/40 focus-visible:ring-ring focus-visible:ring-offset-card flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-6"
             :aria-expanded="resourceOpen"
             aria-controls="resource-panel"
             @click="resourceOpen = !resourceOpen"
@@ -613,7 +612,7 @@ useHead({
             :aria-hidden="!resourceOpen"
           >
             <div class="collapsible-inner min-w-0 overflow-hidden">
-              <div class="mx-auto max-w-2xl">
+              <div class="mx-auto max-w-4xl">
                 <article
                   class="prose prose-sm text-ink max-w-none px-5 pb-6 sm:px-6"
                   v-html="resourceHtml"
@@ -628,7 +627,7 @@ useHead({
         <section class="bg-card mt-4 overflow-hidden rounded-2xl shadow-sm">
           <button
             type="button"
-            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:px-6"
+            class="hover:bg-surface/40 focus-visible:ring-ring focus-visible:ring-offset-card flex w-full items-center gap-2 rounded-xl px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-6"
             :aria-expanded="filesOpen"
             aria-controls="files-panel"
             @click="toggleFilesPanel"
@@ -652,10 +651,7 @@ useHead({
             :aria-hidden="!filesOpen"
           >
             <div class="collapsible-inner min-w-0 overflow-hidden">
-              <ul
-                v-if="courseFiles.length > 0"
-                class="px-5 pb-4 sm:px-6"
-              >
+              <ul v-if="courseFiles.length > 0" class="px-5 pb-4 sm:px-6">
                 <li
                   v-for="file in courseFiles"
                   :key="file.rel_path"
@@ -664,7 +660,9 @@ useHead({
                   <span class="text-muted text-xs">
                     {{ file.name }}
                   </span>
-                  <span class="text-muted/70 font-mono text-[11px] tabular-nums">
+                  <span
+                    class="text-muted/70 font-mono text-[11px] tabular-nums"
+                  >
                     {{ formatFileSize(file.size) }}
                   </span>
                   <button

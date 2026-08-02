@@ -168,7 +168,7 @@ watch(
 
 <template>
   <BasicDetail :title="article?.title || ''" :subtitle="subtitle">
-    <div class="col-span-full mx-auto w-full max-w-2xl">
+    <div class="col-span-full mx-auto w-full max-w-4xl">
       <!-- Loading State -->
       <div v-if="isLoading" class="py-12 text-center">
         <div

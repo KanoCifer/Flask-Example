@@ -231,7 +231,8 @@ function onTablistKeydown(e: KeyboardEvent) {
 
   let next: number | null = null;
   if (e.key === 'ArrowRight') next = (current + 1) % tabButtons.length;
-  else if (e.key === 'ArrowLeft') next = (current - 1 + tabButtons.length) % tabButtons.length;
+  else if (e.key === 'ArrowLeft')
+    next = (current - 1 + tabButtons.length) % tabButtons.length;
   else if (e.key === 'Home') next = 0;
   else if (e.key === 'End') next = tabButtons.length - 1;
 
@@ -353,7 +354,7 @@ useHead({
             :aria-selected="activeTab === t.key"
             :aria-controls="`tabpanel-${t.key}`"
             :tabindex="activeTab === t.key ? 0 : -1"
-            class="focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[11px] font-medium tracking-[0.18em] uppercase transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            class="focus-visible:ring-ring focus-visible:ring-offset-card inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[11px] font-medium tracking-[0.18em] uppercase transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             :class="
               activeTab === t.key
                 ? 'bg-accent text-contrast shadow-accent/30 shadow-md'
@@ -380,7 +381,7 @@ useHead({
           aria-labelledby="tab-lesson"
           tabindex="0"
         >
-          <div class="mx-auto max-w-2xl">
+          <div class="mx-auto max-w-4xl">
             <article
               class="bg-card prose prose-sm text-ink max-w-none rounded-2xl px-6 py-6 shadow-sm sm:px-8 sm:py-8"
               v-html="lessonHtml"
@@ -399,70 +400,70 @@ useHead({
           <section
             class="bg-card space-y-4 rounded-2xl px-5 py-5 shadow-sm sm:px-6 sm:py-6"
           >
-          <div v-if="exercises.length === 0" class="text-muted text-sm">
-            这节课还没有练习题。
-          </div>
-          <ExerciseCard
-            v-for="(m, idx) in exercises"
-            :key="m.id"
-            :exercise="m"
-            :index="idx + 1"
-            @answered="onExerciseAnswered"
-          />
+            <div v-if="exercises.length === 0" class="text-muted text-sm">
+              这节课还没有练习题。
+            </div>
+            <ExerciseCard
+              v-for="(m, idx) in exercises"
+              :key="m.id"
+              :exercise="m"
+              :index="idx + 1"
+              @answered="onExerciseAnswered"
+            />
 
-          <!-- Action row -->
-          <div
-            v-if="exercises.length > 0"
-            class="bg-surface/40 mt-4 flex flex-col items-stretch gap-3 rounded-2xl p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between"
-          >
+            <!-- Action row -->
             <div
-              class="text-muted font-mono text-[11px] tracking-[0.12em] uppercase"
+              v-if="exercises.length > 0"
+              class="bg-surface/40 mt-4 flex flex-col items-stretch gap-3 rounded-2xl p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between"
             >
-              正确
-              <span class="text-ink font-mono font-medium tabular-nums">{{
-                scoreState.correct
-              }}</span>
-              /
-              <span class="text-ink font-mono font-medium tabular-nums">{{
-                scoreState.total
-              }}</span>
-              <span v-if="isSessionDone" class="text-ink ml-2">
-                · 本节已完成
-              </span>
-            </div>
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Button
-                size="sm"
-                :disabled="isSessionDone || !allExercisesAnsweredCorrectly"
-                @click="onMarkSessionDone"
+              <div
+                class="text-muted font-mono text-[11px] tracking-[0.12em] uppercase"
               >
-                <Check class="h-3.5 w-3.5" aria-hidden="true" />
-                本节完成
-              </Button>
-              <Button
-                size="sm"
-                :disabled="advancing"
-                class="shadow-accent/30 shadow-md hover:shadow-lg"
-                @click="onAdvance"
-              >
-                <Loader2
-                  v-if="advancing"
-                  class="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden="true"
-                />
-                <Sparkles v-else class="h-3.5 w-3.5" aria-hidden="true" />
-                <span class="font-mono">{{
-                  advancing ? '生成中…' : '下一课'
+                正确
+                <span class="text-ink font-mono font-medium tabular-nums">{{
+                  scoreState.correct
                 }}</span>
-                <ChevronRight
-                  v-if="!advancing"
-                  class="h-3.5 w-3.5"
-                  aria-hidden="true"
-                />
-              </Button>
+                /
+                <span class="text-ink font-mono font-medium tabular-nums">{{
+                  scoreState.total
+                }}</span>
+                <span v-if="isSessionDone" class="text-ink ml-2">
+                  · 本节已完成
+                </span>
+              </div>
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  size="sm"
+                  :disabled="isSessionDone || !allExercisesAnsweredCorrectly"
+                  @click="onMarkSessionDone"
+                >
+                  <Check class="h-3.5 w-3.5" aria-hidden="true" />
+                  本节完成
+                </Button>
+                <Button
+                  size="sm"
+                  :disabled="advancing"
+                  class="shadow-accent/30 shadow-md hover:shadow-lg"
+                  @click="onAdvance"
+                >
+                  <Loader2
+                    v-if="advancing"
+                    class="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                  <Sparkles v-else class="h-3.5 w-3.5" aria-hidden="true" />
+                  <span class="font-mono">{{
+                    advancing ? '生成中…' : '下一课'
+                  }}</span>
+                  <ChevronRight
+                    v-if="!advancing"
+                    class="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
+                </Button>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         </div>
       </template>
     </div>
