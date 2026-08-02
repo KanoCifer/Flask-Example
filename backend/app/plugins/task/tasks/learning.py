@@ -14,7 +14,7 @@
 
 设计依据：
 - 任务只执行一次（不再挂 broker 级 :class:`SmartRetryMiddleware`）：失败由
-  service 内部整 run 重试一次（``CourseGeneratorService._generate_lesson`` 用
+  service 内部整 run 重试一次（``CourseAgentRunner.run_lesson`` 用
   ``COURSE_AGENT_RETRY_HINT`` 追加提示再跑一轮），再失败抛
   ``RuntimeError``。``generate_course`` 捕获后直接 :func:`_mark_failed` 把
   ``LearningProgress.status`` 置 ``failed``；``generate_next_lesson`` 失败只

@@ -8,9 +8,11 @@ mark_progress / list_progress / merge_progress）留在旧文件，由 task-377 
 
 Mocking strategy (task-3555)：agent_driven 重构后 service 不再跑三步流水线
 （``_run_research`` / ``_run_step1`` / ``_run_step2`` 已删除），只调一次
-``_build_course_agent(...).arun(prompt)``（**无 ``output_schema``**——练习由
-``ExerciseWriter`` 工具落盘，最终响应内容被忽略）。
-测试用 ``_StubAgent`` monkeypatch ``CourseGeneratorService._build_course_agent``：
+``CourseAgentRunner.build_course_agent(...)`` 返回的 agent，``run_lesson`` 内
+``arun`` 走 **stream 模式**（``stream=True``，按流计费；``async for`` 消费事件、
+事件内容丢弃）——**无 ``output_schema``**（练习由 ``ExerciseWriter`` 工具落盘，
+最终响应内容被忽略）。
+测试用 ``_StubAgent`` monkeypatch ``CourseAgentRunner.build_course_agent``：
 stub 的 ``arun`` 模拟 agent 调用磁盘工具（``LessonWriter`` 四件套 /
 ``ExerciseWriter`` 显式 num/slug），**写语义委托真实 ``CoursePackageRepo``**
 （C1：与生产 ``create_learning_tools`` 薄适配器共用同一仓库，不再在 stub 里
@@ -49,12 +51,11 @@ from pymongo import AsyncMongoClient
 
 from app.core.config import get_settings
 from app.models.learning import LearningProgress
-from app.repositories.course_package_repo import (
-    CoursePackageRepo,
-    _parse_exercises,
-)
+from app.repositories.course_package_repo import CoursePackageRepo
+from app.repositories.exercise_md import _parse_exercises
 from app.repositories.learning_repo import LearningRepo
 from app.schemas.learning import Exercise
+from app.services.course_agent_runner import CourseAgentRunner
 from app.services.course_generator_service import CourseGeneratorService
 from app.services.learning_progress_service import LearningProgressService
 from app.services.learning_utils import build_course_id
@@ -221,10 +222,11 @@ class _StubAgent:
     """Stub 课程 agent：在 ``arun`` 内模拟工具写盘（无 output_schema）。
 
     task-3553 后 service 不再调 ``_run_step1`` / ``_run_step2``，只调一次
-    ``_build_course_agent(...).arun(prompt, session_id=...)``，**最终响应内容
-    被忽略**（练习由 ``ExerciseWriter`` 工具落盘）。本 stub 替代旧的 step1/step2
-    monkeypatch：``arun`` 内按真实工具语义模拟磁盘工具，但**写盘全部委托
-    :class:`CoursePackageRepo`**（C1）——
+    ``CourseAgentRunner.build_course_agent(...)`` 返回的 agent，
+    ``run_lesson`` 内 ``async for`` 消费 ``arun(stream=True)`` 事件流，**最终
+    响应内容被忽略**（练习由 ``ExerciseWriter`` 工具落盘）。本 stub 替代旧的
+    step1/step2 monkeypatch：``arun`` 内按真实工具语义模拟磁盘工具，但**写盘
+    全部委托 :class:`CoursePackageRepo`**（C1）——
 
     - **读路径走生产 FileTools**：实例化 ``FileTools(base_dir=repo.root,
       enable_read_file=True)``，模拟 agent 通过 FileTools 直接 ``read_file``
@@ -257,7 +259,7 @@ class _StubAgent:
       落盘两课。
 
     目标编号在**首次 arun** 从 ``repo.next_lesson_num()`` 推导并缓存
-    （:attr:`_target_num`），同一次 ``_generate_lesson`` 的兜底重试复用——
+    （:attr:`_target_num`），同一次 ``run_lesson`` 的兜底重试复用——
     与服务端「入参 lesson_num 为唯一权威」对齐。
 
     调用次数记录在 :attr:`arun_call_count` 供断言重试确实发生。
@@ -299,7 +301,7 @@ class _StubAgent:
         # ``arun`` 被调次数（task-3554 重试断言用）。
         self.arun_call_count = 0
         # 目标课编号：首次 arun 从 repo.next_lesson_num() 推导并缓存，兜底重试
-        # （同一次 _generate_lesson 内）复用同一目标——与服务端「入参 lesson_num
+        # （同一次 run_lesson 内）复用同一目标——与服务端「入参 lesson_num
         # 为唯一权威」对齐。
         self._target_num: int | None = None
         # ``arun`` 内模拟「带 mission_md 的 LessonWriter 调用」的记录
@@ -315,7 +317,13 @@ class _StubAgent:
         # extra_prompt、下一课 lean / 完整 prompt 组装）。
         self.prompts_received: list[str] = []
 
-    async def arun(self, prompt: str, session_id: str | None = None):
+    async def arun(
+        self,
+        prompt: str,
+        session_id: str | None = None,
+        stream: bool = False,
+        stream_events: bool = False,
+    ):
         self.arun_call_count += 1
         self.session_ids_received.append(session_id)
         self.prompts_received.append(prompt)
@@ -393,22 +401,27 @@ class _StubAgent:
                     title="课程练习",
                     exercises=self._exercises,
                 )
+        # async generator：生产 run_lesson 以 ``async for`` 消费 arun 的流式事件，
+        # stub 返回空流（不产生事件），写盘逻辑在迭代时执行——与生产「产物经工具
+        # 落盘、事件内容丢弃」语义一致。
+        if False:
+            yield None
 
 
 def _patch_course_agent(monkeypatch, stub_factory) -> None:
-    """把 ``CourseGeneratorService._build_course_agent`` 替换为返回 stub 的工厂。
+    """把 ``CourseAgentRunner.build_course_agent`` 替换为返回 stub 的工厂。
 
     Args:
         stub_factory: ``Callable[[CoursePackageRepo], _StubAgent]`` — 接收
-            service 传入的共享 ``CoursePackageRepo`` 实例，返回配置好的 stub
+            runner 传入的共享 ``CoursePackageRepo`` 实例，返回配置好的 stub
             agent（写语义委托同一仓库，C1）。
 
     Note:
-        生产 :meth:`CourseGeneratorService._build_course_agent` 是
-        ``async def``（返回 coroutine 等待 ``await``），自 task-391 后多了
-        ``model_id`` 参数（int 透传选模型）。此 stub 替换为 ``async`` lambda
-        + ``model_id`` 关键字参数，匹配生产签名；否则
-        ``await self._build_course_agent(repo, model_id)`` 会抛
+        生产 :meth:`CourseAgentRunner.build_course_agent` 是 ``async def``
+        （返回 coroutine 等待 ``await``），自 task-391 后多了 ``model_id``
+        参数（int 透传选模型）。此 stub 替换为 ``async`` lambda + ``model_id``
+        关键字参数，匹配生产签名；否则
+        ``await self.build_course_agent(repo, model_id)`` 会抛
         ``TypeError: takes 2 positional arguments but 3 were given`` 或
         ``'_StubAgent' object can't be awaited``。
     """
@@ -417,18 +430,18 @@ def _patch_course_agent(monkeypatch, stub_factory) -> None:
         return stub_factory(repo)
 
     monkeypatch.setattr(
-        CourseGeneratorService,
-        "_build_course_agent",
+        CourseAgentRunner,
+        "build_course_agent",
         _stub_build,
     )
 
 
 def _stub_factory(stub_holder: dict[str, _StubAgent], **kwargs) -> callable:
-    """生成 stub 工厂：接收 service 传入的 repo，构建 ``_StubAgent`` 并记录到 holder。
+    """生成 stub 工厂：接收 runner 传入的 repo，构建 ``_StubAgent`` 并记录到 holder。
 
-    C1 后 ``_StubAgent`` 需要真实 ``CoursePackageRepo``，而 repo 由 service 在
-    ``_generate_lesson`` 内创建——测试无法在 patch 前预构造 stub。改用「工厂内
-    构造 + holder 捕获」：``_build_course_agent`` 每次生成只被调一次，所以
+    C1 后 ``_StubAgent`` 需要真实 ``CoursePackageRepo``，而 repo 由 runner 在
+    ``run_lesson`` 内创建——测试无法在 patch 前预构造 stub。改用「工厂内
+    构造 + holder 捕获」：``build_course_agent`` 每次生成只被调一次，所以
     ``holder["stub"]`` 即为本次 run 实际使用的实例，供断言 ``arun_call_count``
     等。
 
@@ -946,7 +959,7 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
     lessons_dir = tmp_course_dir / cid / "lessons"
     (lessons_dir / "0002-PENDING.md").write_text("# race placeholder")
 
-    # 切到「计数」stub 工厂验证 _build_course_agent 不被调
+    # 切到「计数」stub 工厂验证 build_course_agent 不被调
     _patch_course_agent(monkeypatch, _counting_factory)
     n = await svc.generate_next_lesson(
         topic="Rust 入门", owner="u1", course_id=cid
@@ -1360,7 +1373,7 @@ async def test_generate_course_first_lesson_includes_extra_prompt(
         owner="u1",
     )
     second_stub = holder["stub"]
-    # 第二课的 stub 来自第二次 _build_course_agent 调用，取最近一次 arun
+    # 第二课的 stub 来自第二次 build_course_agent 调用，取最近一次 arun
     second_prompt = second_stub.prompts_received[-1]
     assert "额外要求：" not in second_prompt
     assert "课程主题：Go 入门" in second_prompt
@@ -1494,13 +1507,14 @@ async def test_preview_next_lesson_returns_model_id_from_progress(
     assert ctx.model_id == "deepseek-v4-pro"
 
 
-# ── 修复 pre-existing _build_course_agent mock 签名滞后 ────────────────────
+# ── 修复 pre-existing build_course_agent mock 签名滞后 ────────────────────
 
 
 async def test_build_course_agent_receives_model_id_arg(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    """``_build_course_agent`` 自 task-391 后接收 ``model_id`` 形参（int）。
+    """``CourseAgentRunner.build_course_agent`` 自 task-391 后接收 ``model_id``
+    形参（int）。
 
     stub 工厂必须兼容 3 参签名（self, repo, model_id），否则 ``generate_course``
     会抛 ``TypeError: takes 2 positional arguments but 3 were given``。
@@ -1513,7 +1527,13 @@ async def test_build_course_agent_receives_model_id_arg(
             def __init__(self, repo):
                 self._repo = repo
 
-            async def arun(self, prompt, session_id=None):
+            async def arun(
+                self,
+                prompt,
+                session_id=None,
+                stream: bool = False,
+                stream_events: bool = False,
+            ):
                 # 写入一个最小合法 lesson + exercise，让 generate_course 不重试
                 self._repo.LessonWriter(
                     num=1,
@@ -1540,7 +1560,9 @@ async def test_build_course_agent_receives_model_id_arg(
                         )
                     ],
                 )
-                return None
+                # async generator：被 run_lesson 的 ``async for`` 消费（见 _StubAgent）。
+                if False:
+                    yield None
 
         return _CaptureAgent(repo)
 
@@ -1550,7 +1572,7 @@ async def test_build_course_agent_receives_model_id_arg(
         return _capture_factory(repo)
 
     monkeypatch.setattr(
-        CourseGeneratorService, "_build_course_agent", _capture_build
+        CourseAgentRunner, "build_course_agent", _capture_build
     )
 
     svc = CourseGeneratorService(
@@ -1563,5 +1585,5 @@ async def test_build_course_agent_receives_model_id_arg(
         course_id=cid,
         model_id="deepseek-v4-pro",
     )
-    # _build_course_agent 收到的 model_id == generate_course 传入的 model_id
+    # build_course_agent 收到的 model_id == generate_course 传入的 model_id
     assert captured["model_id"] == "deepseek-v4-pro"

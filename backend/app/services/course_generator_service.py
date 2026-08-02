@@ -1,48 +1,4 @@
-"""Course generation service (task-374 C2 拆分：生成编排 + 混合读 + agent 构造).
-
-从 fat :class:`app.services.learning_service.LearningService` 拆出的**生成侧**
-service：课程生成编排（``generate_course`` / ``generate_next_lesson``）、两个
-混合读（``get_course`` / ``preview_next_lesson``）与 course agent 构造
-（``_build_course_agent`` / ``_generate_lesson``）。模块持有顶层 schema
-``NextLessonContext``。
-
-与纯进度侧 :class:`app.services.learning_progress_service.LearningProgressService`
-的边界（C2）：本类**不直接持有 ``LearningRepo``**，进度读写全部在构造时注入
-的 ``progress_svc`` 上进行——
-
-- ``generate_course`` 成功落盘后经 ``progress_svc.mark_ready`` 置 ``ready``
-  （替代原 ``LearningService._repo.upsert_progress(status="ready")``）。
-- ``get_course`` / ``preview_next_lesson`` 经
-  ``progress_svc.get_progress_or_expire`` 取状态门（None/failed→None、
-  pending→{"status":"pending"}）与 topic / goal / session_id；pending 超
-  ``LEARNING_PENDING_TTL_MINUTES`` 未就绪即置 ``failed``（读侧惰性恢复，
-  卡死任务不再永久 pending）。
-
-依赖方向：handler → service → repo；service → service（本类 → 纯进度类）
-单向向下，无循环。
-
-agent_driven 重构（task-3551/3552/3553）后，课程生成为**一次主 agent run**：
-
-- 单一课程 agent 绑定两个写磁盘工具（``LessonWriter`` / ``ExerciseWriter``，
-  issue #29 收敛为「一课一文件分发器」）+ 一个只读 ``FileTools(base_dir=repo.root)``
-  + 可选研究工具（Exa + Context7），在一次 ``arun`` 内自主完成「写课 + 写
-  resource + 出题」——lesson body / resource / mission / exercise 全部由
-  agent 经工具落盘，service 在 run 结束后只从磁盘读回，**不解析最终响应**
-  （无 ``output_schema``）。
-- 一课一文件落盘到 ``<learning-root>/<course-id>/lessons/0001-<slug>.md``
-  （learning-root 默认 ``<backend>/tmp/learning``，可用 ``LEARNING_ROOT_DIR``
-  环境变量配置；课程包布局统一由 :class:`CoursePackageRepo` 拥有）。
-- ``LearningProgress`` 统一经注入的 ``progress_svc`` 持久化（mark_ready /
-  get_progress），不感知 agno / DeepSeek / 磁盘布局。
-
-设计依据：
-- spec：``task-334``（PR #22 决策 #24 课程包结构）、``task-351``（一课一文件 +
-  渐进产出）、``task-3553``（三步流水线 → 一次 course agent run）、
-  ``task-374``（C2 拆分 fat LearningService）
-- 无 ``output_schema``（练习由 ``ExerciseWriter`` 工具落盘）→ 不再依赖 DeepSeek
-  JSON mode，``use_json_mode=False``；``arun`` 的最终响应内容被忽略，根治了
-  「模型把工具结果回显进最终响应 → 解析失败 → 整轮重试」这一类问题。
-"""
+"""Course generation service"""
 
 from __future__ import annotations
 
@@ -55,23 +11,11 @@ from agno.agent import Agent
 from agno.models.base import Model
 
 from app.core.config import get_settings
-from app.core.llm_factory import (
-    create_agent,
-    create_deepseek_model,
-    create_postgres_db,
-)
-from app.core.llm_prompts import (
-    COURSE_AGENT_INSTRUCTIONS,
-    COURSE_AGENT_NEXT_LESSON_HINT,
-    COURSE_AGENT_RETRY_HINT,
-    COURSE_AGENT_USER_PROMPT_TEMPLATE,
-    DEFAULT_GOAL_HINT,
-)
 from app.core.logger import logger
 from app.repositories.course_package_repo import CoursePackageRepo
 from app.schemas.learning import CoursePackage
+from app.services.course_agent_runner import CourseAgentRunner
 from app.services.learning_progress_service import LearningProgressService
-from app.services.learning_tools import create_learning_tools
 from app.services.learning_utils import build_course_id
 
 # ── 顶层 schema ─────────────────────────────────────────────────────── #
@@ -99,13 +43,13 @@ class NextLessonContext:
 
 
 class CourseGeneratorService:
-    """课程生成 service：一次 course agent run + 一课一文件 + 渐进产出（C2 生成侧）。
+    """课程生成 service：一次 course agent run + 一课一文件 + 渐进产出。
 
     Args:
         model: 可选注入；为 None 时用 ``create_deepseek_model()`` 默认值。
             测试时可注入 mock。
         agent: 可选注入；为 None 时按 model + 默认 db 即时构建。
-            :meth:`_build_course_agent` 注入时以其 model / db 为模板新建一份，
+            :class:`CourseAgentRunner` 注入时以其 model / db 为模板新建一份，
             避免 ``deepcopy(agent)`` 复制 run state / session 缓存带来的
             共享状态风险。
         tmp_dir: 课程包根目录；为 None 时依次取 ``LEARNING_ROOT_DIR`` 环境变量、
@@ -125,10 +69,13 @@ class CourseGeneratorService:
         tmp_dir: Path | None = None,
         progress_svc: LearningProgressService,
     ) -> None:
-        self._model = model
-        self._agent = agent
         self._tmp_dir = tmp_dir
         self._progress_svc = progress_svc
+        # agent 构造与单次 run 执行拆到 CourseAgentRunner（B 拆分），service
+        # 退化为编排 + 混合读门面；model / agent 注入经 runner 透传。
+        self._runner = CourseAgentRunner(
+            model=model, agent=agent, tmp_dir=tmp_dir
+        )
 
     # ── 公开 API ────────────────────────────────────────────────────── #
 
@@ -184,7 +131,7 @@ class CourseGeneratorService:
         ).info("func:generate_course: start")
 
         # 一步生成第 1 课（无上一课上下文），落盘三文件。课程包布局 / 编号 /
-        await self._generate_lesson(
+        await self._runner.run_lesson(
             topic=topic,
             course_id=course_id,
             owner=owner,
@@ -235,7 +182,7 @@ class CourseGeneratorService:
 
         模型一致性（task-391）：``model_id`` 由 :meth:`preview_next_lesson`
         从 ``LearningProgress.model_id`` 读出后透传，整门课保持同一模型；
-        ``None`` 时回退 ``_generate_lesson`` 默认 flash。
+        ``None`` 时回退 runner 默认 flash。
 
         Args:
             topic: 原始主题（用于 prompt）。
@@ -267,7 +214,7 @@ class CourseGeneratorService:
         #    锚定的会话，让 agent 跨轮记住前序 run 的消息；model_id 整门课
         #    保持同一模型，None 时回退 flash；run 后校验以 next_num 为唯一权威，
         #    经 repo.find_lesson 回查磁盘，不依赖仓库状态）
-        await self._generate_lesson(
+        await self._runner.run_lesson(
             topic=topic,
             course_id=course_id,
             owner=owner,
@@ -399,218 +346,6 @@ class CourseGeneratorService:
             session_id=progress.session_id,
             model_id=progress.model_id,
         )
-
-    # ── 内部 ──────────────────────────────────────────────────────── #
-
-    async def _build_course_agent(
-        self, repo: CoursePackageRepo, model_id: str = "deepseek-v4-flash"
-    ) -> Agent:
-        """构建**单一课程 agent**（agent_driven 重构核心路径，task-3553 已切换）。
-
-        为「一次主 agent run」提供 agent：
-
-        - **instructions** 用融合的 :data:`COURSE_AGENT_INSTRUCTIONS`
-          （写课 + 出题 + 工具使用 + 研究 + ZPD 说明），不再分 Step1 / Step2。
-        - **tools 显式传**：:func:`create_learning_tools` 返回的两个写磁盘工具
-          （``LessonWriter`` / ``ExerciseWriter``，issue #29）+ 一个
-          只读 ``FileTools(base_dir=repo.root, enable_read_file=True)`` 为基底；
-          配置了 ``EXA_API_KEY`` 时再追加研究工具（ExaTools + Context7
-          MCPTools），未配置则不挂（优雅降级——agent 上下文里没有搜索工具，
-          自然跳过研究）。
-        - 注入 ``self._agent`` 时以其 model / db 为模板新建一份；否则走 factory
-          ``create_deepseek_model`` + ``create_postgres_db``。
-
-        无 ``output_schema``（练习由 ``ExerciseWriter`` 工具落盘）→
-        ``use_json_mode=False``，不再要求 DeepSeek JSON-mode 合规。
-
-        Args:
-            repo: 课程包仓库实例，传给 :func:`create_learning_tools` 薄适配器
-                （与 service 的 exercise 配对共用同一实例）。
-
-        Returns:
-            已绑定 learning tools（+ 可选研究工具）与
-            :data:`COURSE_AGENT_INSTRUCTIONS` 的 :class:`Agent`。
-        """
-        tools = list(create_learning_tools(repo))
-
-        exa_api_key = get_settings().EXA_API_KEY
-        if exa_api_key:
-            # 课程 agent 研究工具裁剪（task-3553）：Exa 全子工具 + Context7
-            # MCPTools。MCPTools 作为 agent 常驻工具时生命周期由 agno 自动管理
-            # （arun 内 connect / 结束后 disconnect），无需手动 async with。
-            from agno.tools.exa import ExaTools
-            from agno.tools.mcp import MCPTools
-
-            ctx7 = MCPTools(
-                transport="streamable-http",
-                url="https://mcp.context7.com/mcp",
-            )
-            try:
-                await ctx7.connect()
-            except Exception as exc:
-                logger.warning(
-                    "Context7 MCP connect failed, dropping tool",
-                    error=str(exc),
-                )
-                await ctx7.close()  # 失败也 close 清理
-                ctx7 = None
-            if ctx7 is not None:
-                tools.append(ctx7)  # pyright: ignore[reportArgumentType]
-
-            tools.append(
-                ExaTools(api_key=exa_api_key, all=True, show_results=True),  # pyright: ignore[reportArgumentType]
-            )
-
-        if self._agent is not None:
-            # 只透传 create_agent 不硬编码、且不会与默认值冲突的模板属性
-            # （model / db / tools）。markdown / add_history_to_context /
-            # num_history_runs 被 create_agent 硬编码，透传会触发
-            # "got multiple values for keyword argument"（注入路径的既有缺陷，
-            # 本方法不复刻）。
-            return create_agent(
-                model=self._agent.model,  # pyright: ignore[reportArgumentType]
-                instructions=COURSE_AGENT_INSTRUCTIONS,
-                db=self._agent.db,  # pyright: ignore[reportArgumentType]
-                tools=tools,
-                use_json_mode=False,
-            )
-        return create_agent(
-            model=self._model or create_deepseek_model(model_id),
-            instructions=COURSE_AGENT_INSTRUCTIONS,
-            db=create_postgres_db(),
-            tools=tools,
-            use_json_mode=False,
-        )
-
-    async def _generate_lesson(
-        self,
-        *,
-        topic: str,
-        course_id: str,
-        owner: str,
-        lesson_num: int,
-        goal: str | None = None,
-        session_id: str | None = None,
-        repo: CoursePackageRepo | None = None,
-        model_id: str = "deepseek-v4-flash",
-        extra_prompt: str | None = None,
-    ) -> None:
-        """一次主 agent run 生成一课：四件套全部由 agent 经工具写盘。
-
-        - 不再有独立研究步：研究由主 agent 的 ExaTools（配置了
-          ``EXA_API_KEY`` 时）自主接管。
-        - lesson body / RESOURCE.md / MISSION.md / exercise.md **全部由 agent
-          在 run 内经工具写盘**（编号校验 / manifest / 原子写全在
-          :class:`CoursePackageRepo`）；``arun`` **不带 ``output_schema``**，
-          最终响应内容被忽略。
-        - run 结束后 service 只从磁盘读回：目标编号即入参 ``lesson_num``，
-          用 :meth:`CoursePackageRepo.find_lesson` 确认课正文已落盘并拿 ``slug``，
-          再经 :meth:`CoursePackageRepo.read_exercises` 解析同名练习——不再有
-          ``last_written_lesson`` 显式交接（issue #29 删除），重试顺序变化
-          不会错位。
-
-        会话记忆（task-373）：把 ``session_id`` 传给 ``Agent.arun``，让 agno
-        复用同一会话（``create_agent`` 已硬编码 ``add_history_to_context=True,
-        num_history_runs=20``），前序 run 的消息会被回放进 context。首课时
-        ``session_id`` 由 :meth:`generate_course` 锚定并落库到
-        ``LearningProgress.session_id``；后续 :meth:`generate_next_lesson` 从
-        progress 读出后透传。两轮都传同一个 session_id（包括兜底重试的
-        attempt 2），agent 能看到上一轮为何失败。
-
-        首课额外提示（task-394）：``extra_prompt`` 仅首课路径（``lesson_num == 1``）
-        注入用户消息——service 拼好「额外要求：<ep>」整行后填入模板的
-        ``{extra_prompt}`` 槽，空串 / ``None`` 时该槽渲染为空行（不出现"额外
-        要求："字样）。
-
-        下一课 lean prompt（task-394）：当 ``session_id`` 存在（即锚定了 agno
-        会话、agent 能从上下文回放前序消息）时，user message 简化为仅
-        ``course_id`` + :data:`COURSE_AGENT_NEXT_LESSON_HINT`——不再嵌
-        ``topic`` / ``goal`` / ``extra_prompt``，避免与 session 历史里首课已
-        收到的完整 prompt 重复。``session_id`` 缺失（老课程 / 测试直调）→ 回退
-        完整 prompt（嵌 topic / goal + 下一课 hint），让无上下文的 agent 也能
-        拿到必要输入。
-
-        兜底重试（task-3554）：run 结束后的「目标编号 lesson_num 缺 body 文件」或
-        「缺 exercise 文件」触发**整 run 重试一次**——第二次 run 用
-        :data:`COURSE_AGENT_RETRY_HINT` 追加到用户消息（拼在 lean / 完整
-        prompt 之上），指示 agent 补调 ``LessonWriter`` / ``ExerciseWriter``
-        落盘；两次均失败则抛 ``RuntimeError``。重试只覆盖 run **之后**的校验
-        失败；``arun`` 本身抛错不重试（直接上抛）。
-        """
-        repo = repo or CoursePackageRepo(
-            course_id=course_id, tmp_dir=self._tmp_dir
-        )
-        course_agent = await self._build_course_agent(repo, model_id)
-        ep_line = f"额外要求：{extra_prompt}" if extra_prompt else ""
-
-        if lesson_num > 1 and session_id:
-            base_prompt = (
-                f"course_id：{course_id}\n\n{COURSE_AGENT_NEXT_LESSON_HINT}"
-            )
-        else:
-            base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
-                topic=topic,
-                course_id=course_id,
-                goal=goal or DEFAULT_GOAL_HINT,
-                extra_prompt=ep_line,
-            )
-            if lesson_num > 1:
-                base_prompt = (
-                    base_prompt + "\n\n" + COURSE_AGENT_NEXT_LESSON_HINT
-                )
-        retry_prompt = base_prompt + "\n\n" + COURSE_AGENT_RETRY_HINT
-
-        last_error: RuntimeError | None = None
-        for attempt in (1, 2):
-            prompt = retry_prompt if attempt == 2 else base_prompt
-            # 无 output_schema：产物全部由 agent 经工具落盘，最终响应内容忽略。
-            course_agent.arun(prompt, session_id=session_id, stream=True, stream_events=True)
-            try:
-                # run 后校验：目标编号即入参 lesson_num（issue #29）。缺课正文
-                # （agent 漏调 LessonWriter 写目标 num）→ RuntimeError 触发整
-                # run 重试（task-3554）；正文落盘后读同名 exercise 校验练习。
-                found = repo.find_lesson(lesson_num)
-                if found is None:
-                    raise RuntimeError(
-                        "CourseAgent run 后未写课正文（目标编号 "
-                        f"{lesson_num:04d} 未落盘 <num>-<slug>.md），无法配对练习文件"
-                    )
-
-                # 练习题由 agent 经 ExerciseWriter 工具直接落盘，run 后从磁盘读回；
-                # 缺文件 / 解析为空（agent 漏调 ExerciseWriter 或内容非法）→ 重试。
-                exercises = repo.read_exercises(found[0], found[1])
-                if not exercises:
-                    raise RuntimeError(
-                        "CourseAgent run 后未落盘练习题（未调用 ExerciseWriter 或"
-                        "内容非法），无法配对 exercise 文件"
-                    )
-
-                logger.bind(
-                    course_id=course_id,
-                    owner=owner,
-                    lesson_num=found[0],
-                    slug=found[1],
-                    attempt=attempt,
-                    exercise_count=len(exercises),
-                ).info("learning lesson generated")
-                return
-            except RuntimeError as exc:
-                last_error = exc
-                logger.bind(
-                    course_id=course_id,
-                    owner=owner,
-                    lesson_num=lesson_num,
-                    attempt=attempt,
-                ).warning(
-                    "learning lesson attempt failed, will retry once"
-                    if attempt == 1
-                    else "learning lesson failed after retry",
-                    error=str(exc),
-                )
-
-        raise RuntimeError(
-            f"CourseAgent 生成课程失败（已重试一次）: {last_error}"
-        ) from last_error
 
 
 __all__ = [

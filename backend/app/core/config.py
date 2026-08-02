@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # 会立即抛错，便于部署期检查；与 API_KEY（AntLLM）解耦，老特性不受影响。
     DEEPSEEK_API_KEY: str = ""
     # Exa 接入（Learning 课程 agent 研究工具裁剪，task-3553）。为空字符串时
-    # _build_course_agent() 不挂研究工具（优雅降级），配置后则给课程 agent 追加
+    # CourseAgentRunner.build_course_agent() 不挂研究工具（优雅降级），配置后则给课程 agent 追加
     # ExaTools + Context7 MCPTools；与 API_KEY（AntLLM）/ DEEPSEEK_API_KEY 解耦，
     # 老特性不受影响。
     EXA_API_KEY: str = ""

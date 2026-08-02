@@ -20,11 +20,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.repositories.course_package_repo import (
-    CoursePackageRepo,
-    _parse_exercises,
-    _render_exercise_md,
-)
+from app.repositories.course_package_repo import CoursePackageRepo
+from app.repositories.exercise_md import _parse_exercises, _render_exercise_md
 from app.schemas.learning import Exercise
 
 # ── 本地 builders ────────────────────────────────────────────────────────
