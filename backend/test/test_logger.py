@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sys
 from datetime import UTC, datetime
 
 import pytest
@@ -194,3 +195,43 @@ class TestTimestampCoercion:
         ts = items[0]["timestamp"]
         assert isinstance(ts, datetime), f"expected datetime, got {type(ts).__name__}"
         assert ts.tzinfo is not None
+
+
+class TestUvicornRouting:
+    """uvicorn.error / uvicorn.access 走 stdout；其它 foreign logger 透传到 root。
+
+    约束：
+    - uvicorn.error: 单 stdout handler，propagate=False（不进文件）
+    - uvicorn.access: 单 stdout handler，propagate=True（同时进 app_info.log）
+    - taskiq / sqlalchemy.engine: 无自身 handler，propagate=True
+    - root 在 SAVE_LOGS=False 时无任何 StreamHandler（终端不再打业务日志）
+    """
+
+    def _handler_streams(self, logger_):
+        return {h.stream for h in logger_.handlers if isinstance(h, logging.StreamHandler)}
+
+    def test_root_has_no_stderr_handler(self):
+        """终端不再输出业务 / 框架日志——只剩 uvicorn.* 走 stdout。"""
+        streams = self._handler_streams(logging.getLogger())
+        assert sys.stderr not in streams
+        assert sys.stdout not in streams
+
+    def test_uvicorn_error_routes_to_stdout_only(self):
+        err = logging.getLogger("uvicorn.error")
+        streams = self._handler_streams(err)
+        assert sys.stdout in streams
+        assert sys.stderr not in streams
+        assert err.propagate is False  # 不进 app_error.log
+
+    def test_uvicorn_access_routes_to_stdout_and_propagates(self):
+        access = logging.getLogger("uvicorn.access")
+        streams = self._handler_streams(access)
+        assert sys.stdout in streams
+        assert sys.stderr not in streams
+        assert access.propagate is True  # 同时进 app_info.log
+
+    def test_taskiq_and_sqlalchemy_propagate_only(self):
+        for name in ("taskiq", "sqlalchemy.engine"):
+            lg = logging.getLogger(name)
+            assert lg.handlers == []
+            assert lg.propagate is True

@@ -5,9 +5,10 @@
 - structlog 经 ``wrap_for_formatter`` 把事件交回 stdlib ``logging``，
   由 ``ProcessorFormatter`` 统一渲染：业务日志与 uvicorn/taskiq/sqlalchemy 等
   foreign 记录走**同一条**处理器链、同一套 JSON 长相。
-- 双文件路由（info/error）：app_info.log 收 INFO ≤ level < ERROR，
-  app_error.log 收 ERROR+；uvicorn.access 的 handler 清掉后回传播到 root，
-  进 app_info.log。
+- 输出目标：uvicorn.error / uvicorn.access 走 **stdout**（生命周期与请求轨迹
+  在终端直接可见）；其余日志（app / taskiq / sqlalchemy）**只落盘**到
+  app_info.log / app_error.log，不再向 stderr 输出。uvicorn.access 同时透传
+  到 root，使每条请求仍按 trace_id 进 app_info.log。
 - trace_id 由 ``_add_trace_id`` 处理器从 contextvar 注入，FastAPI middleware
   与 taskiq TraceMiddleware 负责设置/复位（见 ``logging_context.py``）。
 - DB 持久化：专用 ``_DBHandler`` 终端处理器 ``_db_enqueue`` 做 fire-and-forget
@@ -273,16 +274,13 @@ async def drain_log_queue() -> None:
 # 组装 root logger
 # -----------------------------------------------------------------------------
 _root = logging.getLogger()
-# 清掉 basicConfig / 框架自带的 handler，全仓由下面四个 handler 接管
+# 清掉 basicConfig / 框架自带的 handler，全仓由下面三个 file/db handler 接管
 for _h in list(_root.handlers):
     _root.removeHandler(_h)
 _root.setLevel(logging.INFO)
 
-# 终端：一套渲染，级别由 LOG_LEVEL 控制
-_stderr_handler = logging.StreamHandler(sys.stderr)
-_stderr_handler.setLevel(_LOG_LEVEL)
-_stderr_handler.setFormatter(_make_formatter(_stderr_renderer))
-_root.addHandler(_stderr_handler)
+# 终端不再输出业务 / 框架日志（仅 uvicorn.* 单独挂 stdout handler，详见下方）。
+# 保留 _stderr_renderer 供 uvicorn.* stdout handler 复用同一渲染链。
 
 if get_settings().SAVE_LOGS:
     # app_info.log：INFO <= 级别 < ERROR 的主轨迹
@@ -317,22 +315,43 @@ if get_settings().SAVE_LOGS:
 
 
 # -----------------------------------------------------------------------------
-# foreign logger 收口：让 uvicorn/taskiq/sqlalchemy 透传到 root（取代 InterceptHandler）
+# foreign logger 路由：uvicorn.* 走 stdout，其它透传 root 落盘
 # -----------------------------------------------------------------------------
 def _install_foreign_propagation() -> None:
-    """清掉框架自带 handler、开 propagate，让 foreign 记录走 root 统一渲染。
+    """拆分 foreign logger 的输出目标。
 
-    取代旧 ``InterceptHandler``：structlog 的 ``ProcessorFormatter`` +
-    ``foreign_pre_chain`` 已能在 root 上把 stdlib 记录渲染成同款 JSON，无需
-    再用 handler 拦截转发（也就消除了旧实现里 ``name``→``origin`` 的 workaround）。
+    - ``uvicorn.error``：清自带 handler、挂 stdout handler、``propagate=False``
+      （生命周期事件只到 stdout，避免和业务 ERROR 混进 app_error.log）。
+    - ``uvicorn.access``：清自带 handler、挂 stdout handler、``propagate=True``
+      （请求轨迹同时进 app_info.log，按 trace_id 与业务日志串联）。
+    - ``taskiq`` / ``sqlalchemy.engine``：清自带 handler、``propagate=True``，
+      由 root 的 file handlers 统一落盘。
+
+    structlog 的 ``ProcessorFormatter`` + ``foreign_pre_chain`` 在每个目标 logger
+    上都把 stdlib 记录渲染成同款 JSON，无需 InterceptHandler 拦截转发。
     """
-    for name in (
-        "uvicorn",
-        "uvicorn.error",
-        "uvicorn.access",
-        "taskiq",
-        "sqlalchemy.engine",
-    ):
+    stdout_formatter = _make_formatter(_stderr_renderer)
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(_LOG_LEVEL)
+    stdout_handler.setFormatter(stdout_formatter)
+
+    # 父 logger "uvicorn" 也清掉自带 handler，挂同一个 stdout handler——某些 uvicorn
+    # 版本会直接在 "uvicorn" 上发启动/关闭事件；propagate=False 避免子 logger 重复。
+    uvicorn_root = logging.getLogger("uvicorn")
+    uvicorn_root.handlers = [stdout_handler]
+    uvicorn_root.propagate = False
+
+    _uvicorn_error = logging.getLogger("uvicorn.error")
+    _uvicorn_error.handlers = [stdout_handler]
+    _uvicorn_error.propagate = False
+    _uvicorn_error.setLevel(logging.INFO)
+
+    _uvicorn_access = logging.getLogger("uvicorn.access")
+    _uvicorn_access.handlers = [stdout_handler]
+    _uvicorn_access.propagate = True  # 同时进 root → app_info.log
+    _uvicorn_access.setLevel(logging.INFO)
+
+    for name in ("taskiq", "sqlalchemy.engine"):
         std_logger = logging.getLogger(name)
         std_logger.handlers = []
         std_logger.propagate = True

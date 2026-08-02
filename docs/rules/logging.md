@@ -10,6 +10,7 @@
 
 - 全仓库日志统一走 `structlog`（`from app.core.logger import logger`），输出 JSON。
 - structlog 经 `wrap_for_formatter` 把事件交回 stdlib `logging`，由 `ProcessorFormatter` 统一渲染：业务日志与 uvicorn / taskiq / sqlalchemy 等 foreign 记录走**同一条**处理器链、同一套 JSON 长相。foreign logger（`uvicorn.*` / `taskiq` / `sqlalchemy.engine`）清掉自带 handler、开 `propagate` 透传到 root，**禁止**各框架各自向 stderr 输出第二套格式。
+- 输出目标：**uvicorn.error / uvicorn.access 走 stdout**（生命周期与请求轨迹在终端直接可见）；其余日志（app / taskiq / sqlalchemy）**只落盘**到 `app_info.log` / `app_error.log`，**不向 stderr 输出**。`uvicorn.access` 同时 `propagate=True` 透传到 root，使每条请求仍按 trace_id 进 `app_info.log`；`uvicorn.error` `propagate=False`，避免生命周期噪音混入业务 ERROR 文件。
 - 终端在 TTY 下用 `ConsoleRenderer`（dev 可读），非 TTY 与文件统一 `JSONRenderer`。
 - 禁止 `import logging` 后直接用 stdlib 根 logger 打业务日志；业务日志只用 `structlog` 的 `logger`。
 - 日志级别由 `LOG_LEVEL` 环境变量控制（默认 INFO）；DB 入库阈值固定为 `WARNING+`（warning / error / critical），按 level 名字集合判定（`_LEVELS_FOR_DB`），不再暴露为运行时配置——保持输出 schema 四键精简。
@@ -24,8 +25,8 @@
 | `app_error.log` | 异常与错误 | ERROR+ | 任何层            |
 
 - 不按 `user` / `article` / `rss` 等领域分文件。跨域调用（如 rss → cache → notify）的日志切不干净，分文件只会让一次排查散落多文件。
-- 两个文件仅在 `SAVE_LOGS=True` 时启用（受 `LOG_PATH` / `LOG_DIR` 控制路径）；终端（stderr）始终输出。
-- `uvicorn.access` 的自带 handler 被清掉后回传播到 root，进入 `app_info.log`——不再单独剥离 access 轨迹。
+- 两个文件仅在 `SAVE_LOGS=True` 时启用（受 `LOG_PATH` / `LOG_DIR` 控制路径）；业务日志与 `taskiq` / `sqlalchemy` 等 foreign 记录**不再向 stderr 输出**，由文件承担持久化职责。
+- `uvicorn.access` 的自带 handler 被清掉后挂 stdout handler 并回传播到 root，进 `app_info.log`——不再单独剥离 access 轨迹。
 
 ## 3. 结构化——message 给人，extra 给机器
 
