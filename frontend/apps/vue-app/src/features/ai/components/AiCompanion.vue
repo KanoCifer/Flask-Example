@@ -117,7 +117,7 @@ function toggleReasoning(msg: AiMessage) {
 
 <template>
   <section
-    class="from-card/70 via-card/50 to-accent/[0.04] shadow-accent/[0.06] ring-accent/[0.08] mb-6 overflow-hidden rounded-3xl bg-gradient-to-br shadow-sm ring-1 backdrop-blur-xs motion-reduce:backdrop-blur-none"
+    class="from-card/70 via-card/50 to-accent/[0.04] shadow-accent/[0.06] ring-accent/[0.08] mb-6 overflow-hidden rounded-[28px] bg-gradient-to-br shadow-sm ring-1 backdrop-blur-xs motion-reduce:backdrop-blur-none"
   >
     <!-- 辉光层：icon 背后的呼吸光晕，生成时脉冲加速 -->
     <div class="relative">
@@ -335,7 +335,7 @@ function toggleReasoning(msg: AiMessage) {
     </div>
 
     <!-- Input bar -->
-    <div class="px-4 py-3">
+    <div class="p-4">
       <div
         class="bg-surface/30 focus-within:ring-ring/40 rounded-xl border transition-colors focus-within:ring-2"
       >

@@ -1,29 +1,4 @@
-/* =========================================================================
-   .prose — 文章正文展示系统（双前端共享）
-   -------------------------------------------------------------------------
-   覆盖 5 个使用场景：blog 长文、rss 转存文章、ai 摘要、气象分析、markdown 预览。
-   调性：Quiet / 慢阅读。
-
-   关键约束：
-   - 走主题 token（var(--ink) / var(--page) / var(--accent) / var(--warm-gray) /
-     var(--muted-text) / var(--border) / var(--accent-slate) / var(--secondary)），
-     不写死 hex/oklch/rose-amber-emerald Tailwind 默认色。
-   - 不引入新字体、不引入新 icon、不写 hex。
-   - 标题走 system serif 文学调；body 走 --font-sans，line-height 1.75，measure 65–72ch。
-   - 色板收敛到 --ink / --muted-text / --accent / --border / --warm-gray；
-     二级文字永远走 color-mix(--ink, transparent)，禁止中性灰。
-   - blockquote 改 1px 左 hairline + 0.5px 顶 hairline，无背景薄染，无起大引号。
-   - 不做 eyebrow / kicker，不做首段 drop cap，不做彩色 border-left 装饰条。
-   - focus ring 强制 2px + offset 3px（可访问底线）。
-   - code block 双面色，无终端 chrome；删除原 ::before 语言标签（噪声），
-     提供可选 .prose-code-tag 元素选择器，由作者按需放置。
-   - wrapper chrome（cover / header / volume-band / byline / share-cta / footer /
-     author）视觉全部由 prose.css 决定，组件保持 class 名即可。
-   - rehype 产出的 .not-prose 永远不被覆盖。
-   ========================================================================= */
-
 .prose {
-    /* —— Tailwind typography 不被主题控制，需要重写全部 prose 变量 —— */
     --tw-prose-body: var(--ink);
     --tw-prose-headings: var(--ink);
     --tw-prose-lead: var(--muted-text);
@@ -48,14 +23,11 @@
     font-family: var(--font-sans);
     font-size: 1.0625rem; /* 17px，Quiet */
     line-height: 1.65; /* 原则 7：body 1.5–1.6，1.65 兼顾 CJK 节奏 */
-    /* 4.5:1 baseline — --ink 在所有 10 主题的 paper 上均 ≥ 4.5:1 */
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     white-space: pre-wrap;
 
-    /* measure 65–72ch：38rem 在 17px 下 ≈ 60–64 半角 / 28–32 CJK，
-       落在 60–75 区间下沿，避免 40rem 触边的风险 */
-    max-width: 38rem;
+    max-width: 56rem;
     margin-left: auto;
     margin-right: auto;
     padding-left: 1.5rem;
