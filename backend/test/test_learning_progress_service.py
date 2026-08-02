@@ -56,6 +56,8 @@ class _FakeRepo:
         status: str,
         goal: str | None = None,
         session_id: str | None = None,
+        model_id: str | None = None,
+        extra_prompt: str | None = None,
     ) -> None:
         self.upsert_calls.append(
             {
@@ -65,6 +67,8 @@ class _FakeRepo:
                 "status": status,
                 "goal": goal,
                 "session_id": session_id,
+                "model_id": model_id,
+                "extra_prompt": extra_prompt,
             }
         )
 
@@ -157,6 +161,8 @@ async def test_create_pending_passes_status_pending_and_goal():
             "status": "pending",
             "goal": "g1",
             "session_id": None,
+            "model_id": None,
+            "extra_prompt": None,
         }
     ]
 
@@ -301,6 +307,8 @@ async def test_mark_ready_passes_ready_topic_goal_session_id():
             "status": "ready",
             "goal": "g1",
             "session_id": "sess-1",
+            "model_id": None,
+            "extra_prompt": None,
         }
     ]
 
@@ -316,6 +324,74 @@ async def test_mark_ready_defaults_goal_and_session_id_none():
     assert repo.upsert_calls[0]["topic"] == "T"
     assert repo.upsert_calls[0]["goal"] is None
     assert repo.upsert_calls[0]["session_id"] is None
+
+
+# ── mark_ready / create_pending 透传 model_id + extra_prompt (task-391) ──
+
+
+async def test_create_pending_forwards_model_id_and_extra_prompt():
+    """create_pending 把 model_id / extra_prompt 透传给 repo.upsert_progress。
+
+    API 提交阶段即落库这两字段，确保 ``preview_next_lesson`` 后续能从
+    ``LearningProgress`` 读回同一模型 / 额外提示。
+    """
+    repo = _FakeRepo()
+    svc = LearningProgressService(repo=repo)
+
+    await svc.create_pending(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        goal="g1",
+        model_id="deepseek-v4-pro",
+        extra_prompt="面向初学者",
+    )
+
+    assert repo.upsert_calls == [
+        {
+            "owner": "u1",
+            "course_id": "c--00000001",
+            "topic": "Rust 入门",
+            "status": "pending",
+            "goal": "g1",
+            "session_id": None,
+            "model_id": "deepseek-v4-pro",
+            "extra_prompt": "面向初学者",
+        }
+    ]
+
+
+async def test_mark_ready_forwards_model_id_and_extra_prompt():
+    """mark_ready 把 model_id / extra_prompt 透传给 repo.upsert_progress。
+
+    worker 完成首课生成后再确认落库一次（与 mark_ready 自身的 ready 状态
+    切换对齐），让 progress 始终带 model_id / extra_prompt。
+    """
+    repo = _FakeRepo()
+    svc = LearningProgressService(repo=repo)
+
+    await svc.mark_ready(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        goal="g1",
+        session_id="sess-1",
+        model_id="deepseek-v4-pro",
+        extra_prompt="面向初学者",
+    )
+
+    assert repo.upsert_calls == [
+        {
+            "owner": "u1",
+            "course_id": "c--00000001",
+            "topic": "Rust 入门",
+            "status": "ready",
+            "goal": "g1",
+            "session_id": "sess-1",
+            "model_id": "deepseek-v4-pro",
+            "extra_prompt": "面向初学者",
+        }
+    ]
 
 
 # ── mark_failed ───────────────────────────────────────────────────────────

@@ -20,9 +20,15 @@ import type {
   CourseStatusResponse,
   LearningCourse,
   LearningLesson,
+  LearningModel,
   LearningProgressItem,
   NextLessonResponse,
 } from '@/features/learning/types';
+
+/** 学习模型下拉失败时的硬降级（task-391）：单条 flash 选项，不阻塞主题提交。 */
+const FALLBACK_MODELS: LearningModel[] = [
+  { id: 'deepseek-v4-flash', label: 'Flash（快速）', is_premium: false },
+];
 
 /** 轮询节奏:1.5s — 后端 LLM 一次生成大约 10–30s,体感接近实时即可。 */
 const POLL_INTERVAL_MS = 1500;
@@ -51,6 +57,10 @@ export function useLearningCourse() {
   const progressList = ref<LearningProgressItem[]>([]);
   /** 进度加载态。 */
   const progressLoading = ref(false);
+  /** 可用学习模型（task-391）：前端下拉的数据源。 */
+  const models = ref<LearningModel[]>([]);
+  /** 模型加载态 — 用于避免 onMounted 完成前 UI 闪烁空态。 */
+  const modelsLoading = ref(false);
 
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let pollStartedAt = 0;
@@ -69,6 +79,7 @@ export function useLearningCourse() {
    *
    * @param inputTopic 学习主题。
    * @param inputGoal 学习目标(可选),后端用于组织 MISSION.md 文案。
+   * @param inputExtras 可选透传(task-391):`modelId` / `extraPrompt`。
    *
    * 失败语义:
    *   - 后端返回 failed:抛错并将 error 写为可读中文提示。
@@ -78,6 +89,7 @@ export function useLearningCourse() {
   async function submitTopic(
     inputTopic: string,
     inputGoal?: string,
+    inputExtras?: { modelId?: string; extraPrompt?: string },
   ): Promise<SubmittedCourse> {
     const trimmed = inputTopic.trim();
     if (!trimmed) {
@@ -99,7 +111,11 @@ export function useLearningCourse() {
     courseStatus.value = null;
 
     try {
-      const created = await learningGateway.createCourse(trimmed, inputGoal);
+      const created = await learningGateway.createCourse(
+        trimmed,
+        inputGoal,
+        inputExtras,
+      );
       pendingCourseId.value = created.course_id;
 
       // 立即 GET 一次,可能后端同步生成好,直接拿到 ready 走 fast-path。
@@ -324,6 +340,23 @@ export function useLearningCourse() {
     }
   }
 
+  /**
+   * 拉取可用学习模型（task-391）：前端下拉的数据源。
+   *
+   * 失败时静默回退到 `FALLBACK_MODELS`（单条 flash），不阻塞主题提交：
+   * 模型下拉至少有一个可选选项，匿名用户也能继续走默认 flash。
+   */
+  async function loadModels() {
+    modelsLoading.value = true;
+    try {
+      models.value = await learningGateway.listModels();
+    } catch {
+      models.value = [...FALLBACK_MODELS];
+    } finally {
+      modelsLoading.value = false;
+    }
+  }
+
   /** 标记某一节完成。返回后端下发的最新进度项;失败抛错。 */
   async function markSessionDone(
     courseId: string,
@@ -405,10 +438,13 @@ export function useLearningCourse() {
     courseStatus,
     progressList,
     progressLoading,
+    models,
+    modelsLoading,
     // 行为
     submitTopic,
     loadCourse,
     loadProgress,
+    loadModels,
     generateNextLesson,
     pollForLesson,
     markSessionDone,

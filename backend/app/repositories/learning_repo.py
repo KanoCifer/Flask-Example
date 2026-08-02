@@ -45,20 +45,29 @@ class LearningRepo:
         status: str,
         goal: str | None = None,
         session_id: str | None = None,
+        model_id: str | None = None,
+        extra_prompt: str | None = None,
     ) -> LearningProgress:
         """创建或替换一条进度记录（按唯一索引 (owner, course_id)）。
 
-        - 已存在：topic / status 无条件替换，goal / session_id 仅在非 ``None``
-          时替换，原 sessions_done / exercise_done 保留。
-        - 不存在：插入新行，created_at 由模型默认值生成；goal / session_id 不
-          传则为 None。
+        - 已存在：topic / status 无条件替换，goal / session_id / model_id /
+          extra_prompt 仅在非 ``None`` 时替换，原 sessions_done /
+          exercise_done 保留。
+        - 不存在：插入新行，created_at 由模型默认值生成；可空字段不传则为
+          None。
 
         存量旧字段不迁移，见 task-365。
         """
         existing = await self.get_progress(owner, course_id)
         if existing is not None:
             await self._apply_upsert_fields(
-                existing, topic, status, goal, session_id
+                existing,
+                topic,
+                status,
+                goal,
+                session_id,
+                model_id,
+                extra_prompt,
             )
             return existing
 
@@ -69,6 +78,8 @@ class LearningRepo:
             status=status,
             goal=goal,
             session_id=session_id,
+            model_id=model_id,
+            extra_prompt=extra_prompt,
             created_at=datetime.now(UTC),
         )
         try:
@@ -79,7 +90,13 @@ class LearningRepo:
             if existing is None:  # pragma: no cover - 极端竞态
                 raise
             await self._apply_upsert_fields(
-                existing, topic, status, goal, session_id
+                existing,
+                topic,
+                status,
+                goal,
+                session_id,
+                model_id,
+                extra_prompt,
             )
             return existing
         return new_doc
@@ -91,14 +108,20 @@ class LearningRepo:
         status: str,
         goal: str | None,
         session_id: str | None = None,
+        model_id: str | None = None,
+        extra_prompt: str | None = None,
     ) -> LearningProgress:
-        """已存在分支的统一字段应用：topic/status 替换，goal/session_id 非 None 才替换。"""
+        """已存在分支的统一字段应用：topic/status 替换，其余字段非 None 才替换。"""
         doc.topic = topic
         doc.status = status
         if goal is not None:
             doc.goal = goal
         if session_id is not None:
             doc.session_id = session_id
+        if model_id is not None:
+            doc.model_id = model_id
+        if extra_prompt is not None:
+            doc.extra_prompt = extra_prompt
         await doc.save()
         return doc
 

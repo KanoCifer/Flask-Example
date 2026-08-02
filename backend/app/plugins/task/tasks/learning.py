@@ -39,6 +39,8 @@ async def generate_course(
     owner: str,
     course_id: str,
     goal: str | None = None,
+    model_id: str = "deepseek-v4-flash",
+    extra_prompt: str | None = None,
     context: Context = TaskiqDepends(),
 ) -> None:
     """生成课程包并落盘；最终把 ``LearningProgress`` 置 ``ready``。
@@ -51,6 +53,9 @@ async def generate_course(
     :param course_id: 课程 ID（API 层预计算并已 upsert 了一条
         ``status="pending"`` 记录）。
     :param goal: 学习目标（可选），透传给 service 组织 MISSION.md 文案。
+    :param model_id: 模型 ID（task-391），默认为 "deepseek-v4-flash"。
+    :param extra_prompt: 用户补充的额外提示（task-391，可选），首课 prompt
+        使用并落库到 ``LearningProgress`` 用于审计 / 首课重生成。
     """
     logger.bind(course_id=course_id, owner=owner, topic=topic).info(
         "learning: course generation task started"
@@ -63,7 +68,12 @@ async def generate_course(
             context.state.services.course_gen_svc
         )
         await course_gen_svc.generate_course(
-            topic=topic, owner=owner, goal=goal, course_id=course_id
+            topic=topic,
+            owner=owner,
+            goal=goal,
+            course_id=course_id,
+            model_id=model_id,
+            extra_prompt=extra_prompt,
         )
     except Exception as exc:
         logger.bind(course_id=course_id, owner=owner).error(
@@ -84,6 +94,7 @@ async def generate_next_lesson(
     course_id: str,
     goal: str | None = None,
     session_id: str | None = None,
+    model_id: str | None = None,
     context: Context = TaskiqDepends(),
 ) -> int | None:
     """渐进产出：在已有课程下生成下一课并落盘（task-352）。
@@ -104,6 +115,8 @@ async def generate_next_lesson(
         MISSION.md 目标一致）。
     :param session_id: agno 会话 ID（task-373，API 层从 progress 读出转发，
         复用首课锚定的会话让 agent 跨轮记住上下文）。
+    :param model_id: 模型 ID（task-391，API 层从 progress 读出转发，整门课
+        保持同一模型；None 时回退 flash）。
     :return: 新课编号；幂等命中（已存在）时返回 None。
     """
     logger.bind(course_id=course_id, owner=owner, topic=topic).info(
@@ -121,6 +134,7 @@ async def generate_next_lesson(
             course_id=course_id,
             goal=goal,
             session_id=session_id,
+            model_id=model_id,
         )
     except Exception as exc:
         logger.bind(course_id=course_id, owner=owner).error(

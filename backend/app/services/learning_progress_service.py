@@ -32,7 +32,14 @@ class LearningProgressService:
         self._repo = repo or LearningRepo()
 
     async def create_pending(
-        self, owner: str, course_id: str, topic: str, goal: str | None = None
+        self,
+        owner: str,
+        course_id: str,
+        topic: str,
+        goal: str | None = None,
+        *,
+        model_id: str | None = None,
+        extra_prompt: str | None = None,
     ) -> None:
         """API 提交阶段：先 upsert 一条 ``LearningProgress(status="pending")``。
 
@@ -49,6 +56,10 @@ class LearningProgressService:
             course_id: 课程 ID。
             topic: 学习主题。
             goal: 学习目标（可选），随 pending 记录落库。
+            model_id: 用户选择的模型（task-391），随 pending 记录落库；
+                后续课经 :meth:`preview_next_lesson` 复用同一模型。
+            extra_prompt: 用户补充的额外提示（task-391），随 pending 记录落库；
+                仅首课 prompt 使用，不注入后续课。
         """
         await self._repo.upsert_progress(
             owner=owner,
@@ -56,6 +67,8 @@ class LearningProgressService:
             topic=topic,
             status="pending",
             goal=goal,
+            model_id=model_id,
+            extra_prompt=extra_prompt,
         )
 
     async def list_progress(self, owner: str) -> list[dict[str, Any]]:
@@ -187,6 +200,9 @@ class LearningProgressService:
         topic: str,
         goal: str | None = None,
         session_id: str | None = None,
+        *,
+        model_id: str | None = None,
+        extra_prompt: str | None = None,
     ) -> None:
         """生成成功后置 ``ready``：upsert ``LearningProgress(status="ready")``。
 
@@ -200,6 +216,8 @@ class LearningProgressService:
             topic: 学习主题。
             goal: 学习目标（可选）。
             session_id: agno 会话 ID（可选），首课生成时锚定。
+            model_id: 模型 ID（task-391），ready 时再次确认落库。
+            extra_prompt: 额外提示（task-391），ready 时再次确认落库。
         """
         await self._repo.upsert_progress(
             owner=owner,
@@ -208,6 +226,8 @@ class LearningProgressService:
             status="ready",
             goal=goal,
             session_id=session_id,
+            model_id=model_id,
+            extra_prompt=extra_prompt,
         )
         logger.bind(
             course_id=course_id, owner=owner, status="ready"

@@ -59,7 +59,14 @@ def create_llm_model(
     )
 
 
-_DEEPSEEK_MODEL_IDS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
+# Learning 模块可用模型元数据（task-391）。单一事实来源：
+# ``GET /v2/learning/models`` 端点数据与 :func:`create_deepseek_model` 的白名单
+# 校验都从这里出，避免前端与后端硬编码同步漂移。
+LEARNING_MODELS = (
+    {"id": "deepseek-v4-flash", "label": "Flash（快速）", "is_premium": False},
+    {"id": "deepseek-v4-pro", "label": "Pro（深度）", "is_premium": True},
+)
+LEARNING_MODEL_IDS = frozenset(m["id"] for m in LEARNING_MODELS)
 
 
 def create_deepseek_model(
@@ -68,21 +75,20 @@ def create_deepseek_model(
     """创建 DeepSeek 模型实例（用于 Learning 模块）。
 
     Args:
-        model_id: 必须落在 :data:`_DEEPSEEK_MODEL_IDS` 白名单内。
+        model_id: 必须落在 :data:`LEARNING_MODEL_IDS` 白名单内。
         timeout: HTTP 超时秒数。
-        use_thinking: 透传给 DeepSeek 的 ``use_thinking``。``None`` 走模型默认。
 
     Returns:
-        已配置好 api_key / base_url / role_map 的 :class:`DeepSeek` 实例。
+        已配置好的 :class:`DeepSeek` 实例。
 
     Raises:
         RuntimeError: ``DEEPSEEK_API_KEY`` 未配置。
         ValueError: ``model_id`` 不在白名单内。
     """
-    if model_id not in _DEEPSEEK_MODEL_IDS:
+    if model_id not in LEARNING_MODEL_IDS:
         raise ValueError(
             f"Unsupported DeepSeek model_id: {model_id!r}. "
-            f"Allowed: {sorted(_DEEPSEEK_MODEL_IDS)}"
+            f"Allowed: {sorted(LEARNING_MODEL_IDS)}"
         )
 
     api_key = get_settings().DEEPSEEK_API_KEY

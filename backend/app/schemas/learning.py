@@ -19,6 +19,13 @@ class CourseGenerateInput(BaseModel):
         max_length=200,
         description="学习目标（可选，≤200 字符），用于组织 MISSION.md 具体文案",
     )
+    model_id: str = Field(
+        "deepseek-v4-flash", description="要使用的模型，登录后解锁高级模型"
+    )
+    extra_prompt: str | None = Field(
+        default=None,
+        description="额外的提示（可选）",
+    )
 
 
 # ── 练习（Exercise） ───────────────────────────────────────────────────── #

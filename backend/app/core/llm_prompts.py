@@ -15,16 +15,10 @@
 # lesson.md / exercise.md 公共 front matter 字段，与原型 sample 对齐。
 LEARNING_MODEL_ID = "deepseek-v4-flash"
 LANGUAGE = "zh"
-# 用户未提供 goal 时填入用户消息的缺省提示（task-3654/3655），由 service 引用。
+# 用户未提供 goal 时填入用户消息的缺省提示。
 DEFAULT_GOAL_HINT = "未提供,请从主题推断学习目标"
 
-# 单一课程 agent 的系统指令（agent_driven 重构第 3 步，task-3552）。
-# 融合原 STEP1（写 lesson_md + resource_md + title/slug 元数据）与 STEP2
-# （出练习题）两套规范，并补充工具使用 / 研究 / 收尾说明。
-# 本常量由 :meth:`CourseGeneratorService._build_course_agent` 使用；三步流水线已在
-# task-3553 删除，旧 STEP1_INSTRUCTIONS / STEP2_INSTRUCTIONS /
-# STEP1_USER_PROMPT_TEMPLATE / STEP2_USER_PROMPT_TEMPLATE / STEP2_RETRY_HINT
-# 已被清理（task-3556 / task-3558），内容全部融合进本常量。
+# 单一课程 agent 的系统指令。
 COURSE_AGENT_INSTRUCTIONS = (
     "你是一名资深的中文课程主编 + 出题人。基于用户给定的主题，使用提供的工具"
     "自主完成课程产出：写课（lesson.md）、写共享资料（resource.md）、出练习"
@@ -91,16 +85,12 @@ COURSE_AGENT_INSTRUCTIONS = (
     "- ``generated_at`` 用当前时间 ISO8601 字符串。"
 )
 
-# 单一课程 agent 的用户消息模板（task-3553 切换后 service 拼给一次 arun）。
-# ZPD 不再由 service 拼进 prompt——上一课正文由 agent 通过 FileTools
-# ``read_file`` 读 ``lessons/`` 下编号最大的 lesson md 自取；研究由 agent
-# 自主决定是否调用（研究工具可选挂载）。
-# ``{goal}`` 槽（task-3654/3655）：学习目标。service 负责缺省——
-# 用户没提供时传 :data:`DEFAULT_GOAL_HINT`，本模板只留占位。
+# 单一课程 agent 的用户消息模板。
 COURSE_AGENT_USER_PROMPT_TEMPLATE = (
     "课程主题：{topic}\n"
     "course_id：{course_id}\n"
-    "学习目标：{goal}\n\n"
+    "学习目标：{goal}\n"
+    "{extra_prompt}\n\n"
     "请使用提供的工具完成本课的课程包：用 ``save_lesson`` 写一课正文，"
     "用 ``save_resource`` 写全课程共享资料（覆盖已有内容）。需要外部资料 / "
     "编程库 / 框架 API 的权威规格时，可先调用研究工具再写课（可选）。"
@@ -108,11 +98,7 @@ COURSE_AGENT_USER_PROMPT_TEMPLATE = (
     "最终响应不需要返回 JSON。"
 )
 
-# 渐进产出专用提示（避免下一课复制首课）：由 service 在调用
-# :meth:`CourseGeneratorService.generate_next_lesson` 时拼到用户消息末尾。
-# ZPD 在系统指令里已说明"读编号最大的 lesson md"；但 LLM 在同主题复用
-# session_id 的上下文下仍倾向复用首课结构与措辞——把"必须推进"显式写进
-# 用户消息才能稳约束。
+# 渐进产出专用提示
 COURSE_AGENT_NEXT_LESSON_HINT = (
     "## 渐进产出：这是本课程的下一课\n"
     "你正在为本课程生成**下一**课（不是首课）。请严格按以下步骤，避免与"
@@ -130,9 +116,7 @@ COURSE_AGENT_NEXT_LESSON_HINT = (
     "已有 resource.md，不要整段重写首课部分。"
 )
 
-# 课程 agent 整 run 兜底重试的修正指令（task-3554）：:meth:`CourseGeneratorService.
-# _generate_lesson` 在「磁盘缺 body 文件」或「缺 exercise 文件」时，把
-# 本提示追加到用户消息末尾重跑一次，指示 agent 修正上次失败原因。
+# 课程 agent 整 run 兜底重试的修正指令
 COURSE_AGENT_RETRY_HINT = (
     "## 上次生成失败，请修正后重新完成本课\n"
     "上一次 run 的结果未通过 service 校验（可能原因：漏调 ``save_lesson`` 导致 "

@@ -71,6 +71,22 @@ export type CourseStatusResponse =
 /** `POST /v2/learning/courses/{course_id}/lessons` (task-352) 的响应字面量。 */
 export type NextLessonStatus = 'pending' | 'already_generated' | 'failed';
 
+/**
+ * 单个可用学习模型（来自 `GET /v2/learning/models`，task-391）。
+ *
+ * `is_premium === true` 时前端应在未登录状态下禁用选项；登录用户可正常
+ * 选择。后端白名单 (`LEARNING_MODELS`) 与 generator 同源，前端无需单独
+ * 维护常量列表。
+ */
+export interface LearningModel {
+  /** 后端白名单 key，例如 `deepseek-v4-flash` / `deepseek-v4-pro`。 */
+  id: string;
+  /** 展示用文案（任务 391 后端已对齐 i18n key，前端直接显示）。 */
+  label: string;
+  /** 仅登录用户可用的模型 — 未登录用户禁选并提示登录。 */
+  is_premium: boolean;
+}
+
 /** `POST /v2/learning/courses/{course_id}/lessons` 的响应。 */
 export interface NextLessonResponse {
   course_id: string;

@@ -48,9 +48,9 @@ class _MockProgressService:
     记录调用以便断言顺序 / payload；响应由测试按 key 预置。
     """
 
-    create_pending_calls: list[tuple[str, str, str, str | None]] = field(
-        default_factory=list
-    )
+    create_pending_calls: list[
+        tuple[str, str, str, str | None, str | None, str | None]
+    ] = field(default_factory=list)
     list_progress_calls: list[str] = field(default_factory=list)
     mark_progress_calls: list[tuple[str, str, dict[str, Any]]] = field(
         default_factory=list
@@ -67,8 +67,13 @@ class _MockProgressService:
         course_id: str,
         topic: str,
         goal: str | None = None,
+        *,
+        model_id: str | None = None,
+        extra_prompt: str | None = None,
     ) -> None:
-        self.create_pending_calls.append((owner, course_id, topic, goal))
+        self.create_pending_calls.append(
+            (owner, course_id, topic, goal, model_id, extra_prompt)
+        )
 
     async def list_progress(self, owner: str) -> list[dict[str, Any]]:
         self.list_progress_calls.append(owner)
@@ -162,6 +167,7 @@ class _MockPreviewResult:
     topic: str = "Rust 入门"
     goal: str | None = None
     session_id: str | None = None
+    model_id: str | None = None
 
 
 class _FakeKicker:
@@ -278,7 +284,7 @@ async def test_post_courses_returns_pending_with_anon_owner():
 
     # create_pending 收到 anon owner 字符串(anon:uuid)
     assert len(mock.create_pending_calls) == 1
-    owner, _course_id, topic, goal = mock.create_pending_calls[0]
+    owner, _course_id, topic, goal, _model_id, _extra_prompt = mock.create_pending_calls[0]
     assert owner == "anon:anon-uuid-1"
     assert topic == "Rust 入门"
     # 不传 goal → 为 None
@@ -310,7 +316,7 @@ async def test_post_courses_passes_goal_to_create_pending_and_kiq(monkeypatch):
         )
 
     assert resp.status_code == 200
-    owner, _course_id, topic, goal = mock.create_pending_calls[0]
+    owner, _course_id, topic, goal, _model_id, _extra_prompt = mock.create_pending_calls[0]
     assert owner == "anon:anon-uuid-1"
     assert topic == "Rust 入门"
     assert goal == "能独立复述所有权规则"
@@ -337,7 +343,7 @@ async def test_post_courses_uses_user_id_owner_when_logged_in():
         )
 
     assert resp.status_code == 200
-    owner, _cid, _topic, _goal = mock.create_pending_calls[0]
+    owner, _cid, _topic, _goal, _model_id, _extra_prompt = mock.create_pending_calls[0]
     assert owner == "42"
 
 
@@ -354,6 +360,139 @@ async def test_post_courses_validation_error_on_empty_topic():
             headers={"X-Anon-Id": "x"},
         )
     assert resp.status_code == 422
+
+
+# ── 模型端点 GET /v2/learning/models + 鉴权强制 flash (task-391) ───────────
+
+
+async def test_get_models_returns_flash_and_pro_with_premium_flag():
+    """``GET /v2/learning/models`` 返回 LEARNING_MODELS 全量元数据。
+
+    含 flash（is_premium=False）+ pro（is_premium=True），前端据此在下拉里
+    区分「登录后解锁」。数据源与后端白名单同源。
+    """
+    from app.core.llm_factory import LEARNING_MODELS
+
+    app = _build_test_app(_MockProgressService(), _MockGeneratorService())
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get("/v2/learning/models")
+
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    ids = [m["id"] for m in items]
+    assert "deepseek-v4-flash" in ids
+    assert "deepseek-v4-pro" in ids
+
+    by_id = {m["id"]: m for m in items}
+    assert by_id["deepseek-v4-flash"]["is_premium"] is False
+    assert by_id["deepseek-v4-pro"]["is_premium"] is True
+    # 完整比对白名单（确保后端无遗漏字段）
+    assert items == list(LEARNING_MODELS)
+
+
+async def test_post_courses_anonymous_pro_model_forced_to_flash(monkeypatch):
+    """匿名用户提交时即便 body 带 ``model_id=pro`` 也强制 flash。
+
+    鉴权兜底：未登录态不允许使用 pro 模型；create_pending 收到的 model_id
+    必须是 ``deepseek-v4-flash``。"""
+    import app.plugins.task.tasks.learning as task_mod
+
+    captured: dict[str, object] = {}
+
+    async def _capturing_kiq(*args, **kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(task_mod.generate_course, "kiq", _capturing_kiq)
+
+    mock = _MockProgressService()
+    app = _build_test_app(
+        mock, _MockGeneratorService(), logged_in_user_id=None
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/v2/learning/courses",
+            json={
+                "topic": "Rust 入门",
+                "model_id": "deepseek-v4-pro",
+            },
+            headers={"X-Anon-Id": "anon-uuid-1"},
+        )
+
+    assert resp.status_code == 200
+    # 鉴权兜底：匿名 + pro → 强制 flash
+    assert captured["model_id"] == "deepseek-v4-flash"
+
+
+async def test_post_courses_logged_in_pro_model_passed_through(monkeypatch):
+    """登录用户选 pro → create_pending / kiq 都收到 pro（无鉴权兜底）。"""
+    import app.plugins.task.tasks.learning as task_mod
+
+    captured: dict[str, object] = {}
+
+    async def _capturing_kiq(*args, **kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(task_mod.generate_course, "kiq", _capturing_kiq)
+
+    mock = _MockProgressService()
+    app = _build_test_app(
+        mock, _MockGeneratorService(), logged_in_user_id=42
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/v2/learning/courses",
+            json={"topic": "Rust 入门", "model_id": "deepseek-v4-pro"},
+        )
+
+    assert resp.status_code == 200
+    assert captured["model_id"] == "deepseek-v4-pro"
+
+
+async def test_post_courses_forwards_extra_prompt_to_pending_and_kiq(
+    monkeypatch,
+):
+    """``extra_prompt`` 透传：create_pending 与 generate_course.kiq 都收到。"""
+    import app.plugins.task.tasks.learning as task_mod
+
+    captured: dict[str, object] = {}
+
+    async def _capturing_kiq(*args, **kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(task_mod.generate_course, "kiq", _capturing_kiq)
+
+    mock = _MockProgressService()
+    app = _build_test_app(
+        mock, _MockGeneratorService(), logged_in_user_id=42
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/v2/learning/courses",
+            json={
+                "topic": "Rust 入门",
+                "extra_prompt": "面向初学者",
+                "model_id": "deepseek-v4-pro",
+            },
+        )
+
+    assert resp.status_code == 200
+    assert captured["extra_prompt"] == "面向初学者"
+    assert captured["model_id"] == "deepseek-v4-pro"
 
 
 # ── GET /v2/learning/courses/{course_id} ────────────────────────────────
@@ -1006,23 +1145,29 @@ def _dummy_request(headers: dict[str, str], host: str = "1.2.3.4"):
 
 async def test_resolve_owner_user_id_wins_over_header():
     req = _dummy_request({"x-anon-id": "ignored"})
-    assert _resolve_learning_owner(user_id=123, request=req) == "123"
+    owner, is_logged_in = _resolve_learning_owner(user_id=123, request=req)
+    assert owner == "123"
+    assert is_logged_in is True
 
 
 async def test_resolve_owner_uses_anon_id_header_when_anon():
     req = _dummy_request({"x-anon-id": "abc-uuid"})
-    assert (
-        _resolve_learning_owner(user_id=None, request=req) == "anon:abc-uuid"
-    )
+    owner, is_logged_in = _resolve_learning_owner(user_id=None, request=req)
+    assert owner == "anon:abc-uuid"
+    assert is_logged_in is False
 
 
 async def test_resolve_owner_falls_back_to_client_ip():
     req = _dummy_request(headers={}, host="9.9.9.9")
-    assert _resolve_learning_owner(user_id=None, request=req) == "anon:9.9.9.9"
+    owner, is_logged_in = _resolve_learning_owner(user_id=None, request=req)
+    assert owner == "anon:9.9.9.9"
+    assert is_logged_in is False
 
 
 async def test_resolve_owner_empty_anon_id_header_falls_back_to_ip():
     """X-Anon-Id 存在但为空 → 视为未提供,降级 IP。"""
     req = _dummy_request({"x-anon-id": ""}, host="5.6.7.8")
+    owner, is_logged_in = _resolve_learning_owner(user_id=None, request=req)
     # falsy header 应该走 fallback 分支
-    assert _resolve_learning_owner(user_id=None, request=req) == "anon:5.6.7.8"
+    assert owner == "anon:5.6.7.8"
+    assert is_logged_in is False

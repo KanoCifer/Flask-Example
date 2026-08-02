@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import type {
   CourseStatusResponse,
   LearningCourse,
@@ -23,11 +24,13 @@ const {
   getCourseMock,
   listProgressMock,
   markProgressMock,
+  listModelsMock,
 } = vi.hoisted(() => ({
   createCourseMock: vi.fn(),
   getCourseMock: vi.fn(),
   listProgressMock: vi.fn(),
   markProgressMock: vi.fn(),
+  listModelsMock: vi.fn(),
 }));
 
 vi.mock('@readinglist/api', () => ({
@@ -36,7 +39,14 @@ vi.mock('@readinglist/api', () => ({
     getCourse: getCourseMock,
     listProgress: listProgressMock,
     markProgress: markProgressMock,
+    listModels: listModelsMock,
   },
+  // task-391: useAuthStore 内部会用到 createAuthGateway / refreshAccessToken
+  // / registerTokenRefresher。这里只需要 stub 一份「存在即可」，auth 永远
+  // 不会被实际拉起 —— fresh Pinia 下 user.value 为 null 即未登录态。
+  createAuthGateway: () => ({}),
+  refreshAccessToken: vi.fn(),
+  registerTokenRefresher: vi.fn(),
 }));
 
 // ── mock vue-router (LearningList 用了 useRouter().push) ─────────────
@@ -93,6 +103,14 @@ interface MountOpts {
   createCourseResult?: { course_id: string };
   getCourseResult?: CourseStatusResponse;
   listProgressResult?: LearningProgressItem[];
+  listModelsResult?: Array<{
+    id: string;
+    label: string;
+    is_premium: boolean;
+  }>;
+  listModelsReject?: boolean;
+  /** 设置为 true 模拟登录态 (user.value 非 null)。 */
+  loggedIn?: boolean;
 }
 
 async function mountList(opts: MountOpts = {}): Promise<VueWrapper> {
@@ -100,6 +118,7 @@ async function mountList(opts: MountOpts = {}): Promise<VueWrapper> {
   getCourseMock.mockReset();
   listProgressMock.mockReset();
   markProgressMock.mockReset();
+  listModelsMock.mockReset();
   pushMock.mockReset();
 
   const createdCourseId = opts.createCourseResult?.course_id ?? 'rust--abc12345';
@@ -111,6 +130,31 @@ async function mountList(opts: MountOpts = {}): Promise<VueWrapper> {
     opts.getCourseResult ?? makeReadyCourse(createdCourseId),
   );
   listProgressMock.mockResolvedValue(opts.listProgressResult ?? []);
+  // task-391：listModels 默认返回 flash + pro 两条；reject 走 fallback flash
+  if (opts.listModelsReject) {
+    listModelsMock.mockRejectedValue(new Error('boom'));
+  } else if (opts.listModelsResult) {
+    listModelsMock.mockResolvedValue(opts.listModelsResult);
+  } else {
+    listModelsMock.mockResolvedValue([
+      { id: 'deepseek-v4-flash', label: 'Flash（快速）', is_premium: false },
+      { id: 'deepseek-v4-pro', label: 'Pro（深度）', is_premium: true },
+    ]);
+  }
+
+  // task-391: LearningList 通过 useAuthStore 拿登录态（premium 模型选项
+  // 禁用判定），因此 mount 时必须先 activate 一个空 Pinia。未登录等价
+  // 于 user.value === null —— 我们在 freshPinia 下不调 fetchUser，默认就是
+  // 未登录态，符合本测试套件的所有断言。
+  setActivePinia(createPinia());
+
+  // task-391: 登录态测试需要 auth.user 非空。必须在 useAuthStore 被组件调用
+  // 之前设置，否则 isAuthenticated 永远是 false。
+  if (opts.loggedIn) {
+    const { useAuthStore } = await import('@/features/auth');
+    const auth = useAuthStore();
+    auth.user = { id: 1, username: 'u1', is_admin: false } as never;
+  }
 
   const wrapper = mount(LearningList, {
     global: {
@@ -223,8 +267,14 @@ describe('LearningList', () => {
     await flushPromises();
     await flushPromises();
 
-    // 不填目标 → createCourse(topic, '')，gateway 端归一化（空串不落 body）
-    expect(createCourseMock).toHaveBeenCalledWith('Rust 入门', '');
+    // 不填目标 → createCourse(topic, '')，gateway 端归一化（空串不落 body）。
+    // task-391 之后新增第三参 extras(modelId/extraPrompt)；listModels 在本测试
+    // 套件没有 mock，composable 走硬降级 FALLBACK_MODELS,所以 modelId 会带上
+    // 默认的 'deepseek-v4-flash'，extraPrompt 留空字符串。
+    expect(createCourseMock).toHaveBeenCalledWith('Rust 入门', '', {
+      modelId: 'deepseek-v4-flash',
+      extraPrompt: '',
+    });
     expect(getCourseMock).toHaveBeenCalledWith('rust--abc12345');
     // submitTopic 完成后 router.push 到课程详情
     expect(pushMock).toHaveBeenCalledWith(
@@ -258,6 +308,11 @@ describe('LearningList', () => {
     expect(createCourseMock).toHaveBeenCalledWith(
       'Rust 入门',
       '能独立复述所有权规则',
+      // task-391: 同上,modelDraft 走 fallback,extraPrompt 留空
+      {
+        modelId: 'deepseek-v4-flash',
+        extraPrompt: '',
+      },
     );
   });
 
@@ -276,5 +331,108 @@ describe('LearningList', () => {
     // 通过 keydown.enter 触发也无效
     await wrapper.find('input[type="text"]').trigger('keydown.enter');
     expect(createCourseMock).not.toHaveBeenCalled();
+  });
+
+  // ── 模型选择 + 额外提示（task-391/395） ─────────────────────────────
+
+  it('onMounted 拉一次 listModels,默认选第一条 (flash)', async () => {
+    const wrapper = await mountList();
+    await flushPromises();
+
+    expect(listModelsMock).toHaveBeenCalledTimes(1);
+    // 默认 trigger 按钮文案 = 第一项 label = "Flash（快速）"
+    expect(wrapper.text()).toContain('Flash（快速）');
+  });
+
+  it('listModels 失败时仍可用 fallback flash', async () => {
+    const wrapper = await mountList({ listModelsReject: true });
+    await flushPromises();
+
+    // fallback flash 仍可见，trigger 仍可选
+    expect(wrapper.text()).toContain('Flash（快速）');
+  });
+
+  it('未登录用户：is_premium 选项 disabled (pro)', async () => {
+    const wrapper = await mountList();
+    await flushPromises();
+
+    // HoverDropdown 默认 mouseenter 打开 — 找到包含 trigger 的 div
+    // 实际下拉是浮层,需要触发 mouseenter
+    const dropdownRoot = wrapper.find('div.relative');
+    expect(dropdownRoot.exists()).toBe(true);
+    await dropdownRoot.trigger('mouseenter');
+    await flushPromises();
+
+    // 找到 Pro（深度）选项对应的 button — 由于 is_premium + 未登录 → disabled
+    const proOption = wrapper
+      .findAll('[role="option"] button')
+      .find((b) => b.text().includes('Pro（深度）'));
+    expect(proOption).toBeDefined();
+    expect(proOption!.attributes('disabled')).toBeDefined();
+  });
+
+  it('提交 → createCourse 收到第三参 extras (登录态 + 选 pro)', async () => {
+    // 登录态 + 选 Pro + 填 extraPrompt → 提交时第三参透传 modelId/extraPrompt
+    const wrapper = await mountList({ loggedIn: true });
+    await flushPromises();
+
+    const inputs = wrapper.findAll('input[type="text"]');
+    await inputs[0].setValue('Rust 入门');
+    await inputs[2].setValue('面向初学者');
+
+    // 打开下拉 → 选 Pro（登录态可用）。HoverDropdown 响应 mouseenter。
+    const dropdownRoot = wrapper.find('div.relative');
+    expect(dropdownRoot.exists()).toBe(true);
+    await dropdownRoot.trigger('mouseenter');
+    await flushPromises();
+
+    const proOption = wrapper
+      .findAll('[role="option"] button')
+      .find((b) => b.text().includes('Pro（深度）'));
+    expect(proOption).toBeDefined();
+    expect(proOption!.attributes('disabled')).toBeUndefined();
+    await proOption!.trigger('click');
+    await flushPromises();
+
+    // 提交
+    const generateBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('生成课程'));
+    expect(generateBtn).toBeDefined();
+    await generateBtn!.trigger('click');
+
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    expect(createCourseMock).toHaveBeenCalledWith(
+      'Rust 入门',
+      '',
+      { modelId: 'deepseek-v4-pro', extraPrompt: '面向初学者' },
+    );
+  });
+
+  it('不选模型 + 不填 extraPrompt → 第三参 modelId=undefined,extraPrompt=""', async () => {
+    const wrapper = await mountList();
+    await flushPromises();
+
+    const input = wrapper.find('input[type="text"]'); // topic
+    await input.setValue('Rust 入门');
+
+    const generateBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('生成课程'));
+    await generateBtn!.trigger('click');
+
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    // listModels 默认响应里有 flash/pro;onMounted 后 modelDraft 默认选第一条
+    // (flash)，所以 modelId 是 'deepseek-v4-flash'，extraPrompt 是空字符串
+    expect(createCourseMock).toHaveBeenCalledWith('Rust 入门', '', {
+      modelId: 'deepseek-v4-flash',
+      extraPrompt: '',
+    });
   });
 });

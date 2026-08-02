@@ -27,6 +27,15 @@ class LearningProgress(Document):
         default=None,
         description="agno 会话 ID：第一课生成时锚定，渐进产出各轮复用",
     )
+    model_id: str | None = Field(
+        default=None,
+        description="用户选择的模型（task-391）；匿名固定 flash，登录可选 pro。"
+        "后续课经 preview_next_lesson 复用同一模型。",
+    )
+    extra_prompt: str | None = Field(
+        default=None,
+        description="用户补充的额外提示（task-391）；仅首课注入 prompt，落库用于审计 / 首课重生成。",
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     sessions_done: list[int] = Field(
         default_factory=list, description="已完成的 Session 编号列表"

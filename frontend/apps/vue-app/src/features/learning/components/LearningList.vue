@@ -16,12 +16,20 @@
    - 匿名友好:无登录墙;owner key 由 getAnonId() 持有。
 -->
 <script setup lang="ts">
-import { ArrowRight, BookOpen, Loader2, RotateCcw } from '@lucide/vue';
+import {
+  ArrowRight,
+  BookOpen,
+  ChevronDown,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+} from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import { motion } from 'motion-v';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Button } from '@/components';
+import { Button, HoverDropdown } from '@/components';
+import { useAuthStore } from '@/features/auth';
 import { EASE } from '@/constants/motionPresets';
 import { useLearningCourse } from '@/features/learning/composables/useLearningCourse';
 import type { LearningProgressItem } from '@/features/learning/types';
@@ -29,13 +37,16 @@ import type { LearningProgressItem } from '@/features/learning/types';
 defineOptions({ name: 'LearningList' });
 
 const router = useRouter();
+const auth = useAuthStore();
 const {
   submitting,
   error,
   progressList,
   progressLoading,
+  models,
   submitTopic,
   loadProgress,
+  loadModels,
   clearError,
 } = useLearningCourse();
 
@@ -43,20 +54,43 @@ const {
 const draft = ref('');
 /** 学习目标(可选)的本地草稿。 */
 const goalDraft = ref('');
+/** 选中的模型 id（task-391）。默认指向首项（一般是 flash）；若列表为空则为空串。 */
+const modelDraft = ref('');
+/** 附加提示词（task-391）的本地草稿，trim 后提交。 */
+const extraPromptDraft = ref('');
 
-/** 主题 / 目标两个输入框共享的基座样式（宽度差异经 :class 拼接）。 */
+/** 主题 / 目标 / 附加提示 三个输入框共享的基座样式（宽度差异经 :class 拼接）。 */
 const inputCls =
   'text-ink placeholder-muted bg-surface/60 focus-visible:ring-ring rounded-full px-5 py-2.5 text-sm shadow-sm transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-60';
+
+/** 当前选中模型条目（找不到则回退到列表第一项）。 */
+const selectedModel = computed(
+  () =>
+    models.value.find((m) => m.id === modelDraft.value) ?? models.value[0] ?? null,
+);
+
+/** 当前模型下拉是否可交互（只要列表非空就算可下拉）。 */
+const modelOptionsDisabled = computed(() => models.value.length === 0);
+
+/** trigger 是否要禁用某个特定选项：premium 模型仅登录用户可选。 */
+function isOptionDisabled(modelIsPremium: boolean): boolean {
+  return modelIsPremium && !auth.isAuthenticated;
+}
 
 /** 触发生成;ready 后跳转。 */
 async function onGenerate() {
   const t = draft.value.trim();
   if (!t) return;
   try {
-    const { course_id } = await submitTopic(t, goalDraft.value);
+    const { course_id } = await submitTopic(t, goalDraft.value, {
+      modelId: modelDraft.value || undefined,
+      extraPrompt: extraPromptDraft.value,
+    });
     // 跳转前清掉草稿,这样回到首页不会看到残留文本
     draft.value = '';
     goalDraft.value = '';
+    extraPromptDraft.value = '';
+    // 模型 id 保留为用户偏好;不重置,这样反复生成时不必每次重新选。
     await router.push({
       name: 'learning-course',
       params: { courseId: course_id },
@@ -86,6 +120,12 @@ const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
 onMounted(() => {
   void loadProgress();
+  void loadModels().then(() => {
+    // 首屏兜底:列表就绪后若 draft 仍空,默认选第一条（一般是 flash）。
+    if (!modelDraft.value && models.value.length > 0) {
+      modelDraft.value = models.value[0].id;
+    }
+  });
 });
 
 function statusLabel(item: LearningProgressItem): string {
@@ -172,6 +212,122 @@ function statusLabel(item: LearningProgressItem): string {
             type="text"
             :disabled="submitting"
             placeholder="能独立复述先验演绎的论证结构,并完成 5 道自测题"
+            maxlength="200"
+            :class="[inputCls, 'w-full']"
+            @keydown.enter="onGenerate"
+          />
+
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-3">
+            <div class="flex-1">
+              <label
+                class="text-muted mb-2 block font-mono text-[11px] tracking-[0.18em] uppercase"
+              >
+                模型
+              </label>
+              <HoverDropdown
+                :panel-class="
+                  'bg-card border-border absolute top-full left-0 z-30 mt-2 w-full min-w-[14rem] rounded-2xl border p-1.5 shadow-lg backdrop-blur-xs'
+                "
+                class="relative block w-full"
+              >
+                <template #trigger="{ isOpen }">
+                  <button
+                    type="button"
+                    :aria-expanded="isOpen || undefined"
+                    aria-haspopup="listbox"
+                    :disabled="modelOptionsDisabled || submitting"
+                    class="text-ink bg-surface/60 focus-visible:ring-ring flex w-full items-center justify-between rounded-full px-5 py-2.5 text-sm shadow-sm transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span class="inline-flex items-center gap-2 truncate">
+                      <Sparkles
+                        v-if="selectedModel"
+                        class="text-accent h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span class="truncate">
+                        {{ selectedModel?.label ?? '加载中…' }}
+                      </span>
+                      <span
+                        v-if="selectedModel?.is_premium"
+                        class="bg-accent/15 text-accent rounded-full px-1.5 py-0.5 font-mono text-[10px] tracking-[0.12em] uppercase"
+                      >
+                        PRO
+                      </span>
+                    </span>
+                    <ChevronDown
+                      class="text-muted h-3.5 w-3.5 shrink-0 transition-transform duration-150"
+                      :class="{ 'rotate-180': isOpen }"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </template>
+                <template #default="{ close }">
+                  <ul
+                    role="listbox"
+                    aria-label="选择学习模型"
+                    class="flex flex-col gap-0.5"
+                  >
+                    <li
+                      v-for="m in models"
+                      :key="m.id"
+                      role="option"
+                      :aria-selected="m.id === modelDraft"
+                      :aria-disabled="isOptionDisabled(m.is_premium) || undefined"
+                    >
+                      <button
+                        type="button"
+                        :disabled="isOptionDisabled(m.is_premium)"
+                        :title="
+                          isOptionDisabled(m.is_premium)
+                            ? '登录后解锁'
+                            : undefined
+                        "
+                        class="text-ink hover:bg-surface/70 flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        :class="{
+                          'font-medium underline decoration-accent decoration-2 underline-offset-4':
+                            m.id === modelDraft,
+                        }"
+                        @click="
+                          () => {
+                            if (isOptionDisabled(m.is_premium)) return;
+                            modelDraft = m.id;
+                            close();
+                          }
+                        "
+                      >
+                        <span class="inline-flex items-center gap-2 truncate">
+                          <Sparkles
+                            class="text-accent h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span class="truncate">{{ m.label }}</span>
+                        </span>
+                        <span
+                          v-if="m.is_premium"
+                          class="bg-accent/15 text-accent rounded-full px-1.5 py-0.5 font-mono text-[10px] tracking-[0.12em] uppercase"
+                        >
+                          PRO
+                        </span>
+                      </button>
+                    </li>
+                  </ul>
+                </template>
+              </HoverDropdown>
+            </div>
+          </div>
+
+          <label
+            for="learning-extra-prompt"
+            class="text-muted mt-6 mb-2 block font-mono text-[11px] tracking-[0.18em] uppercase"
+          >
+            补充要求 (可选)
+          </label>
+          <input
+            id="learning-extra-prompt"
+            v-model="extraPromptDraft"
+            type="text"
+            :disabled="submitting"
+            placeholder="例如:面向初学者,优先讲解入门概念,避免抽象数学符号"
             maxlength="200"
             :class="[inputCls, 'w-full']"
             @keydown.enter="onGenerate"

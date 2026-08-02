@@ -2,6 +2,7 @@
 
 端点对应 wayfinder #27 的契约：
 
+- ``GET  /v2/learning/models`` — 列出可用模型元数据（task-391，前端下拉数据源）。
 - ``POST /v2/learning/courses`` — 提交主题，**先** upsert ``status="pending"``，
   再 ``.kiq()`` 异步任务，立即返回 ``{course_id, status:"pending"}``。
 - ``GET  /v2/learning/courses/{course_id}`` — 读取课程包；pending / ready
@@ -45,6 +46,7 @@ from app.api.des.auth import optional_user
 from app.api.des.limiter import client_key
 from app.appstate import AppState, get_app_state
 from app.core.exceptions import NotFoundError
+from app.core.llm_factory import LEARNING_MODELS
 from app.core.logger import logger
 from app.core.response import APIResponse
 from app.plugins.task.tasks.learning import (
@@ -83,7 +85,9 @@ class ProgressPatch(BaseModel):
 ANON_ID_HEADER = "x-anon-id"
 
 
-def _resolve_learning_owner(user_id: int | None, request: Request) -> str:
+def _resolve_learning_owner(
+    user_id: int | None, request: Request
+) -> tuple[str, bool]:
     """把 ``Depends(optional_user)`` 的结果映射成 service 层要的 owner。
 
     解析顺序：
@@ -98,11 +102,11 @@ def _resolve_learning_owner(user_id: int | None, request: Request) -> str:
         因此匿名 owner 必须以客户端 ID 为主、IP 为兜底，而不是相反。
     """
     if user_id is not None:
-        return str(user_id)
+        return str(user_id), True
     anon_id = request.headers.get(ANON_ID_HEADER)
     if anon_id:
-        return f"anon:{anon_id}"
-    return f"anon:{client_key(request)}"
+        return f"anon:{anon_id}", False
+    return f"anon:{client_key(request)}", False
 
 
 async def _require_ready_repo(
@@ -118,7 +122,7 @@ async def _require_ready_repo(
     仍 pending」并返回 None，同时用 service 的 ``_tmp_dir`` 定位根目录，与
     ``get_course`` 等生成侧端点同源。返回 None 时 handler 统一 404。
     """
-    owner = _resolve_learning_owner(user, request)
+    owner, _ = _resolve_learning_owner(user, request)
     course_gen_svc: CourseGeneratorService = state.course_gen_svc
     return await course_gen_svc.require_ready_course(owner, course_id)
 
@@ -138,6 +142,20 @@ def _build_course_zip(
     return buf
 
 
+@router.get("/models")
+async def list_learning_models():
+    """列出 Learning 可用模型（task-391）：前端下拉框的数据源。
+
+    ``is_premium`` 标记高级模型（当前仅 ``deepseek-v4-pro``），前端据此在
+    未登录时禁用；数据源与 :func:`create_deepseek_model` 白名单同源
+    （``LEARNING_MODELS``），无需单独维护。
+    """
+    return APIResponse(
+        data={"items": list(LEARNING_MODELS)},
+        message="success",
+    )
+
+
 @router.post("/courses")
 async def create_course(
     payload: CourseGenerateInput,
@@ -153,18 +171,33 @@ async def create_course(
     progress_svc: LearningProgressService = state.progress_svc
     topic = payload.topic
     goal = payload.goal
-    owner = _resolve_learning_owner(user, request)
+    extra_prompt = payload.extra_prompt
+    owner, is_logged_in = _resolve_learning_owner(user, request)
+    if is_logged_in:
+        model_id = payload.model_id
+    else:
+        model_id = "deepseek-v4-flash"
     course_id = build_course_id(topic)
 
     # 先 upsert pending，失败也能让前端立刻拿到稳定 course_id 进入轮询。
     await progress_svc.create_pending(
-        owner=owner, course_id=course_id, topic=topic, goal=goal
+        owner=owner,
+        course_id=course_id,
+        topic=topic,
+        goal=goal,
+        model_id=model_id,
+        extra_prompt=extra_prompt,
     )
     # 再 kiq：worker 端完成两步生成后会把同一条 (owner, course_id) 记录
     # 置 ready；失败由 service 内部重试一次，再失败由任务层 _mark_failed
     # 把状态置 failed（让前端轮询体现终态）。
     await generate_course.kiq(
-        topic=topic, owner=owner, course_id=course_id, goal=goal
+        topic=topic,
+        owner=owner,
+        model_id=model_id,
+        extra_prompt=extra_prompt,
+        course_id=course_id,
+        goal=goal,
     )
 
     logger.bind(course_id=course_id, owner=owner).info(
@@ -185,7 +218,7 @@ async def get_course(
 ):
     """读取课程包：``pending`` / ``ready`` 直传，不存在 / ``failed`` 返回 404。"""
     course_gen_svc: CourseGeneratorService = state.course_gen_svc
-    owner = _resolve_learning_owner(user, request)
+    owner, _ = _resolve_learning_owner(user, request)
 
     payload = await course_gen_svc.get_course(owner, course_id)
     if payload is None:
@@ -348,7 +381,7 @@ async def create_next_lesson(
       :class:`CoursePackageRepo` 同一份逻辑，handler 不再打穿 service 私有属性。
     """
     course_gen_svc: CourseGeneratorService = state.course_gen_svc
-    owner = _resolve_learning_owner(user, request)
+    owner, _ = _resolve_learning_owner(user, request)
 
     # 2+3. 同步预检：一次调用带回进度状态 + 预期 next_num + 幂等命中标记 +
     #      kiq 转发所需字段（topic / goal / session_id）。
@@ -374,17 +407,23 @@ async def create_next_lesson(
             message="下一课已生成",
         )
 
-    # 5. 正常的异步路径（goal / session_id 随 ctx 转发，让后续课 prompt 与
-    #    MISSION.md 目标保持一致、渐进产出复用首课锚定的 agno 会话（task-373））
-    #    enqueued_at 标签随消息投递，worker 侧 TraceMiddleware 据此打印
-    #    "投递→收到" 端到端时延（delivery_ms），定位 kiq 后迟迟不执行的问题。
+    # 5. 正常的异步路径（goal / session_id / model_id 随 ctx 转发，让后续课 prompt
+    #    与 MISSION.md 目标保持一致、渐进产出复用首课锚定的 agno 会话（task-373）
+    #    与整门课所选模型（task-391）。）enqueued_at 标签随消息投递，worker 侧
+    #    TraceMiddleware 据此打印"投递→收到"端到端时延（delivery_ms），定位 kiq
+    #    后迟迟不执行的问题。
     enqueued_at = time.time()
-    await generate_next_lesson.kicker().with_labels(enqueued_at=enqueued_at).kiq(
-        topic=ctx.topic,
-        owner=owner,
-        course_id=course_id,
-        goal=ctx.goal,
-        session_id=ctx.session_id,
+    await (
+        generate_next_lesson.kicker()
+        .with_labels(enqueued_at=enqueued_at)
+        .kiq(
+            topic=ctx.topic,
+            owner=owner,
+            course_id=course_id,
+            goal=ctx.goal,
+            session_id=ctx.session_id,
+            model_id=ctx.model_id,
+        )
     )
     logger.bind(
         course_id=course_id,
@@ -409,7 +448,7 @@ async def list_progress(
 ):
     """列出 owner 的课程进度，每条带派生 ``next_session``。"""
     progress_svc: LearningProgressService = state.progress_svc
-    owner = _resolve_learning_owner(user, request)
+    owner, _ = _resolve_learning_owner(user, request)
     items = await progress_svc.list_progress(owner)
     return APIResponse(
         data={"items": items},
@@ -427,7 +466,7 @@ async def patch_progress(
 ):
     """标记进度：``session_done`` / ``exercise_done`` 可独立更新（幂等）。"""
     progress_svc: LearningProgressService = state.progress_svc
-    owner = _resolve_learning_owner(user, request)
+    owner, _ = _resolve_learning_owner(user, request)
     progress = await progress_svc.mark_progress(
         owner,
         course_id,

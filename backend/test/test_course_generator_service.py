@@ -311,12 +311,16 @@ class _StubAgent:
         # ``arun`` 收到的 session_id（task-373：service 透传 session_id 给
         # agent，本字段记录每次 arun 收到的值用于断言「同 session 复用」）。
         self.session_ids_received: list[str | None] = []
+        # ``arun`` 收到的 prompt 全文（task-391/394：用于断言首课含
+        # extra_prompt、下一课 lean / 完整 prompt 组装）。
+        self.prompts_received: list[str] = []
 
     async def arun(
         self, prompt: str, session_id: str | None = None
     ):
         self.arun_call_count += 1
         self.session_ids_received.append(session_id)
+        self.prompts_received.append(prompt)
         if self._fail_on_arun is not None:
             raise self._fail_on_arun
 
@@ -385,11 +389,23 @@ def _patch_course_agent(monkeypatch, stub_factory) -> None:
         stub_factory: ``Callable[[CoursePackageRepo], _StubAgent]`` — 接收
             service 传入的共享 ``CoursePackageRepo`` 实例，返回配置好的 stub
             agent（写语义委托同一仓库，C1）。
+
+    Note:
+        生产 :meth:`CourseGeneratorService._build_course_agent` 是
+        ``async def``（返回 coroutine 等待 ``await``），自 task-391 后多了
+        ``model_id`` 参数（int 透传选模型）。此 stub 替换为 ``async`` lambda
+        + ``model_id`` 关键字参数，匹配生产签名；否则
+        ``await self._build_course_agent(repo, model_id)`` 会抛
+        ``TypeError: takes 2 positional arguments but 3 were given`` 或
+        ``'_StubAgent' object can't be awaited``。
     """
+    async def _stub_build(self, repo, model_id="deepseek-v4-flash"):
+        return stub_factory(repo)
+
     monkeypatch.setattr(
         CourseGeneratorService,
         "_build_course_agent",
-        lambda self, repo: stub_factory(repo),
+        _stub_build,
     )
 
 
@@ -1254,3 +1270,247 @@ async def test_preview_next_lesson_expires_stale_pending(
     progress = await repo.get_progress("u1", "c--00000001")
     assert progress is not None
     assert progress.status == "failed"
+
+
+# ── 首课 extra_prompt / 下一课 lean vs 完整 prompt (task-391/394) ────────
+
+
+async def test_generate_course_first_lesson_includes_extra_prompt(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """首课生成时 extra_prompt 拼成「额外要求：<ep>」整行注入 user prompt。
+
+    None / 空串时不渲染该行（避免出现"额外要求："空字样）。
+    """
+    cid = build_course_id("Rust 入门")
+    holder: dict[str, _StubAgent] = {}
+    _patch_course_agent(
+        monkeypatch,
+        _stub_factory(holder, payload=_lesson_payload(cid)),
+    )
+
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
+
+    # 1. extra_prompt 提供 → prompt 含「额外要求：面向初学者」
+    await svc.generate_course(
+        topic="Rust 入门",
+        owner="u1",
+        course_id=cid,
+        extra_prompt="面向初学者",
+    )
+    first_prompt = holder["stub"].prompts_received[0]
+    assert "额外要求：面向初学者" in first_prompt
+    assert "课程主题：Rust 入门" in first_prompt  # 仍是完整 prompt
+    assert "course_id：" in first_prompt
+
+    # 2. extra_prompt=None → 不出现「额外要求：」字样（slot 渲染为空行）
+    cid2 = await svc.generate_course(
+        topic="Go 入门",
+        owner="u1",
+    )
+    second_stub = holder["stub"]
+    # 第二课的 stub 来自第二次 _build_course_agent 调用，取最近一次 arun
+    second_prompt = second_stub.prompts_received[-1]
+    assert "额外要求：" not in second_prompt
+    assert "课程主题：Go 入门" in second_prompt
+
+
+async def test_generate_next_lesson_uses_lean_prompt_when_session_anchored(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """下一课 + session_id 锚定 → lean prompt：仅 course_id + NEXT_LESSON_HINT。
+
+    不再嵌 topic / goal / extra_prompt（已从 session 历史拿到），避免与
+    首课完整 prompt 重复。
+    """
+    cid = build_course_id("Rust 入门")
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
+
+    # 先首课铺底
+    first_holder: dict[str, _StubAgent] = {}
+    _patch_course_agent(
+        monkeypatch,
+        _stub_factory(first_holder, payload=_lesson_payload(cid)),
+    )
+    await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+
+    # 切到下一课 stub
+    next_holder: dict[str, _StubAgent] = {}
+    _patch_course_agent(
+        monkeypatch,
+        _stub_factory(
+            next_holder,
+            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+        ),
+    )
+    await svc.generate_next_lesson(
+        topic="Rust 入门",
+        owner="u1",
+        course_id=cid,
+        session_id="anchored-sess-1",
+        goal="能独立复述所有权规则",
+    )
+
+    prompt = next_holder["stub"].prompts_received[0]
+    # lean prompt 只含 course_id + NEXT_LESSON_HINT
+    assert "course_id：" in prompt
+    assert "渐进产出" in prompt  # NEXT_LESSON_HINT 的关键字
+    # 不嵌 topic / goal / extra_prompt
+    assert "课程主题：" not in prompt
+    assert "学习目标：" not in prompt
+    assert "额外要求：" not in prompt
+
+
+async def test_generate_next_lesson_falls_back_to_full_prompt_without_session(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """下一课 + session_id 缺失 → 完整 prompt 回退（老课程 / 测试直调）。
+
+    让无上下文的 agent 也能拿到必要输入（topic / goal + NEXT_LESSON_HINT）。
+    """
+    cid = build_course_id("Rust 入门")
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
+
+    # 先首课铺底
+    first_holder: dict[str, _StubAgent] = {}
+    _patch_course_agent(
+        monkeypatch,
+        _stub_factory(first_holder, payload=_lesson_payload(cid)),
+    )
+    await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+
+    # 切到下一课 stub，无 session_id
+    next_holder: dict[str, _StubAgent] = {}
+    _patch_course_agent(
+        monkeypatch,
+        _stub_factory(
+            next_holder,
+            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+        ),
+    )
+    await svc.generate_next_lesson(
+        topic="Rust 入门",
+        owner="u1",
+        course_id=cid,
+        session_id=None,
+        goal="能独立复述所有权规则",
+    )
+
+    prompt = next_holder["stub"].prompts_received[0]
+    # 完整 prompt 仍嵌 topic / goal
+    assert "课程主题：Rust 入门" in prompt
+    assert "学习目标：能独立复述所有权规则" in prompt
+    assert "course_id：" in prompt
+    # NEXT_LESSON_HINT 也追加（下一课指示）
+    assert "渐进产出" in prompt
+
+
+# ── preview_next_lesson 回读 model_id (task-391) ──────────────────────────
+
+
+async def test_preview_next_lesson_returns_model_id_from_progress(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """``NextLessonContext.model_id`` 从 ``LearningProgress.model_id`` 读出。
+
+    渐进产出经 ``preview_next_lesson`` 同步预检一次带回 kiq 转发所需的全部字段，
+    model_id 让 worker 端 ``generate_next_lesson`` 复用同一模型。
+    """
+    cid = build_course_id("Rust 入门")
+    repo = LearningRepo()
+    await repo.upsert_progress(
+        owner="u1",
+        course_id=cid,
+        topic="Rust 入门",
+        status="ready",
+        goal="g",
+        session_id="sess-1",
+        model_id="deepseek-v4-pro",
+    )
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
+
+    ctx = await svc.preview_next_lesson("u1", cid)
+    assert ctx is not None
+    assert ctx.model_id == "deepseek-v4-pro"
+
+
+# ── 修复 pre-existing _build_course_agent mock 签名滞后 ────────────────────
+
+
+async def test_build_course_agent_receives_model_id_arg(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """``_build_course_agent`` 自 task-391 后接收 ``model_id`` 形参（int）。
+
+    stub 工厂必须兼容 3 参签名（self, repo, model_id），否则 ``generate_course``
+    会抛 ``TypeError: takes 2 positional arguments but 3 were given``。
+    """
+    cid = build_course_id("Rust 入门")
+    captured: dict[str, str] = {}
+
+    def _capture_factory(repo):
+        class _CaptureAgent:
+            def __init__(self, repo):
+                self._repo = repo
+
+            async def arun(self, prompt, session_id=None):
+                # 写入一个最小合法 lesson + exercise，让 generate_course 不重试
+                self._repo.write_lesson(
+                    slug="lesson-1", lesson_md=_lesson_md(cid)
+                )
+                from app.schemas.learning import Exercise
+
+                self._repo.write_exercise(
+                    num=1,
+                    slug="lesson-1",
+                    title="练习",
+                    exercises=[
+                        Exercise(
+                            id=1,
+                            type="single_choice",
+                            difficulty=1,
+                            points=10,
+                            prompt="?",
+                            options=[{"key": "A", "text": "a"}],
+                            answer="A",
+                            explanation="x",
+                        )
+                    ],
+                )
+                return None
+
+        return _CaptureAgent(repo)
+
+    # 显式捕获 model_id 透传值
+    async def _capture_build(self, repo, model_id="deepseek-v4-flash"):
+        captured["model_id"] = model_id
+        return _capture_factory(repo)
+
+    monkeypatch.setattr(
+        CourseGeneratorService, "_build_course_agent", _capture_build
+    )
+
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=LearningRepo()),
+    )
+    await svc.generate_course(
+        topic="Rust 入门",
+        owner="u1",
+        course_id=cid,
+        model_id="deepseek-v4-pro",
+    )
+    # _build_course_agent 收到的 model_id == generate_course 传入的 model_id
+    assert captured["model_id"] == "deepseek-v4-pro"

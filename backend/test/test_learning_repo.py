@@ -218,6 +218,65 @@ async def test_upsert_progress_session_id_none_when_never_provided(
     assert doc.session_id is None
 
 
+# ── upsert_progress model_id / extra_prompt (task-391) ─────────────────────
+
+
+async def test_upsert_progress_stores_model_id_and_extra_prompt(
+    repo, clean_collection
+):
+    """可选 model_id / extra_prompt 字段随 pending 落库；后续 upsert 不传则保留。
+
+    与 goal / session_id 同语义：「非 None 才替换」，避免 .mark_ready() 重复
+    调用把已选的模型 / 额外提示抹掉。
+    """
+    first = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="pending",
+        model_id="deepseek-v4-pro",
+        extra_prompt="面向初学者",
+    )
+    assert first.model_id == "deepseek-v4-pro"
+    assert first.extra_prompt == "面向初学者"
+
+    # 后续 upsert 不传 model_id / extra_prompt → 保留已存值（不覆盖为 None）
+    second = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="ready",
+    )
+    assert second.model_id == "deepseek-v4-pro"
+    assert second.extra_prompt == "面向初学者"
+
+    # 显式传新值 → 覆盖
+    third = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="Rust 入门",
+        status="ready",
+        model_id="deepseek-v4-flash",
+        extra_prompt="新增补充",
+    )
+    assert third.model_id == "deepseek-v4-flash"
+    assert third.extra_prompt == "新增补充"
+
+
+async def test_upsert_progress_model_id_and_extra_prompt_none_when_never_provided(
+    repo, clean_collection
+):
+    """不传 model_id / extra_prompt 的新记录 → 字段为 None（不写字段，存量兼容）。"""
+    doc = await repo.upsert_progress(
+        owner="u1",
+        course_id="c--00000002",
+        topic="Go 入门",
+        status="pending",
+    )
+    assert doc.model_id is None
+    assert doc.extra_prompt is None
+
+
 async def test_upsert_progress_preserves_sessions_and_exercise_done(
     repo, clean_collection
 ):

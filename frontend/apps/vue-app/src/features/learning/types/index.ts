@@ -8,6 +8,7 @@ export type {
   ExerciseType,
   CourseStatus,
   CourseStatusResponse,
+  LearningModel,
   LearningProgressItem,
   NextLessonResponse,
   NextLessonStatus,

@@ -116,5 +116,6 @@ export type {
   LearningGateway,
   ProgressPatchBody,
   CourseCreateResponse,
+  CreateCourseExtras,
   CourseFileEntry,
 } from './gateways/learning';

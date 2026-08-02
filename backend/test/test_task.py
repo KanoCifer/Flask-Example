@@ -75,7 +75,12 @@ async def test_generate_course_success_calls_course_gen_svc(fake_ctx: FakeContex
     )
 
     course_gen.generate_course.assert_awaited_once_with(
-        topic="t", owner="u", goal=None, course_id="c1"
+        topic="t",
+        owner="u",
+        goal=None,
+        course_id="c1",
+        model_id="deepseek-v4-flash",
+        extra_prompt=None,
     )
     # 成功路径：不应触发 _mark_failed。
     fake_ctx.state.services.progress_svc.mark_failed.assert_not_called()
@@ -127,6 +132,65 @@ async def test_generate_next_lesson_returns_new_num(fake_ctx: FakeContext):
         course_id="c1",
         goal=None,
         session_id="s1",
+        model_id=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_generate_course_forwards_model_id_and_extra_prompt(
+    fake_ctx: FakeContext,
+):
+    """``generate_course`` task 签名自 task-391 后多了 ``model_id`` /
+    ``extra_prompt``，透传给 ``course_gen_svc.generate_course``。
+    """
+    course_gen = fake_ctx.state.services.course_gen_svc
+    course_gen.generate_course.return_value = None
+
+    await learning_tasks.generate_course(
+        topic="t",
+        owner="u",
+        course_id="c1",
+        goal=None,
+        model_id="deepseek-v4-pro",
+        extra_prompt="面向初学者",
+        context=fake_ctx,  # type: ignore[arg-type]
+    )
+
+    course_gen.generate_course.assert_awaited_once_with(
+        topic="t",
+        owner="u",
+        goal=None,
+        course_id="c1",
+        model_id="deepseek-v4-pro",
+        extra_prompt="面向初学者",
+    )
+
+
+@pytest.mark.asyncio
+async def test_generate_next_lesson_forwards_model_id(fake_ctx: FakeContext):
+    """``generate_next_lesson`` task 签名自 task-391 后多了 ``model_id``，
+    透传给 ``course_gen_svc.generate_next_lesson``，让 worker 沿用首课选定的
+    模型。"""
+    course_gen = fake_ctx.state.services.course_gen_svc
+    course_gen.generate_next_lesson.return_value = 2
+
+    await learning_tasks.generate_next_lesson(
+        topic="t",
+        owner="u",
+        course_id="c1",
+        goal=None,
+        session_id="s1",
+        model_id="deepseek-v4-pro",
+        context=fake_ctx,  # type: ignore[arg-type]
+    )
+
+    course_gen.generate_next_lesson.assert_awaited_once_with(
+        topic="t",
+        owner="u",
+        course_id="c1",
+        goal=None,
+        session_id="s1",
+        model_id="deepseek-v4-pro",
     )
 
 

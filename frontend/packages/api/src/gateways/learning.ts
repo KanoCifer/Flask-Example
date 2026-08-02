@@ -2,6 +2,7 @@ import { apiClient } from '../apiClient';
 import { getAnonId } from '@readinglist/utils';
 import type {
   CourseStatusResponse,
+  LearningModel,
   LearningProgressItem,
   NextLessonResponse,
 } from '@readinglist/types';
@@ -29,13 +30,40 @@ export interface CourseCreateResponse {
   status: 'pending';
 }
 
+/**
+ * `POST /v2/learning/courses` 的可选透传字段（task-391）。
+ *
+ * - `modelId`：用户在前端下拉中选中的模型；后端会按登录态 + 白名单二次校验。
+ * - `extraPrompt`：附加提示词，会被后端拼到课程生成的 system prompt 末尾。
+ *
+ * 二者皆为可选项；为 `undefined` / 空字符串时网关层不写入 body，沿用现有
+ * `goal` 的 trim 语义。
+ */
+export interface CreateCourseExtras {
+  modelId?: string;
+  extraPrompt?: string;
+}
+
 export interface LearningGateway {
   /**
    * 提交主题，异步生成课程包；返回 `pending` 状态供前端轮询。
    * @param topic 学习主题
    * @param goal 学习目标（可选），后端用于组织 MISSION.md 具体文案。
+   * @param extras 可选透传（task-391）：模型选择 + 附加提示词。
+   *               任一字段为空字符串 / `undefined` 时不写入 body。
    */
-  createCourse(topic: string, goal?: string): Promise<CourseCreateResponse>;
+  createCourse(
+    topic: string,
+    goal?: string,
+    extras?: CreateCourseExtras,
+  ): Promise<CourseCreateResponse>;
+  /**
+   * 列出可用学习模型（task-391）：前端下拉的数据源。
+   *
+   * 调用方应按登录态自行禁用 `is_premium === true` 的选项；本网关不感知
+   * 用户态。失败由调用方决定如何降级（一般静默回退到默认 flash）。
+   */
+  listModels(): Promise<LearningModel[]>;
   /** 轮询课程状态：`pending` / `ready` / `failed`。 */
   getCourse(courseId: string): Promise<CourseStatusResponse>;
   /**
@@ -102,15 +130,32 @@ export function saveBlobAs(blob: Blob, filename: string): void {
 }
 
 export const learningGateway: LearningGateway = {
-  async createCourse(topic: string, goal?: string): Promise<CourseCreateResponse> {
+  async createCourse(
+    topic: string,
+    goal?: string,
+    extras?: CreateCourseExtras,
+  ): Promise<CourseCreateResponse> {
     const body: Record<string, string> = { topic };
     if (goal && goal.trim()) body.goal = goal.trim();
+    // 透传 model_id / extra_prompt：沿用 goal 的 trim 策略，仅非空时写入
+    const modelId = extras?.modelId?.trim();
+    const extraPrompt = extras?.extraPrompt?.trim();
+    if (modelId) body.model_id = modelId;
+    if (extraPrompt) body.extra_prompt = extraPrompt;
     const res = await apiClient.post<{ data: CourseCreateResponse }>(
       'v2/learning/courses',
       body,
       anonIdHeaders(),
     );
     return res.data.data;
+  },
+
+  async listModels(): Promise<LearningModel[]> {
+    const res = await apiClient.get<{ data: { items: LearningModel[] } }>(
+      'v2/learning/models',
+      anonIdHeaders(),
+    );
+    return res.data.data.items;
   },
 
   async getCourse(courseId: string): Promise<CourseStatusResponse> {
@@ -200,6 +245,7 @@ export type {
   ExerciseOption,
   CourseStatus,
   CourseStatusResponse,
+  LearningModel,
   LearningProgressItem,
   NextLessonResponse,
   NextLessonStatus,

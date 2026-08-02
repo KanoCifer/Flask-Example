@@ -82,8 +82,9 @@ class NextLessonContext:
     """``preview_next_lesson`` 的返回：进度 + 磁盘预检结果（C3 吸收进 C1）。
 
     一次调用带回 handler 需要的全部信息——幂等预检（``next_num`` /
-    ``already_generated``）与 ``.kiq()`` 转发所需的 topic / goal / session_id
-    ——让 API 层不再打穿 service 私有属性。
+    ``already_generated``）与 ``.kiq()`` 转发所需的 topic / goal / session_id /
+    model_id（task-391：整门课复用首课所选模型）——让 API 层不再打穿 service
+    私有属性。
     """
 
     next_num: int
@@ -91,6 +92,7 @@ class NextLessonContext:
     topic: str
     goal: str | None
     session_id: str | None
+    model_id: str | None
 
 
 # ── service ─────────────────────────────────────────────────────────── #
@@ -136,6 +138,8 @@ class CourseGeneratorService:
         owner: str,
         goal: str | None = None,
         course_id: str | None = None,
+        model_id: str = "deepseek-v4-flash",
+        extra_prompt: str | None = None,
     ) -> str:
         """生成**第 1 课**并落盘，经 ``progress_svc.mark_ready`` 落 ready 进度。
 
@@ -156,6 +160,10 @@ class CourseGeneratorService:
             course_id: 课程 ID。由调用方（API 层已生成并 upsert pending）传入，
                 保证同一请求内 pending 与 ready 指向同一条记录；为 None 时内部
                 用 :func:`build_course_id` 新生成一个（每次不同，不幂等）。
+            model_id: 模型 ID（task-391），同时落库到 ``LearningProgress`` 让
+                后续课经 :meth:`preview_next_lesson` 复用。
+            extra_prompt: 用户补充的额外提示（task-391），首课 prompt 使用，
+                同时落库用于审计 / 首课重生成。
 
         Returns:
             ``course_id``，格式 ``<slug>--<8hex>``。
@@ -183,6 +191,8 @@ class CourseGeneratorService:
             lesson_num=1,
             goal=goal,
             session_id=session_id,
+            model_id=model_id,
+            extra_prompt=extra_prompt,
         )
 
         # 标记进度为ready
@@ -192,6 +202,8 @@ class CourseGeneratorService:
             topic=topic,
             goal=goal,
             session_id=session_id,
+            model_id=model_id,
+            extra_prompt=extra_prompt,
         )
 
         logger.bind(course_id=course_id, owner=owner, lesson_num=1).info(
@@ -206,6 +218,7 @@ class CourseGeneratorService:
         course_id: str,
         goal: str | None = None,
         session_id: str | None = None,
+        model_id: str | None = None,
     ) -> int | None:
         """渐进产出：生成**下一课**并落盘。
 
@@ -220,12 +233,17 @@ class CourseGeneratorService:
         ``LearningProgress.session_id`` 读出后透传，复用首课锚定的同一 agno
         会话，让前几轮的对话 / 工具记录被回放进 context，agent 跨轮记住上下文。
 
+        模型一致性（task-391）：``model_id`` 由 :meth:`preview_next_lesson`
+        从 ``LearningProgress.model_id`` 读出后透传，整门课保持同一模型；
+        ``None`` 时回退 ``_generate_lesson`` 默认 flash。
+
         Args:
             topic: 原始主题（用于 prompt）。
             owner: 进度归属（仅用于日志，不再写 progress）。
             course_id: 课程 ID。
             session_id: 已锚定的 agno 会话 ID（可选）；非 None 时传给 agent，
                 否则按 agno 默认行为新开会话（仅用于单元测试 / 历史调用）。
+            model_id: 模型 ID（task-391）。None 回退 flash。
 
         Returns:
             新课的编号；若有冲突（已存在）则返回 None。
@@ -246,8 +264,9 @@ class CourseGeneratorService:
 
         # 2. 生成并落盘下一课（ZPD 衔接由 agent 经 read_previous_lesson 工具完成；
         #    goal 转发保证 prompt 与 MISSION.md 目标一致；session_id 复用首课
-        #    锚定的会话，让 agent 跨轮记住前序 run 的消息；repo 与 agent 工具
-        #    共用同一实例，exercise 配对直接消费 repo.last_written_lesson）
+        #    锚定的会话，让 agent 跨轮记住前序 run 的消息；model_id 整门课
+        #    保持同一模型，None 时回退 flash；repo 与 agent 工具共用同一实例，
+        #    exercise 配对直接消费 repo.last_written_lesson）
         await self._generate_lesson(
             topic=topic,
             course_id=course_id,
@@ -255,6 +274,7 @@ class CourseGeneratorService:
             lesson_num=next_num,
             goal=goal,
             session_id=session_id,
+            model_id=model_id or "deepseek-v4-flash",
             repo=repo,
         )
 
@@ -347,7 +367,8 @@ class CourseGeneratorService:
 
         - ``next_num``：预期下一课编号（磁盘最大编号 + 1）；
         - ``already_generated``：该编号文件是否已存在（幂等命中）；
-        - ``topic`` / ``goal`` / ``session_id``：``.kiq()`` 转发所需的进度字段。
+        - ``topic`` / ``goal`` / ``session_id``：``.kiq()`` 转发所需的进度字段；
+        - ``model_id``（task-391）：整门课复用首课所选模型。
 
         磁盘规则委托 :class:`CoursePackageRepo`，与
         :meth:`generate_next_lesson` 内部用的是同一份逻辑，handler 与 worker
@@ -376,11 +397,14 @@ class CourseGeneratorService:
             topic=progress.topic,
             goal=progress.goal,
             session_id=progress.session_id,
+            model_id=progress.model_id,
         )
 
     # ── 内部 ──────────────────────────────────────────────────────── #
 
-    async def _build_course_agent(self, repo: CoursePackageRepo) -> Agent:
+    async def _build_course_agent(
+        self, repo: CoursePackageRepo, model_id: str = "deepseek-v4-flash"
+    ) -> Agent:
         """构建**单一课程 agent**（agent_driven 重构核心路径，task-3553 已切换）。
 
         为「一次主 agent run」提供 agent：
@@ -451,7 +475,7 @@ class CourseGeneratorService:
                 use_json_mode=False,
             )
         return create_agent(
-            model=self._model or create_deepseek_model(),
+            model=self._model or create_deepseek_model(model_id),
             instructions=COURSE_AGENT_INSTRUCTIONS,
             db=create_postgres_db(),
             tools=tools,
@@ -468,6 +492,8 @@ class CourseGeneratorService:
         goal: str | None = None,
         session_id: str | None = None,
         repo: CoursePackageRepo | None = None,
+        model_id: str = "deepseek-v4-flash",
+        extra_prompt: str | None = None,
     ) -> None:
         """一次主 agent run 生成一课：四件套全部由 agent 经工具写盘。
 
@@ -489,30 +515,56 @@ class CourseGeneratorService:
         progress 读出后透传。两轮都传同一个 session_id（包括兜底重试的
         attempt 2），agent 能看到上一轮为何失败。
 
+        首课额外提示（task-394）：``extra_prompt`` 仅首课路径（``lesson_num == 1``）
+        注入用户消息——service 拼好「额外要求：<ep>」整行后填入模板的
+        ``{extra_prompt}`` 槽，空串 / ``None`` 时该槽渲染为空行（不出现"额外
+        要求："字样）。
+
+        下一课 lean prompt（task-394）：当 ``session_id`` 存在（即锚定了 agno
+        会话、agent 能从上下文回放前序消息）时，user message 简化为仅
+        ``course_id`` + :data:`COURSE_AGENT_NEXT_LESSON_HINT`——不再嵌
+        ``topic`` / ``goal`` / ``extra_prompt``，避免与 session 历史里首课已
+        收到的完整 prompt 重复。``session_id`` 缺失（老课程 / 测试直调）→ 回退
+        完整 prompt（嵌 topic / goal + 下一课 hint），让无上下文的 agent 也能
+        拿到必要输入。
+
         兜底重试（task-3554）：run 结束后的「磁盘缺 body 文件」或「缺 exercise
         文件」触发**整 run 重试一次**——第二次 run 用
-        :data:`COURSE_AGENT_RETRY_HINT` 追加到用户消息，指示 agent 补调
-        ``save_lesson`` / ``save_exercise`` 落盘；两次均失败则抛
-        ``RuntimeError``。重试只覆盖 run **之后**的校验失败；``arun`` 本身抛错
-        不重试（直接上抛）。
+        :data:`COURSE_AGENT_RETRY_HINT` 追加到用户消息（拼在 lean / 完整
+        prompt 之上），指示 agent 补调 ``save_lesson`` / ``save_exercise``
+        落盘；两次均失败则抛 ``RuntimeError``。重试只覆盖 run **之后**的校验
+        失败；``arun`` 本身抛错不重试（直接上抛）。
         """
         # 共享 repo：agent 工具写盘与 service 的 exercise 配对用同一实例，run 后
         # 直接消费 repo.last_written_lesson，不做磁盘反推。
         repo = repo or CoursePackageRepo(
             course_id=course_id, tmp_dir=self._tmp_dir
         )
-        course_agent = await self._build_course_agent(repo)
-        base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
-            topic=topic,
-            course_id=course_id,
-            goal=goal or DEFAULT_GOAL_HINT,
+        course_agent = await self._build_course_agent(repo, model_id)
+        # extra_prompt 仅首课注入：service 拼好「额外要求：<ep>」整行，None /
+        # 空串时不渲染该行（slot 留空 → 模板里只剩空行 + 后续 \n\n）。
+        ep_line = (
+            f"额外要求：{extra_prompt}" if extra_prompt else ""
         )
-        # 渐进产出路径（lesson_num > 1）：把"必须推进"提示拼到 base prompt
-        # 末尾,避免 LLM 在同主题复用 session_id 时倾向复制首课。
-        # 重试 attempt 2 也保留这条 hint,因为约束(不要重复结构/示例/
-        # slug)与重试目标(补齐 lesson/exercise)正交。
-        if lesson_num > 1:
-            base_prompt = base_prompt + "\n\n" + COURSE_AGENT_NEXT_LESSON_HINT
+        # 下一课且 session_id 锚定 → lean prompt（仅 course_id + 下一课 hint），
+        # 不再嵌 topic/goal/extra_prompt（已从 session 历史拿到）。
+        # session_id 缺失（老课程 / 测试直调）→ 走完整 prompt，保证无上下文的
+        # agent 也能拿到必要输入。
+        if lesson_num > 1 and session_id:
+            base_prompt = (
+                f"course_id：{course_id}\n\n{COURSE_AGENT_NEXT_LESSON_HINT}"
+            )
+        else:
+            base_prompt = COURSE_AGENT_USER_PROMPT_TEMPLATE.format(
+                topic=topic,
+                course_id=course_id,
+                goal=goal or DEFAULT_GOAL_HINT,
+                extra_prompt=ep_line,
+            )
+            # 完整 prompt 下，lesson_num > 1 且无 session_id（老课程）也追加
+            # NEXT_LESSON_HINT，让 agent 知道是后续课而非重生成首课。
+            if lesson_num > 1:
+                base_prompt = base_prompt + "\n\n" + COURSE_AGENT_NEXT_LESSON_HINT
         retry_prompt = base_prompt + "\n\n" + COURSE_AGENT_RETRY_HINT
 
         last_error: RuntimeError | None = None
