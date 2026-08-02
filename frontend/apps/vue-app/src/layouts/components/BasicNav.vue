@@ -52,7 +52,7 @@
       <!-- Others: hover dropdown — routes not shown in the pill strip -->
       <li>
         <HoverDropdown
-          panel-class="bg-page/80 absolute top-full right-0 z-50 mt-2 w-52 rounded-2xl p-1 ring-1 ring-black/5 backdrop-blur-xs dark:ring-white/10"
+          panel-class="bg-page/90 absolute top-full right-0 z-50 mt-2 w-52 rounded-2xl p-1 ring-1 ring-black/5 backdrop-blur-xs dark:ring-white/10"
           class="flex items-center"
         >
           <template #trigger="{ isOpen }">

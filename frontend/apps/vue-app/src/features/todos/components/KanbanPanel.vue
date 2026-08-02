@@ -21,7 +21,7 @@
         v-for="col in KANBAN_COLUMNS"
         :key="col.id"
         role="listitem"
-        class="bg-surface/40 flex max-h-[calc(100dvh-10rem)] min-h-96 flex-col overflow-y-scroll overscroll-contain rounded-xl border p-3 transition-colors contain-[layout_paint_scroll_style]"
+        class="bg-surface/40 smooth-shadow-ring flex max-h-[calc(100dvh-10rem)] min-h-96 flex-col overflow-x-visible overflow-y-scroll overscroll-contain rounded-[28px] border p-3 shadow-md transition-colors contain-[layout_paint_scroll_style]"
         :class="
           dragOverColumn === col.id
             ? 'border-accent/60 bg-accent/5 ring-accent/30 ring-1'
@@ -55,7 +55,7 @@
           <div
             v-for="lane in swimlanesFor(col.id)"
             :key="lane.userId"
-            class="flex flex-col gap-2"
+            class="flex flex-col gap-2 px-4"
           >
             <div
               class="text-muted flex items-center gap-1.5 px-1 font-serif text-xs tracking-widest"

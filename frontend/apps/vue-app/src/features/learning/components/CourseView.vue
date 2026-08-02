@@ -1,6 +1,12 @@
 <!--
   CourseView — /learning/course/:courseId 课程概览页.
 
+  视觉契约:
+   - 顶部标题卡:圆角 2xl + shadow-md,内部放下 metadata + spine progress。
+   - 课列表是签名构图:整张面板圆角 2xl,行内 left-rule + 阴影抬升表达 current。
+   - 学习使命 / 学习资源:独立的圆角 2xl 卡片,折叠时 row 高度收缩,展开时内容展示。
+   - 「继续下一课」CTA pill 化,主按钮带 shadow-accent/30。
+
   行为契约 (task-353 重构):
    - 挂载时 loadCourse(courseId):
        ready → 直接渲染课列表 + 资源
@@ -17,11 +23,12 @@
 -->
 <script setup lang="ts">
 import { useHead } from '@vueuse/head';
-import { computed, onMounted, ref, watch } from 'vue';
+import hljs from 'highlight.js/lib/common';
+import 'highlight.js/scss/rainbow.scss';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeft,
-  BookOpen,
   ChevronRight,
   Library,
   Loader2,
@@ -70,7 +77,9 @@ const resourceHtml = computed(() =>
 
 /** 学习使命（MISSION.md）渲染：缺失 / 空串时整块隐藏。 */
 const missionHtml = computed(() =>
-  course.value?.mission_md?.trim() ? renderMarkdown(course.value.mission_md) : '',
+  course.value?.mission_md?.trim()
+    ? renderMarkdown(course.value.mission_md)
+    : '',
 );
 
 /** 当前课程在 progressList 里的最新条目;可能 undefined(冷启动)。 */
@@ -130,6 +139,16 @@ watch(
   },
 );
 
+/** markdown 渲染后,等 Vue 完成 patch 再对 <pre><code> 上色。 */
+watch(
+  [missionHtml, resourceHtml],
+  async ([mission, resource]) => {
+    if (!mission && !resource) return;
+    await nextTick();
+    hljs.highlightAll();
+  },
+);
+
 onMounted(() => {
   void load();
 });
@@ -146,12 +165,6 @@ function statusLabel(s: ReturnType<typeof statusOf>): string {
   return '未开始';
 }
 
-function statusClasses(s: ReturnType<typeof statusOf>): string {
-  if (s === 'done') return 'bg-success/15 text-success';
-  if (s === 'current') return 'bg-accent/15 text-accent';
-  return 'bg-muted/40 text-muted';
-}
-
 function openLesson(lesson: LearningLesson) {
   void router.push({
     name: 'learning-lesson',
@@ -161,6 +174,16 @@ function openLesson(lesson: LearningLesson) {
 
 function padId(id: number): string {
   return id.toString().padStart(4, '0');
+}
+
+function rowContainerCls(s: ReturnType<typeof statusOf>): string {
+  if (s === 'current') {
+    return 'bg-accent/10 ring-1 ring-accent/30 shadow-accent/25 shadow-md';
+  }
+  if (s === 'done') {
+    return 'bg-card shadow-sm';
+  }
+  return 'bg-card shadow-sm';
 }
 
 /**
@@ -244,7 +267,7 @@ useHead({
       <!-- Top nav -->
       <button
         type="button"
-        class="text-muted hover:text-ink focus-visible:ring-ring/40 mb-5 inline-flex items-center gap-1 text-xs transition-colors focus:outline-none focus-visible:ring-2"
+        class="text-muted hover:text-ink focus-visible:ring-ring bg-card focus-visible:ring-offset-page mb-8 inline-flex items-center gap-1 rounded-full px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         @click="goBack"
       >
         <ArrowLeft class="h-3 w-3" aria-hidden="true" />
@@ -254,7 +277,7 @@ useHead({
       <!-- Loading (pending) -->
       <section
         v-if="submitting && !course"
-        class="bg-card ring-border/40 flex flex-col items-center gap-3 rounded-2xl px-5 py-16 text-center ring-1"
+        class="bg-card text-muted flex flex-col items-center gap-3 rounded-2xl px-6 py-16 text-center shadow-md"
       >
         <Loader2
           class="text-accent h-6 w-6 animate-spin motion-reduce:animate-none"
@@ -269,7 +292,7 @@ useHead({
       <!-- Failed -->
       <section
         v-else-if="courseStatus === 'failed' || error"
-        class="bg-card ring-border/40 flex flex-col items-center gap-3 rounded-2xl px-5 py-12 text-center ring-1"
+        class="bg-card text-muted flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center shadow-md"
       >
         <p class="text-destructive text-sm font-medium">
           {{ error || '课程生成失败' }}
@@ -282,30 +305,52 @@ useHead({
 
       <!-- Course ready -->
       <template v-else-if="course">
-        <!-- Title + progress -->
-        <header class="mb-5">
-          <h1 class="text-ink font-serif text-2xl font-medium tracking-wide">
+        <!-- Title + metadata -->
+        <header
+          class="bg-card mb-6 rounded-2xl px-6 py-6 shadow-md sm:px-8 sm:py-8"
+        >
+          <p
+            class="text-muted mb-3 font-mono text-[11px] tracking-[0.18em] uppercase"
+          >
+            course
+          </p>
+          <h1
+            class="text-ink font-serif text-3xl leading-tight font-medium tracking-tight sm:text-4xl"
+          >
             {{ course.topic }}
           </h1>
-          <div class="text-muted mt-1 flex items-center gap-2 text-xs">
-            <span>{{ lessons.length }} 节课</span>
+          <div
+            class="text-muted mt-3 flex flex-wrap items-center gap-2 font-mono text-[11px] tracking-[0.12em] uppercase"
+          >
+            <span
+              class="bg-surface/60 inline-flex items-center rounded-full px-2.5 py-0.5 shadow-inner"
+            >
+              {{ lessons.length }} 节课
+            </span>
             <span aria-hidden="true">·</span>
-            <span>{{ doneSessions }} / {{ totalSessions }} 节已完成</span>
-            <span v-if="isCourseDone" class="text-success ml-1">
-              · 已全部完成
+            <span
+              class="bg-surface/60 inline-flex items-center rounded-full px-2.5 py-0.5 shadow-inner"
+            >
+              {{ doneSessions }} / {{ totalSessions }} 节已完成
+            </span>
+            <span
+              v-if="isCourseDone"
+              class="bg-success/15 text-success inline-flex items-center rounded-full px-2.5 py-0.5 shadow-sm"
+            >
+              已全部完成
             </span>
           </div>
 
-          <!-- Progress bar -->
+          <!-- Spine progress -->
           <div
-            class="bg-muted mt-3 h-1.5 w-full overflow-hidden rounded-full"
+            class="bg-muted/40 mt-5 h-1.5 w-full overflow-hidden rounded-full shadow-inner"
             role="progressbar"
             :aria-valuenow="progressPct"
             aria-valuemin="0"
             aria-valuemax="100"
           >
             <div
-              class="bg-accent h-full transition-all duration-300 motion-reduce:transition-none"
+              class="bg-accent shadow-accent/30 h-full rounded-full transition-all duration-300 motion-reduce:transition-none"
               :style="{ width: `${progressPct}%` }"
             />
           </div>
@@ -314,17 +359,21 @@ useHead({
         <!-- Mission (task-365):学习使命文档,缺失时整块隐藏。默认折叠,与学习资源同模式。 -->
         <section
           v-if="missionHtml"
-          class="bg-card ring-border/40 mb-5 rounded-2xl ring-1"
+          class="bg-card mb-4 overflow-hidden rounded-2xl shadow-sm"
         >
           <button
             type="button"
-            class="border-border/40 hover:bg-surface/40 focus-visible:ring-ring/40 flex w-full items-center gap-2 border-b px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 sm:px-5"
+            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-6"
             :aria-expanded="missionOpen"
             aria-controls="mission-panel"
             @click="missionOpen = !missionOpen"
           >
             <Target class="text-accent h-4 w-4" aria-hidden="true" />
-            <span class="text-ink flex-1 text-sm font-medium"> 学习使命 </span>
+            <span
+              class="text-ink flex-1 font-mono text-[11px] tracking-[0.18em] uppercase"
+            >
+              学习使命
+            </span>
             <ChevronRight
               class="text-muted h-4 w-4 transition-transform motion-reduce:transition-none"
               :class="missionOpen ? 'rotate-90' : ''"
@@ -339,27 +388,29 @@ useHead({
           >
             <div class="collapsible-inner min-w-0 overflow-hidden">
               <article
-                class="prose prose-sm text-ink max-w-none px-4 py-4 sm:px-5"
+                class="prose prose-sm text-ink max-w-none px-5 py-4 sm:px-6"
                 v-html="missionHtml"
               />
             </div>
           </div>
         </section>
 
-        <!-- Lesson list -->
+        <!-- Lesson spine -->
         <section
           v-if="lessons.length > 0"
-          class="bg-card ring-border/40 mb-5 rounded-2xl ring-1"
+          class="bg-card mb-4 rounded-2xl p-3 shadow-sm"
+          aria-label="课节目录"
         >
-          <ul class="divide-border/40 divide-y">
+          <ol class="space-y-2">
             <li v-for="lesson in lessons" :key="lesson.id">
               <button
                 type="button"
-                class="hover:bg-surface/40 focus-visible:ring-ring/40 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 sm:px-5"
+                class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-baseline gap-3 rounded-xl py-2.5 pr-3 pl-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
+                :class="rowContainerCls(statusOf(lesson))"
                 @click="openLesson(lesson)"
               >
                 <span
-                  class="font-mono text-xs"
+                  class="font-mono text-xs tabular-nums"
                   :class="
                     statusOf(lesson) === 'done'
                       ? 'text-success'
@@ -370,61 +421,68 @@ useHead({
                 >
                   {{ padId(lesson.id) }}
                 </span>
-                <span class="text-ink flex-1 truncate text-sm font-medium">
+                <span class="text-ink flex-1 text-sm font-medium">
                   {{ lesson.title }}
                 </span>
                 <span
-                  class="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium"
-                  :class="statusClasses(statusOf(lesson))"
+                  class="shrink-0 rounded-full px-2.5 py-0.5 font-mono text-[11px] tracking-[0.18em] uppercase"
+                  :class="
+                    statusOf(lesson) === 'done'
+                      ? 'bg-success/15 text-success'
+                      : statusOf(lesson) === 'current'
+                        ? 'bg-accent/15 text-accent'
+                        : 'bg-muted/40 text-muted'
+                  "
                 >
                   {{ statusLabel(statusOf(lesson)) }}
                 </span>
                 <ChevronRight
-                  class="text-muted h-4 w-4 shrink-0"
+                  class="text-muted h-3.5 w-3.5 shrink-0"
                   aria-hidden="true"
                 />
               </button>
             </li>
-          </ul>
+          </ol>
         </section>
 
         <!-- Empty state:课程还没产出任何 lesson -->
         <section
           v-else
-          class="bg-card ring-border/40 text-muted mb-5 rounded-2xl px-5 py-10 text-center text-sm ring-1"
+          class="bg-card text-muted mb-4 rounded-2xl px-6 py-10 text-center text-sm shadow-sm"
         >
           这门课还没有生成任何课节。点击下方按钮生成第一课。
         </section>
 
-        <!-- Action row:继续下一课 + 资源 -->
-        <div
-          class="bg-card ring-border/40 mb-5 flex flex-col items-stretch gap-3 rounded-2xl p-4 ring-1 sm:flex-row sm:items-center sm:justify-between"
+        <!-- Action row:继续下一课 -->
+        <section
+          class="bg-card mb-4 flex flex-col items-stretch gap-3 rounded-2xl p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
         >
-          <div class="text-muted text-xs leading-relaxed">
-            <p>
-              <template v-if="nextLessonId !== null">
-                下一节:<span class="text-ink font-mono">{{
-                  padId(nextLessonId)
-                }}</span>
-                <span
-                  v-if="
-                    progressItem?.next_session !== null &&
-                    progressItem?.next_session !== undefined
-                  "
-                  class="ml-2"
-                >
-                  · 由进度决定
-                </span>
-              </template>
-              <template v-else-if="isCourseDone"> 所有课节已完成,棒! </template>
-              <template v-else> 下一节尚未生成,点击右侧按钮产出。 </template>
-            </p>
+          <div
+            class="text-muted font-mono text-[11px] tracking-[0.12em] uppercase"
+          >
+            <template v-if="nextLessonId !== null">
+              下一节:<span class="text-ink font-mono">{{
+                padId(nextLessonId)
+              }}</span>
+              <span
+                v-if="
+                  progressItem?.next_session !== null &&
+                  progressItem?.next_session !== undefined
+                "
+                class="ml-2"
+              >
+                · 由进度决定
+              </span>
+            </template>
+            <template v-else-if="isCourseDone"> 所有课节已完成,棒! </template>
+            <template v-else> 下一节尚未生成,点击右侧按钮产出。 </template>
           </div>
           <div class="flex shrink-0 gap-2">
             <Button
               v-if="!isCourseDone"
-              size="sm"
+              size="md"
               :disabled="generating"
+              class="shadow-accent/30 shadow-md hover:shadow-lg"
               @click="onGenerateNext"
             >
               <Loader2
@@ -433,25 +491,31 @@ useHead({
                 aria-hidden="true"
               />
               <Sparkles v-else class="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{{ generating ? '生成中…' : '继续下一课' }}</span>
+              <span class="font-mono">{{
+                generating ? '生成中…' : '继续下一课'
+              }}</span>
             </Button>
           </div>
-        </div>
+        </section>
 
         <!-- Resource panel:与学习使命同模式(grid-template-rows 0fr↔1fr 折叠过渡)。 -->
         <section
           v-if="course.resource_md.trim().length > 0"
-          class="bg-card ring-border/40 rounded-2xl ring-1"
+          class="bg-card overflow-hidden rounded-2xl shadow-sm"
         >
           <button
             type="button"
-            class="hover:bg-surface/40 focus-visible:ring-ring/40 flex w-full items-center gap-2 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 sm:px-5"
+            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-6"
             :aria-expanded="resourceOpen"
             aria-controls="resource-panel"
             @click="resourceOpen = !resourceOpen"
           >
             <Library class="text-muted h-4 w-4" aria-hidden="true" />
-            <span class="text-ink flex-1 text-sm font-medium"> 学习资源 </span>
+            <span
+              class="text-ink flex-1 font-mono text-[11px] tracking-[0.18em] uppercase"
+            >
+              学习资源
+            </span>
             <ChevronRight
               class="text-muted h-4 w-4 transition-transform motion-reduce:transition-none"
               :class="resourceOpen ? 'rotate-90' : ''"
@@ -466,7 +530,7 @@ useHead({
           >
             <div class="collapsible-inner min-w-0 overflow-hidden">
               <article
-                class="prose prose-sm text-ink max-w-none px-4 pb-5 sm:px-5"
+                class="prose prose-sm text-ink max-w-none px-5 pb-6 sm:px-6"
                 v-html="resourceHtml"
               />
             </div>
@@ -474,8 +538,10 @@ useHead({
         </section>
 
         <!-- Footer hint -->
-        <p v-if="lessons.length === 0" class="text-muted text-center text-xs">
-          <BookOpen class="mb-1 inline h-3.5 w-3.5" aria-hidden="true" />
+        <p
+          v-if="lessons.length === 0"
+          class="text-muted py-6 text-center font-mono text-[11px] tracking-[0.18em] uppercase"
+        >
           这门课程将按你点「继续下一课」逐步产出课节。
         </p>
       </template>

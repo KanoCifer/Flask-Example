@@ -59,3 +59,4 @@ design-demos/
 backend/tmp/learning/
 frontend/apps/react-app/.env.production
 frontend/apps/vue-app/.env.production
+frontend/deploy.sh

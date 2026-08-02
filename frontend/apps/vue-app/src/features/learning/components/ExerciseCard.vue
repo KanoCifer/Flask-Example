@@ -1,6 +1,12 @@
 <!--
   ExerciseCard — 单个练习题卡.
 
+  视觉契约:
+   - card 外壳:bg-card + rounded-2xl + shadow-sm,答题后整体阴影换色(success/destructive)。
+   - 选项:pill 化的圆角 xl 行,选中态 bg-accent/10 + shadow-accent/20 + 上抬,
+     正确/错误由 bg + shadow + text color 三者协同表达。
+   - 结果栏:独立的圆角 2xl callout,带 left border + 软阴影。
+
   行为契约:
    - 根据 exercise.type 渲染三种 UI:
        single_choice → radio(单选)
@@ -134,28 +140,69 @@ function isWrongChoice(key: string): boolean {
   }
   return selection.value === key && !isCorrectOption(key);
 }
+
+/** 选项行的容器类 — 选中 / 正确 / 错误三态。 */
+function optionContainerCls(key: string): string {
+  if (submitted.value) {
+    if (isCorrectOption(key)) {
+      return 'bg-success/10 text-success shadow-success/20 shadow-sm';
+    }
+    if (isWrongChoice(key)) {
+      return 'bg-destructive/10 text-destructive shadow-destructive/20 shadow-sm';
+    }
+    return 'bg-card text-muted';
+  }
+  // 未提交:当前选中 = bg-accent/10 + shadow-accent/20 + 微上抬
+  if (isMulti.value) {
+    return isMultiChecked(key)
+      ? 'bg-accent/10 text-ink shadow-accent/20 -translate-y-0.5 shadow-md'
+      : 'bg-card text-ink';
+  }
+  return selection.value === key
+    ? 'bg-accent/10 text-ink shadow-accent/20 -translate-y-0.5 shadow-md'
+    : 'bg-card text-ink';
+}
+
+function optionKeyCls(key: string): string {
+  const base = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] shadow-inner';
+  if (submitted.value) {
+    if (isCorrectOption(key)) return `${base} bg-success/20 text-success`;
+    if (isWrongChoice(key)) return `${base} bg-destructive/20 text-destructive`;
+    return `${base} bg-surface/60 text-muted`;
+  }
+  if (isMulti.value) {
+    return isMultiChecked(key)
+      ? `${base} bg-accent text-contrast`
+      : `${base} bg-surface/60 text-muted`;
+  }
+  return selection.value === key
+    ? `${base} bg-accent text-contrast`
+    : `${base} bg-surface/60 text-muted`;
+}
 </script>
 
 <template>
-  <div
-    class="bg-card ring-border/40 rounded-2xl p-5 ring-1"
+  <article
+    class="bg-card rounded-2xl p-5 shadow-sm transition-all duration-300 sm:p-6"
     :class="
       submitted
         ? result
-          ? 'ring-success/40'
-          : 'ring-destructive/40'
+          ? 'shadow-success/20 shadow-md'
+          : 'shadow-destructive/20 shadow-md'
         : ''
     "
   >
     <!-- Header: 题号 + 题型 + 分值 -->
-    <header class="mb-3 flex items-start justify-between gap-3">
-      <div class="flex items-center gap-2">
+    <header class="mb-4 flex items-baseline justify-between gap-3">
+      <div class="flex items-baseline gap-2">
         <span
-          class="bg-accent/10 text-accent rounded-md px-2 py-0.5 font-mono text-xs font-medium"
+          class="bg-accent/15 text-accent rounded-full px-2.5 py-0.5 font-mono text-xs tabular-nums"
         >
-          Q{{ index }}
+          Q{{ String(index).padStart(2, '0') }}
         </span>
-        <span class="text-muted text-xs">
+        <span
+          class="text-muted font-mono text-[11px] tracking-[0.18em] uppercase"
+        >
           {{
             exercise.type === 'single_choice'
               ? '单选'
@@ -165,13 +212,15 @@ function isWrongChoice(key: string): boolean {
           }}
         </span>
       </div>
-      <span class="text-muted font-mono text-[11px]">
+      <span
+        class="bg-surface/60 text-muted rounded-full px-2.5 py-0.5 font-mono text-[11px] tracking-[0.12em] uppercase tabular-nums shadow-inner"
+      >
         {{ exercise.points }} 分 · 难度 {{ exercise.difficulty }}
       </span>
     </header>
 
     <!-- Prompt -->
-    <p class="text-ink mb-4 text-sm leading-relaxed font-medium">
+    <p class="text-ink mb-5 text-base leading-relaxed font-medium">
       {{ exercise.prompt }}
     </p>
 
@@ -182,54 +231,39 @@ function isWrongChoice(key: string): boolean {
         :key="opt.key"
         type="button"
         :disabled="submitted"
-        class="border-border/60 bg-surface/30 text-ink hover:bg-surface/60 focus-visible:ring-ring/40 flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
-        :class="[
-          !submitted && isMulti
-            ? isMultiChecked(opt.key)
-              ? 'bg-accent/10 border-accent/40'
-              : ''
-            : !submitted && selection === opt.key
-              ? 'bg-accent/10 border-accent/40'
-              : '',
-          submitted && isCorrectOption(opt.key)
-            ? 'ring-success/40 bg-success/10 border-success/40'
-            : '',
-          submitted && isWrongChoice(opt.key)
-            ? 'ring-destructive/40 bg-destructive/10 border-destructive/40'
-            : '',
-        ]"
+        class="hover:bg-surface/60 focus-visible:ring-ring flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-70"
+        :class="optionContainerCls(opt.key)"
         @click="isMulti ? toggleMulti(opt.key) : pickSingle(opt.key)"
       >
-        <span
-          class="border-border/60 text-muted flex h-5 w-5 shrink-0 items-center justify-center font-mono text-[11px]"
-          :class="isMulti ? 'rounded-sm border' : 'rounded-full border'"
-        >
+        <span :class="optionKeyCls(opt.key)">
           {{ opt.key }}
         </span>
         <span class="flex-1">{{ opt.text }}</span>
         <Check
           v-if="submitted && isCorrectOption(opt.key)"
-          class="text-success h-4 w-4 shrink-0"
+          class="h-4 w-4 shrink-0"
           aria-hidden="true"
         />
       </button>
     </div>
 
     <!-- True / False -->
-    <div v-else class="grid grid-cols-2 gap-2">
+    <div v-else class="grid grid-cols-2 gap-3">
       <button
         type="button"
         :disabled="submitted"
-        class="border-border/60 bg-surface/30 text-ink hover:bg-surface/60 focus-visible:ring-ring/40 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
-        :class="[
-          !submitted && selection === true ? 'bg-accent/10 border-accent/40' : '',
-          submitted && exercise.answer === true
-            ? 'ring-success/40 bg-success/10 border-success/40'
-            : '',
-          submitted && selection === true && exercise.answer !== true
-            ? 'ring-destructive/40 bg-destructive/10 border-destructive/40'
-            : '',
-        ]"
+        class="rounded-2xl py-4 text-center font-mono text-sm transition-all duration-300 focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-70"
+        :class="
+          submitted
+            ? exercise.answer === true
+              ? 'bg-success/15 text-success shadow-success/20 shadow-md'
+              : selection === true
+                ? 'bg-destructive/10 text-destructive shadow-destructive/20 shadow-md'
+                : 'bg-card text-muted shadow-sm'
+            : selection === true
+              ? 'bg-accent/10 text-accent shadow-accent/20 -translate-y-0.5 shadow-md'
+              : 'bg-card text-ink shadow-sm'
+        "
         @click="pickTrueFalse(true)"
       >
         对
@@ -237,16 +271,18 @@ function isWrongChoice(key: string): boolean {
       <button
         type="button"
         :disabled="submitted"
-        class="border-border/60 bg-surface/30 text-ink hover:bg-surface/60 focus-visible:ring-ring/40 rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
-        :class="[
-          !submitted && selection === false ? 'bg-accent/10 border-accent/40' : '',
-          submitted && exercise.answer === false
-            ? 'ring-success/40 bg-success/10 border-success/40'
-            : '',
-          submitted && selection === false && exercise.answer !== false
-            ? 'ring-destructive/40 bg-destructive/10 border-destructive/40'
-            : '',
-        ]"
+        class="rounded-2xl py-4 text-center font-mono text-sm transition-all duration-300 focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-70"
+        :class="
+          submitted
+            ? exercise.answer === false
+              ? 'bg-success/15 text-success shadow-success/20 shadow-md'
+              : selection === false
+                ? 'bg-destructive/10 text-destructive shadow-destructive/20 shadow-md'
+                : 'bg-card text-muted shadow-sm'
+            : selection === false
+              ? 'bg-accent/10 text-accent shadow-accent/20 -translate-y-0.5 shadow-md'
+              : 'bg-card text-ink shadow-sm'
+        "
         @click="pickTrueFalse(false)"
       >
         错
@@ -254,11 +290,11 @@ function isWrongChoice(key: string): boolean {
     </div>
 
     <!-- Submit / Result row -->
-    <footer class="mt-4 flex flex-col gap-2">
+    <footer class="mt-5 flex flex-col gap-3">
       <div v-if="!submitted" class="flex justify-end">
         <button
           type="button"
-          class="focus-visible:ring-ring/40 rounded-lg bg-accent text-contrast hover:bg-accent/90 px-4 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+          class="bg-accent text-contrast shadow-accent/30 rounded-full px-5 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!canSubmit"
           @click="submit"
         >
@@ -268,16 +304,18 @@ function isWrongChoice(key: string): boolean {
 
       <div
         v-else
-        class="rounded-lg px-3 py-2 text-sm leading-relaxed"
+        class="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
         :class="
           result
-            ? 'bg-success/10 text-success'
-            : 'bg-destructive/10 text-destructive'
+            ? 'bg-success/10 text-success shadow-success/15'
+            : 'bg-destructive/10 text-destructive shadow-destructive/15'
         "
       >
-        <div class="mb-1 flex items-center gap-2 font-medium">
-          <Check v-if="result" class="h-4 w-4" aria-hidden="true" />
-          <X v-else class="h-4 w-4" aria-hidden="true" />
+        <div
+          class="mb-1 flex items-center gap-2 font-mono text-[11px] tracking-[0.18em] uppercase"
+        >
+          <Check v-if="result" class="h-3.5 w-3.5" aria-hidden="true" />
+          <X v-else class="h-3.5 w-3.5" aria-hidden="true" />
           <span>
             {{ result ? '答对了' : `答错了 — 正确答案: ${correctAnswerLabel}` }}
           </span>
@@ -288,12 +326,12 @@ function isWrongChoice(key: string): boolean {
       <div v-if="submitted" class="flex justify-end">
         <button
           type="button"
-          class="text-muted hover:text-ink focus-visible:ring-ring/40 cursor-pointer text-xs transition-colors focus:outline-none focus-visible:ring-2"
+          class="text-muted hover:text-ink focus-visible:ring-ring rounded-full px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
           @click="reset"
         >
           重做
         </button>
       </div>
     </footer>
-  </div>
+  </article>
 </template>

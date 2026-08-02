@@ -17,11 +17,11 @@ const attrs = useAttrs();
 
 const mergedAttrs = computed(() => ({
   'enter-active-class':
-    'transition-all duration-280 transform-gpu ease-out motion-reduce:transition-none motion-reduce:duration-0',
+    'transition-[opacity,translate,filter] duration-280 transform-gpu ease-out motion-reduce:transition-none motion-reduce:duration-0',
   'enter-from-class': 'opacity-0 translate-y-1 blur-[4px]',
   'enter-to-class': 'opacity-100 translate-y-0 blur-0',
   'leave-active-class':
-    'transition-[opacity,transform,filter] duration-150 transform-gpu ease-out motion-reduce:transition-none motion-reduce:duration-0',
+    'transition-[opacity,translate,filter] duration-150 transform-gpu ease-out motion-reduce:transition-none motion-reduce:duration-0',
   'leave-from-class': 'opacity-100 translate-y-0 blur-0',
   'leave-to-class': 'opacity-0 -translate-y-1 blur-[4px]',
   ...attrs,

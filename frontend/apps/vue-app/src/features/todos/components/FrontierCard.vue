@@ -1,18 +1,18 @@
 <template>
   <button
     type="button"
-    class="bg-card/30 border group block w-full rounded-3xl p-3 text-left transition-transform duration-300 hover:-translate-y-0.5"
+    class="bg-card/30 group block w-full rounded-3xl border p-3 text-left transition-transform duration-300 hover:-translate-y-0.5"
     :aria-label="`open ${task.title}`"
     @click="$emit('open', task.slug)"
   >
-    <div class="grid grid-cols-[auto_1fr] gap-3 items-start">
+    <div class="grid grid-cols-[auto_1fr] items-start gap-3">
       <!-- LEFT: animal guardian. No ring, no P-letter, no halo — just the image with a 1px
            white drop-shadow so the animal sits cleanly on the transparent card. -->
       <div class="relative shrink-0 pt-0.5">
         <img
           :src="animalSrc"
           :alt="''"
-          class="animal-avatar h-[80px] w-[80px] select-none object-cover"
+          class="animal-avatar h-[80px] w-[80px] object-cover select-none"
           draggable="false"
           loading="lazy"
         />
@@ -20,11 +20,12 @@
 
       <!-- RIGHT: title, badges, desc, footer -->
       <div class="flex min-w-0 flex-col gap-1.5">
-        <div class="text-ink truncate text-sm font-medium leading-snug">
+        <div class="text-ink truncate text-sm leading-snug font-medium">
           {{ task.title }}
         </div>
 
         <div class="flex flex-wrap items-center gap-1">
+          <SlugBadge :slug="task.slug" />
           <StatusChip :type="task.type" />
           <PriorityBadge :priority="task.priority" />
           <KindBadge :kind="task.kind" />
@@ -39,7 +40,7 @@
 
         <div class="mt-1 flex items-center justify-between gap-2">
           <div
-            class="flex items-center gap-2 font-mono tabular-nums text-[11px]"
+            class="flex items-center gap-2 font-mono text-[11px] tabular-nums"
             :class="dueLabel.overdue ? 'text-destructive' : 'text-muted'"
           >
             <svg
@@ -63,7 +64,7 @@
           <div class="fc-actions flex items-center gap-1">
             <button
               type="button"
-              class="text-muted grid h-6 w-6 place-items-center rounded-full border border-border bg-surface transition hover:text-ink"
+              class="text-muted border-border bg-surface hover:text-ink grid h-6 w-6 place-items-center rounded-full border transition"
               title="推进状态"
               aria-label="推进状态"
               @click.stop="$emit('cycle', task.slug)"
@@ -86,7 +87,7 @@
             </button>
             <button
               type="button"
-              class="text-muted hover:text-destructive grid h-6 w-6 place-items-center rounded-full border border-border bg-surface transition"
+              class="text-muted hover:text-destructive border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
               title="删除"
               aria-label="删除"
               @click.stop="$emit('delete', task.slug)"
@@ -103,7 +104,9 @@
               >
                 <path d="M3 4.5h10" />
                 <path d="M6.5 4.5V3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1" />
-                <path d="M4.5 4.5l.7 8a1 1 0 0 0 1 .9h3.6a1 1 0 0 0 1-.9l.7-8" />
+                <path
+                  d="M4.5 4.5l.7 8a1 1 0 0 0 1 .9h3.6a1 1 0 0 0 1-.9l.7-8"
+                />
               </svg>
             </button>
           </div>
@@ -119,6 +122,7 @@ import type { DevTask } from '@/features/todos/api';
 import StatusChip from './StatusChip.vue';
 import PriorityBadge from './PriorityBadge.vue';
 import KindBadge from './KindBadge.vue';
+import SlugBadge from './SlugBadge.vue';
 
 // ── Animal routing (C-ring's character-based, no progress ring) ──────────────
 // 1. due_date overdue        → fox       (sharpened, overrides kind)
@@ -143,7 +147,10 @@ function pickAnimal(task: DevTask): string {
 }
 
 // ── Due-date label formatting (C-ring uses "overdue Nd" or "M月 DD" or "—") ──
-function formatDue(due: string | null | undefined): { text: string; overdue: boolean } {
+function formatDue(due: string | null | undefined): {
+  text: string;
+  overdue: boolean;
+} {
   if (!due) return { text: '—', overdue: false };
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -165,7 +172,9 @@ defineEmits<{
   delete: [slug: string];
 }>();
 
-const animalSrc = computed(() => `/images/animal-badge/${pickAnimal(props.task)}.png`);
+const animalSrc = computed(
+  () => `/images/animal-badge/${pickAnimal(props.task)}.png`,
+);
 const dueLabel = computed(() => formatDue(props.task.due_date));
 </script>
 

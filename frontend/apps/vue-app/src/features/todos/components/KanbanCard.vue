@@ -51,8 +51,9 @@
           >
         </button>
 
-        <!-- chips: type / priority / kind (English labels via the shared chip components) -->
+        <!-- chips: type / priority / kind / slug (English labels via the shared chip components) -->
         <div class="flex flex-wrap items-center gap-1">
+          <SlugBadge :slug="task.slug" />
           <StatusChip :type="task.type" />
           <PriorityBadge :priority="task.priority" />
           <KindBadge v-if="task.kind" :kind="task.kind" />
@@ -154,6 +155,7 @@ import type { DevTask } from '@/features/todos/api';
 import StatusChip from './StatusChip.vue';
 import PriorityBadge from './PriorityBadge.vue';
 import KindBadge from './KindBadge.vue';
+import SlugBadge from './SlugBadge.vue';
 
 const props = withDefaults(
   defineProps<{

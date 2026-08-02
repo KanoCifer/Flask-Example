@@ -47,12 +47,14 @@ export const PAGE_SLIDE_BACKWARD: PageSlideDirection = -1;
 /**
  * 根据源 / 目标路径推断 master/detail 滑动方向。
  *
- * 启发式（专为博客路由设计）：
- * - list（`/blog`、`/blog/category/:slug`）< detail（`/blog/:id`）< editor（`/blog/:id/edit`、`/blog/new`）
+ * 启发式（支持博客 + 学习两类路由）：
+ * - 博客：list（`/blog`、`/blog/category/:slug`）< detail（`/blog/:id`）< editor（`/blog/:id/edit`、`/blog/new`）
+ * - 学习：list（`/learning`）< course（`/learning/course/:id`）< lesson（`/learning/course/:id/lesson/:id`）
  *   编辑器视为详情页的下一层：进入编辑"更深"，离开编辑"更浅"。
  * - 同级或向更浅：反向（进入从左，像"返回上一层"）
  * - 向更深：正向（进入从右，像"推入下一页"）
  * - 首屏（无来源）：正向，符合"从列表进入"的默认直觉
+ * - 跨分类（blog ↔ learning 或任一侧 other）：兜底正向
  */
 export function resolvePageSlideDirection(
   fromPath: string | null | undefined,
@@ -60,8 +62,9 @@ export function resolvePageSlideDirection(
 ): PageSlideDirection {
   if (!fromPath) return PAGE_SLIDE_FORWARD;
 
-  const fromKind = classifyBlogPath(fromPath);
-  const toKind = classifyBlogPath(toPath);
+  const classifier = pickClassifier(fromPath, toPath);
+  const fromKind = classifier(fromPath);
+  const toKind = classifier(toPath);
 
   if (fromKind === 'other' || toKind === 'other') {
     return PAGE_SLIDE_FORWARD;
@@ -70,16 +73,71 @@ export function resolvePageSlideDirection(
     return PAGE_SLIDE_FORWARD;
   }
 
-  return isGoingDeeper(fromKind, toKind)
+  return classifier.isGoingDeeper(fromKind, toKind)
     ? PAGE_SLIDE_FORWARD
     : PAGE_SLIDE_BACKWARD;
 }
 
-function isGoingDeeper(from: BlogPathKind, to: BlogPathKind): boolean {
-  if (from === 'list' && (to === 'detail' || to === 'editor')) return true;
-  if (from === 'detail' && to === 'editor') return true;
-  return false;
+/**
+ * 根据源/目标路径前缀挑选合适的分类器。
+ * 同一前缀下的两个路径共用一个分类器；不同前缀（blog ↔ learning）
+ * 则兜底返回 blog 分类器，但 paths 一旦落到 blog 分类器都变 other，
+ * 自然走"兜底正向"分支,跨分类不会误判反向。
+ */
+function pickClassifier(
+  fromPath: string,
+  toPath: string,
+): PathClassifier {
+  const fromFamily = classifyFamily(fromPath);
+  const toFamily = classifyFamily(toPath);
+
+  if (fromFamily === 'learning' && toFamily === 'learning') {
+    return learningClassifier;
+  }
+  return blogClassifier;
 }
+
+type PathFamily = 'blog' | 'learning' | 'other';
+
+function classifyFamily(path: string): PathFamily {
+  const normalized = path.split('?')[0]?.split('#')[0] ?? path;
+  if (normalized === '/learning' || normalized.startsWith('/learning/')) {
+    return 'learning';
+  }
+  if (normalized === '/blog' || normalized.startsWith('/blog/')) {
+    return 'blog';
+  }
+  return 'other';
+}
+
+interface PathClassifier<Kinds extends string> {
+  (path: string): Kinds | 'other';
+  isGoingDeeper(from: Kinds | 'other', to: Kinds | 'other'): boolean;
+}
+
+const blogClassifier: PathClassifier<BlogPathKind> = (() => {
+  const fn = ((path: string) => classifyBlogPath(path)) as PathClassifier<
+    BlogPathKind
+  >;
+  fn.isGoingDeeper = (from, to) => {
+    if (from === 'list' && (to === 'detail' || to === 'editor')) return true;
+    if (from === 'detail' && to === 'editor') return true;
+    return false;
+  };
+  return fn;
+})();
+
+const learningClassifier: PathClassifier<LearningPathKind> = (() => {
+  const fn = ((path: string) => classifyLearningPath(path)) as PathClassifier<
+    LearningPathKind
+  >;
+  fn.isGoingDeeper = (from, to) => {
+    if (from === 'list' && (to === 'course' || to === 'lesson')) return true;
+    if (from === 'course' && to === 'lesson') return true;
+    return false;
+  };
+  return fn;
+})();
 
 /**
  * 博客路径分类 —— 纯字符串判断，不依赖 vue-router。
@@ -112,6 +170,29 @@ export function classifyBlogPath(path: string): BlogPathKind {
     !normalized.startsWith('/blog/category')
   ) {
     return 'detail';
+  }
+
+  return 'other';
+}
+
+/**
+ * 学习路径分类 —— 三层 master/detail 层级：list < course < lesson。
+ * 保持与 router/index.ts 中的 path 字面量同步。
+ */
+export type LearningPathKind = 'list' | 'course' | 'lesson' | 'other';
+
+export function classifyLearningPath(path: string): LearningPathKind {
+  const normalized = path.split('?')[0]?.split('#')[0] ?? path;
+
+  // 必须先判断 lesson —— `/learning/course/:id/lesson/:id` 也匹配下面的 course 正则。
+  if (/^\/learning\/course\/[^/]+\/lesson\/[^/]+$/.test(normalized)) {
+    return 'lesson';
+  }
+  if (/^\/learning\/course\/[^/]+$/.test(normalized)) {
+    return 'course';
+  }
+  if (normalized === '/learning') {
+    return 'list';
   }
 
   return 'other';

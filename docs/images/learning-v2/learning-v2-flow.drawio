@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Claude/drawio-skill" version="24.0.0">
+  <diagram name="Learning v2 - 流程图" id="learning-flow">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1180" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Learning v2 课程生成流程 · 首课（task-3553 agent_driven）+ 渐进产出（task-352）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#1F2937;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Swimlanes ============== -->
+        <mxCell id="lane-client" value="客户端 (前端)" style="swimlane;rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;align=center;fontColor=#1E3A8A;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-api" value="API 路由层 (FastAPI /v2/learning)" style="swimlane;rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;align=center;fontColor=#1E3A8A;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="260" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-svc" value="Service 层 (course_gen_svc / progress_svc)" style="swimlane;rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;align=center;fontColor=#064E3B;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="520" y="80" width="280" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-task" value="Taskiq Worker (异步任务)" style="swimlane;rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;align=center;fontColor=#78350F;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="810" y="80" width="220" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-agent" value="agno 单一课程 Agent + tools" style="swimlane;rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E8FF;strokeColor=#7C3AED;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;align=center;fontColor=#4C1D95;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="80" width="260" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-store" value="存储层 (Mongo / 磁盘)" style="swimlane;rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;align=center;fontColor=#831843;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="80" width="250" height="980" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- Section 1: 首课生成 (POST /courses)                          -->
+        <!-- ============================================================ -->
+        <mxCell id="section-1" value="① 首课生成（POST /v2/learning/courses）" style="text;html=1;strokeColor=none;fillColor=#1F2937;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="135" width="1520" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c1" value="POST /v2/learning/courses&#xa;{ topic, goal }&#xa;+ X-Anon-Id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="185" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1" value="create_course()&#xa;1. _resolve_learning_owner()&#xa;2. build_course_id(topic)&#xa;3. progress_svc.create_pending()&#xa;4. generate_course.kiq(...)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=10;fontColor=#1E3A8A;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="270" y="180" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s1" value="LearningProgressService&#xa;.create_pending()&#xa;→ repo.upsert_progress(&#xa;    status=&quot;pending&quot;)&#xa;并发安全: DuplicateKeyError&#xa;回落重新读取" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=10;fontColor=#064E3B;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="180" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m1" value="MongoDB&#xa;learning_progress&#xa;insert {owner, course_id,&#xa;  topic, goal, status:&#xa;  &quot;pending&quot;}" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="180" width="210" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1-return" value="返回&#xa;{course_id, status:&quot;pending&quot;}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#059669;fontSize=10;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="270" y="280" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t1" value="@broker.task&#xa;generate_course(&#xa;  topic, owner, course_id, goal)&#xa;try: course_gen_svc.generate_course()&#xa;except: _mark_failed() → re-raise" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;fontSize=10;fontColor=#78350F;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="830" y="380" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s2" value="CourseGeneratorService&#xa;.generate_course()&#xa;session_id = uuid4().hex&#xa;→ _generate_lesson(&#xa;    lesson_num=1, session_id)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=10;fontColor=#064E3B;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="385" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ag1" value="_build_course_agent(repo)&#xa;tools = 4×write + FileTools(read)&#xa;+ ExaTools (可选) + Context7 MCP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontSize=10;fontColor=#4C1D95;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="385" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ag2" value="arun(prompt, session_id)&#xa;一次主 run, DeepSeek&#xa;无 output_schema&#xa;提示: COURSE_AGENT_USER_PROMPT_TEMPLATE&#xa;首次: base_prompt&#xa;重试: base + RETRY_HINT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontSize=10;fontColor=#4C1D95;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="460" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ag3" value="agent 自主调用:&#xa;1. save_mission(mission_md)&#xa;     → repo.write_mission (幂等)&#xa;2. save_resource(resource_md)&#xa;     → repo.write_resource&#xa;3. save_lesson(title, slug, lesson_md)&#xa;     → repo.write_lesson → last_written_lesson&#xa;4. save_exercise(exercises_json)&#xa;     → repo.write_exercise (配对 last_written)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontSize=10;fontColor=#4C1D95;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="575" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d1" value="磁盘课程包&#xa;&lt;course_id&gt;/&#xa;  MISSION.md&#xa;  resource.md&#xa;  lessons/&#xa;    0001-&lt;slug&gt;.md&#xa;    0001-&lt;slug&gt;.exercise.md&#xa;&#xa;原子写: tmp + os.replace" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="460" width="210" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3" value="_generate_lesson 校验:&#xa;written = repo.last_written_lesson&#xa;if skipped or None → RuntimeError → 重试&#xa;exercises = repo.read_exercises(num, slug)&#xa;if not exercises → RuntimeError → 重试&#xa;两次失败 → 上抛 RuntimeError" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontSize=10;fontColor=#7F1D1D;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="480" width="240" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s4" value="progress_svc.mark_ready(&#xa;  status=&quot;ready&quot;, session_id)&#xa;→ repo.upsert_progress" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=10;fontColor=#064E3B;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="600" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m2" value="MongoDB&#xa;update { status:&quot;ready&quot;,&#xa;  session_id }" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="630" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c2" value="GET /v2/learning/courses/{id}&#xa;轮询直到 status:&quot;ready&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a2" value="get_course()&#xa;course_gen_svc.get_course()&#xa;→ progress_svc.get_progress()&#xa;  None/failed → 404&#xa;  pending → {status:pending}&#xa;  ready → 解析 repo.assemble_lessons()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=10;fontColor=#1E3A8A;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="270" y="675" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a2-failed" value="失败 → _mark_failed()&#xa;progress.status = &quot;failed&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontSize=10;fontColor=#7F1D1D;" vertex="1" parent="1">
+          <mxGeometry x="830" y="600" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- Section 2: 渐进产出 (POST .../lessons)                       -->
+        <!-- ============================================================ -->
+        <mxCell id="section-2" value="② 渐进产出（POST /v2/learning/courses/{id}/lessons，task-352）" style="text;html=1;strokeColor=none;fillColor=#1F2937;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="1520" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c3" value="POST .../lessons&#xa;点击「下一课」" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="850" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a3" value="create_next_lesson()&#xa;1. 解析 owner&#xa;2+3. course_gen_svc&#xa;     .preview_next_lesson()&#xa;4. ctx.already_generated?&#xa;     → 立刻返回 no-op&#xa;5. generate_next_lesson&#xa;     .kiq(topic, goal, session_id)&#xa;6. 返回 {course_id,&#xa;     next_lesson, status:pending}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=10;fontColor=#1E3A8A;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="270" y="845" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s5" value="preview_next_lesson()&#xa;→ progress_svc.get_progress()&#xa;  None/failed → None&#xa;→ repo.next_lesson_num()&#xa;→ repo.lesson_file_exists(num)&#xa;返回 NextLessonContext&#xa;{ next_num, already_generated,&#xa;  topic, goal, session_id }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=10;fontColor=#064E3B;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="845" width="240" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d2" value="磁盘扫描&#xa;repo.lesson_ids()&#xa;repo.next_lesson_num()&#xa;= max+1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="850" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t2" value="@broker.task&#xa;generate_next_lesson(&#xa;  topic, owner, course_id,&#xa;  goal, session_id)&#xa;失败仅 re-raise, 不标 failed&#xa;(课程主体 ready 仍可用)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;fontSize=10;fontColor=#78350F;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="830" y="880" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s6" value="generate_next_lesson()&#xa;repo = CoursePackageRepo(...)&#xa;next_num = repo.next_lesson_num()&#xa;if repo.lesson_file_exists(next_num)&#xa;  → return None (幂等命中)&#xa;→ _generate_lesson(&#xa;    lesson_num=next_num,&#xa;    session_id, repo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=10;fontColor=#064E3B;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="980" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ag4" value="arun(prompt, session_id)&#xa;复用首课 session&#xa;session_id 让 agent 跨轮&#xa;记忆前序 run 消息&#xa;&#xa;ZPD 上下文: agent 自主&#xa;read_previous_lesson()&#xa;(FileTools.read_file)&#xa;拼接: base + NEXT_LESSON_HINT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontSize=10;fontColor=#4C1D95;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="980" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d3" value="磁盘写入&#xa;&lt;course_id&gt;/lessons/&#xa;  0002-&lt;slug&gt;.md&#xa;  0002-&lt;slug&gt;.exercise.md&#xa;+ 覆盖 resource.md" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="950" width="210" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- Edges                                                          -->
+        <!-- ============================================================ -->
+
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;strokeColor=#2563EB;strokeWidth=2;" edge="1" parent="1" source="c1" target="a1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="a1" target="s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e3" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="s1" target="m1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e4" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="a1-return" target="c1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- API → Taskiq .kiq: route through y=350 to avoid lanes -->
+        <mxCell id="e5" value=".kiq()" style="endArrow=classic;html=1;rounded=0;strokeColor=#DC2626;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#7F1D1D;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="a1" target="t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e6" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="t1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e7" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="s2" target="ag1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e8" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="ag1" target="ag2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e9" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="ag2" target="ag3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e10" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="ag3" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Agent → Service validate: route above via y=700 (clear of lanes top) -->
+        <mxCell id="e11" value="run 结束&#xa;返回 None" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;dashed=0;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#4C1D95;" edge="1" parent="1" source="ag3" target="s3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1020" y="720" />
+              <mxPoint x="500" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Service validate → agent retry: route via top -->
+        <mxCell id="e12" value="缺 body / exercise&#xa;→ 重试一次 (attempt 2)" style="endArrow=classic;html=1;rounded=0;strokeColor=#DC2626;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#7F1D1D;" edge="1" parent="1" source="s3" target="ag2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e13" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="s4" target="m2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e14" style="endArrow=classic;html=1;rounded=0;strokeColor=#2563EB;strokeWidth=2;" edge="1" parent="1" source="c2" target="a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e15" value="get_progress()" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;dashed=0;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#064E3B;" edge="1" parent="1" source="a2" target="s4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="725" />
+              <mxPoint x="660" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e16" style="endArrow=classic;html=1;rounded=0;strokeColor=#DC2626;strokeWidth=2;dashed=1;" edge="1" parent="1" source="s3" target="a2-failed">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="a2-failed" target="m2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Section 2 -->
+        <mxCell id="e20" style="endArrow=classic;html=1;rounded=0;strokeColor=#2563EB;strokeWidth=2;" edge="1" parent="1" source="c3" target="a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e21" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="a3" target="s5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e22" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="s5" target="d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e23" value="命中 → 立刻返回" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#064E3B;" edge="1" parent="1" source="s5" target="a3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="970" />
+              <mxPoint x="460" y="970" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e24" value=".kiq() (session_id 复用)" style="endArrow=classic;html=1;rounded=0;strokeColor=#DC2626;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#7F1D1D;" edge="1" parent="1" source="a3" target="t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e25" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="t2" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e26" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="s6" target="ag4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e27" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="ag4" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e28" value="read_file 上一课 body" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#78350F;" edge="1" parent="1" source="d3" target="ag4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1305" y="1000" />
+              <mxPoint x="1290" y="1000" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- 角标说明                                                       -->
+        <!-- ============================================================ -->
+        <mxCell id="note" value="说明：① agent_driven（task-3553）= 一次主 agent run 写四件套（lesson / resource / mission / exercise）；② 渐进产出（task-352）= 同步幂等预检 + session_id 复用首课锚定的 agno 会话；③ C2 拆分（task-374）= course_gen_svc 构造时注入 progress_svc，service→service 单向。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F9FAFB;strokeColor=#9CA3AF;strokeWidth=1;fontSize=11;fontColor=#374151;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1520" height="70" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

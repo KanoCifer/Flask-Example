@@ -1,6 +1,12 @@
 <!--
   LessonView — /learning/course/:courseId/lesson/:lessonId 单课详情页.
 
+  视觉契约:
+   - 顶部标题卡(面包屑 + 标题 + 完成态)圆角 2xl + shadow-md。
+   - tab nav:圆角 full pill bg-card,active tab 圆角 full bg-accent text-contrast + shadow-accent/30。
+   - 练习 tab 容器圆角 2xl + shadow-sm;ExerciseCard 自带圆角 2xl + shadow-sm。
+   - 底部 action row:圆角 2xl + shadow-sm,内含两个 pill 按钮(本节完成 / 下一课)。
+
   行为契约 (task-353 重构):
    - 挂载时 loadCourse(courseId) → 在 course.lessons 中按 id 找当前 lesson;
      找不到则显示空态。
@@ -14,7 +20,9 @@
 -->
 <script setup lang="ts">
 import { useHead } from '@vueuse/head';
-import { computed, onMounted, ref, watch } from 'vue';
+import hljs from 'highlight.js/lib/common';
+import 'highlight.js/scss/rainbow.scss';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeft,
@@ -118,6 +126,13 @@ watch(
     if (courseId.value && lessonId.value) void load();
   },
 );
+
+/** 正文 markdown 渲染后,等 Vue 完成 patch 再对 <pre><code> 上色。 */
+watch(lessonHtml, async (html) => {
+  if (!html) return;
+  await nextTick();
+  hljs.highlightAll();
+});
 
 onMounted(() => {
   void load();
@@ -227,7 +242,7 @@ useHead({
       <!-- Top nav -->
       <button
         type="button"
-        class="text-muted hover:text-ink focus-visible:ring-ring/40 mb-5 inline-flex items-center gap-1 text-xs transition-colors focus:outline-none focus-visible:ring-2"
+        class="text-muted hover:text-ink focus-visible:ring-ring bg-card focus-visible:ring-offset-page mb-8 inline-flex items-center gap-1 rounded-full px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         @click="goBack"
       >
         <ArrowLeft class="h-3 w-3" aria-hidden="true" />
@@ -237,7 +252,7 @@ useHead({
       <!-- Loading (course pending) -->
       <section
         v-if="submitting && !course"
-        class="bg-card ring-border/40 flex flex-col items-center gap-3 rounded-2xl px-5 py-16 text-center ring-1"
+        class="bg-card text-muted flex flex-col items-center gap-3 rounded-2xl px-6 py-16 text-center shadow-md"
       >
         <Loader2
           class="text-accent h-6 w-6 animate-spin motion-reduce:animate-none"
@@ -249,7 +264,7 @@ useHead({
       <!-- Failed -->
       <section
         v-else-if="courseStatus === 'failed' || error"
-        class="bg-card ring-border/40 flex flex-col items-center gap-3 rounded-2xl px-5 py-12 text-center ring-1"
+        class="bg-card text-muted flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center shadow-md"
       >
         <p class="text-destructive text-sm font-medium">
           {{ error || '课程生成失败' }}
@@ -263,7 +278,7 @@ useHead({
       <!-- Lesson not found -->
       <section
         v-else-if="course && !lesson"
-        class="bg-card ring-border/40 flex flex-col items-center gap-3 rounded-2xl px-5 py-12 text-center ring-1"
+        class="bg-card text-muted flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center shadow-md"
       >
         <p class="text-ink text-sm font-medium">找不到该课节</p>
         <p class="text-muted text-xs">该课节可能尚未生成,或链接已失效。</p>
@@ -275,40 +290,51 @@ useHead({
 
       <!-- Lesson ready -->
       <template v-else-if="course && lesson">
-        <!-- Title -->
-        <header class="mb-5">
-          <div class="text-muted mb-1 flex items-center gap-2 text-xs">
+        <!-- Title card -->
+        <header
+          class="bg-card mb-6 rounded-2xl px-6 py-6 shadow-md sm:px-8 sm:py-7"
+        >
+          <p
+            class="text-muted mb-3 flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] uppercase"
+          >
             <Library class="h-3 w-3" aria-hidden="true" />
             <span>{{ course.topic }}</span>
             <span aria-hidden="true">·</span>
-            <span class="font-mono">
+            <span
+              class="bg-surface/60 inline-flex items-center rounded-full px-2.5 py-0.5 shadow-inner"
+            >
               {{ lesson.id.toString().padStart(4, '0') }}
             </span>
-          </div>
-          <h1 class="text-ink font-serif text-2xl font-medium tracking-wide">
+          </p>
+          <h1
+            class="text-ink font-serif text-3xl leading-tight font-medium tracking-tight sm:text-4xl"
+          >
             {{ lesson.title }}
           </h1>
           <p
             v-if="isSessionDone"
-            class="text-success mt-1 flex items-center gap-1 text-xs"
+            class="bg-success/15 text-success mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase shadow-sm"
           >
             <Check class="h-3 w-3" aria-hidden="true" />
             本节已完成
           </p>
         </header>
 
-        <!-- Tabs -->
+        <!-- Tabs (pill) -->
         <nav
-          class="bg-card ring-border/40 mb-4 inline-flex rounded-xl p-1 ring-1"
+          class="bg-card mb-6 inline-flex rounded-full p-1 shadow-sm"
+          role="tablist"
         >
           <button
             v-for="t in tabs"
             :key="t.key"
             type="button"
-            class="focus-visible:ring-ring/40 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2"
+            role="tab"
+            :aria-selected="activeTab === t.key"
+            class="focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
             :class="
               activeTab === t.key
-                ? 'bg-accent text-contrast'
+                ? 'bg-accent text-contrast shadow-accent/30 shadow-md'
                 : 'text-muted hover:text-ink'
             "
             @click="activeTab = t.key"
@@ -316,7 +342,8 @@ useHead({
             {{ t.label }}
             <span
               v-if="t.key === 'exercises'"
-              class="text-muted font-mono text-[10px]"
+              class="font-mono text-[10px] tabular-nums"
+              :class="activeTab === t.key ? 'text-contrast/80' : 'text-muted'"
             >
               {{ exercises.length }}
             </span>
@@ -326,12 +353,15 @@ useHead({
         <!-- Tab content:正文 -->
         <article
           v-if="activeTab === 'lesson'"
-          class="prose prose-sm text-ink max-w-none rounded-2xl"
+          class="bg-card prose prose-sm text-ink max-w-none rounded-2xl px-6 py-6 shadow-sm sm:px-8 sm:py-8"
           v-html="lessonHtml"
         />
 
         <!-- Tab content:练习 -->
-        <section v-else class="space-y-4">
+        <section
+          v-else
+          class="bg-card space-y-4 rounded-2xl px-5 py-5 shadow-sm sm:px-6 sm:py-6"
+        >
           <div v-if="exercises.length === 0" class="text-muted text-sm">
             这节课还没有练习题。
           </div>
@@ -346,15 +376,17 @@ useHead({
           <!-- Action row -->
           <div
             v-if="exercises.length > 0"
-            class="bg-card ring-border/40 mt-3 flex flex-col items-stretch gap-2 rounded-2xl p-4 ring-1 sm:flex-row sm:items-center sm:justify-between"
+            class="bg-surface/40 mt-4 flex flex-col items-stretch gap-3 rounded-2xl p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between"
           >
-            <div class="text-muted text-xs">
+            <div
+              class="text-muted font-mono text-[11px] tracking-[0.12em] uppercase"
+            >
               正确
-              <span class="text-success font-mono">{{
+              <span class="text-success font-mono tabular-nums">{{
                 scoreState.correct
               }}</span>
               /
-              <span class="font-mono">{{ scoreState.total }}</span>
+              <span class="font-mono tabular-nums">{{ scoreState.total }}</span>
               <span v-if="isSessionDone" class="text-success ml-2">
                 · 本节已完成
               </span>
@@ -362,21 +394,27 @@ useHead({
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Button
                 size="sm"
-                variant="outline"
                 :disabled="isSessionDone || !allExercisesAnsweredCorrectly"
                 @click="onMarkSessionDone"
               >
                 <Check class="h-3.5 w-3.5" aria-hidden="true" />
                 本节完成
               </Button>
-              <Button size="sm" :disabled="advancing" @click="onAdvance">
+              <Button
+                size="sm"
+                :disabled="advancing"
+                class="shadow-accent/30 shadow-md hover:shadow-lg"
+                @click="onAdvance"
+              >
                 <Loader2
                   v-if="advancing"
                   class="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
                   aria-hidden="true"
                 />
                 <Sparkles v-else class="h-3.5 w-3.5" aria-hidden="true" />
-                <span>{{ advancing ? '生成中…' : '下一课' }}</span>
+                <span class="font-mono">{{
+                  advancing ? '生成中…' : '下一课'
+                }}</span>
                 <ChevronRight
                   v-if="!advancing"
                   class="h-3.5 w-3.5"

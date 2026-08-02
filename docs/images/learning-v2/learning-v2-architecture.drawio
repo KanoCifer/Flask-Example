@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Claude/drawio-skill" version="24.0.0">
+  <diagram name="Learning v2 - 架构图" id="learning-arch">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Learning v2 模块架构（agent_driven + 渐进产出，task-374 C2 拆分后）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#1F2937;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Layer 1: API (v2 router) ============== -->
+        <mxCell id="api-layer" value="API 层 · FastAPI Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1520" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-create" value="POST /v2/learning/courses&#xa;提交主题 → upsert pending + .kiq()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-get" value="GET /v2/learning/courses/{id}&#xa;读课程包（pending / ready）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="330" y="130" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-lesson" value="POST .../lessons&#xa;渐进产出（同步幂等预检 + .kiq）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="580" y="130" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-progress-list" value="GET /v2/learning/progress&#xa;列出 owner 进度 + next_session" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="830" y="130" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-progress-patch" value="PATCH .../progress/{id}&#xa;标记 session_done / exercise_done（幂等）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="130" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="owner-resolver" value="_resolve_learning_owner()&#xa;login → user_id | X-Anon-Id → anon:&lt;id&gt; | IP 兜底" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;strokeWidth=1;dashed=1;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="130" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="build-id" value="build_course_id()&#xa;&lt;slug&gt;--&lt;8hex uuid&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;strokeWidth=1;dashed=1;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="200" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Layer 2: Service ============== -->
+        <mxCell id="svc-layer" value="Service 层 · 业务编排（C2 拆分：纯进度领域 + 生成编排）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="1520" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="progress-svc" value="LearningProgressService&#xa;(纯进度领域, task-374 C2)&#xa;&#xa;create_pending()&#xa;mark_progress() / merge_progress()&#xa;mark_ready() / mark_failed()&#xa;get_progress() / list_progress()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=11;fontColor=#064E3B;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="340" width="340" height="155" as="geometry" />
+        </mxCell>
+
+        <mxCell id="course-gen-svc" value="CourseGeneratorService&#xa;(生成编排, task-374 C2)&#xa;&#xa;generate_course()&#xa;generate_next_lesson()&#xa;get_course()&#xa;preview_next_lesson() → NextLessonContext&#xa;_build_course_agent() / _generate_lesson()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=11;fontColor=#064E3B;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="500" y="340" width="380" height="155" as="geometry" />
+        </mxCell>
+
+        <mxCell id="learning-utils" value="learning_utils.py&#xa;_progress_to_dict()&#xa;build_course_id() / _slugify()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;strokeWidth=1;dashed=1;fontSize=10;fontColor=#064E3B;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="340" width="280" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tools-factory" value="create_learning_tools(repo)&#xa;→ [save_lesson, save_resource,&#xa;    save_mission, save_exercise,&#xa;    FileTools(read only)]&#xa;(agno @tool 薄适配器)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=11;fontColor=#064E3B;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="340" width="320" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- Retry hint note -->
+        <mxCell id="retry-note" value="整 run 兜底重试（task-3554）&#xa;缺 body / exercise → 重试一次 + COURSE_AGENT_RETRY_HINT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;strokeWidth=1;dashed=1;fontSize=10;fontColor=#7F1D1D;" vertex="1" parent="1">
+          <mxGeometry x="920" y="420" width="280" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Layer 3: Repository ============== -->
+        <mxCell id="repo-layer" value="Repository 层 · 数据访问（Mongo / 磁盘）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontColor=#831843;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="1520" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="learning-repo" value="LearningRepo&#xa;upsert_progress() / get_progress()&#xa;list_progress() / add_session_done()&#xa;set_exercise_done() / set_status()&#xa;merge_anon_into_user()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DB2777;fontSize=11;fontColor=#831843;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="590" width="380" height="135" as="geometry" />
+        </mxCell>
+
+        <mxCell id="course-package-repo" value="CoursePackageRepo&#xa;(C1 课程包深模块所有者)&#xa;&#xa;write_lesson / write_resource / write_mission / write_exercise&#xa;assemble_lessons / read_mission / read_resource / read_exercises&#xa;next_lesson_num() / lesson_file_exists()&#xa;latest_lesson_without_exercises() (exercise 配对)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DB2777;fontSize=11;fontColor=#831843;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="500" y="590" width="500" height="135" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agent-factory" value="llm_factory&#xa;create_deepseek_model()&#xa;create_postgres_db()&#xa;create_agent()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DB2777;strokeWidth=1;dashed=1;fontSize=10;fontColor=#831843;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="590" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prompts" value="llm_prompts&#xa;COURSE_AGENT_INSTRUCTIONS&#xa;COURSE_AGENT_NEXT_LESSON_HINT&#xa;COURSE_AGENT_RETRY_HINT&#xa;USER_PROMPT_TEMPLATE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DB2777;strokeWidth=1;dashed=1;fontSize=10;fontColor=#831843;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="590" width="220" height="135" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Layer 4: Storage / External ============== -->
+        <mxCell id="store-layer" value="存储 / 外部依赖" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E8FF;strokeColor=#7C3AED;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontColor=#4C1D95;" vertex="1" parent="1">
+          <mxGeometry x="40" y="770" width="1520" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- MongoDB -->
+        <mxCell id="mongo" value="MongoDB · beanie&#xa;LearningProgress collection&#xa;唯一索引: (owner, course_id)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="80" y="820" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Disk layout -->
+        <mxCell id="disk" value="磁盘课程包 (LEARNING_ROOT_DIR)&#xa;&lt;course_id&gt;/&#xa;  ├─ MISSION.md (幂等)&#xa;  ├─ resource.md (覆盖)&#xa;  └─ lessons/&#xa;       ├─ 0001-&lt;slug&gt;.md (原子写)&#xa;       └─ 0001-&lt;slug&gt;.exercise.md" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="400" y="800" width="380" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Agno agent -->
+        <mxCell id="agent" value="agno Agent (单一课程 agent)&#xa;instructions: COURSE_AGENT_INSTRUCTIONS&#xa;model: DeepSeek&#xa;db: Postgres&#xa;tools: 4×write + FileTools(read)&#xa;+ ExaTools (EXA_API_KEY) + Context7 MCP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontSize=11;fontColor=#4C1D95;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="820" y="800" width="360" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Taskiq -->
+        <mxCell id="taskiq" value="Taskiq Broker (RabbitMQ)&#xa;@broker.task&#xa;  generate_course()&#xa;  generate_next_lesson()&#xa;&#xa;失败 → service 内部重试一次 → &#xa;generate_course 调 _mark_failed()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontSize=11;fontColor=#4C1D95;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="800" width="320" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Edges ============== -->
+
+        <!-- API → Service -->
+        <mxCell id="e-create-svc" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="ep-create" target="progress-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-create-svc2" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="ep-create" target="course-gen-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-get-svc" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="ep-get" target="course-gen-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-lesson-svc" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="ep-lesson" target="course-gen-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-prog-list-svc" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="ep-progress-list" target="progress-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-prog-patch-svc" style="endArrow=classic;html=1;rounded=0;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="ep-progress-patch" target="progress-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- course-gen-svc → progress-svc (C2 dependency) -->
+        <mxCell id="e-svc-dep" value="course_gen_svc → progress_svc&#xa;(构造时注入, mark_ready / get_progress)" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;dashed=0;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#4C1D95;" edge="1" parent="1" source="course-gen-svc" target="progress-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Service → Repo -->
+        <mxCell id="e-progress-repo" style="endArrow=classic;html=1;rounded=0;strokeColor=#DB2777;strokeWidth=2;" edge="1" parent="1" source="progress-svc" target="learning-repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-gen-repo" value="每次 run 新建&#xa;写入时委托" style="endArrow=classic;html=1;rounded=0;strokeColor=#DB2777;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#831843;" edge="1" parent="1" source="course-gen-svc" target="course-package-repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-tools-repo" style="endArrow=classic;html=1;rounded=0;strokeColor=#DB2777;strokeWidth=2;dashed=1;" edge="1" parent="1" source="tools-factory" target="course-package-repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-factory-svc" style="endArrow=classic;html=1;rounded=0;strokeColor=#DB2777;strokeWidth=2;dashed=1;" edge="1" parent="1" source="course-gen-svc" target="agent-factory">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-prompts-svc" style="endArrow=classic;html=1;rounded=0;strokeColor=#DB2777;strokeWidth=2;dashed=1;" edge="1" parent="1" source="course-gen-svc" target="prompts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Repo → Storage -->
+        <mxCell id="e-le-repo-mongo" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="learning-repo" target="mongo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-cp-repo-disk" style="endArrow=classic;html=1;rounded=0;strokeColor=#D97706;strokeWidth=2;" edge="1" parent="1" source="course-package-repo" target="disk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- course-gen-svc → agent -->
+        <mxCell id="e-svc-agent" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="course-gen-svc" target="agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-tools-agent" value="tools 绑定" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#4C1D95;" edge="1" parent="1" source="tools-factory" target="agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-agent-factory" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;dashed=1;" edge="1" parent="1" source="agent-factory" target="agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-prompts-agent" style="endArrow=classic;html=1;rounded=0;strokeColor=#7C3AED;strokeWidth=2;dashed=1;" edge="1" parent="1" source="prompts" target="agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Async: API → Taskiq → Service ============== -->
+        <mxCell id="e-create-task" value=".kiq()&#xa;异步任务" style="endArrow=classic;html=1;rounded=0;strokeColor=#DC2626;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#7F1D1D;" edge="1" parent="1" source="ep-create" target="taskiq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-lesson-task" value=".kiq()&#xa;渐进产出" style="endArrow=classic;html=1;rounded=0;strokeColor=#DC2626;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#7F1D1D;" edge="1" parent="1" source="ep-lesson" target="taskiq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-task-svc" value="worker 端&#xa;course_gen_svc.generate_*()" style="endArrow=classic;html=1;rounded=0;strokeColor=#DC2626;strokeWidth=2;dashed=1;labelBackgroundColor=#FFFFFF;fontSize=10;fontColor=#7F1D1D;" edge="1" parent="1" source="taskiq" target="course-gen-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============== Legend ============== -->
+        <mxCell id="legend" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F9FAFB;strokeColor=#9CA3AF;strokeWidth=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1000" width="1520" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="图例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#374151;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1006" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" value="API 层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;fontSize=10;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1035" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" value="Service 层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=10;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="160" y="1035" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" value="Repository 层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;fontSize=10;fontColor=#831843;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1035" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4" value="存储 / 外部" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E8FF;strokeColor=#7C3AED;fontSize=10;fontColor=#4C1D95;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1035" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-async" value="--- 异步 .kiq() 路径" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#7F1D1D;" vertex="1" parent="1">
+          <mxGeometry x="510" y="1035" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-dep" value="C2 拆分：course_gen_svc → progress_svc 构造时注入" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#4C1D95;" vertex="1" parent="1">
+          <mxGeometry x="690" y="1035" width="380" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-cyl" value="MongoDB / 磁盘" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="1025" width="120" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

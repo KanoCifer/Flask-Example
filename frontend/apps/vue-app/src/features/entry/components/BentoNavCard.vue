@@ -131,8 +131,8 @@ const navItems = [
     animalSrc: '/images/animal-badge/cat.png',
   },
   {
-    path: '/bookshelf',
-    label: '我的书架',
+    path: '/learning',
+    label: '学点吧',
     animalSrc: '/images/animal-badge/panda.png',
   },
   {
