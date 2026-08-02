@@ -41,6 +41,7 @@
     "pinia": "^3.0.4",
     "prosemirror-markdown": "^1.13.5",
     "qweather-icons": "^1.8.0",
+    "shadow-plugin": "^1.2.6",
     "tailwindcss": "^4.3.3",
     "turndown": "^7.2.4",
     "twikoo": "^1.7.15",

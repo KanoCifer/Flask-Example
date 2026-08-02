@@ -4,6 +4,7 @@
  * 普通样式规则放到 base.scss 由 sass 编译。
  */
 @import 'tailwindcss';
+@import 'shadow-plugin';
 @import 'tw-animate-css';
 @import '@readinglist/brand/themes';
 @import '@readinglist/brand/twikoo';
@@ -126,28 +127,12 @@
   --color-gradient-decorative-to: var(--gradient-decorative-to);
 }
 
-/* Global border-as-shadow system.
-   Any element with a non-zero Tailwind border-width class automatically gets
-   a layered box-shadow outline REPLACING the hard border. The 1px border is
-   forced transparent so the shadow carries all the visual weight. Shadow
-   alpha is theme-adaptive via color-mix on --ink (dark in light mode, light
-   in dark mode) so the outline stays visible in both. State borders
-   (border-accent, border-destructive, etc.) override border-color back to
-   a visible value. */
-@layer base {
-  :where([class~='border']) {
-    border-color: transparent;
-    box-shadow:
-      0px 0px 0px 1px color-mix(in oklch, var(--ink) 7%, transparent),
-      0px 1px 2px -1px color-mix(in oklch, var(--ink) 8%, transparent),
-      0px 2px 4px 0px color-mix(in oklch, var(--ink) 5%, transparent);
-    transition: box-shadow 200ms ease-out;
-  }
-
-  :where([class~='border']):hover {
-    box-shadow:
-      0px 0px 0px 1px color-mix(in oklch, var(--ink) 12%, transparent),
-      0px 1px 2px -1px color-mix(in oklch, var(--ink) 14%, transparent),
-      0px 2px 4px 0px color-mix(in oklch, var(--ink) 8%, transparent);
-  }
+@theme {
+  /* Replace default Tailwind shadow tokens with shadow-plugin smooth shadows. */
+  --shadow-xs: var(--smooth-shadow-xs);
+  --shadow-sm: var(--smooth-shadow-sm);
+  --shadow-md: var(--smooth-shadow-md);
+  --shadow-lg: var(--smooth-shadow-lg);
+  --shadow-xl: var(--smooth-shadow-xl);
+  --shadow-2xl: var(--smooth-shadow-2xl);
 }
