@@ -37,6 +37,9 @@ type ServerConfig struct {
 	DbLogLevel string `mapstructure:"DB_LOG_LEVEL"`
 	SaveLogs   bool   `mapstructure:"SAVE_LOGS"`
 	ENV        string `mapstructure:"ENV"`
+	// LogDir 日志目录。空字符串=用默认 ./logs/，文件名 app.log / app_error.log。
+	// 与 Python 端 Settings.LOG_DIR 字段对齐。
+	LogDir string `mapstructure:"LOG_DIR"`
 }
 
 // SecurityConfig 安全相关密钥与 Cookie。
@@ -145,6 +148,7 @@ var defaults = map[string]any{
 	"DB_LOG_LEVEL":             "WARNING",
 	"ENV":                      "prod",
 	"SAVE_LOGS":                true,
+	"LOG_DIR":                  "./logs",
 	"SECRET_KEY":               "",
 	"JWT_PRIVATE_KEY":          "",
 	"COOKIE_DOMAIN":            "",

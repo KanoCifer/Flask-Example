@@ -20,6 +20,8 @@ const ginSource = "gin"
 //   - app.log：INFO <= level < ERROR
 //   - app_error.log：level >= ERROR
 //
+// 日志目录由 cfg.Server.LogDir 控制（空字符串=用默认 ./logs/）。
+//
 // trace_id 由 Context 注入（见 WithTraceID），handler 自动带到输出。
 func Init(cfg *config.Config) {
 	level := parseLevel(cfg.Server.LogLevel)
@@ -27,8 +29,9 @@ func Init(cfg *config.Config) {
 	opts := &slog.HandlerOptions{Level: level}
 	var appHandler, errHandler slog.Handler
 	if cfg.Server.ENV == "prod" {
-		appWriter := io.MultiWriter(os.Stdout, newLumberjackWriter("logs/app.log"))
-		errWriter := io.MultiWriter(os.Stderr, newLumberjackWriter("logs/app_error.log"))
+		logDir := resolveLogDir(cfg.Server.LogDir)
+		appWriter := io.MultiWriter(os.Stdout, newLumberjackWriter(filepath.Join(logDir, "app.log")))
+		errWriter := io.MultiWriter(os.Stderr, newLumberjackWriter(filepath.Join(logDir, "app_error.log")))
 
 		appHandler = slog.NewJSONHandler(appWriter, opts)
 		errHandler = slog.NewJSONHandler(errWriter, opts)
@@ -41,6 +44,14 @@ func Init(cfg *config.Config) {
 
 	router := &routerHandler{appHandler: appHandler, errHandler: errHandler, minLevel: level}
 	slog.SetDefault(slog.New(router))
+}
+
+// resolveLogDir 给出日志目录；空字符串=用默认 ./logs/。
+func resolveLogDir(dir string) string {
+	if dir == "" {
+		return "./logs"
+	}
+	return dir
 }
 
 func newLumberjackWriter(path string) *lumberjack.Logger {

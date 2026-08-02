@@ -79,3 +79,23 @@ func TestRouterNoTraceID(t *testing.T) {
 		t.Errorf("trace_id should be absent when not in context, got %v", m["trace_id"])
 	}
 }
+
+// 验证 LogDir 优先级：空字符串=默认 ./logs/；自定义值原样返回。
+func TestResolveLogDir(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"empty_uses_default", "", "./logs"},
+		{"custom_passthrough", "/var/log/myapp", "/var/log/myapp"},
+		{"relative_custom", "out/logs", "out/logs"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := resolveLogDir(c.in); got != c.want {
+				t.Errorf("resolveLogDir(%q) = %q, want %q", c.in, got, c.want)
+			}
+		})
+	}
+}
