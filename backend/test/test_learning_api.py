@@ -137,9 +137,7 @@ class _MockGeneratorService:
         self.get_course_calls.append((owner, course_id))
         return self.get_course_responses.get((owner, course_id))
 
-    async def require_ready_course(
-        self, owner: str, course_id: str
-    ):
+    async def require_ready_course(self, owner: str, course_id: str):
         """镜像 :meth:`CourseGeneratorService.require_ready_course` — 测试用。
 
         未在 ``require_ready_none`` 里的 (owner, course_id) 返回指向
@@ -265,7 +263,9 @@ def _patch_kiq(monkeypatch):
 
 async def test_post_courses_returns_pending_with_anon_owner():
     mock = _MockProgressService()
-    app = _build_test_app(mock, _MockGeneratorService(), logged_in_user_id=None)
+    app = _build_test_app(
+        mock, _MockGeneratorService(), logged_in_user_id=None
+    )
     transport = ASGITransport(app=app)
     async with AsyncClient(
         transport=transport, base_url="http://test"
@@ -284,7 +284,9 @@ async def test_post_courses_returns_pending_with_anon_owner():
 
     # create_pending 收到 anon owner 字符串(anon:uuid)
     assert len(mock.create_pending_calls) == 1
-    owner, _course_id, topic, goal, _model_id, _extra_prompt = mock.create_pending_calls[0]
+    owner, _course_id, topic, goal, _model_id, _extra_prompt = (
+        mock.create_pending_calls[0]
+    )
     assert owner == "anon:anon-uuid-1"
     assert topic == "Rust 入门"
     # 不传 goal → 为 None
@@ -304,7 +306,9 @@ async def test_post_courses_passes_goal_to_create_pending_and_kiq(monkeypatch):
     monkeypatch.setattr(task_mod.generate_course, "kiq", _capturing_kiq)
 
     mock = _MockProgressService()
-    app = _build_test_app(mock, _MockGeneratorService(), logged_in_user_id=None)
+    app = _build_test_app(
+        mock, _MockGeneratorService(), logged_in_user_id=None
+    )
     transport = ASGITransport(app=app)
     async with AsyncClient(
         transport=transport, base_url="http://test"
@@ -316,7 +320,9 @@ async def test_post_courses_passes_goal_to_create_pending_and_kiq(monkeypatch):
         )
 
     assert resp.status_code == 200
-    owner, _course_id, topic, goal, _model_id, _extra_prompt = mock.create_pending_calls[0]
+    owner, _course_id, topic, goal, _model_id, _extra_prompt = (
+        mock.create_pending_calls[0]
+    )
     assert owner == "anon:anon-uuid-1"
     assert topic == "Rust 入门"
     assert goal == "能独立复述所有权规则"
@@ -343,7 +349,9 @@ async def test_post_courses_uses_user_id_owner_when_logged_in():
         )
 
     assert resp.status_code == 200
-    owner, _cid, _topic, _goal, _model_id, _extra_prompt = mock.create_pending_calls[0]
+    owner, _cid, _topic, _goal, _model_id, _extra_prompt = (
+        mock.create_pending_calls[0]
+    )
     assert owner == "42"
 
 
@@ -443,9 +451,7 @@ async def test_post_courses_logged_in_pro_model_passed_through(monkeypatch):
     monkeypatch.setattr(task_mod.generate_course, "kiq", _capturing_kiq)
 
     mock = _MockProgressService()
-    app = _build_test_app(
-        mock, _MockGeneratorService(), logged_in_user_id=42
-    )
+    app = _build_test_app(mock, _MockGeneratorService(), logged_in_user_id=42)
     transport = ASGITransport(app=app)
     async with AsyncClient(
         transport=transport, base_url="http://test"
@@ -474,9 +480,7 @@ async def test_post_courses_forwards_extra_prompt_to_pending_and_kiq(
     monkeypatch.setattr(task_mod.generate_course, "kiq", _capturing_kiq)
 
     mock = _MockProgressService()
-    app = _build_test_app(
-        mock, _MockGeneratorService(), logged_in_user_id=42
-    )
+    app = _build_test_app(mock, _MockGeneratorService(), logged_in_user_id=42)
     transport = ASGITransport(app=app)
     async with AsyncClient(
         transport=transport, base_url="http://test"
@@ -911,8 +915,18 @@ def _seed_course_package(tmp_path, course_id: str = "rust--aaaabbbb") -> None:
     from app.repositories.course_package_repo import CoursePackageRepo
 
     repo = CoursePackageRepo(course_id=course_id, tmp_dir=tmp_path)
-    repo.write_lesson(slug="lesson-1", lesson_md="---\ntitle: 第 1 课\n---\n# 1")
-    repo.write_lesson(slug="lesson-2", lesson_md="---\ntitle: 第 2 课\n---\n# 2")
+    repo.LessonWriter(
+        num=1,
+        slug="lesson-1",
+        title="第 1 课",
+        lesson_md="# 第 1 课\n\n正文",
+    )
+    repo.LessonWriter(
+        num=2,
+        slug="lesson-2",
+        title="第 2 课",
+        lesson_md="# 第 2 课\n\n正文",
+    )
     repo.write_resource("# resource")
     repo.write_mission("# mission")
 
@@ -954,13 +968,15 @@ async def test_download_bundle_returns_zip_for_owner(_learning_root, tmp_path):
 
     zf = zipfile.ZipFile(io.BytesIO(resp.content))
     names = sorted(zf.namelist())
+    # sorted() 按 ASCII 排序：大写 RESOURCE.md 排在 lessons/（小写 l）之前
     assert names == [
         "MISSION.md",
+        "RESOURCE.md",
         "lessons/0001-lesson-1.md",
         "lessons/0002-lesson-2.md",
-        "resource.md",
     ]
-    assert zf.read("lessons/0001-lesson-1.md").startswith(b"---")
+    # issue #29：lesson body 不再写 front matter，标题由 manifest 权威承载
+    assert zf.read("lessons/0001-lesson-1.md").startswith("# 第 1 课".encode())
 
 
 async def test_download_bundle_404_when_not_owner(_learning_root):
@@ -1028,18 +1044,21 @@ async def test_download_single_file_returns_md(_learning_root, tmp_path):
         )
         assert resp.status_code == 200
         assert resp.headers["content-type"].startswith("text/markdown")
-        assert resp.content.startswith(b"---")
+        # issue #29：lesson body 无 front matter，直接以 ``# 标题`` 开头
+        assert resp.content.startswith("# 第 1 课".encode())
 
-        # 顶层文件（resource.md）同样可下
+        # 顶层文件（RESOURCE.md）同样可下
         resp2 = await client.get(
-            "/v2/learning/courses/rust--aaaabbbb/files/resource.md",
+            "/v2/learning/courses/rust--aaaabbbb/files/RESOURCE.md",
             headers={"X-Anon-Id": "x"},
         )
         assert resp2.status_code == 200
         assert resp2.content == b"# resource"
 
 
-async def test_download_single_file_404_on_path_traversal(_learning_root, tmp_path):
+async def test_download_single_file_404_on_path_traversal(
+    _learning_root, tmp_path
+):
     """``rel_path`` 含 ``..`` 或后缀非 ``.md`` → 404（repo 安全校验）。"""
     _seed_course_package(tmp_path)
     gen = _MockGeneratorService(ready_tmp_dir=tmp_path)
@@ -1071,7 +1090,7 @@ async def test_download_single_file_404_when_not_owner(_learning_root):
     repo = CoursePackageRepo(
         course_id="rust--aaaabbbb", tmp_dir=_learning_root
     )
-    repo.write_lesson(slug="lesson-1", lesson_md="# 1")
+    repo.LessonWriter(num=1, slug="lesson-1", title="第 1 课", lesson_md="# 1")
 
     gen = _MockGeneratorService(ready_tmp_dir=_learning_root)
     gen.require_ready_none.add(("anon:127.0.0.1", "rust--aaaabbbb"))
@@ -1107,7 +1126,7 @@ async def test_list_course_files_returns_entries(_learning_root, tmp_path):
         "lessons/0001-lesson-1.md",
         "lessons/0002-lesson-2.md",
         "MISSION.md",
-        "resource.md",
+        "RESOURCE.md",
     ]
     # 每个条目带大小（字节）——面板据此展示 KB/MB
     assert all(it["size"] > 0 for it in items)
@@ -1123,9 +1142,7 @@ async def test_list_course_files_404_when_not_owner(_learning_root):
     async with AsyncClient(
         transport=transport, base_url="http://test"
     ) as client:
-        resp = await client.get(
-            "/v2/learning/courses/rust--aaaabbbb/files"
-        )
+        resp = await client.get("/v2/learning/courses/rust--aaaabbbb/files")
     assert resp.status_code == 404
 
 

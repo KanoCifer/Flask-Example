@@ -105,7 +105,7 @@ class CoursePackage(BaseModel):
     lessons: list[LessonItem] = Field(
         default_factory=list, description="已生成的课列表（渐进产出时增长）"
     )
-    resource_md: str = Field(..., description="resource.md 全文")
+    resource_md: str = Field(..., description="RESOURCE.md 全文")
     mission_md: str | None = Field(
         default=None,
         description="MISSION.md 全文（学习使命文档），缺失为 None",

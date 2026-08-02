@@ -9,12 +9,24 @@ mark_progress / list_progress / merge_progress）留在旧文件，由 task-377 
 Mocking strategy (task-3555)：agent_driven 重构后 service 不再跑三步流水线
 （``_run_research`` / ``_run_step1`` / ``_run_step2`` 已删除），只调一次
 ``_build_course_agent(...).arun(prompt)``（**无 ``output_schema``**——练习由
-``save_exercise`` 工具落盘，最终响应内容被忽略）。
+``ExerciseWriter`` 工具落盘，最终响应内容被忽略）。
 测试用 ``_StubAgent`` monkeypatch ``CourseGeneratorService._build_course_agent``：
-stub 的 ``arun`` 模拟 agent 调用磁盘工具（含 ``save_exercise`` 写练习），
-**写语义委托真实 ``CoursePackageRepo``**（C1：与生产 ``create_learning_tools``
-薄适配器共用同一仓库，不再在 stub 里重新实现写规则，消除漂移），不触碰网络 /
-Redis / DeepSeek。
+stub 的 ``arun`` 模拟 agent 调用磁盘工具（``LessonWriter`` 四件套 /
+``ExerciseWriter`` 显式 num/slug），**写语义委托真实 ``CoursePackageRepo``**
+（C1：与生产 ``create_learning_tools`` 薄适配器共用同一仓库，不再在 stub 里
+重新实现写规则，消除漂移），不触碰网络 / Redis / DeepSeek。
+
+issue #29 工具契约（本文件适配对象）：
+- ``LessonWriter`` 为**唯一写课入口**，全参数可选分发器——lesson 正文需
+  ``num`` + ``slug`` + ``title`` + ``lesson_md`` 四件套（``title`` 写入
+  manifest 作标题权威，正文以 ``# 标题`` 开头、**不含 YAML front matter**）；
+  ``mission_md`` / ``resource_md`` 任一提供即覆盖写对应文件（always）。
+- ``ExerciseWriter(num, slug, exercises)`` 显式传 num/slug，写入
+  ``<num>-<slug>.exercise.md``。
+- 仓库无状态：不再有 ``last_written_lesson`` 显式交接。service 在 run 后以
+  入参 ``lesson_num`` 为目标编号，经 :meth:`CoursePackageRepo.find_lesson`
+  回查磁盘确认正文落盘、:meth:`CoursePackageRepo.read_exercises` 读同名练习；
+  目标正文 / 练习缺失触发整 run 重试（task-3554）。
   - The beanie ``LearningProgress`` upsert that ``generate_course`` performs
     （经注入的 ``LearningProgressService.mark_ready``）uses a real MongoDB
     collection (``readinglist_test``) per the conftest fixture, so we also
@@ -132,26 +144,13 @@ def _true_false_exercise() -> Exercise:
     )
 
 
-def _lesson_md(course_id: str) -> str:
+def _lesson_md() -> str:
+    """第 1 课的 lesson body：以 ``# 标题`` 开头，**无 YAML front matter**。
+
+    issue #29 契约：``title`` 不再写进 front matter，而是经 ``LessonWriter``
+    的 ``title`` 参数写入 manifest（课程列表展示的标题权威来源）。
+    """
     return (
-        "---\n"
-        "title: Rust 入门\n"
-        f"course_id: {course_id}\n"
-        "language: zh\n"
-        "level: beginner\n"
-        "session_count: 3\n"
-        "objectives:\n"
-        "  - 了解所有权\n"
-        "  - 学会 ? 与 Result\n"
-        "prerequisites:\n"
-        "  - 任意一门语言基础\n"
-        "estimated_minutes: 60\n"
-        "tags:\n"
-        "  - rust\n"
-        "  - ownership\n"
-        "model: deepseek-v4-pro\n"
-        "generated_at: '2026-08-01T00:00:00Z'\n"
-        "---\n"
         "# Rust 入门\n"
         "\n概览…\n"
         "## Session 1 — 所有权\n"
@@ -162,37 +161,20 @@ def _lesson_md(course_id: str) -> str:
 # ── 第 2 课及以后用的 lesson_md(用于 generate_next_lesson 多课装配测试) ─── #
 
 
-def _lesson_md_for(num: int, course_id: str) -> str:
-    """第 N 课的 body:title 反映序号,便于 front-matter 解析断言。"""
-    return (
-        "---\n"
-        f"title: Rust 入门 · 第 {num} 课\n"
-        f"course_id: {course_id}\n"
-        f"slug: lesson-{num}\n"
-        "language: zh\n"
-        "---\n"
-        f"# Rust 入门 · 第 {num} 课\n\n"
-        f"第 {num} 课内容…\n"
-    )
+def _lesson_md_for(num: int) -> str:
+    """第 N 课的 body：以 ``# 标题`` 开头；标题反映序号（经 LessonWriter 的
+    ``title`` 参数写入 manifest，便于标题断言）。"""
+    return f"# Rust 入门 · 第 {num} 课\n\n第 {num} 课内容…\n"
 
 
-def _resource_md(course_id: str) -> str:
-    return (
-        "---\n"
-        "title: Rust 入门 - 速查\n"
-        f"course_id: {course_id}\n"
-        "type: reference\n"
-        "language: zh\n"
-        "tags: [rust]\n"
-        "generated_at: '2026-08-01T00:00:00Z'\n"
-        "---\n"
-        "# 速查表\n"
-        "- `?` 用于错误传播。\n"
-    )
+def _resource_md() -> str:
+    """RESOURCE.md 纯 Markdown（issue #29：不再有 YAML front matter）。"""
+    return "# 速查表\n- `?` 用于错误传播。\n"
 
 
 def _mission_md(topic: str) -> str:
-    """stub 模拟 ``save_mission`` 写盘的 MISSION.md 内容（task-365 模板各节）。"""
+    """stub 模拟 ``LessonWriter(mission_md=...)`` 写盘的 MISSION.md 内容
+    （task-365 模板各节）。"""
     return (
         f"# Mission: {topic}\n\n"
         "## Why\n"
@@ -206,23 +188,24 @@ def _mission_md(topic: str) -> str:
     )
 
 
-def _lesson_payload(course_id: str) -> types.SimpleNamespace:
-    """stub 的写盘 payload：模拟 save_lesson / save_resource 的写入参数。"""
+def _lesson_payload() -> types.SimpleNamespace:
+    """stub 的写盘 payload：模拟 ``LessonWriter`` 的 num/slug/title/lesson_md
+    四件套 + ``LessonWriter(resource_md=...)`` 的写入参数。"""
     return types.SimpleNamespace(
         slug="lesson-1",
-        lesson_md=_lesson_md(course_id),
-        resource_md=_resource_md(course_id),
+        title="Rust 入门",
+        lesson_md=_lesson_md(),
+        resource_md=_resource_md(),
     )
 
 
-def _next_lesson_payload(
-    course_id: str, *, num: int, slug: str
-) -> types.SimpleNamespace:
-    """为 ``generate_next_lesson`` 准备的 mock payload：每课带独立 slug。"""
+def _next_lesson_payload(*, num: int, slug: str) -> types.SimpleNamespace:
+    """为 ``generate_next_lesson`` 准备的 mock payload：每课带独立 slug / title。"""
     return types.SimpleNamespace(
         slug=slug,
-        lesson_md=_lesson_md_for(num, course_id),
-        resource_md=_resource_md(course_id),
+        title=f"Rust 入门 · 第 {num} 课",
+        lesson_md=_lesson_md_for(num),
+        resource_md=_resource_md(),
     )
 
 
@@ -239,7 +222,7 @@ class _StubAgent:
 
     task-3553 后 service 不再调 ``_run_step1`` / ``_run_step2``，只调一次
     ``_build_course_agent(...).arun(prompt, session_id=...)``，**最终响应内容
-    被忽略**（练习由 ``save_exercise`` 工具落盘）。本 stub 替代旧的 step1/step2
+    被忽略**（练习由 ``ExerciseWriter`` 工具落盘）。本 stub 替代旧的 step1/step2
     monkeypatch：``arun`` 内按真实工具语义模拟磁盘工具，但**写盘全部委托
     :class:`CoursePackageRepo`**（C1）——
 
@@ -247,23 +230,35 @@ class _StubAgent:
       enable_read_file=True)``，模拟 agent 通过 FileTools 直接 ``read_file``
       读 ``MISSION.md`` / ``lessons/<max>-<slug>.md``；与生产
       :func:`create_learning_tools` 注入的只读 FileTools 同配置，行为零漂移。
-    - ``save_resource``：委托 ``repo.write_resource``（覆盖已有内容）。
-    - ``save_lesson``：委托 ``repo.write_lesson``（编号 / 幂等 / 原子写全在
-      仓库内，与生产 :func:`create_learning_tools` 薄适配器同语义）。
-    - ``save_mission``（task-365）：委托 ``repo.write_mission``（幂等）；实际
-      写入次数记录到 :attr:`save_mission_calls`。
-    - ``save_exercise``：委托 ``repo.write_exercise``，按
-      ``repo.latest_lesson_without_exercises()`` 与缺练习的课配对（与生产
-      :func:`save_exercise` 同语义）。
+    - ``LessonWriter``（issue #29 唯一写课入口）：lesson 正文按
+      ``num + slug + title + lesson_md`` 四件套委托 ``repo.LessonWriter``——
+      **目标编号在写盘前用 ``repo.next_lesson_num()`` 推导**（首课 1、后续课
+      最大编号 + 1，与 ``generate_next_lesson`` 的 ``next_num`` 同源）；``title``
+      经参数传入（写入 manifest，不再依赖 front matter）。
+    - ``mission_md`` / ``resource_md``：经 ``repo.write_mission`` /
+      ``repo.write_resource`` 覆盖写（对应生产 ``LessonWriter`` 工具的
+      mission-only / resource-only 分支）。MISSION.md 仅在首课 run（文件尚不
+      存在）时写——与生产 ``COURSE_AGENT_INSTRUCTIONS``「首课 run 开始时先调
+      ``LessonWriter(mission_md=...)``」一致；写入次数记录到
+      :attr:`save_mission_calls`（等价于「带 mission_md 的 LessonWriter 调用」）。
+    - ``ExerciseWriter``：显式传 ``num`` / ``slug``——目标课正文经
+      ``repo.find_lesson(target_num)`` 回查磁盘拿 slug 后配对写盘（与 service
+      的 run 后校验同一回查路径，不再有 ``latest_lesson_without_exercises``）。
 
     兜底重试（task-3554）控制：
-    - ``write_body_after_calls=N``：前 N 次 arun **不**模拟 ``save_lesson``
-      （body 不落盘），模拟「漏调 save_lesson → 磁盘校验失败 → 重试」。
-    - ``write_exercises_after_calls=N``：前 N 次 arun **不**模拟
-      ``save_exercise``（练习不落盘），模拟「漏调 save_exercise → 练习缺失 →
-      重试」。
-    - 模拟 retry hint 的理想 agent：重试时若已有一课缺练习（body 已在上一轮
-      落盘），**不再写新课**、只补 ``save_exercise``，避免重复落盘两课。
+    - ``write_body_after_calls=N``：前 N 次 arun **不**模拟 ``LessonWriter``
+      写目标编号正文（body 不落盘），模拟「漏调 LessonWriter →
+      ``find_lesson`` 回查失败 → 整 run 重试」。
+    - ``ExerciseWriters_after_calls=N``：前 N 次 arun **不**模拟
+      ``ExerciseWriter``（练习不落盘），模拟「漏调 ExerciseWriter →
+      ``read_exercises`` 为空 → 重试」。
+    - 模拟 retry hint 的理想 agent：重试时若目标正文已落盘（上一轮已调
+      ``LessonWriter``），**不再写新课**、只补 ``ExerciseWriter``，避免重复
+      落盘两课。
+
+    目标编号在**首次 arun** 从 ``repo.next_lesson_num()`` 推导并缓存
+    （:attr:`_target_num`），同一次 ``_generate_lesson`` 的兜底重试复用——
+    与服务端「入参 lesson_num 为唯一权威」对齐。
 
     调用次数记录在 :attr:`arun_call_count` 供断言重试确实发生。
     """
@@ -276,7 +271,7 @@ class _StubAgent:
         exercises: list[Exercise] | None = None,
         fail_on_arun: Exception | None = None,
         write_body_after_calls: int = 0,
-        write_exercises_after_calls: int = 0,
+        ExerciseWriters_after_calls: int = 0,
         topic: str = "Rust 入门",
     ) -> None:
         self._repo = repo
@@ -286,7 +281,7 @@ class _StubAgent:
         )
         self._fail_on_arun = fail_on_arun
         self._write_body_after_calls = write_body_after_calls
-        self._write_exercises_after_calls = write_exercises_after_calls
+        self._ExerciseWriters_after_calls = ExerciseWriters_after_calls
         self._topic = topic
         # 生产同款只读 FileTools：base_dir 锁到课程包根目录，只暴露 read_file。
         # stub 通过它读 MISSION.md / lessons/<max>-<slug>.md，与生产路径一致。
@@ -303,7 +298,12 @@ class _StubAgent:
         )
         # ``arun`` 被调次数（task-3554 重试断言用）。
         self.arun_call_count = 0
-        # ``arun`` 内模拟 save_mission 的记录（task-365 断言用）。
+        # 目标课编号：首次 arun 从 repo.next_lesson_num() 推导并缓存，兜底重试
+        # （同一次 _generate_lesson 内）复用同一目标——与服务端「入参 lesson_num
+        # 为唯一权威」对齐。
+        self._target_num: int | None = None
+        # ``arun`` 内模拟「带 mission_md 的 LessonWriter 调用」的记录
+        # （task-365 断言用）。
         self.save_mission_calls: list[str] = []
         # ``arun`` 内 FileTools.read_file 的调用记录（(file_name, content)），
         # 供 ZPD / MISSION 读取断言使用。
@@ -315,9 +315,7 @@ class _StubAgent:
         # extra_prompt、下一课 lean / 完整 prompt 组装）。
         self.prompts_received: list[str] = []
 
-    async def arun(
-        self, prompt: str, session_id: str | None = None
-    ):
+    async def arun(self, prompt: str, session_id: str | None = None):
         self.arun_call_count += 1
         self.session_ids_received.append(session_id)
         self.prompts_received.append(prompt)
@@ -326,7 +324,7 @@ class _StubAgent:
 
         # 模拟 ZPD：FileTools.read_file 读「最大编号 lesson」的 md。
         # lessons/ 为空时 read_file 报错，吞掉当作首课（无上一课）跳过——与
-        # 生产 read_previous_lesson 缺失时返回空串同语义。
+        # 生产路径缺失时跳过同语义。
         existing_ids = self._repo.lesson_ids()
         if existing_ids:
             last_id = existing_ids[-1]
@@ -345,36 +343,51 @@ class _StubAgent:
                     (f"lessons/{last_id:04d}-{slug}.md", content)
                 )
 
-        # 模拟 save_resource：写全课程共享资料（覆盖已有内容）。
+        # 目标编号：首次 arun 从磁盘推导（首课 1、后续课最大编号 + 1），缓存供
+        # 兜底重试复用——service 的 run 后校验以入参 lesson_num 为唯一权威，stub
+        # 用同一目标编号写盘。
+        if self._target_num is None:
+            self._target_num = self._repo.next_lesson_num()
+
+        # 模拟 LessonWriter(resource_md=...)：写全课程共享资料（覆盖已有内容）。
         self._repo.write_resource(self._payload.resource_md)
 
-        # 模拟 save_mission（task-365）：MISSION.md 不存在才写，幂等。
+        # 模拟 LessonWriter(mission_md=...)（task-365）：MISSION.md 仅在首课 run
+        # 开始时写（与生产 COURSE_AGENT_INSTRUCTIONS 一致）——文件已存在（后续
+        # 课）不再写，避免覆盖首课目标。
         mission_content = _mission_md(self._topic)
-        if self._repo.write_mission(mission_content) is not None:
+        if not self._repo.mission_path.exists():
+            self._repo.write_mission(mission_content)
             self.save_mission_calls.append(mission_content)
         # 模拟 agent 通过 FileTools.read_file 读 MISSION.md（写完即读，文件
         # 一定存在；保险起见吞掉 read_file 错误）。
         content = self._reader.read_file("MISSION.md")
         self.read_file_calls.append(("MISSION.md", content))
 
-        # 模拟 save_lesson：编号 / 幂等由真实仓库决定（与生产工具同语义）；
-        # 前 write_body_after_calls 次不写（模拟漏调 save_lesson）。
-        # 重试时若已有一课缺练习（body 已落盘），不再写新课，只补练习。
+        # 模拟 LessonWriter：目标正文按 num+slug+title+lesson_md 四件套写盘，
+        # num 用 self._target_num；前 write_body_after_calls 次不写（模拟漏调
+        # LessonWriter）。重试时目标正文已落盘（find_lesson 命中）→ 不再写新课，
+        # 只补练习（与生产 retry hint 一致）。
         if (
             self.arun_call_count > self._write_body_after_calls
-            and self._repo.latest_lesson_without_exercises() is None
+            and self._repo.find_lesson(self._target_num) is None
         ):
-            self._repo.write_lesson(
-                slug=self._payload.slug, lesson_md=self._payload.lesson_md
+            self._repo.LessonWriter(
+                num=self._target_num,
+                slug=self._payload.slug,
+                title=self._payload.title,
+                lesson_md=self._payload.lesson_md,
             )
 
-        # 模拟 save_exercise：按 repo.latest_lesson_without_exercises() 配对；
-        # 前 write_exercises_after_calls 次不写（模拟漏调 save_exercise）。
-        if self.arun_call_count > self._write_exercises_after_calls:
-            target = self._repo.latest_lesson_without_exercises()
-            if target is not None:
-                num, slug = target
-                self._repo.write_exercise(
+        # 模拟 ExerciseWriter：目标课正文已落盘才配对写练习——经
+        # repo.find_lesson(target_num) 回查磁盘拿 (num, slug)（与 service 的 run
+        # 后校验同一回查路径）；前 ExerciseWriters_after_calls 次不写（模拟漏调
+        # ExerciseWriter）。
+        if self.arun_call_count > self._ExerciseWriters_after_calls:
+            found = self._repo.find_lesson(self._target_num)
+            if found is not None:
+                num, slug = found
+                self._repo.ExerciseWriter(
                     num=num,
                     slug=slug,
                     title="课程练习",
@@ -399,6 +412,7 @@ def _patch_course_agent(monkeypatch, stub_factory) -> None:
         ``TypeError: takes 2 positional arguments but 3 were given`` 或
         ``'_StubAgent' object can't be awaited``。
     """
+
     async def _stub_build(self, repo, model_id="deepseek-v4-flash"):
         return stub_factory(repo)
 
@@ -445,22 +459,25 @@ async def test_generate_course_writes_three_files(
           lessons/
             0001-<slug>.md          ← lesson body
             0001-<slug>.exercise.md ← 该课练习
-          resource.md                ← 课程共享资源
+          RESOURCE.md                ← 课程共享资源
 
-    新流程（task-3553）下 lesson body / resource.md 由 stub agent 在 run 内
-    经 save_lesson / save_resource 工具写盘，service 只落盘 exercise 文件。
+    新流程（task-3553 / issue #29）下 lesson body / RESOURCE.md / exercise 全部
+    由 stub agent 在 run 内经 ``LessonWriter`` / ``ExerciseWriter`` 工具写盘，
+    service 只从磁盘回查校验。
     """
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload()),
     )
 
     svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="user-1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="user-1", course_id=cid
+    )
 
     course_dir = tmp_course_dir / cid
     lessons_dir = course_dir / "lessons"
@@ -469,7 +486,7 @@ async def test_generate_course_writes_three_files(
     # lessons/<num>-<slug>.exercise.md
     assert not (course_dir / "lesson.md").exists()
     assert not (course_dir / "exercise.md").exists()
-    assert (course_dir / "resource.md").exists()
+    assert (course_dir / "RESOURCE.md").exists()
 
     lesson_files = sorted(lessons_dir.glob("*.md"))
     # body + exercise 各一
@@ -485,7 +502,9 @@ async def test_generate_course_writes_three_files(
     assert exercise_body.name == "0001-lesson-1.exercise.md"
 
     text = lesson_body.read_text(encoding="utf-8")
-    assert text.startswith("---\n")  # YAML front matter present
+    # issue #29 契约：lesson body 无 YAML front matter，以 ``# 标题`` 开头；
+    # title 经 LessonWriter 参数写入 manifest（assemble_lessons 标题来源）。
+    assert text.startswith("# ")  # 非 "---\n"
     assert "## Session 1" in text
 
     # exercise body 解析回得到 3 题
@@ -503,7 +522,7 @@ async def test_generate_course_upserts_progress_with_ready_status(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload()),
     )
 
     repo = LearningRepo()
@@ -511,7 +530,9 @@ async def test_generate_course_upserts_progress_with_ready_status(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=repo),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="user-1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="user-1", course_id=cid
+    )
 
     # mark_ready 经注入的真实 LearningProgressService → 真实 LearningRepo 落库
     progress = await repo.get_progress("user-1", cid)
@@ -530,7 +551,7 @@ async def test_generate_course_persists_goal_when_provided(
     def _factory(repo):
         return _StubAgent(
             repo=repo,
-            payload=_lesson_payload(cid),
+            payload=_lesson_payload(),
         )
 
     _patch_course_agent(monkeypatch, _factory)
@@ -565,7 +586,7 @@ async def test_generate_course_same_topic_creates_new_course(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload()),
     )
 
     svc = CourseGeneratorService(
@@ -597,7 +618,7 @@ async def test_generate_course_raises_when_agent_run_fails(
         monkeypatch,
         lambda repo: _StubAgent(
             repo=repo,
-            payload=_lesson_payload(cid),
+            payload=_lesson_payload(),
             fail_on_arun=RuntimeError("course agent boom"),
         ),
     )
@@ -607,14 +628,17 @@ async def test_generate_course_raises_when_agent_run_fails(
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
     with pytest.raises(RuntimeError, match="course agent boom"):
-        await svc.generate_course(topic="Rust 入门", owner="user-1", course_id=cid)
+        await svc.generate_course(
+            topic="Rust 入门", owner="user-1", course_id=cid
+        )
 
 
 async def test_generate_course_retries_when_exercises_missing(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    """首轮写 body 但漏调 ``save_exercise``（练习未落盘）→ 触发整 run 重试
-    （task-3554）→ 第二轮只补练习（不再写新课）→ 生成成功，且只落盘一课。
+    """首轮写 body 但漏调 ``ExerciseWriter``（练习未落盘，``read_exercises``
+    回查为空）→ 触发整 run 重试（task-3554）→ 第二轮只补练习（不再写新课）→
+    生成成功，且只落盘一课。
     """
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
@@ -622,8 +646,8 @@ async def test_generate_course_retries_when_exercises_missing(
         monkeypatch,
         _stub_factory(
             holder,
-            payload=_lesson_payload(cid),
-            write_exercises_after_calls=1,  # 首轮不写练习（模拟漏调 save_exercise）
+            payload=_lesson_payload(),
+            ExerciseWriters_after_calls=1,  # 首轮不写练习（模拟漏调 ExerciseWriter）
         ),
     )
 
@@ -631,7 +655,9 @@ async def test_generate_course_retries_when_exercises_missing(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="user-1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="user-1", course_id=cid
+    )
 
     # 重试确实发生（arun 被调 2 次），最终只落盘一课
     stub = holder["stub"]
@@ -649,8 +675,8 @@ async def test_generate_course_retries_when_exercises_missing(
 async def test_generate_course_retries_when_lesson_body_missing(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    """首轮漏调 ``save_lesson``（body 未落盘）→ 磁盘校验失败 → 触发整 run
-    重试 → 第二轮正常写盘 → 成功。
+    """首轮漏调 ``LessonWriter``（目标编号 body 未落盘，``find_lesson`` 回查
+    None）→ 触发整 run 重试 → 第二轮正常写盘 → 成功。
     """
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
@@ -658,8 +684,8 @@ async def test_generate_course_retries_when_lesson_body_missing(
         monkeypatch,
         _stub_factory(
             holder,
-            payload=_lesson_payload(cid),
-            write_body_after_calls=1,  # 首轮不写 body（模拟漏调 save_lesson）
+            payload=_lesson_payload(),
+            write_body_after_calls=1,  # 首轮不写 body（模拟漏调 LessonWriter）
         ),
     )
 
@@ -667,7 +693,9 @@ async def test_generate_course_retries_when_lesson_body_missing(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="user-1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="user-1", course_id=cid
+    )
 
     # 重试确实发生（arun 被调 2 次），最终只落盘一课
     stub = holder["stub"]
@@ -685,7 +713,7 @@ async def test_generate_course_retries_when_lesson_body_missing(
 async def test_generate_course_raises_after_both_attempts_fail(
     monkeypatch, tmp_course_dir, clean_collection
 ):
-    """两轮都漏调 ``save_exercise``（练习未落盘）→ 重试耗尽 → 抛
+    """两轮都漏调 ``ExerciseWriter``（练习未落盘）→ 重试耗尽 → 抛
     ``RuntimeError``，且 arun 恰好被调 2 次。"""
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
@@ -693,8 +721,8 @@ async def test_generate_course_raises_after_both_attempts_fail(
         monkeypatch,
         _stub_factory(
             holder,
-            payload=_lesson_payload(cid),
-            write_exercises_after_calls=2,  # 两轮都不写练习（漏调 save_exercise）
+            payload=_lesson_payload(),
+            ExerciseWriters_after_calls=2,  # 两轮都不写练习（漏调 ExerciseWriter）
         ),
     )
 
@@ -703,7 +731,9 @@ async def test_generate_course_raises_after_both_attempts_fail(
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
     with pytest.raises(RuntimeError, match="CourseAgent"):
-        await svc.generate_course(topic="Rust 入门", owner="user-1", course_id=cid)
+        await svc.generate_course(
+            topic="Rust 入门", owner="user-1", course_id=cid
+        )
     assert holder["stub"].arun_call_count == 2
 
 
@@ -718,14 +748,16 @@ async def test_generate_course_writes_mission_md(
     holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(holder, payload=_lesson_payload(cid)),
+        _stub_factory(holder, payload=_lesson_payload()),
     )
 
     svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="u1", course_id=cid
+    )
 
     mission_path = tmp_course_dir / cid / "MISSION.md"
     assert mission_path.exists()
@@ -738,7 +770,7 @@ async def test_generate_course_writes_mission_md(
         "## Out of scope",
     ):
         assert section in text
-    # save_mission 在首课被调用一次（写盘）
+    # 带 mission_md 的 LessonWriter 在首课被调用一次（写盘 MISSION.md）
     assert len(holder["stub"].save_mission_calls) == 1
 
 
@@ -755,7 +787,7 @@ async def test_generate_next_lesson_keeps_mission_md(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_lesson_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload()),
     )
     await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
     stub_first = first_holder["stub"]
@@ -763,13 +795,13 @@ async def test_generate_next_lesson_keeps_mission_md(
     first_text = mission_path.read_text(encoding="utf-8")
     assert len(stub_first.save_mission_calls) == 1
 
-    # next 课生成：MISSION.md 已存在 → save_mission 不再写，内容不变
+    # next 课生成：MISSION.md 已存在 → 不再调 LessonWriter(mission_md=...)，内容不变
     next_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(num=2, slug="lesson-2"),
         ),
     )
     await svc.generate_next_lesson(
@@ -781,7 +813,8 @@ async def test_generate_next_lesson_keeps_mission_md(
     assert len(stub_next.save_mission_calls) == 0
     # FileTools.read_file 可读回 MISSION.md 全文（agent 侧读 tool 真的被调到）
     mission_reads = [
-        content for path, content in stub_next.read_file_calls
+        content
+        for path, content in stub_next.read_file_calls
         if path == "MISSION.md"
     ]
     assert mission_reads, "agent 未通过 FileTools.read_file 读 MISSION.md"
@@ -795,13 +828,15 @@ async def test_get_course_includes_mission_md(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload()),
     )
     svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="u1", course_id=cid
+    )
 
     payload = await svc.get_course(owner="u1", course_id=cid)
     assert payload is not None
@@ -825,8 +860,8 @@ async def test_generate_next_lesson_writes_next_file(
 ):
     """已有第 1 课 → ``generate_next_lesson`` 写入 0002-<slug>.md + exercise。
 
-    断言:返回 next_num=2;磁盘上 0001 / 0002 两份 lesson + resource.md 都在;
-    ZPD 由 ``read_previous_lesson`` 工具承担——stub 模拟该工具时读到上一课 md
+    断言:返回 next_num=2;磁盘上 0001 / 0002 两份 lesson + RESOURCE.md 都在;
+    ZPD 由 FileTools.read_file 工具承担——stub 模拟该工具时读到上一课 md
     全文非空,衔接上下文仍被保证。
     """
     cid = build_course_id("Rust 入门")
@@ -839,7 +874,7 @@ async def test_generate_next_lesson_writes_next_file(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_lesson_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload()),
     )
     await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
 
@@ -849,7 +884,7 @@ async def test_generate_next_lesson_writes_next_file(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(num=2, slug="lesson-2"),
         ),
     )
     next_num = await svc.generate_next_lesson(
@@ -870,7 +905,8 @@ async def test_generate_next_lesson_writes_next_file(
     ]
     # ZPD:stub 模拟 agent 通过 FileTools.read_file 读最大编号 lesson md(非空)
     lesson_reads = [
-        content for path, content in stub_next.read_file_calls
+        content
+        for path, content in stub_next.read_file_calls
         if path.startswith("lessons/")
     ]
     assert lesson_reads, "agent 未通过 FileTools.read_file 读上一课"
@@ -891,18 +927,20 @@ async def test_generate_next_lesson_is_idempotent_when_next_file_exists(
 
     def _counting_factory(repo):
         build_course_agent_called["n"] += 1
-        return _StubAgent(repo=repo, payload=_lesson_payload(cid))
+        return _StubAgent(repo=repo, payload=_lesson_payload())
 
     # 准备第 1 课
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload()),
     )
     svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="u1", course_id=cid
+    )
 
     # 在 lessons/ 下放一个 race 占位文件 — glob 匹配但 regex 拒绝
     lessons_dir = tmp_course_dir / cid / "lessons"
@@ -922,7 +960,7 @@ async def test_get_course_assembles_multiple_lessons_in_order(
 ):
     """``get_course`` 按 ``lessons/`` 磁盘扫描装配多课并按 id 排序。
 
-    第 1 课 + 追加的第 2 课 → 装配时 id 升序,共享 resource.md 仍只有一份。
+    第 1 课 + 追加的第 2 课 → 装配时 id 升序,共享 RESOURCE.md 仍只有一份。
     """
     cid = build_course_id("Rust 入门")
     svc = CourseGeneratorService(
@@ -932,16 +970,18 @@ async def test_get_course_assembles_multiple_lessons_in_order(
 
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="u1", course_id=cid
+    )
 
     # 追加第 2 课
     _patch_course_agent(
         monkeypatch,
         lambda repo: _StubAgent(
             repo=repo,
-            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(num=2, slug="lesson-2"),
         ),
     )
     n2 = await svc.generate_next_lesson(
@@ -1060,14 +1100,16 @@ async def test_get_course_returns_full_package_when_ready(
     cid = build_course_id("Rust 入门")
     _patch_course_agent(
         monkeypatch,
-        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload(cid)),
+        lambda repo: _StubAgent(repo=repo, payload=_lesson_payload()),
     )
 
     svc = CourseGeneratorService(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=LearningRepo()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="u1", course_id=cid
+    )
 
     payload = await svc.get_course(owner="u1", course_id=cid)
     assert payload is not None
@@ -1079,7 +1121,9 @@ async def test_get_course_returns_full_package_when_ready(
     assert len(course.lessons) == 1
     lesson0 = course.lessons[0]
     assert lesson0.id == 1
-    assert lesson0.title == "Rust 入门"  # 从 front-matter 解析
+    assert (
+        lesson0.title == "Rust 入门"
+    )  # 来自写入的 title（manifest 标题权威）
     assert lesson0.slug == "lesson-1"
     assert "## Session 1" in lesson0.md
     # 该课练习 = 3 题(从同名 .exercise.md 反序列化)
@@ -1100,7 +1144,7 @@ async def test_generate_course_persists_session_id(
     cid = build_course_id("Rust 入门")
     holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
-        monkeypatch, _stub_factory(holder, payload=_lesson_payload(cid))
+        monkeypatch, _stub_factory(holder, payload=_lesson_payload())
     )
 
     repo = LearningRepo()
@@ -1108,7 +1152,9 @@ async def test_generate_course_persists_session_id(
         tmp_dir=tmp_course_dir,
         progress_svc=LearningProgressService(repo=repo),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="user-1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="user-1", course_id=cid
+    )
 
     progress = await repo.get_progress("user-1", cid)
     assert progress is not None
@@ -1135,9 +1181,11 @@ async def test_generate_next_lesson_reuses_session_id(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_lesson_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload()),
     )
-    cid = await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
+    cid = await svc.generate_course(
+        topic="Rust 入门", owner="u1", course_id=cid
+    )
 
     # 从 repo 读出首课锚定的 session_id
     repo = LearningRepo()
@@ -1152,7 +1200,7 @@ async def test_generate_next_lesson_reuses_session_id(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(num=2, slug="lesson-2"),
         ),
     )
     next_num = await svc.generate_next_lesson(
@@ -1206,7 +1254,7 @@ async def test_preview_next_lesson_already_generated_when_file_exists(
     """磁盘已有第 1 课 → next_num=2 未生成；占位文件存在 → already_generated。"""
     cid = build_course_id("Rust 入门")
     repo = CoursePackageRepo(course_id=cid, tmp_dir=tmp_course_dir)
-    repo.write_lesson(slug="lesson-1", lesson_md="# l1")
+    repo.LessonWriter(num=1, slug="lesson-1", title="l1", lesson_md="# l1")
 
     progress_repo = LearningRepo()
     await progress_repo.upsert_progress(
@@ -1286,7 +1334,7 @@ async def test_generate_course_first_lesson_includes_extra_prompt(
     holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(holder, payload=_lesson_payload(cid)),
+        _stub_factory(holder, payload=_lesson_payload()),
     )
 
     svc = CourseGeneratorService(
@@ -1307,7 +1355,7 @@ async def test_generate_course_first_lesson_includes_extra_prompt(
     assert "course_id：" in first_prompt
 
     # 2. extra_prompt=None → 不出现「额外要求：」字样（slot 渲染为空行）
-    cid2 = await svc.generate_course(
+    await svc.generate_course(
         topic="Go 入门",
         owner="u1",
     )
@@ -1336,7 +1384,7 @@ async def test_generate_next_lesson_uses_lean_prompt_when_session_anchored(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_lesson_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload()),
     )
     await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
 
@@ -1346,7 +1394,7 @@ async def test_generate_next_lesson_uses_lean_prompt_when_session_anchored(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(num=2, slug="lesson-2"),
         ),
     )
     await svc.generate_next_lesson(
@@ -1384,7 +1432,7 @@ async def test_generate_next_lesson_falls_back_to_full_prompt_without_session(
     first_holder: dict[str, _StubAgent] = {}
     _patch_course_agent(
         monkeypatch,
-        _stub_factory(first_holder, payload=_lesson_payload(cid)),
+        _stub_factory(first_holder, payload=_lesson_payload()),
     )
     await svc.generate_course(topic="Rust 入门", owner="u1", course_id=cid)
 
@@ -1394,7 +1442,7 @@ async def test_generate_next_lesson_falls_back_to_full_prompt_without_session(
         monkeypatch,
         _stub_factory(
             next_holder,
-            payload=_next_lesson_payload(cid, num=2, slug="lesson-2"),
+            payload=_next_lesson_payload(num=2, slug="lesson-2"),
         ),
     )
     await svc.generate_next_lesson(
@@ -1467,12 +1515,15 @@ async def test_build_course_agent_receives_model_id_arg(
 
             async def arun(self, prompt, session_id=None):
                 # 写入一个最小合法 lesson + exercise，让 generate_course 不重试
-                self._repo.write_lesson(
-                    slug="lesson-1", lesson_md=_lesson_md(cid)
+                self._repo.LessonWriter(
+                    num=1,
+                    slug="lesson-1",
+                    title="Rust 入门",
+                    lesson_md=_lesson_md(),
                 )
                 from app.schemas.learning import Exercise
 
-                self._repo.write_exercise(
+                self._repo.ExerciseWriter(
                     num=1,
                     slug="lesson-1",
                     title="练习",

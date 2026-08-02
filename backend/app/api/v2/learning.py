@@ -251,7 +251,7 @@ async def list_course_files(
 
     委托 :meth:`CoursePackageRepo.list_course_files` 扫描磁盘，返回
     :class:`FileEntry` 列表（``lessons/*.md`` 含 ``.exercise.md`` + 顶层
-    ``resource.md`` / ``MISSION.md``，带大小 / mtime）。owner 校验统一走
+    ``RESOURCE.md`` / ``MISSION.md``，带大小 / mtime）。owner 校验统一走
     ``_require_ready_repo`` → 404。
     """
     repo = await _require_ready_repo(state, user, request, course_id)

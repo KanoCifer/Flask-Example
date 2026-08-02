@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import inspect
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from agno.agent import Agent
 from agno.db.postgres import AsyncPostgresDb
@@ -59,7 +60,7 @@ def create_llm_model(
     )
 
 
-# Learning 模块可用模型元数据（task-391）。单一事实来源：
+# Learning 模块可用模型元数据
 # ``GET /v2/learning/models`` 端点数据与 :func:`create_deepseek_model` 的白名单
 # 校验都从这里出，避免前端与后端硬编码同步漂移。
 LEARNING_MODELS = (
@@ -112,16 +113,7 @@ def create_web_search_tools() -> WebSearchTools:
 async def _log_tool_call(
     function_name: str, function_call: Callable, arguments: dict[str, Any]
 ) -> Any:
-    """每次工具调用的耗时日志（tool_hooks 中间件）。
-
-    Agno tool hook（``(function_name, function_call, arguments)`` 契约）：
-    包一层调用、记录耗时，结构化字段 ``tool`` / ``args_keys`` / ``duration``
-    交给 structlog（message 纯英文，数值不手拼进字符串）。
-
-    所有 agent 均以 ``arun`` 异步执行，故本 hook 为 async；``function_call``
-    同步/异步都兼容（agno 文档 Async Variant 模式）——``isawaitable`` 判断
-    并在需要时 ``await``。异常直接上抛，不在此吞掉。
-    """
+    """每次工具调用的耗时日志（tool_hooks 中间件）"""
     start = time.monotonic()
     result = function_call(**arguments)
     if inspect.isawaitable(result):

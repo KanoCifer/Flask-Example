@@ -9,7 +9,7 @@
 - :func:`generate_next_lesson` — 由 ``POST /v2/learning/courses/{course_id}/lessons``
   触发（task-352 渐进产出）：从已有 progress 读 topic，扫描 ``lessons/`` 找
   next_num，调 :func:`CourseGeneratorService.generate_next_lesson` 衔接生成新课 +
-  刷共享 resource.md；**不**重新走 pending → ready 状态切换（progress 仍 ready，
+  刷共享 RESOURCE.md；**不**重新走 pending → ready 状态切换（progress 仍 ready，
   用户通过轮询 ``GET /courses/{id}`` 看到 `lessons` 列表增长）。
 
 设计依据：

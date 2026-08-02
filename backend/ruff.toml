@@ -39,6 +39,8 @@ ignore = [
     "B008",   # Allow using mutable default arguments (e.g. dicts in Pydantic models)
     "N815",   # Allow type ignore comments
     "N803",  # Allow snake_case in Pydantic models
+    "N802",  # Allow PascalCase function/tool names (LessonWriter / ExerciseWriter)
+    "N806",  # Allow PascalCase variables in function bodies (tests unpacking tools)
 ]
 
 # Allow unused variables when prefixed with underscore
