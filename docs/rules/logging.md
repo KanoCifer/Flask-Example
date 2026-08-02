@@ -25,7 +25,7 @@
 | `app_error.log` | 异常与错误 | ERROR+ | 任何层            |
 
 - 不按 `user` / `article` / `rss` 等领域分文件。跨域调用（如 rss → cache → notify）的日志切不干净，分文件只会让一次排查散落多文件。
-- 两个文件仅在 `SAVE_LOGS=True` 时启用（受 `LOG_PATH` / `LOG_DIR` 控制路径）；业务日志与 `taskiq` / `sqlalchemy` 等 foreign 记录**不再向 stderr 输出**，由文件承担持久化职责。
+- 两个文件仅在 `SAVE_LOGS=True` 时启用（受 `LOG_DIR` 控制目录；默认 `backend/logs/`，文件名 `app.log`，logger 自动追加 `_info` / `_error` 后缀）；业务日志与 `taskiq` / `sqlalchemy` 等 foreign 记录**不再向 stderr 输出**，由文件承担持久化职责。
 - `uvicorn.access` 的自带 handler 被清掉后挂 stdout handler 并回传播到 root，进 `app_info.log`——不再单独剥离 access 轨迹。
 
 ## 3. 结构化——message 给人，extra 给机器

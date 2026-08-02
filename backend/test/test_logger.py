@@ -173,7 +173,7 @@ class TestTimestampCoercion:
         assert ts.utcoffset() == datetime.now(UTC).utcoffset()
 
     def test_naive_datetime_gains_utc_tz(self):
-        naive = datetime(2026, 8, 2, 6, 32, 15)
+        naive = datetime(2026, 8, 2, 6, 32, 15)  # noqa: DTZ001 — 故意构造无 tz 验证 _coerce_timestamp
         out = self._direct(naive)
         assert out.tzinfo is UTC
 
@@ -235,3 +235,21 @@ class TestUvicornRouting:
             lg = logging.getLogger(name)
             assert lg.handlers == []
             assert lg.propagate is True
+
+
+class TestLogPath:
+    """LOG_DIR 给出日志目录（默认 backend/logs/）；app.log 在该目录下，_info/_error 后缀自动追加。"""
+
+    def test_default_path(self):
+        from app.core.logger import error_log_path, info_log_path
+
+        assert info_log_path.name == "app_info.log"
+        assert error_log_path.name == "app_error.log"
+        assert info_log_path.parent.name == "logs"
+
+    def test_log_dir_overrides_default(self, tmp_path, monkeypatch):
+        from app.core import config
+        from app.core.logger import _resolve_log_path
+
+        monkeypatch.setattr(config.settings, "LOG_DIR", str(tmp_path))
+        assert _resolve_log_path() == tmp_path / "app.log"

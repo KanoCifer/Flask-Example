@@ -150,22 +150,23 @@ def _make_formatter(terminal) -> structlog.stdlib.ProcessorFormatter:
 
 
 # -----------------------------------------------------------------------------
-# 日志目录
+# 日志目录（LOG_DIR 由 Settings 控制；空字符串=用默认 backend/logs/）
 # -----------------------------------------------------------------------------
-base = Path(__file__).resolve().parent.parent
-base = base.parent
+_log_root = Path(__file__).resolve().parent.parent.parent
 
-_log_path_env: str | None = os.getenv("LOG_PATH")
-if _log_path_env:
-    log_path = Path(_log_path_env)
-else:
-    log_dir = Path(os.getenv("LOG_DIR", base / "logs"))
-    log_path = log_dir / "app.log"
 
-log_path.parent.mkdir(parents=True, exist_ok=True)
+def _resolve_log_path() -> Path:
+    """LOG_DIR 给出目录（默认 backend/logs/）；app.log 在该目录下。"""
+    s = get_settings()
+    log_dir = Path(s.LOG_DIR) if s.LOG_DIR else _log_root / "logs"
+    return log_dir / "app.log"
 
-info_log_path = log_path.with_stem(f"{log_path.stem}_info")
-error_log_path = log_path.with_stem(f"{log_path.stem}_error")
+
+_log_path = _resolve_log_path()
+_log_path.parent.mkdir(parents=True, exist_ok=True)
+
+info_log_path = _log_path.with_stem(f"{_log_path.stem}_info")
+error_log_path = _log_path.with_stem(f"{_log_path.stem}_error")
 
 
 # -----------------------------------------------------------------------------

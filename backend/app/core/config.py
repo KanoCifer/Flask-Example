@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     # DB 持久化阈值：仅 ≥ 此级别入库，避免 Log 表随业务量膨胀（默认 WARNING）
     DB_LOG_LEVEL: str = "WARNING"
+    # 日志目录。空字符串=用默认 backend/logs/；_info/__error 后缀由 logger 自动追加。
+    LOG_DIR: str = ""
 
     MEDIA_PATH: str = ""
 
