@@ -17,7 +17,9 @@
     "culori": "^4.0.2",
     "dayjs": "^1.11.21",
     "dompurify": "^3.4.12",
+    "highlight.js": "^11.11.1",
     "marked": "^18.0.7",
+    "marked-highlight": "^2.2.4",
     "ua-parser-js": "^2.0.10",
     "uuid": "^13.0.2"
   },

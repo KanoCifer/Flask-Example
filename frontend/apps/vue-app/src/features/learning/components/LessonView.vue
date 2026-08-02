@@ -20,7 +20,6 @@
 -->
 <script setup lang="ts">
 import { useHead } from '@vueuse/head';
-import hljs from 'highlight.js/lib/common';
 import 'highlight.js/scss/rainbow.scss';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -126,13 +125,6 @@ watch(
     if (courseId.value && lessonId.value) void load();
   },
 );
-
-/** 正文 markdown 渲染后,等 Vue 完成 patch 再对 <pre><code> 上色。 */
-watch(lessonHtml, async (html) => {
-  if (!html) return;
-  await nextTick();
-  hljs.highlightAll();
-});
 
 onMounted(() => {
   void load();

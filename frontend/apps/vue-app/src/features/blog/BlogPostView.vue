@@ -18,13 +18,11 @@ import { DelIcon, EditIcon } from '@/components';
 import { Eye, Heart } from '@lucide/vue';
 import { blogGateway } from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
-import { useOrigin } from '@readinglist/utils';
+import { renderMarkdown, useOrigin } from '@readinglist/utils';
 import { useNotificationStore } from '@/stores';
 import type { Post } from '@readinglist/types';
 import { useHead } from '@vueuse/head';
-import hljs from 'highlight.js/lib/common';
 import 'highlight.js/scss/rainbow.scss';
-import { marked } from 'marked';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -155,19 +153,14 @@ watch(
   () => post.value?.body,
   async (html): Promise<void> => {
     if (!html) return;
+    // 高亮已在 renderMarkdown 解析阶段完成（hljs language-* class），
+    // 这里只需等 DOM patch 后挂复制按钮。
     await nextTick();
-    hljs.highlightAll();
     setupCodeCopy();
   },
 );
 
-const renderedBody = computed(() => {
-  if (!post.value?.body) return '';
-  return marked.parse(post.value.body, {
-    async: false,
-    breaks: false,
-  }) as string;
-});
+const renderedBody = computed(() => renderMarkdown(post.value?.body));
 
 // 渲染正文中所有 <img src="...">，非 http(s) 开头的补上前缀
 // 同时注入 loading=lazy / decoding=async,让长文里的非首屏图片走懒加载,

@@ -35,6 +35,7 @@
     "lottie-web": "5.13.0",
     "markdown-it": "^14.3.0",
     "marked": "^18.0.7",
+    "markstream-vue": "^1.0.8",
     "mitt": "^3.0.1",
     "motion-v": "^2.3.0",
     "pace-js": "^1.2.4",

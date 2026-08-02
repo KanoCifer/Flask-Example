@@ -2,7 +2,6 @@
 import ArticlePreview from './ArticlePreview.vue';
 import ImageEditorModal from './ImageEditorModal.vue';
 import { useMarkdownImage } from '@/features/upload/composables';
-import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github-dark.css';
 import { Modal } from '@/components';
 import { renderMarkdown } from '@/composables';
@@ -208,15 +207,6 @@ const stats = computed<{ minutes: number; count: number }>(() => {
   const count = cjk + words;
   const minutes = Math.max(1, Math.round(count / 400));
   return { minutes, count };
-});
-
-// Apply syntax highlighting after Vue renders the preview HTML
-watch(renderedMarkdown, () => {
-  nextTick(() => {
-    document.querySelectorAll('.prose pre code').forEach((block) => {
-      hljs.highlightElement(block as HTMLElement);
-    });
-  });
 });
 
 // 暴露给父组件：发布时上传所有 blob 图片并返回最终内容

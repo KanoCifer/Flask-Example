@@ -42,10 +42,11 @@
     color: var(--ink);
     font-family: var(--font-sans);
     font-size: 1rem;
-    line-height: 1.65;
+    line-height: 1.2;
     /* 4.5:1 baseline — --ink 在所有 10 主题的 paper 上均 ≥ 4.5:1 */
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    white-space: pre-wrap;
 
     /* 不依赖 prose 自身的 max-width；上层容器控制 */
     max-width: none;
@@ -267,6 +268,7 @@
         inset 0 1px 0 0 color-mix(in oklch, var(--page) 60%, transparent),
         0 1px 2px color-mix(in oklch, var(--ink) 5%, transparent);
     isolation: isolate;
+    white-space: pre;
 }
 
 /* —— dark 变体：把纸面再压深一档，让代码块在 dark 页面上读作"抬起的纸" —— */

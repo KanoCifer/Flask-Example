@@ -23,9 +23,8 @@
 -->
 <script setup lang="ts">
 import { useHead } from '@vueuse/head';
-import hljs from 'highlight.js/lib/common';
 import 'highlight.js/scss/rainbow.scss';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeft,
@@ -204,13 +203,6 @@ watch(
     if (courseId.value) void load();
   },
 );
-
-/** markdown 渲染后,等 Vue 完成 patch 再对 <pre><code> 上色。 */
-watch([missionHtml, resourceHtml], async ([mission, resource]) => {
-  if (!mission && !resource) return;
-  await nextTick();
-  hljs.highlightAll();
-});
 
 onMounted(() => {
   void load();

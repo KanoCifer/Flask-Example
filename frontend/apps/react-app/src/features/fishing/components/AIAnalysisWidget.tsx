@@ -1,9 +1,8 @@
-import DOMPurify from 'dompurify';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bot, CloudOff, X } from 'lucide-react';
-import { marked } from 'marked';
 import { useEffect, useRef, useState } from 'react';
 
+import { renderMarkdown } from '@readinglist/utils';
 import { createPortal } from 'react-dom';
 import { ReasoningRegion } from '@/components/ReasoningRegion';
 import { useAnalysisContext } from '../contexts/AnalysisContext';
@@ -13,11 +12,6 @@ const AI_MODELS = [
   { id: 'Ling-2.6-flash', name: 'Ling 2.6 Flash' },
   { id: 'Ring-2.5-1T', name: 'Ring 2.5' },
 ];
-
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
 
 // 可折叠推理区在本 widget 内的样式微调 (与 @/components/ReasoningRegion 默认值略不同):
 // - 缺少 mb-2: 父级使用 space-y-3 控间距, 避免视觉叠加。
@@ -45,15 +39,6 @@ const SHIMMER_TEXTS = [
   '正在结合潮汐节奏...',
 ];
 
-function renderMarkdown(content: string): string {
-  try {
-    const rawHtml = marked.parse(content, { async: false }) as string;
-    return DOMPurify.sanitize(rawHtml);
-  } catch {
-    console.error('Error rendering markdown content:', content);
-    return content;
-  }
-}
 
 /**
  * AI 分析组件 —— Apple HIG surface。

@@ -4,10 +4,8 @@ import { TwikooComments, AiThread } from '@/components';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores/notificationState';
 import { formatDate } from '@readinglist/utils';
-import { useOrigin } from '@readinglist/utils';
-import hljs from 'highlight.js/lib/common';
+import { renderMarkdown, useOrigin } from '@readinglist/utils';
 import 'highlight.js/styles/github.css';
-import { marked } from 'marked';
 import { Eye, Heart } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -186,9 +184,7 @@ export default function BlogPostView() {
   }, [post?.title]);
 
   // Render markdown to HTML
-  const renderedBody = post?.body
-    ? (marked.parse(post.body, { async: false, breaks: false }) as string)
-    : '';
+  const renderedBody = renderMarkdown(post?.body);
 
   // 非 http(s) 开头的 src 用 https://api.kanocifer.chat 作为前缀（仅在 https 环境下生效）
   const coverSrc = post?.cover ? useOrigin(post.cover) : '';
@@ -208,10 +204,9 @@ export default function BlogPostView() {
     !!post?.created_at &&
     post.updated_at !== post.created_at;
 
-  // Highlight code blocks + setup copy buttons after content renders
+  // Setup copy buttons after content renders (highlighting is done at parse time)
   useEffect(() => {
     if (contentRef.current && renderedBody) {
-      hljs.highlightAll();
       const cleanup = setupCodeCopy(contentRef.current, (msg) =>
         notification.success(msg),
       );
