@@ -71,11 +71,6 @@ echo "========================================"
 
 export CI=true
 
-step "Setting up Node.js environment"
-source ~/.nvm/nvm.sh
-nvm use 26
-ok "Node.js $(node -v)"
-
 step "Pulling latest code"
 cd /home/kano/blog || exit 1
 OLD_HEAD=$(git rev-parse HEAD)
@@ -86,20 +81,12 @@ ok "Git pull completed"
 
 BACKEND_CHANGED=false
 GO_BACKEND_CHANGED=false
-FRONTEND_CHANGED=false
-REACT_APP_CHANGED=false
 if [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
   if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- backend/)" ]; then
     BACKEND_CHANGED=true
   fi
   if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- go-backend/)" ]; then
     GO_BACKEND_CHANGED=true
-  fi
-  if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- frontend/apps/vue-app/)" ]; then
-    FRONTEND_CHANGED=true
-  fi
-  if [ -n "$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- frontend/apps/react-app/)" ]; then
-    REACT_APP_CHANGED=true
   fi
 fi
 
@@ -126,59 +113,6 @@ if [ "$GO_BACKEND_CHANGED" = true ]; then
   ok "Go binary built at /home/kano/blog/go-backend/server"
 else
   warn "No Go backend changes detected — skipping build"
-fi
-
-if [ "$FRONTEND_CHANGED" = false ] && [ "$REACT_APP_CHANGED" = false ]; then
-  warn "No frontend changes detected — skipping all builds"
-else
-  step "Installing frontend dependencies"
-  cd /home/kano/blog/frontend || exit 1
-  FAILED_STEP="前端依赖安装失败 (pnpm install: lockfile 冲突/网络)" && pnpm install --frozen-lockfile
-  ok "Dependencies installed"
-
-  step "Building frontends (parallel)"
-
-  PID_FRONTEND=""
-  PID_REACT=""
-
-  if [ "$FRONTEND_CHANGED" = true ]; then
-    ( pnpm --filter @readinglist/vue-app build ) &
-    PID_FRONTEND=$!
-  else
-    warn "No Vue app changes detected — skipping build"
-  fi
-
-  if [ "$REACT_APP_CHANGED" = true ]; then
-    ( pnpm --filter @readinglist/react-app build ) &
-    PID_REACT=$!
-  else
-    warn "No React app changes detected — skipping build"
-  fi
-
-  FRONTEND_OK=true
-  REACT_OK=true
-  if [ -n "$PID_FRONTEND" ]; then
-    if ! wait "$PID_FRONTEND"; then
-      FRONTEND_OK=false
-      warn "Vue app build failed"
-    else
-      ok "Vue app built"
-    fi
-  fi
-  if [ -n "$PID_REACT" ]; then
-    if ! wait "$PID_REACT"; then
-      REACT_OK=false
-      warn "React app build failed"
-    else
-      ok "React app built"
-    fi
-  fi
-
-  if [ "$FRONTEND_OK" = false ] || [ "$REACT_OK" = false ]; then
-    [ "$FRONTEND_OK" = false ] && FAILED_STEP="Vue 前端构建失败 (vue-app: 依赖/构建错误)"
-    [ "$REACT_OK" = false ] && FAILED_STEP="React 前端构建失败 (react-app: 依赖/构建错误)"
-    exit 1
-  fi
 fi
 
 step "Restarting services"

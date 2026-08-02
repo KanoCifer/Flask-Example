@@ -136,3 +136,10 @@
   --shadow-xl: var(--smooth-shadow-xl);
   --shadow-2xl: var(--smooth-shadow-2xl);
 }
+
+@layer base {
+  :where([class~='border']) {
+    border-color: transparent;
+    box-shadow: var(--smooth-shadow-sm);
+  }
+}

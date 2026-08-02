@@ -22,6 +22,17 @@ dist
 *.njsproj
 *.sln
 *.sw?
+.env
+.env.*
+.env.production
+.env.production.*
+.env.development
+.env.development.*
+.env.test
+.env.test.*
+.env.local
+.env.local.*
+
 
 *.tsbuildinfo
 
