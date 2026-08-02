@@ -2,19 +2,24 @@
    .prose — 文章正文展示系统（双前端共享）
    -------------------------------------------------------------------------
    覆盖 5 个使用场景：blog 长文、rss 转存文章、ai 摘要、气象分析、markdown 预览。
+   调性：Quiet / 慢阅读。
+
    关键约束：
    - 走主题 token（var(--ink) / var(--page) / var(--accent) / var(--warm-gray) /
-     var(--muted-text) / var(--border) / var(--accent-rose) / var(--secondary)），
+     var(--muted-text) / var(--border) / var(--accent-slate) / var(--secondary)），
      不写死 hex/oklch/rose-amber-emerald Tailwind 默认色。
-   - blockquote 走"左缘细线 + 背景薄染 + 起首大引号"，不用粗 border-left 色条
-     （design-system 禁止事项 §6 侧边条）。
-   - 标题走 system serif 文学调；body 走 --font-sans，h1/h2 字距收紧。
-   - 不使用 prose prose-slate / prose-slate 之类的 Tailwind prose 调色板
-     （会锁定色相、破坏 10 主题切换）。
-   - 表格/列表/图片按场景给节奏；rehype 产出的 .not-prose 永远不被覆盖。
-   - 行内 `<a>` 用 underline-offset 4px + 1px 文字色 underline，
-     避免下划线贴着字脚；hover 时把 underline 拉成 2px，色保持 accent。
-   - 入场揭示与 prose 无关；所有 prose 元素默认可见，避免 reveal 卡死。
+   - 不引入新字体、不引入新 icon、不写 hex。
+   - 标题走 system serif 文学调；body 走 --font-sans，line-height 1.75，measure 65–72ch。
+   - 色板收敛到 --ink / --muted-text / --accent / --border / --warm-gray；
+     二级文字永远走 color-mix(--ink, transparent)，禁止中性灰。
+   - blockquote 改 1px 左 hairline + 0.5px 顶 hairline，无背景薄染，无起大引号。
+   - 不做 eyebrow / kicker，不做首段 drop cap，不做彩色 border-left 装饰条。
+   - focus ring 强制 2px + offset 3px（可访问底线）。
+   - code block 双面色，无终端 chrome；删除原 ::before 语言标签（噪声），
+     提供可选 .prose-code-tag 元素选择器，由作者按需放置。
+   - wrapper chrome（cover / header / volume-band / byline / share-cta / footer /
+     author）视觉全部由 prose.css 决定，组件保持 class 名即可。
+   - rehype 产出的 .not-prose 永远不被覆盖。
    ========================================================================= */
 
 .prose {
@@ -28,7 +33,7 @@
     --tw-prose-bullets: var(--muted-text);
     --tw-prose-hr: var(--border);
     --tw-prose-quotes: var(--ink);
-    --tw-prose-quote-borders: var(--accent);
+    --tw-prose-quote-borders: var(--border);
     --tw-prose-captions: var(--muted-text);
     --tw-prose-kbd: var(--ink);
     --tw-prose-kbd-shadows: color-mix(in oklch, var(--ink) 12%, transparent);
@@ -38,73 +43,83 @@
     --tw-prose-th-borders: var(--border);
     --tw-prose-td-borders: var(--border);
 
-    /* —— 排版基线：serif 走文学调，body 走 --font-sans，CJK 行距放宽 —— */
+    /* —— 排版基线：body 走 --font-sans，serif 只给标题，CJK 行距放宽 —— */
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 1rem;
-    line-height: 1.2;
+    font-size: 1.0625rem; /* 17px，Quiet */
+    line-height: 1.65; /* 原则 7：body 1.5–1.6，1.65 兼顾 CJK 节奏 */
     /* 4.5:1 baseline — --ink 在所有 10 主题的 paper 上均 ≥ 4.5:1 */
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     white-space: pre-wrap;
 
-    /* 不依赖 prose 自身的 max-width；上层容器控制 */
-    max-width: none;
+    /* measure 65–72ch：38rem 在 17px 下 ≈ 60–64 半角 / 28–32 CJK，
+       落在 60–75 区间下沿，避免 40rem 触边的风险 */
+    max-width: 38rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 2.5rem;
+    padding-bottom: 3.5rem;
 }
 
 /* —— 段落 —— */
 .prose p {
-    margin: 0 0 0.125em;
+    margin: 0 0 0.75em;
+    hanging-punctuation: first last;
+    text-wrap: pretty; /* 原则 10：避免最后一行留单字孤儿 */
 }
 
 /* —— 标题 —— */
 .prose :where(h1, h2, h3, h4, h5, h6) {
-    /* system serif (ui-serif → Georgia/Times) 只带 400/700 两个真身，
-       600 由浏览器合成；层级靠字号落差维持，视觉上仍可区分。
-       若未来引入自定义 serif 可变字体，可回落到真身 600。 */
     font-family: ui-serif, Georgia, "Times New Roman", serif;
     color: var(--ink);
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em; /* Quiet：不再 -0.02em 的紧缩 */
+    scroll-margin-top: 5rem;
+    /* 章节前 > 章节后 */
+    margin-top: 2em;
+    margin-bottom: 0.625em;
+}
+
+/* balance 仅给短标题；h4-h6 多为描述性短语，强制 balance 无收益 */
+.prose :where(h1, h2, h3) {
     text-wrap: balance;
-    scroll-margin-top: 5rem; /* 锚点跳转避开 sticky nav */
 }
 
 .prose h1 {
     font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.25rem);
     line-height: 1.2;
-    margin: 2rem 0 1rem;
     font-weight: 700;
 }
 
 .prose h2 {
-    font-size: clamp(1.375rem, 1.1rem + 0.8vw, 1.75rem);
-    line-height: 1.2;
-    margin: 1.75rem 0 0.75rem;
+    font-size: clamp(1.375rem, 1.1rem + 0.8vw, 1.625rem);
+    line-height: 1.25;
     padding-bottom: 0.375rem;
     border-bottom: 1px solid var(--border);
 }
 
 .prose h3 {
-    font-size: clamp(1.125rem, 1rem + 0.4vw, 1.375rem);
-    line-height: 1.2;
-    margin: 1.5rem 0 0.625rem;
+    font-size: clamp(1.125rem, 1rem + 0.4vw, 1.3125rem);
+    line-height: 1.3;
 }
 
 .prose h4 {
-    font-size: 1.125rem;
-    line-height: 1.2;
-    margin: 1.25rem 0 0.5rem;
+    font-size: 1.125rem; /* ≥ body，靠 weight 600 + letter-spacing 区分 */
+    line-height: 1.35;
     font-weight: 600;
 }
 
 .prose h5,
 .prose h6 {
-    font-size: 1rem;
-    line-height: 1.2;
-    margin: 1rem 0 0.375rem;
+    font-size: 1.0625rem; /* = body，靠 uppercase + letter-spacing 拉层级 */
+    line-height: 1.4;
     font-weight: 600;
-    color: var(--muted-text);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: color-mix(in oklch, var(--ink) 78%, transparent);
 }
 
 /* —— 链接 —— */
@@ -114,10 +129,11 @@
     text-decoration-thickness: 1px;
     text-underline-offset: 4px;
     text-decoration-color: color-mix(in oklch, var(--accent) 35%, transparent);
+    text-decoration-skip-ink: auto; /* 原则 14：避免下划线切穿 g/j/p/q 等字脚 */
     transition:
         text-decoration-thickness 160ms ease-out,
         text-decoration-color 160ms ease-out;
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .prose a:hover {
@@ -136,18 +152,18 @@
 }
 
 .prose del {
-    color: var(--muted-text);
+    color: color-mix(in oklch, var(--ink) 50%, transparent);
     text-decoration: line-through;
     text-decoration-color: color-mix(
         in oklch,
-        var(--muted-text) 50%,
+        var(--ink) 30%,
         transparent
     );
 }
 
 /* —— 列表 —— */
 .prose :where(ul, ol) {
-    margin: 0rem 0;
+    margin: 0.5em 0 1em;
     padding-left: 1.5rem;
 }
 
@@ -163,47 +179,33 @@
 .prose ol ol,
 .prose ul ol,
 .prose ol ul {
-    margin: 0.5rem 0;
+    margin: 0.25em 0 0.75em;
 }
 
 .prose li {
-    margin: 0.25rem 0;
+    margin: 0.25em 0;
     padding-left: 0.25rem;
 }
 
 .prose li::marker {
-    color: var(--muted-text);
+    color: color-mix(in oklch, var(--ink) 55%, transparent);
 }
 
 .prose li > p {
-    margin: 0.5rem 0;
+    margin: 0.5em 0;
 }
 
-/* —— 引用块 — 左缘细线 + 背景薄染 + 起首大引号，避开 border-left 重彩 —— */
+/* —— 引用块 — 1px 左 hairline + 0.5px 顶 hairline，无背景薄染，无起大引号 —— */
 .prose blockquote {
     position: relative;
     margin: 1.5rem 0;
-    padding: 0.75rem 1.25rem 0.75rem 1.75rem;
-    background: color-mix(in oklch, var(--warm-gray) 70%, transparent);
-    border-radius: 0 0.625rem 0.625rem 0;
-    border: 1px solid var(--border);
-    border-left-width: 2px;
-    border-left-color: var(--accent);
-    color: var(--ink);
+    padding: 0.875rem 0 0.125rem 1rem;
+    background: transparent;
+    color: color-mix(in oklch, var(--ink) 88%, transparent);
     font-style: italic;
-}
-
-.prose blockquote::before {
-    content: "\201C"; /* 左双引号 */
-    position: absolute;
-    left: 0.5rem;
-    top: -0.125rem;
-    font-family: ui-serif, Georgia, serif;
-    font-size: 2.25rem;
-    line-height: 1;
-    color: var(--accent);
-    opacity: 0.35;
-    pointer-events: none;
+    border-top: 0.5px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-radius: 0;
 }
 
 .prose blockquote > :first-child {
@@ -215,95 +217,66 @@
 }
 
 .prose blockquote p {
-    margin: 0.25rem 0;
+    margin: 0.5rem 0;
 }
 
-/* —— 行内代码 — 在 prose 正文里出现 `<code>`（非 pre 内）—— */
+/* —— 行内代码 —— */
 .prose :where(code):not(:where([class~="not-prose"] *, pre *)) {
     font-family:
         ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", monospace;
     font-size: 0.875em;
-    padding: 0.15em 0.4em;
+    padding: 0.1em 0.35em;
     border-radius: calc(var(--radius) - 4px);
-    background: color-mix(in oklch, var(--warm-gray) 80%, transparent);
-    color: color-mix(in oklch, var(--ink) 88%, transparent);
+    background: color-mix(in oklch, var(--ink) 8%, var(--page));
+    color: color-mix(in oklch, var(--ink) 92%, transparent);
     font-weight: 500;
     border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
     vertical-align: 0.05em;
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* =========================================================================
    代码块 — 主题化双面（light / dark 各自一套 token），无终端 chrome。
 
-   关键决策：
-   - 不用 ::before/::after 假造 Mac 红绿灯；traffic-light 是 AI 默认 slop，
-     与 design-system §6 反对"AI bento / eyebrow / glass cards" 同源。
-   - 不写死 hex 背景（不能跨 10 主题），改用 var(--ink) 给 paper 染一层
-     "ink-tinted paper"，作为"比页面纸更深一档"的表面。
-   - light 模式：浅 ink 染 paper → 米色调；dark 模式：深 paper 提亮 → 灰墨面。
-   - 顶部加 1px hairline 分隔（var(--border)），不画假 titlebar。
-   - 右上角留出 copy-btn 的 safe area（用 padding-right，不是绝对定位 hack）。
-   - 如果作者写了 ```ts / ```python，rehype/手工加 `language-xxx` class，
-     由 ::before 在右上角渲一个文字标签（无 emoji、无红绿灯、无 iconfont）。
-   - highlight.js 的 hljs-* 颜色 class 在主题切换时由 highlighter 的 CSS 控制；
-     我们的 .prose pre 只管表面，不染语法 token。
+   - 不写死 hex 背景：用 color-mix 把 page 染一层 ink，给 paper 抬出一档
+     "代码块面"——light 下读作比正文深 ~10%、dark 下读作比正文亮 ~25%。
+   - 删除原 ::before 语言标签（噪声过大），改由 .prose-code-tag 元素承载。
+   - copy-btn 仍可注入；pre:has(> .copy-btn) 的 padding-right 保留。
+   - highlight.js 的 hljs-* 颜色 class 由 highlighter 的 CSS 控制。
    ========================================================================= */
 .prose pre {
     position: relative;
-    margin: 1.25rem 0;
+    margin: 1.5rem 0;
     padding: 1rem 1.125rem 1.125rem;
-    overflow: hidden;
     overflow-x: auto;
     border-radius: var(--radius);
-    background: color-mix(in oklch, var(--ink) 6%, var(--page));
+    background: color-mix(in oklch, var(--ink) 10%, var(--page));
     color: var(--ink);
     font-family:
         ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", monospace;
     font-size: 0.875rem;
-    line-height: 1.7;
     border: 1px solid var(--border);
-    /* 微微抬升：ambient + inset top highlight — 与 design-system §4 lift-from-below 一致 */
     box-shadow:
         inset 0 1px 0 0 color-mix(in oklch, var(--page) 60%, transparent),
         0 1px 2px color-mix(in oklch, var(--ink) 5%, transparent);
     isolation: isolate;
     white-space: pre;
+    /* 原则 7：代码块 1.6 是 monospace 的舒适行高 */
+    line-height: 1.6;
 }
 
-/* —— dark 变体：把纸面再压深一档，让代码块在 dark 页面上读作"抬起的纸" —— */
+/* —— dark 变体：把纸面再压深一档 —— */
 :where(.dark) .prose pre {
-    background: color-mix(in oklch, var(--page) 60%, var(--ink));
+    background: color-mix(in oklch, var(--page) 75%, var(--ink));
     border-color: color-mix(in oklch, var(--border) 70%, transparent);
     box-shadow:
         inset 0 1px 0 0 color-mix(in oklch, var(--page) 12%, transparent),
         0 1px 2px color-mix(in oklch, var(--ink) 30%, transparent);
 }
 
-/* —— 顶部 1px hairline（替代原 terminal titlebar 的位置提示）—— */
-.prose pre {
-    background-image: linear-gradient(
-        to bottom,
-        color-mix(in oklch, var(--ink) 4%, transparent) 0,
-        color-mix(in oklch, var(--ink) 4%, transparent) 1px,
-        transparent 1px,
-        transparent 100%
-    );
-    background-size: 100% 2rem;
-    background-repeat: no-repeat;
-    background-position: top left;
-}
-
-/* —— 语言标签（rehype 输出的 <pre class="language-ts"> 在右上角显示）—— */
-.prose pre[class*="language-"]::before {
-    content: attr(class);
-    /* 提取 "language-xxx" 里的 xxx */
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: lowercase;
-    color: var(--muted-text);
+/* —— 可选语言标签：作者按需放置 <span class="prose-code-tag">ts</span> —— */
+.prose .prose-code-tag {
+    display: inline-block;
     position: absolute;
     top: 0.5rem;
     right: 0.625rem;
@@ -311,80 +284,19 @@
     border-radius: 0.375rem;
     background: color-mix(in oklch, var(--page) 60%, transparent);
     border: 1px solid var(--border);
-    z-index: 3;
-    pointer-events: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    color: color-mix(in oklch, var(--muted-text) 90%, transparent);
     line-height: 1.4;
-    /* 真实 attr 没法 regex 切割 language-，所以用 content 直接展示整段 class；
-     文章场景里 class 里通常只有 "language-xxx hljs" 两段，看起来仍是 "hljs"。
-     视觉上像版本号，不抢戏。 */
-    content: "code";
-}
-.prose pre[class~="language-ts"]::before,
-.prose pre[class~="language-typescript"]::before {
-    content: "ts";
-}
-.prose pre[class~="language-js"]::before,
-.prose pre[class~="language-javascript"]::before {
-    content: "js";
-}
-.prose pre[class~="language-vue"]::before {
-    content: "vue";
-}
-.prose pre[class~="language-py"]::before,
-.prose pre[class~="language-python"]::before {
-    content: "py";
-}
-.prose pre[class~="language-bash"]::before,
-.prose pre[class~="language-sh"]::before,
-.prose pre[class~="language-shell"]::before {
-    content: "sh";
-}
-.prose pre[class~="language-json"]::before {
-    content: "json";
-}
-.prose pre[class~="language-css"]::before {
-    content: "css";
-}
-.prose pre[class~="language-html"]::before,
-.prose pre[class~="language-markup"]::before {
-    content: "html";
-}
-.prose pre[class~="language-md"]::before,
-.prose pre[class~="language-markdown"]::before {
-    content: "md";
-}
-.prose pre[class~="language-sql"]::before {
-    content: "sql";
-}
-.prose pre[class~="language-yaml"]::before,
-.prose pre[class~="language-yml"]::before {
-    content: "yaml";
-}
-.prose pre[class~="language-go"]::before {
-    content: "go";
-}
-.prose pre[class~="language-rust"]::before {
-    content: "rust";
-}
-.prose pre[class~="language-java"]::before {
-    content: "java";
-}
-.prose pre[class~="language-rb"]::before,
-.prose pre[class~="language-ruby"]::before {
-    content: "rb";
-}
-.prose pre[class~="language-php"]::before {
-    content: "php";
-}
-.prose pre[class~="language-dockerfile"]::before {
-    content: "docker";
-}
-.prose pre[class~="language-diff"]::before {
-    content: "diff";
+    pointer-events: none;
+    z-index: 3;
 }
 
-/* 语言标签在 copy-btn 注入时退让：把 label 抬到右侧更远，避免和按钮重叠 */
-.prose pre:has(> .copy-btn)::before {
+/* 语言标签在 copy-btn 注入时退让 */
+.prose pre:has(> .copy-btn) .prose-code-tag {
     right: 3rem;
 }
 
@@ -399,9 +311,10 @@
     font-size: inherit;
     border: none;
     word-break: normal;
+    white-space: pre;
 }
 
-/* 代码块工具栏（来自 rehype/外层组件注入的按钮） */
+/* 代码块工具栏 */
 .prose pre > .code-toolbar,
 .prose pre > .copy-btn {
     z-index: 2;
@@ -421,29 +334,40 @@
 
 /* —— 分割线 —— */
 .prose hr {
-    margin: 0.5rem 0;
+    margin: 1.5rem auto;
     border: 0;
     height: 1px;
+    width: 6rem;
     background: var(--border);
 }
 
-/* —— 图片 — 走 squircle-lite（不要和 bento 抢 squircle）—— */
+/* —— 图片 / 视频 / picture —— */
 .prose img,
 .prose video,
 .prose picture {
     display: block;
-    margin: 1.5rem auto;
+    margin: 1.75rem auto 1.25rem;
     max-width: 100%;
     height: auto;
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
     background: var(--warm-gray);
 }
 
-/* —— 表格 — 走"真实表格"语义 + 可选横向滚动 —— */
-/* 普通表格不强制 display:block；让 table 自然撑满容器，列宽按内容分配。
-   列数多到溢出时，包一层 .table-wrap（见下）走横向滚动。
-   border-collapse: separate + border-radius 才能让圆角干净裁切。 */
+/* figure：图 + caption 一起节奏化 */
+.prose figure {
+    margin: 1.75rem 0 1.25rem;
+}
+
+.prose figure > figcaption {
+    margin-top: 0.5rem;
+    color: color-mix(in oklch, var(--ink) 60%, transparent);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* —— 表格 —— */
 .prose table {
     width: 100%;
     margin: 1.5rem 0;
@@ -452,11 +376,8 @@
     font-size: 0.9375rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    /* table-layout: auto（默认）让单元格按内容/header 自动分配列宽 */
 }
 
-/* 可选：作者主动包一层 .table-wrap 处理过宽表格。
-   不默认给所有 <table> 加滚动 — 那会让 2-列常见表格的右侧出现"空白带"。 */
 .prose .table-wrap {
     margin: 1.5rem 0;
     overflow-x: auto;
@@ -484,7 +405,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* 第一行 th/td 顶角随容器圆角裁切 */
 .prose thead th:first-child {
     border-top-left-radius: calc(var(--radius) - 1px);
 }
@@ -497,7 +417,6 @@
     border-bottom: 0;
 }
 
-/* 末行底角随容器圆角裁切（仅当 100% 宽度时这两个生效） */
 .prose tbody:last-child tr:last-child td:first-child {
     border-bottom-left-radius: calc(var(--radius) - 1px);
 }
@@ -548,7 +467,7 @@
 /* —— 注释 / 缩写 / 插入 / 标记 —— */
 .prose abbr[title] {
     text-decoration: underline dotted;
-    text-decoration-color: var(--muted-text);
+    text-decoration-color: color-mix(in oklch, var(--ink) 50%, transparent);
     cursor: help;
 }
 
@@ -590,13 +509,13 @@
     display: inline-block;
     width: 1em;
     margin-right: 0.4em;
-    color: var(--accent);
-    font-weight: 600;
+    color: color-mix(in oklch, var(--ink) 70%, transparent);
+    font-weight: 500;
     transition: transform 160ms ease-out;
 }
 
 .prose details[open] > summary::before {
-    content: "\2212";
+    content: "−";
 }
 
 /* —— 脚注 —— */
@@ -605,7 +524,7 @@
     padding-top: 1.25rem;
     border-top: 1px solid var(--border);
     font-size: 0.875rem;
-    color: var(--muted-text);
+    color: color-mix(in oklch, var(--ink) 70%, transparent);
 }
 
 .prose .footnotes ol {
@@ -670,17 +589,18 @@
     color: var(--ink);
 }
 
-/* —— 焦点环 — 链接/代码块可被键盘 Tab 到 —— */
+/* —— 焦点环 —— */
 .prose a:focus-visible,
-.prose :where(pre):focus-visible {
+.prose :where(pre):focus-visible,
+.prose details > summary:focus-visible {
     outline: 2px solid var(--accent-slate);
     outline-offset: 3px;
     border-radius: 0.25rem;
 }
 
-/* —— 暗色模式微调 — ink/paper 已经反转，下面只处理 color-mix 的方向 —— */
+/* —— 暗色模式微调 —— */
 :where(.dark) .prose blockquote {
-    background: color-mix(in oklch, var(--secondary) 50%, transparent);
+    color: color-mix(in oklch, var(--ink) 92%, transparent);
 }
 
 :where(.dark) .prose mark {
@@ -695,33 +615,23 @@
 }
 
 /* =========================================================================
-   Article layout — 与 ArticlePreview.vue 的 wrapper chrome 对齐
+   Article layout — wrapper chrome（视觉全部内化到 prose.css）
    -------------------------------------------------------------------------
-   上面的 .prose 只管"正文字体 / 段落 / 列表 / 代码块 / 表格"等 body 内部；
-   这一段补齐 ArticlePreview.vue 模板里的 wrapper chrome：
-     容器 → 封面 → 刊号带 → kicker → 大标题 → deck → byline → 署名 footer
+   上面的 .prose 已经接管文章容器的 max-width / padding；
+   这一段补齐 ArticlePreview.vue / React 包装模板里使用的 wrapper：
+     cover → header → volume-band → title-row → kicker → title → deck
+     → byline → 正文 → share-cta → footer → author
    —— 这些不属于"行内 prose"，但属于"读者看到的版面"，单独抽到这里，
-   便于 vue-app / next-app 双前端共用。
-   主题 token 与 .prose 段一致（不写死 hex/oklch）：
-   --ink / --muted-text / --accent / --border / --warm-gray / --radius。
+   便于 vue-app / next-app 双前端共用，组件保持原 class 名零修改。
+   主题 token 与 .prose 段一致（不写死 hex/oklch）。
    ========================================================================= */
-
-/* —— 文章容器：max-w-2xl + 上下 padding —— */
-.prose-article {
-    max-width: 42rem; /* max-w-2xl */
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1.5rem; /* px-6 */
-    padding-right: 1.5rem;
-    padding-top: 2.5rem; /* pt-10 */
-    padding-bottom: 3.5rem; /* pb-14 */
-}
 
 /* —— 封面 —— */
 .prose-cover {
-    margin-bottom: 2.5rem; /* mb-10 */
+    margin: -2.5rem -1.5rem 2.5rem; /* 抵消 .prose 的 padding，让封面出血 */
     overflow: hidden;
-    border-radius: 0.75rem; /* rounded-xl */
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
 }
 
 .prose-cover__frame {
@@ -740,66 +650,44 @@
 }
 
 .prose-cover__caption {
-    margin-top: 0.625rem; /* mt-2.5 */
-    color: var(--muted-text);
-    font-size: 0.6875rem; /* text-[11px] */
-    letter-spacing: 0.04em;
+    margin-top: 0.625rem;
+    padding: 0 1.5rem;
+    color: color-mix(in oklch, var(--ink) 60%, transparent);
+    font-size: 0.8125rem;
+    line-height: 1.5;
 }
 
 /* —— 文章头 —— */
 .prose-header {
-    margin-top: 2.5rem; /* my-10 */
-    margin-bottom: 2.5rem;
+    margin: 1.5rem 0 2rem;
 }
 
-/* —— 刊号式元信息带（Vol · 随笔录 | No · xxxxxx）—— */
+/* —— 刊号式元信息带 —— */
 .prose-volume-band {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 0.75rem; /* pb-3 */
-    margin-bottom: 1.5rem; /* mb-6 */
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
     border-bottom: 1px solid var(--border);
-    color: var(--muted-text);
+    color: color-mix(in oklch, var(--ink) 60%, transparent);
     font-family:
         ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", monospace;
-    font-size: 0.625rem; /* text-[10px] */
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-}
-
-.prose-volume-band__right {
-    color: color-mix(in oklch, var(--muted-text) 70%, transparent);
-}
-
-/* —— Eyebrow / kicker（accent 唯一一次正式出场） —— */
-.prose-kicker {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem; /* gap-2 */
-    margin-bottom: 1.25rem; /* mb-5 */
-    color: var(--ink);
-    font-size: 0.6875rem; /* text-[11px] */
-    font-weight: 600;
+    font-size: 0.6875rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
-.prose-kicker::before {
-    content: "";
-    display: inline-block;
-    width: 1.25rem; /* w-5 */
-    height: 1px;
-    background: var(--accent);
-    flex-shrink: 0;
+.prose-volume-band__right {
+    color: color-mix(in oklch, var(--ink) 45%, transparent);
 }
 
-/* —— 标题行容器（h1 + 右侧操作） —— */
+/* —— 标题行容器 —— */
 .prose-title-row {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1rem; /* gap-4 */
+    gap: 1rem;
 }
 
 /* —— 大标题 —— */
@@ -808,20 +696,20 @@
     margin: 0;
     color: var(--ink);
     font-family: ui-serif, Georgia, "Times New Roman", serif;
-    font-size: clamp(1.875rem, 5vw, 2.5rem);
-    line-height: 1.18;
-    font-weight: 500;
-    letter-spacing: -0.02em;
+    font-size: clamp(1.75rem, 1.2rem + 2vw, 2.25rem);
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.015em;
     text-wrap: balance;
 }
 
-/* —— Deck：阅读时长 + 字数 + 扩展（浏览量/点赞） —— */
+/* —— Deck：阅读时长 + 字数 + 扩展 —— */
 .prose-deck {
-    margin-top: 1.25rem; /* mt-5 */
-    color: var(--muted-text);
-    font-size: 0.9375rem; /* text-[15px] */
-    line-height: 1.625; /* leading-relaxed */
-    letter-spacing: 0.01em;
+    margin-top: 1rem;
+    color: color-mix(in oklch, var(--ink) 70%, transparent);
+    font-size: 1rem;
+    line-height: 1.65;
+    letter-spacing: 0.005em;
     font-variant-numeric: tabular-nums;
 }
 
@@ -830,27 +718,27 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    column-gap: 0.75rem; /* gap-x-3 */
-    row-gap: 0.375rem; /* gap-y-1.5 */
-    margin-top: 1rem; /* mt-4 */
-    color: var(--muted-text);
-    font-size: 0.8125rem; /* text-[13px] */
+    column-gap: 0.75rem;
+    row-gap: 0.375rem;
+    margin-top: 1rem;
+    color: color-mix(in oklch, var(--ink) 65%, transparent);
+    font-size: 0.8125rem;
     letter-spacing: 0.02em;
 }
 
 .prose-byline__author {
-    color: color-mix(in oklch, var(--ink) 80%, transparent);
+    color: color-mix(in oklch, var(--ink) 88%, transparent);
     font-weight: 500;
 }
 
 .prose-byline__sep {
     display: inline-block;
     width: 1px;
-    height: 0.75rem; /* h-3 */
+    height: 0.75rem;
     background: var(--border);
 }
 
-/* —— 文末 Share CTA（与 ArticlePreview.vue 的 .article-share-cta 对齐） —— */
+/* —— 文末 Share CTA —— */
 .article-share-cta {
     display: flex;
     align-items: center;
@@ -865,10 +753,6 @@
     letter-spacing: 0.01em;
 }
 
-.article-share-cta__text {
-    /* 文字自然块 */
-}
-
 .article-share-cta__arrow {
     color: var(--accent);
     font-size: 1.125rem;
@@ -876,10 +760,10 @@
     margin-left: 1rem;
 }
 
-/* —— 文章脚：作者署名块 + 复制链接 —— */
+/* —— 文章脚 —— */
 .prose-footer {
-    margin-top: 3.5rem; /* mt-14 */
-    padding-top: 2rem; /* pt-8 */
+    margin-top: 3rem;
+    padding-top: 2rem;
     border-top: 1px solid var(--border);
 }
 
@@ -888,19 +772,19 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1.25rem; /* gap-5 */
+    gap: 1.25rem;
 }
 
 .prose-author {
     display: flex;
     align-items: center;
-    gap: 0.875rem; /* gap-3.5 */
+    gap: 0.875rem;
     min-width: 0;
 }
 
 .prose-author__avatar {
-    width: 2.75rem; /* h-11 */
-    height: 2.75rem;
+    width: 2.5rem;
+    height: 2.5rem;
     flex-shrink: 0;
     border-radius: 9999px;
     object-fit: cover;
@@ -913,34 +797,49 @@
 
 .prose-author__name {
     color: var(--ink);
-    font-size: 0.875rem; /* text-[14px] */
+    font-size: 0.875rem;
     font-weight: 500;
-    letter-spacing: 0.025em; /* tracking-wide */
+    letter-spacing: 0.02em;
 }
 
 .prose-author__meta {
-    margin-top: 0.125rem; /* mt-0.5 */
-    color: var(--muted-text);
-    font-size: 0.75rem; /* text-[12px] */
+    margin-top: 0.125rem;
+    color: color-mix(in oklch, var(--ink) 65%, transparent);
+    font-size: 0.75rem;
     letter-spacing: 0.02em;
 }
 
 /* —— 正文无内容时的占位 —— */
 .prose-empty {
-    color: var(--muted-text);
+    color: color-mix(in oklch, var(--ink) 55%, transparent);
     font-style: italic;
 }
 
 /* =========================================================================
-   Compact 变体 — 编辑器半宽侧栏里缩小节奏、关闭 drop-cap
+   Compact 变体 — 编辑器半宽侧栏里减小节奏
    -------------------------------------------------------------------------
-   .prose-magazine 给所有 .prose-body 都加了首段 drop cap；
-   编辑器半宽栏里 3.4em 浮字会撑爆版面，用 .prose-body--compact 反向覆盖。
+   .prose 在主文章视图用 40rem 容器、line-height 1.75。
+   编辑器半宽侧栏需要更紧凑的节奏：收紧 measure、降低段落距、去掉上下大 padding。
    ========================================================================= */
-.prose-body--compact > p:first-of-type::first-letter {
-    float: none;
-    font-size: 1em;
-    font-weight: inherit;
-    margin: 0;
-    color: inherit;
+.prose-body--compact {
+    font-size: 0.9375rem;
+    line-height: 1.55; /* UI 节奏，不是 Read */
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.prose-body--compact p {
+    margin: 0 0 0.625em;
+}
+
+.prose-body--compact :where(h1, h2, h3, h4) {
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+}
+
+.prose-body--compact :where(pre, blockquote) {
+    margin: 1rem 0;
 }
