@@ -12,6 +12,7 @@ agno / DeepSeek / CoursePackageRepo，也不 import 任何其它 service 模块
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.logger import logger
@@ -137,6 +138,47 @@ class LearningProgressService:
             进度文档；不存在返回 None。
         """
         return await self._repo.get_progress(owner, course_id)
+
+    async def get_progress_or_expire(
+        self,
+        owner: str,
+        course_id: str,
+        ttl_minutes: int,
+    ) -> LearningProgress | None:
+        """读单条进度；``pending`` 超过 ``ttl_minutes`` 未就绪即判定生成失败。
+
+        读侧惰性恢复：``POST /courses`` 先 upsert pending 再 ``.kiq()``，broker /
+        worker 故障时记录会永久 pending、前端无限轮询。本方法在读取路径上把过期
+        pending 置 ``failed`` 并返回 None，让前端轮询体现终态、DB 不再积累卡死
+        记录；``ready`` / ``failed`` / 不存在原样返回。
+
+        Args:
+            owner: 进度归属（user_id 或 anon_id）。
+            course_id: 课程 ID。
+            ttl_minutes: pending 状态的有效时长（分钟）；超时视为生成失败。
+
+        Returns:
+            未过期的进度文档；过期 pending 置 failed 后 / ``failed`` / 不存在返回
+            None。
+        """
+        progress = await self._repo.get_progress(owner, course_id)
+        if progress is None or progress.status != "pending":
+            return progress
+        # beanie 读回 created_at 可能为 naive UTC（pymongo 反序列化），统一归一化
+        # 到 aware 再与 now 比较，避免 ``datetime`` 直接相减抛 TypeError。
+        created = progress.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=UTC)
+        age = datetime.now(UTC) - created
+        if age.total_seconds() > ttl_minutes * 60:
+            await self.mark_failed(owner=owner, course_id=course_id)
+            logger.bind(
+                course_id=course_id,
+                owner=owner,
+                ttl_minutes=ttl_minutes,
+            ).warning("learning pending progress expired, marked failed")
+            return None
+        return progress
 
     async def mark_ready(
         self,

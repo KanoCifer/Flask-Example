@@ -26,6 +26,7 @@ Redis / DeepSeek。
 from __future__ import annotations
 
 import types
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -978,6 +979,51 @@ async def test_get_course_returns_pending_when_status_is_pending(
     assert payload == {"status": "pending"}
 
 
+async def test_get_course_expires_stale_pending(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """pending 超 TTL（created_at 距今 > LEARNING_PENDING_TTL_MINUTES=15）→
+    ``get_course`` 返回 None，且落库为 ``failed``（读侧惰性恢复）。
+    """
+    repo = LearningRepo()
+    await LearningProgress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="T",
+        status="pending",
+        created_at=datetime.now(UTC) - timedelta(minutes=30),
+    ).insert()
+
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
+    assert await svc.get_course(owner="u1", course_id="c--00000001") is None
+    progress = await repo.get_progress("u1", "c--00000001")
+    assert progress is not None
+    assert progress.status == "failed"
+
+
+async def test_get_course_keeps_fresh_pending(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """pending 未超 TTL → 仍返回 pending 状态，不置 failed。"""
+    repo = LearningRepo()
+    await LearningProgress(
+        owner="u1", course_id="c--00000001", topic="T", status="pending"
+    ).insert()
+
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
+    payload = await svc.get_course(owner="u1", course_id="c--00000001")
+    assert payload == {"status": "pending"}
+    progress = await repo.get_progress("u1", "c--00000001")
+    assert progress is not None
+    assert progress.status == "pending"
+
+
 async def test_get_course_returns_none_when_status_is_failed(
     monkeypatch, tmp_course_dir, clean_collection
 ):
@@ -1183,3 +1229,28 @@ async def test_preview_next_lesson_returns_none_when_missing_or_failed(
         owner="u1", course_id="c--00000001", topic="T", status="failed"
     )
     assert await svc.preview_next_lesson("u1", "c--00000001") is None
+
+
+async def test_preview_next_lesson_expires_stale_pending(
+    monkeypatch, tmp_course_dir, clean_collection
+):
+    """过期 pending 在 ``preview_next_lesson`` 路径同样置 failed → 返回 None
+    （避免对卡死课程误排下一课任务）。
+    """
+    repo = LearningRepo()
+    await LearningProgress(
+        owner="u1",
+        course_id="c--00000001",
+        topic="T",
+        status="pending",
+        created_at=datetime.now(UTC) - timedelta(minutes=30),
+    ).insert()
+
+    svc = CourseGeneratorService(
+        tmp_dir=tmp_course_dir,
+        progress_svc=LearningProgressService(repo=repo),
+    )
+    assert await svc.preview_next_lesson("u1", "c--00000001") is None
+    progress = await repo.get_progress("u1", "c--00000001")
+    assert progress is not None
+    assert progress.status == "failed"

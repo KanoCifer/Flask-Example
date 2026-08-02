@@ -12,9 +12,11 @@ service：课程生成编排（``generate_course`` / ``generate_next_lesson``）
 
 - ``generate_course`` 成功落盘后经 ``progress_svc.mark_ready`` 置 ``ready``
   （替代原 ``LearningService._repo.upsert_progress(status="ready")``）。
-- ``get_course`` / ``preview_next_lesson`` 经 ``progress_svc.get_progress``
-  取状态门（None/failed→None、pending→{"status":"pending"}）与
-  topic / goal / session_id。
+- ``get_course`` / ``preview_next_lesson`` 经
+  ``progress_svc.get_progress_or_expire`` 取状态门（None/failed→None、
+  pending→{"status":"pending"}）与 topic / goal / session_id；pending 超
+  ``LEARNING_PENDING_TTL_MINUTES`` 未就绪即置 ``failed``（读侧惰性恢复，
+  卡死任务不再永久 pending）。
 
 依赖方向：handler → service → repo；service → service（本类 → 纯进度类）
 单向向下，无循环。
@@ -278,7 +280,11 @@ class CourseGeneratorService:
             - ``ready``：``{"status": "ready", "course": CoursePackage}``，
               ``course.lessons`` 只含已生成的课（仅按磁盘实际文件列表）。
         """
-        progress = await self._progress_svc.get_progress(owner, course_id)
+        progress = await self._progress_svc.get_progress_or_expire(
+            owner,
+            course_id,
+            ttl_minutes=get_settings().LEARNING_PENDING_TTL_MINUTES,
+        )
         if progress is None or progress.status == "failed":
             return None
 
@@ -328,7 +334,11 @@ class CourseGeneratorService:
         Returns:
             进度不存在 / ``failed`` → None；否则 :class:`NextLessonContext`。
         """
-        progress = await self._progress_svc.get_progress(owner, course_id)
+        progress = await self._progress_svc.get_progress_or_expire(
+            owner,
+            course_id,
+            ttl_minutes=get_settings().LEARNING_PENDING_TTL_MINUTES,
+        )
         if progress is None or progress.status == "failed":
             return None
 

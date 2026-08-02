@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     # 为空字符串时用默认值 <backend>/tmp/learning；配置为绝对或相对路径时
     # 作为课程包根目录（相对路径相对于进程 CWD）。
     LEARNING_ROOT_DIR: str = ""
+    # Learning pending 生成状态超时（分钟）：POST /courses 先落 pending 再异步生成，
+    # 若任务丢失（broker / worker 故障）记录会永久 pending、前端无限轮询。读取路径上
+    # 超过该时长的 pending 视为生成失败（LearningProgressService.get_progress_or_expire
+    # 置 failed）。默认 15 分钟，远高于前端轮询超时（POLL_TIMEOUT_MS=120s）与正常
+    # agent run 耗时，避免误伤慢生成。
+    LEARNING_PENDING_TTL_MINUTES: int = 15
     # WebAuthn / Passkey settings
     WEBAUTHN_RP_ID: str = "kanocifer.chat"
     WEBAUTHN_ORIGIN: str = "https://kanocifer.chat"
