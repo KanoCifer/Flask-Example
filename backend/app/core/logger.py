@@ -22,6 +22,7 @@ import logging
 import logging.handlers
 import os
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
@@ -199,6 +200,18 @@ async def _log_worker() -> None:
             _log_queue.task_done()
 
 
+def _coerce_timestamp(value: object) -> datetime:
+    """TimeStamper(fmt="iso") 产出 ISO 字符串，但 Log.timestamp 是
+    DateTime(timezone=True)：asyncpg 拒绝 str，故统一在此归一为 datetime。
+    """
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+    if isinstance(value, str):
+        # structlog ISO 形如 "2026-08-02T06:32:15.942963Z"，Python <3.11 不认 'Z'
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return datetime.now(UTC)
+
+
 def _db_enqueue(logger, method_name, event_dict):
     """纯 level 门控：level ≥ DB_LOG_LEVEL 才入队，其余丢弃。
 
@@ -223,7 +236,7 @@ def _db_enqueue(logger, method_name, event_dict):
         exclude = _DB_EXCLUDE | {"level", "message", "timestamp"}
         extra = {k: v for k, v in event_dict.items() if k not in exclude}
         payload = {
-            "timestamp": event_dict.get("timestamp"),
+            "timestamp": _coerce_timestamp(event_dict.get("timestamp")),
             "level": event_dict.get("level", "info"),
             "message": event_dict.get("message", ""),
             "extra": extra,

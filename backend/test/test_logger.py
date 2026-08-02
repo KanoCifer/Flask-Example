@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from datetime import UTC, datetime
 
 import pytest
 import structlog
@@ -153,3 +154,43 @@ class TestRouting:
         for h in root.handlers:
             for filt in getattr(h, "filters", []):
                 assert filt.__class__.__name__ != "_AccessFilter"
+
+
+class TestTimestampCoercion:
+    """TimeStamper(fmt="iso") 产出 ISO 字符串，Log.timestamp 是 DateTime(timezone=True)
+    → asyncpg 拒绝 str，故入队前需归一为 datetime（防回归）。"""
+
+    def _direct(self, value):
+        from app.core.logger import _coerce_timestamp
+
+        return _coerce_timestamp(value)
+
+    def test_iso_z_suffix_becomes_aware_datetime(self):
+        ts = self._direct("2026-08-02T06:32:15.942963Z")
+        assert isinstance(ts, datetime)
+        assert ts.tzinfo is not None
+        assert ts.utcoffset() == datetime.now(UTC).utcoffset()
+
+    def test_naive_datetime_gains_utc_tz(self):
+        naive = datetime(2026, 8, 2, 6, 32, 15)
+        out = self._direct(naive)
+        assert out.tzinfo is UTC
+
+    def test_aware_datetime_passes_through(self):
+        aware = datetime(2026, 8, 2, 6, 32, 15, tzinfo=UTC)
+        out = self._direct(aware)
+        assert out is aware
+
+    def test_missing_value_falls_back_to_now(self):
+        out = self._direct(None)
+        assert isinstance(out, datetime)
+        assert out.tzinfo is UTC
+
+    async def test_enqueued_payload_has_datetime_timestamp(self, db_handler):
+        structlog.get_logger().warning("regression")
+        await asyncio.sleep(0)
+        items = _flush_queue()
+        assert len(items) == 1
+        ts = items[0]["timestamp"]
+        assert isinstance(ts, datetime), f"expected datetime, got {type(ts).__name__}"
+        assert ts.tzinfo is not None
