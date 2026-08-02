@@ -21,6 +21,7 @@ shape + owner-key wiring.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -31,6 +32,7 @@ from app.api.des.auth import manager, optional_user
 from app.api.v2.learning import _resolve_learning_owner, router
 from app.appstate import AppState, get_app_state
 from app.core import register_exception_handlers
+from app.repositories.course_package_repo import CoursePackageRepo
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -38,6 +40,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 # ── mock service ────────────────────────────────────────────────────────
 
 
+@dataclass
 @dataclass
 class _MockProgressService:
     """进度领域 mock：``create_pending`` / ``list_progress`` / ``mark_progress``。
@@ -93,7 +96,7 @@ class _MockProgressService:
 
 @dataclass
 class _MockGeneratorService:
-    """生成编排 mock：``get_course`` / ``preview_next_lesson``。
+    """生成编排 mock：``get_course`` / ``preview_next_lesson`` / ``require_ready_course``。
 
     记录调用以便断言顺序 / payload；响应由测试按 key 预置。
     """
@@ -109,6 +112,12 @@ class _MockGeneratorService:
     preview_responses: dict[tuple[str, str], _MockPreviewResult | None] = (
         field(default_factory=dict)
     )
+    # ``require_ready_course``（task-385 下载门）：按 (owner, course_id) 返回
+    # 一个指向临时目录的真实仓库，或 None（等价「进度不存在 / failed / pending」）。
+    # 未配置 → 默认指向 ``tmp_path / course_id``。
+    ready_tmp_dir: Path | None = None
+    require_ready_calls: list[tuple[str, str]] = field(default_factory=list)
+    require_ready_none: set[tuple[str, str]] = field(default_factory=set)
 
     async def preview_next_lesson(
         self, owner: str, course_id: str
@@ -122,6 +131,23 @@ class _MockGeneratorService:
     ) -> dict[str, Any] | None:
         self.get_course_calls.append((owner, course_id))
         return self.get_course_responses.get((owner, course_id))
+
+    async def require_ready_course(
+        self, owner: str, course_id: str
+    ):
+        """镜像 :meth:`CourseGeneratorService.require_ready_course` — 测试用。
+
+        未在 ``require_ready_none`` 里的 (owner, course_id) 返回指向
+        ``ready_tmp_dir`` 的真实仓库（模拟「已就绪 + 磁盘有包」）。
+        """
+        from app.repositories.course_package_repo import CoursePackageRepo
+
+        self.require_ready_calls.append((owner, course_id))
+        if (owner, course_id) in self.require_ready_none:
+            return None
+        return CoursePackageRepo(
+            course_id=course_id, tmp_dir=self.ready_tmp_dir
+        )
 
 
 @dataclass
@@ -149,7 +175,7 @@ class _FakeKicker:
         self.captured = captured
         self.labels: dict[str, object] = {}
 
-    def with_labels(self, **labels: object) -> "_FakeKicker":
+    def with_labels(self, **labels: object) -> _FakeKicker:
         self.labels.update(labels)
         return self
 
@@ -736,6 +762,232 @@ async def test_patch_progress_validation_on_bad_session():
             headers={"X-Anon-Id": "x"},
         )
     assert resp.status_code == 422
+
+
+# ── GET bundle.zip / files/{path} (task-387) ────────────────────────────
+
+
+def _seed_course_package(tmp_path, course_id: str = "rust--aaaabbbb") -> None:
+    """在 ``tmp_path/<course_id>`` 落盘一份可下载的课程包（两课 + resource + MISSION）。"""
+    from app.repositories.course_package_repo import CoursePackageRepo
+
+    repo = CoursePackageRepo(course_id=course_id, tmp_dir=tmp_path)
+    repo.write_lesson(slug="lesson-1", lesson_md="---\ntitle: 第 1 课\n---\n# 1")
+    repo.write_lesson(slug="lesson-2", lesson_md="---\ntitle: 第 2 课\n---\n# 2")
+    repo.write_resource("# resource")
+    repo.write_mission("# mission")
+
+
+@pytest.fixture
+def _learning_root(tmp_path, monkeypatch):
+    """把 ``LEARNING_ROOT_DIR`` 指到测试临时目录，使 handler 的
+    ``CoursePackageRepo(course_id=...)`` 读到磁盘上的真实课程包。"""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "LEARNING_ROOT_DIR", str(tmp_path))
+    return tmp_path
+
+
+async def test_download_bundle_returns_zip_for_owner(_learning_root, tmp_path):
+    """owner 且 ready → ZIP 200，Content-Type/Disposition 正确，内含全部 md 制品。"""
+    _seed_course_package(tmp_path, course_id="rust--aaaabbbb")
+
+    gen = _MockGeneratorService(ready_tmp_dir=tmp_path)
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/bundle.zip",
+            headers={"X-Anon-Id": "x"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/zip"
+    assert (
+        resp.headers["content-disposition"]
+        == 'attachment; filename="rust--aaaabbbb.zip"'
+    )
+    # 校验 ZIP 归档内部结构（保留 lessons/ 子目录 + 顶层 resource/MISSION）
+    import io
+    import zipfile
+
+    zf = zipfile.ZipFile(io.BytesIO(resp.content))
+    names = sorted(zf.namelist())
+    assert names == [
+        "MISSION.md",
+        "lessons/0001-lesson-1.md",
+        "lessons/0002-lesson-2.md",
+        "resource.md",
+    ]
+    assert zf.read("lessons/0001-lesson-1.md").startswith(b"---")
+
+
+async def test_download_bundle_404_when_not_owner(_learning_root):
+    """无 token + 无 X-Anon-Id → owner 兜底 IP，无进度 → 统一 404（不泄露存在性）。"""
+    gen = _MockGeneratorService()
+    gen.require_ready_none.add(("anon:127.0.0.1", "rust--aaaabbbb"))
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/bundle.zip"
+        )
+    assert resp.status_code == 404
+    # 响应体走 NotFoundError 信封（message/data）
+    assert "data" in resp.json()
+
+
+async def test_download_bundle_404_when_pending(_learning_root, tmp_path):
+    """进度仍 pending → 不可下载，统一 404。"""
+    _seed_course_package(tmp_path)
+    gen = _MockGeneratorService(ready_tmp_dir=tmp_path)
+    gen.require_ready_none.add(("anon:x", "rust--aaaabbbb"))
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/bundle.zip",
+            headers={"X-Anon-Id": "x"},
+        )
+    assert resp.status_code == 404
+
+
+async def test_download_bundle_404_when_course_dir_missing(_learning_root):
+    """进度 ready 但磁盘课程包不存在 → 404。"""
+    gen = _MockGeneratorService()
+    gen.require_ready_none.add(("anon:x", "missing--00000000"))
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/missing--00000000/bundle.zip",
+            headers={"X-Anon-Id": "x"},
+        )
+    assert resp.status_code == 404
+
+
+async def test_download_single_file_returns_md(_learning_root, tmp_path):
+    """owner + 合法 rel_path → 200，Content-Type text/markdown，body 为文件内容。"""
+    _seed_course_package(tmp_path)
+    gen = _MockGeneratorService(ready_tmp_dir=tmp_path)
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/files/lessons/0001-lesson-1.md",
+            headers={"X-Anon-Id": "x"},
+        )
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith("text/markdown")
+        assert resp.content.startswith(b"---")
+
+        # 顶层文件（resource.md）同样可下
+        resp2 = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/files/resource.md",
+            headers={"X-Anon-Id": "x"},
+        )
+        assert resp2.status_code == 200
+        assert resp2.content == b"# resource"
+
+
+async def test_download_single_file_404_on_path_traversal(_learning_root, tmp_path):
+    """``rel_path`` 含 ``..`` 或后缀非 ``.md`` → 404（repo 安全校验）。"""
+    _seed_course_package(tmp_path)
+    gen = _MockGeneratorService(ready_tmp_dir=tmp_path)
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    from urllib.parse import quote
+
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        for bad in (
+            "../etc/passwd",
+            "lessons/../../etc/passwd",
+            "/etc/passwd",
+            "lessons/0001-lesson-1.txt",
+            "lessons/9999-nope.md",
+        ):
+            # URL 编码避开 httpx 对 `..` 段的归一化，让原始 rel_path 到达 handler
+            encoded = quote(bad, safe="")
+            resp = await client.get(
+                f"/v2/learning/courses/rust--aaaabbbb/files/{encoded}",
+                headers={"X-Anon-Id": "x"},
+            )
+            assert resp.status_code == 404, f"expected 404 for {bad}"
+
+
+async def test_download_single_file_404_when_not_owner(_learning_root):
+    """非 owner（无进度）→ 404，即使文件在磁盘上存在。"""
+    repo = CoursePackageRepo(
+        course_id="rust--aaaabbbb", tmp_dir=_learning_root
+    )
+    repo.write_lesson(slug="lesson-1", lesson_md="# 1")
+
+    gen = _MockGeneratorService(ready_tmp_dir=_learning_root)
+    gen.require_ready_none.add(("anon:127.0.0.1", "rust--aaaabbbb"))
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/files/lessons/0001-lesson-1.md"
+        )
+    assert resp.status_code == 404
+
+
+async def test_list_course_files_returns_entries(_learning_root, tmp_path):
+    """owner 且 ready → GET /courses/{id}/files 返回全部 md 制品（含大小）。"""
+    _seed_course_package(tmp_path)
+    gen = _MockGeneratorService(ready_tmp_dir=tmp_path)
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/files",
+            headers={"X-Anon-Id": "x"},
+        )
+
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    rel_paths = [it["rel_path"] for it in items]
+    assert rel_paths == [
+        "lessons/0001-lesson-1.md",
+        "lessons/0002-lesson-2.md",
+        "MISSION.md",
+        "resource.md",
+    ]
+    # 每个条目带大小（字节）——面板据此展示 KB/MB
+    assert all(it["size"] > 0 for it in items)
+    assert all("name" in it and "mtime" in it for it in items)
+
+
+async def test_list_course_files_404_when_not_owner(_learning_root):
+    """非 owner → GET /courses/{id}/files 404。"""
+    gen = _MockGeneratorService()
+    gen.require_ready_none.add(("anon:127.0.0.1", "rust--aaaabbbb"))
+    app = _build_test_app(_MockProgressService(), gen)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get(
+            "/v2/learning/courses/rust--aaaabbbb/files"
+        )
+    assert resp.status_code == 404
 
 
 # ── _resolve_learning_owner 单元测试 ──────────────────────────────────

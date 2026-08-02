@@ -1,4 +1,5 @@
 import { getFileExtension, processImage } from '../lib/image';
+import { saveBlobAs } from '@readinglist/api';
 import { computed, onUnmounted, ref } from 'vue';
 
 interface OutputTypeOption {
@@ -152,18 +153,7 @@ export function useImageProcessor() {
     // 留空或全空白时回退到原文件主名，保证总能生成一个有效的下载名
     const baseName = customFileName.value.trim() || defaultBaseName;
     const downloadName = `${baseName}${outputExtension}`;
-    const url = URL.createObjectURL(processedBlob.value);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = downloadName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 0);
+    saveBlobAs(processedBlob.value, downloadName);
   }
 
   function triggerFilePicker() {

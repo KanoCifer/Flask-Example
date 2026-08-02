@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -51,6 +52,20 @@ class Exercise(BaseModel):
 
 
 # ── 课程包 ──────────────────────────────────────────────────────────────── #
+
+
+@dataclass(frozen=True)
+class FileEntry:
+    """课程包内单个原始 md 文件的只读条目。
+
+    ``rel_path`` 相对课程包根目录、一律正斜杠（如 ``lessons/0001-foo.md``），
+    handler 可直接拼到下载 URL / ZIP 内部路径。
+    """
+
+    name: str
+    rel_path: str
+    size: int
+    mtime: float
 
 
 class LessonItem(BaseModel):

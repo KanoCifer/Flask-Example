@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "deploy": "bash deploy.sh",
     "dev:vue": "pnpm --filter @readinglist/vue-app dev",
     "dev:react": "pnpm --filter @readinglist/react-app dev",
     "build:vue": "pnpm --filter @readinglist/vue-app build",

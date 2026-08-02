@@ -108,7 +108,7 @@ function statusLabel(item: LearningProgressItem): string {
           <h1
             class="text-ink font-serif text-3xl leading-tight font-medium tracking-tight sm:text-4xl"
           >
-            学习你想学的
+            What do you wanna learn?
           </h1>
           <p class="text-muted mt-3 max-w-xl text-sm leading-relaxed">
             输入一个主题,生成一份专属于你的课程 —— 讲义、资源、练习。

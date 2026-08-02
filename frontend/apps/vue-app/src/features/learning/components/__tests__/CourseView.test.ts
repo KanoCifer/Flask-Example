@@ -31,12 +31,20 @@ const {
   listProgressMock,
   markProgressMock,
   generateNextLessonMock,
+  downloadBundleMock,
+  downloadFileMock,
+  listFilesMock,
+  saveBlobAsMock,
 } = vi.hoisted(() => ({
   createCourseMock: vi.fn(),
   getCourseMock: vi.fn(),
   listProgressMock: vi.fn(),
   markProgressMock: vi.fn(),
   generateNextLessonMock: vi.fn(),
+  downloadBundleMock: vi.fn(),
+  downloadFileMock: vi.fn(),
+  listFilesMock: vi.fn(),
+  saveBlobAsMock: vi.fn(),
 }));
 
 vi.mock('@readinglist/api', () => ({
@@ -46,7 +54,11 @@ vi.mock('@readinglist/api', () => ({
     listProgress: listProgressMock,
     markProgress: markProgressMock,
     generateNextLesson: generateNextLessonMock,
+    downloadBundle: downloadBundleMock,
+    downloadFile: downloadFileMock,
+    listFiles: listFilesMock,
   },
+  saveBlobAs: saveBlobAsMock,
 }));
 
 // ── mock vue-router ────────────────────────────────────────────────────
@@ -122,6 +134,8 @@ interface MountOpts {
   /** 模拟 generateNextLesson 之后,getCourse 返回的新课程(用于 pending→poll)。 */
   courseAfterGenerate?: LearningCourse | null;
   routeParams?: Record<string, string>;
+  /** `listFiles` 的返回（「原始文件」面板清单）。 */
+  courseFiles?: Array<{ name: string; rel_path: string; size: number; mtime: number }>;
 }
 
 async function mountView(opts: MountOpts = {}): Promise<VueWrapper> {
@@ -131,6 +145,10 @@ async function mountView(opts: MountOpts = {}): Promise<VueWrapper> {
   listProgressMock.mockReset();
   markProgressMock.mockReset();
   generateNextLessonMock.mockReset();
+  downloadBundleMock.mockReset();
+  downloadFileMock.mockReset();
+  listFilesMock.mockReset();
+  saveBlobAsMock.mockReset();
   pushMock.mockReset();
 
   routeParams = opts.routeParams ?? { courseId: 'rust--abcd1234' };
@@ -156,6 +174,12 @@ async function mountView(opts: MountOpts = {}): Promise<VueWrapper> {
       status: 'pending',
     },
   );
+
+  // 下载默认成功（单个测试可覆盖为 reject 模拟失败）。
+  downloadBundleMock.mockResolvedValue(undefined);
+  downloadFileMock.mockResolvedValue(undefined);
+  // 「原始文件」清单默认空（各测试用 opts.courseFiles 配置）。
+  listFilesMock.mockResolvedValue(opts.courseFiles ?? []);
 
   const wrapper = mount(CourseView, {
     global: {
@@ -358,16 +382,19 @@ describe('CourseView', () => {
     });
     await flushPromises();
 
-    // 资源面板默认折叠
-    expect(wrapper.find('article').exists()).toBe(false);
-    // 点「学习资源」toggle 按钮
+    // 资源面板默认折叠。注意 collapsible 用 grid-template-rows 0fr↔1fr
+    // 折叠,内容始终在 DOM(仅视觉高度为 0),故断言 aria-hidden 而非元素存在。
+    const panel = wrapper.find('#resource-panel');
     const toggle = wrapper
       .findAll('button')
       .find((b) => b.text().includes('学习资源'));
     expect(toggle).toBeDefined();
+    expect(panel.attributes('aria-hidden')).toBe('true');
+
+    // 点「学习资源」toggle 按钮展开
     await toggle!.trigger('click');
     await flushPromises();
-    expect(wrapper.find('article').exists()).toBe(true);
+    expect(panel.attributes('aria-hidden')).toBe('false');
   });
 
   it('「返回学习列表」按钮 → router.push learning', async () => {
@@ -407,5 +434,143 @@ describe('CourseView', () => {
       .find((b) => b.text().includes('继续下一课'));
     expect(nextBtn).toBeUndefined();
     expect(wrapper.text()).toContain('已全部完成');
+  });
+
+  // ── 下载原始文件 (task-385) ──────────────────────────────────────────
+
+  it('顶部 header 显示「下载原始文件」按钮,点击触发 ZIP 下载', async () => {
+    const wrapper = await mountView();
+    await flushPromises();
+
+    const btn = wrapper.find('button[aria-label="下载原始文件"]');
+    expect(btn.exists()).toBe(true);
+    await btn.trigger('click');
+    await flushPromises();
+
+    expect(downloadBundleMock).toHaveBeenCalledWith('rust--abcd1234');
+  });
+
+  it('ZIP 下载失败时显示错误横幅「下载失败,请稍后重试」', async () => {
+    const wrapper = await mountView();
+    await flushPromises();
+    // mountView 已 reset 并默认 resolve;此处覆盖为 reject
+    downloadBundleMock.mockRejectedValueOnce(new Error('boom'));
+
+    await wrapper
+      .find('button[aria-label="下载原始文件"]')
+      .trigger('click');
+    await flushPromises();
+    await flushPromises();
+
+    const banner = wrapper.find('[role="alert"]');
+    expect(banner.exists()).toBe(true);
+    expect(banner.text()).toContain('下载失败,请稍后重试');
+  });
+
+  it('下载过程中按钮显示 loading 文案', async () => {
+    const wrapper = await mountView();
+    await flushPromises();
+
+    let resolveDownload!: () => void;
+    downloadBundleMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDownload = resolve;
+        }),
+    );
+
+    await wrapper
+      .find('button[aria-label="下载原始文件"]')
+      .trigger('click');
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('下载中…');
+
+    resolveDownload();
+    await flushPromises();
+    await flushPromises();
+    expect(wrapper.text()).toContain('下载原始文件');
+  });
+
+  it('「原始文件」面板展开后列出 lessons + resource + MISSION', async () => {
+    const wrapper = await mountView({
+      courseFiles: [
+        { name: '0001-lesson-1.md', rel_path: 'lessons/0001-lesson-1.md', size: 1234, mtime: 1 },
+        { name: '0002-lesson-2.md', rel_path: 'lessons/0002-lesson-2.md', size: 567, mtime: 1 },
+        { name: 'resource.md', rel_path: 'resource.md', size: 89, mtime: 1 },
+        { name: 'MISSION.md', rel_path: 'MISSION.md', size: 90, mtime: 1 },
+      ],
+    });
+    await flushPromises();
+
+    // 默认折叠:面板内容仍在 DOM(grid 0fr),断言 aria-hidden=true
+    const toggle = wrapper.find('button[aria-controls="files-panel"]');
+    const panel = wrapper.find('#files-panel');
+    expect(toggle.exists()).toBe(true);
+    expect(panel.attributes('aria-hidden')).toBe('true');
+
+    await toggle.trigger('click');
+    await flushPromises();
+
+    expect(panel.attributes('aria-hidden')).toBe('false');
+    expect(listFilesMock).toHaveBeenCalledWith('rust--abcd1234');
+    expect(wrapper.text()).toContain('0001-lesson-1.md');
+    expect(wrapper.text()).toContain('0002-lesson-2.md');
+    expect(wrapper.text()).toContain('resource.md');
+    expect(wrapper.text()).toContain('MISSION.md');
+    // 每行展示文件大小
+    expect(wrapper.text()).toContain('1.2 KB');
+  });
+
+  it('每行下载图标触发对应单文件下载', async () => {
+    const wrapper = await mountView({
+      courseFiles: [
+        { name: '0001-lesson-1.md', rel_path: 'lessons/0001-lesson-1.md', size: 1234, mtime: 1 },
+      ],
+    });
+    await flushPromises();
+
+    await wrapper
+      .find('button[aria-controls="files-panel"]')
+      .trigger('click');
+    await flushPromises();
+
+    const fileBtn = wrapper.find(
+      'button[aria-label="下载 0001-lesson-1.md"]',
+    );
+    expect(fileBtn.exists()).toBe(true);
+    await fileBtn.trigger('click');
+    await flushPromises();
+
+    expect(downloadFileMock).toHaveBeenCalledWith(
+      'rust--abcd1234',
+      'lessons/0001-lesson-1.md',
+    );
+  });
+
+  it('单文件下载失败同样显示错误横幅', async () => {
+    const wrapper = await mountView({
+      courseFiles: [
+        { name: '0001-lesson-1.md', rel_path: 'lessons/0001-lesson-1.md', size: 1234, mtime: 1 },
+      ],
+    });
+    await flushPromises();
+    // mountView 已 reset;此处覆盖为 reject
+    downloadFileMock.mockRejectedValueOnce(new Error('boom'));
+
+    await wrapper
+      .find('button[aria-controls="files-panel"]')
+      .trigger('click');
+    await flushPromises();
+    await wrapper
+      .find('button[aria-label="下载 0001-lesson-1.md"]')
+      .trigger('click');
+    await flushPromises();
+    await flushPromises();
+
+    const banner = wrapper.find('[role="alert"]');
+    expect(banner.exists()).toBe(true);
+    expect(banner.text()).toContain('下载失败,请稍后重试');
   });
 });

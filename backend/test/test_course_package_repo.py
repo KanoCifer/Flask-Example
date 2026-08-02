@@ -334,6 +334,104 @@ def test_write_resource_overwrites(tmp_path):
     assert repo.read_resource() == "# r2"
 
 
+# ── 原始文件清单 / 单文件读取 ────────────────────────────────────────────
+
+
+def test_list_course_files_empty_package(tmp_path):
+    """空课程包 → 空清单（lessons 目录不存在 / 无顶层 md）。"""
+    repo = _make_repo(tmp_path)
+    assert repo.list_course_files() == []
+
+
+def test_list_course_files_lessons_resource_mission(tmp_path):
+    """多课 + resource + MISSION → 目录优先、同目录按文件名、rel_path 正斜杠。"""
+    repo = _make_repo(tmp_path)
+    repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+    repo.write_lesson(slug="lesson-2", lesson_md=_lesson_md("c--1", num=2))
+    repo.write_resource("# resource")
+    repo.write_mission("# mission")
+
+    entries = repo.list_course_files()
+    assert [e.rel_path for e in entries] == [
+        "lessons/0001-lesson-1.md",
+        "lessons/0002-lesson-2.md",
+        "MISSION.md",
+        "resource.md",
+    ]
+    assert entries[0].name == "0001-lesson-1.md"
+    assert entries[0].size > 0
+    assert entries[0].mtime > 0
+
+
+def test_list_course_files_omits_missing_top_level(tmp_path):
+    """resource / MISSION 缺失时不出现在清单，lessons 仍列出。"""
+    repo = _make_repo(tmp_path)
+    repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+    assert [e.rel_path for e in repo.list_course_files()] == [
+        "lessons/0001-lesson-1.md"
+    ]
+
+
+def test_read_course_file_returns_path_and_name(tmp_path):
+    """合法 rel_path → (absolute_path, display_name)，内容可读。"""
+    repo = _make_repo(tmp_path)
+    repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+
+    result = repo.read_course_file("lessons/0001-lesson-1.md")
+    assert result is not None
+    path, name = result
+    assert name == "0001-lesson-1.md"
+    assert path == repo.root / "lessons" / "0001-lesson-1.md"
+    assert path.read_text() == _lesson_md("c--1")
+
+    # 顶层 md 也可读
+    repo.write_resource("# resource")
+    assert repo.read_course_file("resource.md") is not None
+
+
+def test_read_course_file_rejects_path_traversal(tmp_path):
+    """``..`` / 绝对路径 / 空字节 → 一律 None（防目录穿越）。"""
+    repo = _make_repo(tmp_path)
+    repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+
+    assert repo.read_course_file("../etc/passwd") is None
+    assert repo.read_course_file("lessons/../../etc/passwd") is None
+    assert repo.read_course_file("/etc/passwd") is None
+    assert repo.read_course_file("lessons/\x00foo.md") is None
+    assert repo.read_course_file("") is None
+
+
+def test_read_course_file_rejects_escape_via_dot_suffix(tmp_path):
+    """``.md`` 后缀但越出 root（``../foo.md``）→ None（commonpath 拦截）。"""
+    repo = _make_repo(tmp_path)
+    assert repo.read_course_file("../foo.md") is None
+    # symlink 逃逸：root 内指向 root 外文件的链接也拒绝
+    outside = tmp_path / "outside.md"
+    outside.write_text("# outside")
+    link = repo.root / "lessons"
+    link.mkdir(parents=True, exist_ok=True)
+    (link / "escape.md").symlink_to(outside)
+    assert repo.read_course_file("lessons/escape.md") is None
+
+
+def test_read_course_file_rejects_non_md_suffix(tmp_path):
+    """非 ``.md`` 后缀（含 txt / 无后缀）→ None。"""
+    repo = _make_repo(tmp_path)
+    repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+    (repo.lessons_dir / "0002-notes.txt").write_text("notes")
+
+    assert repo.read_course_file("lessons/0002-notes.txt") is None
+    assert repo.read_course_file("lessons/0001-lesson-1.md.bak") is None
+
+
+def test_read_course_file_missing_returns_none(tmp_path):
+    """存在的目录 + 不存在的文件 → None。"""
+    repo = _make_repo(tmp_path)
+    repo.write_lesson(slug="lesson-1", lesson_md=_lesson_md("c--1"))
+    assert repo.read_course_file("lessons/9999-nope.md") is None
+    assert repo.read_course_file("lessons/0001-lesson-1.md") is not None
+
+
 # ── exercise md 纯函数 round trip（从 test_learning_service 迁入） ───────
 
 

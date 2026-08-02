@@ -111,9 +111,10 @@ export { aiGateway } from './gateways/ai';
 export type { AiGateway } from './gateways/ai';
 
 // ── learning ────────────────────────────────────────────────────────
-export { learningGateway } from './gateways/learning';
+export { learningGateway, saveBlobAs } from './gateways/learning';
 export type {
   LearningGateway,
   ProgressPatchBody,
   CourseCreateResponse,
+  CourseFileEntry,
 } from './gateways/learning';

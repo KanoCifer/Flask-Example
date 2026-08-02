@@ -8,6 +8,7 @@ export type {
   LearningGateway,
   ProgressPatchBody,
   CourseCreateResponse,
+  CourseFileEntry,
 } from '@readinglist/api';
 
 export type {

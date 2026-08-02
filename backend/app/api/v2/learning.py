@@ -12,30 +12,47 @@
 - ``GET  /v2/learning/progress`` — 列出 owner 的全部进度。
 - ``PATCH /v2/learning/progress/{course_id}`` — 标记 session_done /
   exercise_done（幂等）。
+- ``GET  /v2/learning/courses/{course_id}/bundle.zip`` — 下载整门课程的
+  原始 md 制品为 ``<course_id>.zip``（task-385，流式 ZIP）。
+- ``GET  /v2/learning/courses/{course_id}/files/{path:path}`` — 下载课程内
+  单个原始 md 文件（task-385，越界 / 后缀不符 → 404）。
 
 owner 解析（``_resolve_learning_owner``）：登录用户用 ``str(user_id)``，
 匿名用户优先取 ``X-Anon-Id`` 头（前端 localStorage 自管 UUID），缺则退
 回到 ``anon:<client_ip>`` 以保证服务端总有一个稳定归属键，方便登录合并
 （``LearningProgressService.merge_progress``）正确收敛。
+
+下载端点鉴权（task-385）：owner 校验统一走
+:meth:`LearningProgressService.get_progress_or_expire`，进度不存在 / 过期 /
+``failed`` / 仍 ``pending`` → 统一 404（不区分 401/403，避免泄露 course_id
+是否存在）。磁盘路径越界 / 后缀校验全部下沉到
+:class:`CoursePackageRepo`，handler 只透传 ``rel_path``。
 """
 
 from __future__ import annotations
 
+import asyncio
+import io
 import time
+import zipfile
+from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from app.api.des.auth import optional_user
 from app.api.des.limiter import client_key
 from app.appstate import AppState, get_app_state
+from app.core.exceptions import NotFoundError
 from app.core.logger import logger
 from app.core.response import APIResponse
 from app.plugins.task.tasks.learning import (
     generate_course,
     generate_next_lesson,
 )
-from app.schemas.learning import CourseGenerateInput
+from app.repositories.course_package_repo import CoursePackageRepo
+from app.schemas.learning import CourseGenerateInput, FileEntry
 from app.services.course_generator_service import CourseGeneratorService
 from app.services.learning_progress_service import LearningProgressService
 from app.services.learning_utils import build_course_id
@@ -86,6 +103,39 @@ def _resolve_learning_owner(user_id: int | None, request: Request) -> str:
     if anon_id:
         return f"anon:{anon_id}"
     return f"anon:{client_key(request)}"
+
+
+async def _require_ready_repo(
+    state: AppState,
+    user: int | None,
+    request: Request,
+    course_id: str,
+) -> CoursePackageRepo | None:
+    """owner 校验 + 课程就绪门 + 课程包根目录（task-385）。
+
+    委托 :meth:`CourseGeneratorService.require_ready_course`——它复用进度侧
+    的 ``get_progress_or_expire`` 判定「不存在 / ``failed`` / pending 过期 /
+    仍 pending」并返回 None，同时用 service 的 ``_tmp_dir`` 定位根目录，与
+    ``get_course`` 等生成侧端点同源。返回 None 时 handler 统一 404。
+    """
+    owner = _resolve_learning_owner(user, request)
+    course_gen_svc: CourseGeneratorService = state.course_gen_svc
+    return await course_gen_svc.require_ready_course(owner, course_id)
+
+
+def _build_course_zip(
+    repo: CoursePackageRepo, entries: list[FileEntry]
+) -> io.BytesIO:
+    """把课程包的 md 制品压成一个内存 ZIP（在 ``asyncio.to_thread`` 里跑）。
+
+    保留 ``lessons/`` 子目录；纯同步磁盘 + 压缩 I/O，从 handler 的事件循环
+    挪到线程池执行，避免阻塞其他 in-flight 请求。
+    """
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for entry in entries:
+            zf.write(repo.root / entry.rel_path, arcname=entry.rel_path)
+    return buf
 
 
 @router.post("/courses")
@@ -155,6 +205,113 @@ async def get_course(
         data = {"status": "pending", "course_id": course_id}
 
     return APIResponse(data=data, message="success")
+
+
+@router.get("/courses/{course_id}/files")
+async def list_course_files(
+    course_id: str,
+    request: Request,
+    user: int | None = Depends(optional_user),
+    state: AppState = Depends(get_app_state),
+):
+    """列出课程包内的全部原始 md 制品（task-385，「原始文件」面板的数据源）。
+
+    委托 :meth:`CoursePackageRepo.list_course_files` 扫描磁盘，返回
+    :class:`FileEntry` 列表（``lessons/*.md`` 含 ``.exercise.md`` + 顶层
+    ``resource.md`` / ``MISSION.md``，带大小 / mtime）。owner 校验统一走
+    ``_require_ready_repo`` → 404。
+    """
+    repo = await _require_ready_repo(state, user, request, course_id)
+    if repo is None:
+        raise NotFoundError("课程不存在或未就绪")
+
+    entries = repo.list_course_files()
+    return APIResponse(
+        data={"items": [asdict(entry) for entry in entries]},
+        message="success",
+    )
+
+
+@router.get("/courses/{course_id}/bundle.zip")
+async def download_course_bundle(
+    course_id: str,
+    request: Request,
+    user: int | None = Depends(optional_user),
+    state: AppState = Depends(get_app_state),
+):
+    """下载整门课程的原始 md 制品为 ``<course_id>.zip``（task-385）。
+
+    课程包预期 1–5MB < 10MB，整包在内存中构建（``zipfile`` 写
+    :class:`io.BytesIO`，经 ``asyncio.to_thread`` 挪出事件循环，避免阻塞其他
+    请求）后以 :class:`Response` 下发，自动带 ``Content-Length``。归档内部保留
+    ``lessons/`` 子目录，与磁盘原貌对齐；文件名 ``<course_id>.zip`` 由服务端
+    ``Content-Disposition`` 决定，前端 ``<a download>`` 同名兜底。鉴权统一走
+    ``_require_ready_repo`` → 404。
+    """
+    repo = await _require_ready_repo(state, user, request, course_id)
+    if repo is None:
+        raise NotFoundError("课程不存在或未就绪")
+
+    entries = repo.list_course_files()
+    if not entries:
+        raise NotFoundError("课程不存在或未就绪")
+
+    buf = await asyncio.to_thread(_build_course_zip, repo, entries)
+
+    logger.bind(
+        course_id=course_id,
+        owner=_resolve_learning_owner(user, request),
+        kind="bundle",
+        file_count=len(entries),
+    ).info("learning course artifact downloaded")
+
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{course_id}.zip"'
+        },
+    )
+
+
+@router.get("/courses/{course_id}/files/{path:path}")
+async def download_course_file(
+    course_id: str,
+    path: str,
+    request: Request,
+    user: int | None = Depends(optional_user),
+    state: AppState = Depends(get_app_state),
+):
+    """下载课程内单个原始 md 文件（task-385）。
+
+    ``path`` 为 FastAPI 通配参数（如 ``lessons/0001-foo.md``），防越界 /
+    后缀白名单全部由 :meth:`CoursePackageRepo.read_course_file` 校验，handler
+    只透传；返回 None（越界 / 非 ``.md`` / 缺失）→ 统一 404。成功用
+    :class:`FileResponse` 下发，``filename=`` 自动带 ``Content-Disposition:
+    attachment``，浏览器内嵌预览亦可，前端用 ``<a download>`` 强制下载。
+    """
+    repo = await _require_ready_repo(state, user, request, course_id)
+    if repo is None:
+        raise NotFoundError("课程不存在或未就绪")
+
+    result = repo.read_course_file(path)
+    if result is None:
+        raise NotFoundError("课程不存在或未就绪")
+
+    abs_path, display_name = result
+    logger.bind(
+        course_id=course_id,
+        owner=_resolve_learning_owner(user, request),
+        kind="file",
+        rel_path=path,
+        display_name=display_name,
+    ).info("learning course artifact downloaded")
+
+    return FileResponse(
+        abs_path,
+        filename=display_name,
+        media_type="text/markdown",
+    )
 
 
 @router.post("/courses/{course_id}/lessons")

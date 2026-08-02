@@ -30,6 +30,8 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeft,
   ChevronRight,
+  Download,
+  FolderOpen,
   Library,
   Loader2,
   RefreshCcw,
@@ -38,6 +40,10 @@ import {
 } from '@lucide/vue';
 import { Button } from '@/components';
 import { renderMarkdown } from '@/composables';
+import {
+  learningGateway,
+  type CourseFileEntry,
+} from '@/features/learning/api';
 import { useLearningCourse } from '@/features/learning/composables/useLearningCourse';
 import type {
   LearningLesson,
@@ -81,6 +87,66 @@ const missionHtml = computed(() =>
     ? renderMarkdown(course.value.mission_md)
     : '',
 );
+
+/** 原始文件面板展开/折叠：与学习使命/资源同模式。 */
+const filesOpen = ref(false);
+/** 当前正在下载的条目（ZIP 用 ``'bundle'``，单文件用其 rel_path）；null = 空闲。 */
+const downloadingTarget = ref<string | null>(null);
+const downloading = computed(() => downloadingTarget.value !== null);
+/** 下载失败的本地错误（独立于 composable 的 error，避免替换整个主视图）。 */
+const downloadError = ref<string | null>(null);
+
+/**
+ * 课程包内的原始 md 制品清单（「原始文件」面板的数据源）。
+ * 来自 ``GET /v2/learning/courses/{id}/files``，与后端
+ * ``CoursePackageRepo.list_course_files`` 布局一致（含 ``.exercise.md``）。
+ * 懒加载：首次展开面板时拉取。
+ */
+const courseFiles = ref<CourseFileEntry[]>([]);
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+/** 下载统一入口：互斥 + 错误兜底 + loading 状态（ZIP / 单文件共用）。 */
+async function runDownload(target: string, action: () => Promise<void>) {
+  if (!courseId.value || downloadingTarget.value) return;
+  downloadingTarget.value = target;
+  downloadError.value = null;
+  try {
+    await action();
+  } catch {
+    downloadError.value = '下载失败,请稍后重试';
+  } finally {
+    downloadingTarget.value = null;
+  }
+}
+
+/** 下载整门课程 ZIP（文件名 ``<course_id>.zip``，由服务端 Content-Disposition 决定）。 */
+function onDownloadBundle() {
+  void runDownload('bundle', () => learningGateway.downloadBundle(courseId.value));
+}
+
+/** 下载单个原始 md 文件（默认文件名取 rel_path 末段 basename）。 */
+function onDownloadFile(relPath: string) {
+  void runDownload(relPath, () =>
+    learningGateway.downloadFile(courseId.value, relPath),
+  );
+}
+
+/** 展开「原始文件」面板时懒加载文件清单；失败静默（面板空态即可）。 */
+async function toggleFilesPanel() {
+  filesOpen.value = !filesOpen.value;
+  if (filesOpen.value && courseFiles.value.length === 0 && courseId.value) {
+    try {
+      courseFiles.value = await learningGateway.listFiles(courseId.value);
+    } catch {
+      // 静默：面板保持空态
+    }
+  }
+}
 
 /** 当前课程在 progressList 里的最新条目;可能 undefined(冷启动)。 */
 const progressItem = computed<LearningProgressItem | undefined>(() =>
@@ -140,14 +206,11 @@ watch(
 );
 
 /** markdown 渲染后,等 Vue 完成 patch 再对 <pre><code> 上色。 */
-watch(
-  [missionHtml, resourceHtml],
-  async ([mission, resource]) => {
-    if (!mission && !resource) return;
-    await nextTick();
-    hljs.highlightAll();
-  },
-);
+watch([missionHtml, resourceHtml], async ([mission, resource]) => {
+  if (!mission && !resource) return;
+  await nextTick();
+  hljs.highlightAll();
+});
 
 onMounted(() => {
   void load();
@@ -309,11 +372,29 @@ useHead({
         <header
           class="bg-card mb-6 rounded-2xl px-6 py-6 shadow-md sm:px-8 sm:py-8"
         >
-          <p
-            class="text-muted mb-3 font-mono text-[11px] tracking-[0.18em] uppercase"
-          >
-            course
-          </p>
+          <div class="flex items-start justify-between gap-4">
+            <p
+              class="text-muted mb-3 font-mono text-[11px] tracking-[0.18em] uppercase"
+            >
+              course
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="downloading"
+              class="shrink-0"
+              aria-label="下载原始文件"
+              @click="onDownloadBundle"
+            >
+              <Loader2
+                v-if="downloading"
+                class="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+              <Download v-else class="h-3.5 w-3.5" aria-hidden="true" />
+              {{ downloading ? '下载中…' : '下载原始文件' }}
+            </Button>
+          </div>
           <h1
             class="text-ink font-serif text-3xl leading-tight font-medium tracking-tight sm:text-4xl"
           >
@@ -355,6 +436,15 @@ useHead({
             />
           </div>
         </header>
+
+        <!-- 下载失败提示（不替换主视图，仅当下载出错时出现）。 -->
+        <p
+          v-if="downloadError"
+          class="text-destructive bg-destructive/10 mb-4 rounded-xl px-4 py-2.5 text-sm shadow-sm"
+          role="alert"
+        >
+          {{ downloadError }}
+        </p>
 
         <!-- Mission (task-365):学习使命文档,缺失时整块隐藏。默认折叠,与学习资源同模式。 -->
         <section
@@ -533,6 +623,73 @@ useHead({
                 class="prose prose-sm text-ink max-w-none px-5 pb-6 sm:px-6"
                 v-html="resourceHtml"
               />
+            </div>
+          </div>
+        </section>
+
+        <!-- 原始文件 (task-385):磁盘 md 制品清单 + 单文件下载。与学习使命/资源同模式。
+             清单懒加载：首次展开时经 toggleFilesPanel 拉取 GET /courses/{id}/files。 -->
+        <section class="bg-card mt-4 overflow-hidden rounded-2xl shadow-sm">
+          <button
+            type="button"
+            class="hover:bg-surface/40 focus-visible:ring-ring flex w-full items-center gap-2 px-5 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-6"
+            :aria-expanded="filesOpen"
+            aria-controls="files-panel"
+            @click="toggleFilesPanel"
+          >
+            <FolderOpen class="text-muted h-4 w-4" aria-hidden="true" />
+            <span
+              class="text-ink flex-1 font-mono text-[11px] tracking-[0.18em] uppercase"
+            >
+              原始文件
+            </span>
+            <ChevronRight
+              class="text-muted h-4 w-4 transition-transform motion-reduce:transition-none"
+              :class="filesOpen ? 'rotate-90' : ''"
+              aria-hidden="true"
+            />
+          </button>
+          <div
+            id="files-panel"
+            class="collapsible grid"
+            :class="filesOpen ? 'is-open' : ''"
+            :aria-hidden="!filesOpen"
+          >
+            <div class="collapsible-inner min-w-0 overflow-hidden">
+              <ul
+                v-if="courseFiles.length > 0"
+                class="px-5 pb-4 sm:px-6"
+              >
+                <li
+                  v-for="file in courseFiles"
+                  :key="file.rel_path"
+                  class="hover:bg-surface/40 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors"
+                >
+                  <span class="text-muted text-xs">
+                    {{ file.name }}
+                  </span>
+                  <span class="text-muted/70 font-mono text-[11px] tabular-nums">
+                    {{ formatFileSize(file.size) }}
+                  </span>
+                  <button
+                    type="button"
+                    class="focus-visible:ring-ring text-muted hover:bg-accent/10 hover:text-accent rounded-md p-1.5 transition-colors focus:outline-none focus-visible:ring-2"
+                    :aria-label="`下载 ${file.name}`"
+                    :disabled="downloadingTarget !== null"
+                    @click="onDownloadFile(file.rel_path)"
+                  >
+                    <Loader2
+                      v-if="downloadingTarget === file.rel_path"
+                      class="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                    <Download v-else class="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                </li>
+              </ul>
+              <p v-else class="text-muted px-5 pb-4 text-xs sm:px-6">
+                暂无原始文件
+              </p>
             </div>
           </div>
         </section>

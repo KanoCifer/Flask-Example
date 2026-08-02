@@ -87,7 +87,7 @@ export function resolvePageSlideDirection(
 function pickClassifier(
   fromPath: string,
   toPath: string,
-): PathClassifier {
+): PathClassifier<BlogPathKind | LearningPathKind> {
   const fromFamily = classifyFamily(fromPath);
   const toFamily = classifyFamily(toPath);
 

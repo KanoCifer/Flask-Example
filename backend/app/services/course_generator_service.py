@@ -311,6 +311,32 @@ class CourseGeneratorService:
             ),
         }
 
+    async def require_ready_course(
+        self, owner: str, course_id: str
+    ) -> CoursePackageRepo | None:
+        """下载前置门（task-385）：owner 校验 + 课程就绪 + 定位课程包根目录。
+
+        下载端点复用本方法而非在 handler 里重建「owner 校验 → 404」逻辑：
+        - ``get_progress_or_expire`` 把「不存在 / ``failed`` / pending 过期」
+          折叠成 None，仍 ``pending``（未过期，还在生成）同样不可下载；
+        - 三种情形都返回 None，由 handler 统一 404（不区分 401/403/pending，
+          避免泄露 course_id 是否存在）；
+        - 返回的 :class:`CoursePackageRepo` 用 ``self._tmp_dir`` 定位根目录，
+          与 ``get_course`` / ``preview_next_lesson`` 同源，避免下载端点与生成
+          端点读到的课程包根不一致。
+
+        Returns:
+            已就绪课程的仓库；owner 校验失败 / pending / failed / 不存在 → None。
+        """
+        progress = await self._progress_svc.get_progress_or_expire(
+            owner,
+            course_id,
+            ttl_minutes=get_settings().LEARNING_PENDING_TTL_MINUTES,
+        )
+        if progress is None or progress.status != "ready":
+            return None
+        return CoursePackageRepo(course_id=course_id, tmp_dir=self._tmp_dir)
+
     async def preview_next_lesson(
         self, owner: str, course_id: str
     ) -> NextLessonContext | None:

@@ -35,7 +35,7 @@ import yaml
 
 from app.core.config import get_settings
 from app.core.llm_prompts import LANGUAGE
-from app.schemas.learning import Exercise, LessonItem
+from app.schemas.learning import Exercise, FileEntry, LessonItem
 
 _LESSON_FILE_RE = re.compile(r"^(\d{4})-([a-z0-9][a-z0-9-]*)\.md$")
 
@@ -245,6 +245,54 @@ class CoursePackageRepo:
         """读 resource.md 全文；缺失或读失败返回 None。"""
         return _read_md(self.resource_path)
 
+    def list_course_files(self) -> list[FileEntry]:
+        """扫描课程包根目录，返回全部 md 制品的只读清单。
+
+        - ``lessons/`` 下所有 ``*.md``（含 ``.exercise.md`` 配对文件）按文件名排序；
+        - 根目录 ``resource.md`` / ``MISSION.md``（存在才列出）随后按文件名排序；
+        - ``rel_path`` 相对课程包根、正斜杠分隔（如 ``lessons/0001-foo.md``），
+          handler 可直接拼到下载 URL / ZIP 内部路径。
+        """
+        entries: list[FileEntry] = []
+        if self.lessons_dir.exists():
+            entries.extend(
+                _file_entry(rel_path=f"lessons/{p.name}", path=p)
+                for p in sorted(self.lessons_dir.glob("*.md"))
+            )
+        for path in sorted(
+            (p for p in (self.resource_path, self.mission_path) if p.exists()),
+            key=lambda p: p.name,
+        ):
+            entries.append(_file_entry(rel_path=path.name, path=path))
+        return entries
+
+    def read_course_file(self, rel_path: str) -> tuple[Path, str] | None:
+        """按 ``rel_path`` 读课程包内单个 md 文件；非法 / 越界 / 缺失返回 None。
+
+        防越界下沉到仓库：handler 只透传 ``rel_path``，此处拒绝含 ``..``、
+        ``/`` 开头、空字节的输入；再 ``resolve`` 后用 ``is_relative_to``
+        校验 candidate 不越出 ``self.root``（顺带挡掉 symlink 逃逸）；最后按
+        后缀白名单限制为 ``.md``。
+
+        Returns:
+            ``(absolute_path, display_name)``——display_name 是文件基名，
+            可直接作下载文件名；越界 / 后缀不符 / 缺失返回 None。
+        """
+        if (
+            not rel_path
+            or ".." in rel_path
+            or rel_path.startswith("/")
+            or "\x00" in rel_path
+        ):
+            return None
+        root = self.root.resolve()
+        candidate = (self.root / rel_path).resolve()
+        if not candidate.is_relative_to(root):
+            return None
+        if candidate.suffix != ".md" or not candidate.is_file():
+            return None
+        return candidate, candidate.name
+
     def read_exercises(self, num: int, slug: str) -> list[Exercise]:
         """读 ``<num>-<slug>.exercise.md`` 的练习题（缺失 / 非法返回空列表）。
 
@@ -314,6 +362,17 @@ class CoursePackageRepo:
 
 
 # ── 私有纯函数（仅本模块使用，命名/格式化约定单点） ──────────────────── #
+
+
+def _file_entry(*, rel_path: str, path: Path) -> FileEntry:
+    """从磁盘文件装配 :class:`FileEntry`（list_course_files 共用）。"""
+    stat = path.stat()
+    return FileEntry(
+        name=path.name,
+        rel_path=rel_path,
+        size=stat.st_size,
+        mtime=stat.st_mtime,
+    )
 
 
 def _read_md(path: Path) -> str | None:
