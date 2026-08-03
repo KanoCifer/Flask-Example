@@ -24,6 +24,7 @@
     "node": "^26.4.0"
   },
   "devDependencies": {
-    "playwright": "^1.62.0"
+    "playwright": "^1.62.0",
+    "vite-plugin-compression2": "^2.5.3"
   }
 }

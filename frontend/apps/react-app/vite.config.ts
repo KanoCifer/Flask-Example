@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 import {
   sharedBuildConfig,
   createServerConfig,
+  compressionPlugins,
 } from '@readinglist/config/vite-shared';
 
 // https://vite.dev/config/
@@ -13,7 +14,13 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  plugins: [react(), tailwindcss(), reactClickToComponent(), reactScan()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    reactClickToComponent(),
+    reactScan(),
+    ...compressionPlugins(),
+  ],
   build: {
     ...sharedBuildConfig,
     rollupOptions: {

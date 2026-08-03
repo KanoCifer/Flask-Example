@@ -1,13 +1,15 @@
 /**
- * 共享 vite 配置片段 — 两端通用的 proxy、build base。
+ * 共享 vite 配置片段 — 两端通用的 proxy、build base、compression plugins。
  *
  * 各 app 的 vite.config.ts 应 import 这些片段并组合自身框架相关配置。
  * 注意：onwarn 不在此共享，因为 Vite 8 / Rolldown 的日志类型与 Vite 内置
  * 类型不兼容，直接内联在各 app 中即可（仅 5 行）。
  *
  * @example
- * import { sharedBuildConfig, createServerConfig } from '@readinglist/config/vite-shared';
+ * import { sharedBuildConfig, createServerConfig, compressionPlugins } from '@readinglist/config/vite-shared';
  */
+
+import { compression } from 'vite-plugin-compression2';
 
 /** 开发服务器代理配置：v1/v2 → Python 后端，v3 → Go 后端 */
 export const proxyConfig = {
@@ -41,4 +43,18 @@ export function createServerConfig(
 ): { port: number; proxy: Record<string, object> } {
   const proxy: Record<string, object> = {...proxyConfig};
   return { port, proxy };
+}
+
+/**
+ * 生产构建的压缩插件：同时输出 .gz + .br，由 nginx gzip_static 服务，
+ * 若远端装了 ngx_brotli 则可继续用 .br（Accept-Encoding 自动协商）。
+ */
+export function compressionPlugins() {
+  return [
+    compression({
+      exclude: [/\.map$/, /\.txt$/],
+      threshold: 1024,
+      algorithms: ['gzip', 'brotliCompress'],
+    }),
+  ];
 }

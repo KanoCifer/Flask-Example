@@ -5,6 +5,7 @@ import vueDevTools from 'vite-plugin-vue-devtools';
 import {
   sharedBuildConfig,
   createServerConfig,
+  compressionPlugins,
 } from '@readinglist/config/vite-shared';
 
 // https://vite.dev/config/
@@ -18,6 +19,7 @@ export default defineConfig({
       launchEditor: 'zed',
     }),
     tailwindcss(),
+    ...compressionPlugins(),
   ],
   build: {
     ...sharedBuildConfig,
