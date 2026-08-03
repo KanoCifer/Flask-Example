@@ -35,11 +35,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
-import {
-  frontier,
-  totalActive,
-  completedCount,
-} from '@/features/todos/composables';
 
 const activeTab = defineModel<'frontier' | 'planning' | 'review' | 'kanban'>({
   required: true,
@@ -47,14 +42,20 @@ const activeTab = defineModel<'frontier' | 'planning' | 'review' | 'kanban'>({
 
 const store = useV3DevTaskStore();
 
+// 计数全部走 store.derived —— 单次 O(N) 派生后这里 O(1) 读取。
+// 之前每个计数调一次 legacy helper，每次任务变更再走一遍全量数组。
+const frontierCount = computed(() => store.derived.frontier.length);
+const activeCount = computed(() => store.derived.activeCount);
+const completedCount = computed(() => store.derived.completedCount);
+
 const tabs = computed(() => [
   {
     id: 'frontier' as const,
     label: '推进',
-    count: frontier(store.tasks).length,
+    count: frontierCount.value,
   },
-  { id: 'planning' as const, label: '规划', count: totalActive(store.tasks) },
-  { id: 'kanban' as const, label: '看板', count: totalActive(store.tasks) },
-  { id: 'review' as const, label: '回顾', count: completedCount(store.tasks) },
+  { id: 'planning' as const, label: '规划', count: activeCount.value },
+  { id: 'kanban' as const, label: '看板', count: activeCount.value },
+  { id: 'review' as const, label: '回顾', count: completedCount.value },
 ]);
 </script>

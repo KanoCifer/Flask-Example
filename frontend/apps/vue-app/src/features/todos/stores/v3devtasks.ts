@@ -7,11 +7,13 @@ import type {
 } from '@/features/todos/api';
 import { useNotificationStore } from '@/stores';
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import {
+  buildDevTaskView,
   nextStatus,
   planSyncColumn,
   V3_STATUSES,
+  type DevTaskView,
 } from '@/features/todos/composables/devTaskPolicy';
 
 export { V3_STATUSES };
@@ -20,6 +22,13 @@ export const useV3DevTaskStore = defineStore('v3-devtasks', () => {
   const tasks = ref<DevTask[]>([]);
   const loading = ref(false);
   const notifier = useNotificationStore();
+
+  /**
+   * 派生视图 —— 4 个 panel 共享。
+   * 只在 `tasks` 引用变化时重算一次（Vue `computed` 自带缓存）。
+   * 之前每个 panel 各自 filter/sort 全量数组，200 条规模下切一次 tab 峰值 ~15+ 次遍历。
+   */
+  const derived = computed<DevTaskView>(() => buildDevTaskView(tasks.value));
 
   async function fetchTasks(): Promise<void> {
     // 首次加载显示骨架屏（loading=true），后续刷新静默替换（loading 不变）
@@ -62,10 +71,15 @@ export const useV3DevTaskStore = defineStore('v3-devtasks', () => {
     slug: string,
     patch: UpdateDevTaskPayload,
   ): Promise<boolean> {
-    // 乐观更新：先改本地，再打后端
-    tasks.value = tasks.value.map((t) =>
-      t.slug === slug ? { ...t, ...patch } : t,
-    );
+    // 乐观更新：只替换目标条目，其它元素引用保持不变。
+    // 这比 `tasks.value.map(...)` 省下 n-1 次浅拷贝 + 让 derived 只在 patch 真正改变
+    // 派生字段时才失效重算。
+    const idx = tasks.value.findIndex((t) => t.slug === slug);
+    if (idx >= 0) {
+      const next = tasks.value.slice();
+      next[idx] = { ...next[idx], ...patch };
+      tasks.value = next;
+    }
     try {
       await devTaskGateway.update(slug, patch);
       return true;
@@ -136,6 +150,7 @@ export const useV3DevTaskStore = defineStore('v3-devtasks', () => {
   return {
     tasks,
     loading,
+    derived,
     V3_STATUSES,
     fetchTasks,
     createTask,

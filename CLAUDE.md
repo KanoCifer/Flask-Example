@@ -6,12 +6,7 @@
 - 用户没有特殊要求，禁止执行 `pnpm build`
 - Python 后端使用 `uv` 管理依赖。
 
-## 2) Project Overview
-
-- kanocifer.chat 个人网站（"kuro neko" / 黑猫）。
-- **双前端 + 双后端架构**：Vue (`frontend/apps/vue-app/` + Pinia) + React (`frontend/apps/react-app/` + Zustand)，各自独立状态 Store；Python FastAPI (`backend/`, `/v2`) + Go Gin (`go-backend/`, `/v3`)。pnpm monorepo (Tailwind v4，workspace 根在 `frontend/`)，共享包 `frontend/packages/`（`@readinglist/api`·`types`·`utils`·`config`·`brand`）。
-
-## 3) Documentation Index
+## 2) Documentation Index
 
 项目规则（`docs/rules/`）：
 

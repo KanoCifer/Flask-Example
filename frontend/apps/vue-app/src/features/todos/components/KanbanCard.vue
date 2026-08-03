@@ -1,6 +1,6 @@
 <template>
   <article
-    class="bg-card/30 group border-border block w-full rounded-3xl border p-3 text-left transition-[background-color,translate,opacity] duration-200"
+    class="bg-card/30 group border-border block w-full rounded-3xl border p-3 text-left [content-visibility:auto] contain-intrinsic-size-[auto_180px]"
     :class="[
       isDragging ? 'cursor-grabbing opacity-50' : 'cursor-grab',
       done ? 'opacity-70' : '',
@@ -18,6 +18,8 @@
           class="animal-avatar h-[80px] w-[80px] object-cover select-none"
           draggable="false"
           loading="lazy"
+          decoding="async"
+          fetchpriority="low"
         />
       </div>
 
@@ -99,7 +101,7 @@
             <button
               v-if="!done"
               type="button"
-              class="text-muted hover:bg-surface hover:text-ink border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
+              class="text-muted hover:bg-surface hover:text-ink border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition-colors"
               title="推进状态"
               aria-label="推进状态"
               @click.stop="$emit('cycle', task.slug)"
@@ -120,7 +122,7 @@
             </button>
             <button
               type="button"
-              class="text-muted hover:text-destructive border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
+              class="text-muted hover:text-destructive border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition-colors"
               title="删除"
               aria-label="删除"
               @click.stop="$emit('delete', task.slug)"
@@ -237,19 +239,27 @@ function overdue(dateStr: string): boolean {
 </script>
 
 <style scoped>
-/* Animal PNG crispness + subtle white drop-shadow (same as FrontierCard). */
+/* Animal PNG 直接显示即可 —— 之前叠的 `filter: drop-shadow` 会把每张 <img>
+   推进到 GPU 滤镜层，~100+ 张卡的视图里 hover / scroll 都触发 paint。
+   1px 白色阴影对 80×80 透明卡上几乎不可见，但每帧 paint 成本真实存在。 */
 .animal-avatar {
-  image-rendering: -webkit-optimize-contrast;
-  filter: drop-shadow(0 1px 0 oklch(1 0 0 / 0.4));
+  image-rendering: pixelated;
 }
 
-/* Reveal action buttons on group hover. */
+/* Reveal action buttons on group hover.
+   opacity + transition-opacity 都是合成层属性，不触发 paint。 */
 .fc-actions {
   opacity: 0;
-  transition: opacity 200ms ease;
+  transition: opacity 150ms ease;
 }
 .group:hover .fc-actions,
 .group:focus-within .fc-actions {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-actions {
+    transition: none;
+  }
 }
 </style>

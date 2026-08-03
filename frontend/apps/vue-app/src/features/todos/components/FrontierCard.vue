@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="bg-card/30 group block w-full rounded-3xl border p-3 text-left transition-transform duration-300 hover:-translate-y-0.5"
+    class="bg-card/30 group block w-full rounded-3xl border p-3 text-left"
     :aria-label="`open ${task.title}`"
     @click="$emit('open', task.slug)"
   >
@@ -15,6 +15,8 @@
           class="animal-avatar h-[80px] w-[80px] object-cover select-none"
           draggable="false"
           loading="lazy"
+          decoding="async"
+          fetchpriority="low"
         />
       </div>
 
@@ -64,7 +66,7 @@
           <div class="fc-actions flex items-center gap-1">
             <button
               type="button"
-              class="text-muted border-border bg-surface hover:text-ink grid h-6 w-6 place-items-center rounded-full border transition"
+              class="text-muted border-border bg-surface hover:text-ink grid h-6 w-6 place-items-center rounded-full border transition-colors"
               title="推进状态"
               aria-label="推进状态"
               @click.stop="$emit('cycle', task.slug)"
@@ -87,7 +89,7 @@
             </button>
             <button
               type="button"
-              class="text-muted hover:text-destructive border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition"
+              class="text-muted hover:text-destructive border-border bg-surface grid h-6 w-6 place-items-center rounded-full border transition-colors"
               title="删除"
               aria-label="删除"
               @click.stop="$emit('delete', task.slug)"
@@ -179,20 +181,29 @@ const dueLabel = computed(() => formatDue(props.task.due_date));
 </script>
 
 <style scoped>
-/* Animal PNG crispness + subtle white drop-shadow so the image lifts off the
-   transparent card. Mirrors C-ring.html .animal-img. */
+/* Animal PNG 直接显示即可 —— 之前叠的 `filter: drop-shadow` 会把每张 <img>
+   推进到 GPU 滤镜层，~100+ 张卡的视图里 hover / scroll 都触发 paint。
+   1px 白色阴影对 80×80 透明卡上几乎不可见，但每帧 paint 成本真实存在。 */
 .animal-avatar {
-  image-rendering: -webkit-optimize-contrast;
-  filter: drop-shadow(0 1px 0 oklch(1 0 0 / 0.4));
+  /* 保留像素感；不强制 optimize-contrast —— 那条 hint 反而会让浏览器
+     在每次解码时走高质量路径，常见 per-image decode spike。 */
+  image-rendering: pixelated;
 }
 
-/* Reveal action buttons on group hover (matches C-ring's .fc:hover .fc-actions). */
+/* Reveal action buttons on group hover (matches C-ring's .fc:hover .fc-actions).
+   opacity + transition-opacity 都是合成层属性，不触发 paint。 */
 .fc-actions {
   opacity: 0;
-  transition: opacity 200ms ease;
+  transition: opacity 150ms ease;
 }
 .group:hover .fc-actions,
 .group:focus-within .fc-actions {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-actions {
+    transition: none;
+  }
 }
 </style>

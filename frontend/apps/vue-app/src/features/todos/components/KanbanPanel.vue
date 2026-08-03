@@ -17,159 +17,36 @@
       role="list"
       aria-label="开发任务看板"
     >
-      <section
+      <KanbanColumn
         v-for="col in KANBAN_COLUMNS"
         :key="col.id"
-        role="listitem"
-        class="bg-surface/40 smooth-shadow-ring flex max-h-[calc(100dvh-10rem)] min-h-96 flex-col overflow-x-visible overflow-y-scroll overscroll-contain rounded-[28px] border p-3 shadow-md transition-colors contain-[layout_paint_scroll_style]"
-        :class="
-          dragOverColumn === col.id
-            ? 'border-accent/60 bg-accent/5 ring-accent/30 ring-1'
-            : ''
-        "
-        @dragover.prevent="onDragOver(col.id)"
+        :column="col"
+        :lanes="lanesFor(col.id)"
+        :dragged-slug="draggedSlug"
+        :drag-over="dragOverColumn === col.id"
+        :total-count="columnCount(col.id)"
+        @open="$emit('open', $event)"
+        @cycle="$emit('cycle', $event)"
+        @delete="$emit('delete', $event)"
+        @dragstart="onDragStart"
+        @dragend="onDragEnd"
+        @dragover="onDragOver(col.id)"
         @dragleave="onDragLeave(col.id)"
-        @drop.prevent="onDrop(col.id)"
-      >
-        <!-- 列头 -->
-        <header class="mb-2 flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
-            <span
-              class="h-2 w-2 rounded-full"
-              :class="col.dotClass"
-              aria-hidden="true"
-            />
-            <h3 class="text-ink font-serif text-sm font-medium tracking-tight">
-              {{ col.label }}
-            </h3>
-            <span
-              class="text-muted bg-page rounded-full px-1.5 py-px text-[10px] tabular-nums"
-            >
-              {{ columnCount(col.id) }}
-            </span>
-          </div>
-        </header>
-
-        <!-- 泳道 + 卡片 -->
-        <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-          <div
-            v-for="lane in swimlanesFor(col.id)"
-            :key="lane.userId"
-            class="flex flex-col gap-2 px-4"
-          >
-            <div
-              class="text-muted flex items-center gap-1.5 px-1 font-serif text-xs tracking-widest"
-            >
-              <MemberAvatar :user-id="lane.userId" size="xs" />
-              {{ lane.label }}
-              <span class="text-muted/60 tabular-nums">·</span>
-              <span class="text-muted/60 tabular-nums">{{
-                lane.tasks.length
-              }}</span>
-            </div>
-
-            <KanbanCard
-              v-for="task in lane.tasks"
-              :key="task.slug"
-              :task="task"
-              :is-dragging="draggedSlug === task.slug"
-              @open="$emit('open', $event)"
-              @cycle="$emit('cycle', $event)"
-              @delete="$emit('delete', $event)"
-              @dragstart="onDragStart(task.slug)"
-              @dragend="onDragEnd"
-            />
-          </div>
-
-          <!-- 空列提示 -->
-          <Transition name="fade-fast">
-            <div
-              v-if="!swimlanesFor(col.id).length"
-              class="text-muted/60 flex flex-1 flex-col items-center justify-center gap-1.5 py-6 text-center text-xs"
-            >
-              <template v-if="dragOverColumn === col.id">
-                <span class="font-serif text-sm">松开以放置</span>
-              </template>
-              <template v-else>
-                <svg
-                  class="text-muted/30 h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-                <span class="font-serif text-sm">此列暂无任务</span>
-                <span class="text-muted/50">从待办拖一个过来</span>
-              </template>
-            </div>
-          </Transition>
-        </div>
-      </section>
+        @drop="onDrop(col.id)"
+      />
     </div>
   </div>
 </template>
 
 <script lang="ts">
-// ── 看板列定义（与后端 DevTaskStatus 一一对应，仅"待办"合并两个未启动状态） ──
-//
-// 后端状态机 5 段，看板 4 列：
-//   待办    ← 待评估 ∪ 待排期  （两个"未启动"状态合并为一列，方便规划视图）
-//   进行中  ← 进行中           （直接对应后端）
-//   已搁置  ← 已搁置           （直接对应后端，列名沿用后端命名）
-//   已完成  ← 已完成           （直接对应后端）
-//
-// 这层映射只在 UI 视图层做，不改 store 的真实 status 字段 —— 拖拽落列时再回写
-// 真实 status，保证数据契约稳定。
-export type KanbanColumnId = 'todo' | 'doing' | 'paused' | 'done';
-
-export interface KanbanColumn {
-  id: KanbanColumnId;
-  label: string;
-  /** 该列覆盖的真实 DevTaskStatus（用于数据过滤）。 */
-  statuses: DevTaskStatus[];
-  /** 拖入此列时写回的真实 status。合并列默认写"待评估"，与 STATUS_CYCLE 起态一致。 */
-  targetStatus: DevTaskStatus;
-  /** 列头圆点颜色，对齐 StatusChip 语义色。 */
-  dotClass: string;
-}
-
-export const KANBAN_COLUMNS: KanbanColumn[] = [
-  {
-    id: 'todo',
-    label: '待办',
-    statuses: ['待评估', '待排期'],
-    targetStatus: '待评估',
-    dotClass: 'bg-surface',
-  },
-  {
-    id: 'doing',
-    label: '进行中',
-    statuses: ['进行中'],
-    targetStatus: '进行中',
-    dotClass: 'bg-accent',
-  },
-  {
-    id: 'paused',
-    label: '已搁置',
-    statuses: ['已搁置'],
-    targetStatus: '已搁置',
-    dotClass: 'bg-warning',
-  },
-  {
-    id: 'done',
-    label: '已完成',
-    statuses: ['已完成'],
-    targetStatus: '已完成',
-    dotClass: 'bg-success',
-  },
-];
+// ── 看板列定义 —— 迁移到 devTaskPolicy（与 buildDevTaskView 同源），这里只 re-export
+// 以保持外部 `import { KANBAN_COLUMNS } from '@/features/todos/components/KanbanPanel.vue'`
+// 这类旧调用方继续工作。
+export {
+  KANBAN_COLUMNS,
+  type KanbanColumnId,
+  type KanbanColumn,
+} from '@/features/todos/composables/devTaskPolicy';
 </script>
 
 <script setup lang="ts">
@@ -178,12 +55,11 @@ import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
 import type {
   DevTask,
   DevTaskPriority,
-  DevTaskStatus,
   DevTaskType,
 } from '@/features/todos/api';
-import KanbanCard from './KanbanCard.vue';
-import MemberAvatar from './MemberAvatar.vue';
+import KanbanColumn from './KanbanColumn.vue';
 import TodoFilterBar, { type MemberChip } from './TodoFilterBar.vue';
+import { KANBAN_COLUMNS, type KanbanColumnId } from '@/features/todos/composables/devTaskPolicy';
 
 const store = useV3DevTaskStore();
 
@@ -256,116 +132,69 @@ function toggleFilter(
   }
 }
 
-/** 成员 chip —— 从任务 user_id 聚合，始终显示（含仅 1 成员场景）。 */
-const memberChips = computed<MemberChip[]>(() => {
-  const map = new Map<number, { count: number }>();
-  for (const t of store.tasks) {
-    if (t.is_deleted) continue;
-    const e = map.get(t.user_id) ?? { count: 0 };
-    e.count += 1;
-    map.set(t.user_id, e);
-  }
-  return Array.from(map.entries())
-    .sort((a, b) => b[1].count - a[1].count)
-    .map(([userId, { count }]) => ({
+// 全部走 store.derived —— per-field computed 包一层。
+// 不要用 toRefs(store.derived) —— 见 FrontierPanel 那条注释。
+const liveTasks = computed(() => store.derived.live);
+const userTaskCounts = computed(() => store.derived.userTaskCounts);
+const derivedColumnCounts = computed(() => store.derived.columnCounts);
+const derivedSwimlanes = computed(() => store.derived.swimlanesByColumn);
+
+/** 成员 chip —— 直接复用 derived.userTaskCounts，不再自己 filter。 */
+const memberChips = computed<MemberChip[]>(() =>
+  Array.from(userTaskCounts.value.entries())
+    .sort(
+      (a: [number, number], b: [number, number]) => b[1] - a[1],
+    )
+    .map(([userId, count]) => ({
       userId,
       label: `用户 ${userId}`,
       count,
-    }));
-});
+    })),
+);
 
-/** 全部未删除任务（受筛选条件影响）。 */
+/** 看板本地的可见任务 —— 只在 derived.live 之上套 panel 自己的筛选条件。
+ *  is_deleted 已由 derived.live 滤过，这里不再重复 filter。 */
 const visibleTasks = computed<DevTask[]>(() => {
   const q = searchTerm.value.trim().toLowerCase();
-  return store.tasks
-    .filter((t) => !t.is_deleted)
-    .filter((t) =>
-      filterType.value.size ? filterType.value.has(t.type) : true,
-    )
-    .filter((t) =>
-      filterPriority.value.size ? filterPriority.value.has(t.priority) : true,
-    )
-    .filter((t) =>
-      filterMember.value.size ? filterMember.value.has(t.user_id) : true,
-    )
-    .filter((t) => (q ? (t.title ?? '').toLowerCase().includes(q) : true));
-});
-
-function columnCount(col: KanbanColumnId): number {
-  return columnCounts.value.get(col) ?? 0;
-}
-
-/**
- * 每列卡片数 —— 一次性算好 4 列，模板多次取用都只是 Map.get。
- * 之前 columnCount 在每列 header 上被调用 2 次,共 8 次 filter;现在 1 次 filter 分桶。
- */
-const columnCounts = computed<Map<KanbanColumnId, number>>(() => {
-  const counts = new Map<KanbanColumnId, number>();
-  for (const col of KANBAN_COLUMNS) counts.set(col.id, 0);
-  for (const t of visibleTasks.value) {
-    for (const col of KANBAN_COLUMNS) {
-      if (col.statuses.includes(t.status)) {
-        counts.set(col.id, (counts.get(col.id) ?? 0) + 1);
-        break;
-      }
-    }
+  const ts = filterType.value;
+  const ps = filterPriority.value;
+  const ms = filterMember.value;
+  const hasQ = q.length > 0;
+  const out: DevTask[] = [];
+  for (const t of liveTasks.value) {
+    if (ts.size && !ts.has(t.type)) continue;
+    if (ps.size && !ps.has(t.priority)) continue;
+    if (ms.size && !ms.has(t.user_id)) continue;
+    if (hasQ && !(t.title ?? '').toLowerCase().includes(q)) continue;
+    out.push(t);
   }
-  return counts;
+  return out;
 });
 
-/**
- * 泳道 —— 在每个看板列里按 user_id 分组,始终展示标签头(含单成员场景)。
- * 单成员场景下所有卡片归入同一泳道,结构仍一致,便于未来扩展多成员。
- *
- * 之前 swimlanesFor 在每列 v-for 里各调一次,共 4 次 filter+sort+group;
- * 现改成一次性把 visibleTasks 按 (column, user_id) 二维分桶,模板直接 Map.get。
+/** 各列泳道 —— 复用 derived.swimlanesByColumn，不在本 panel 套筛选。
+ *  （原行为：筛选只影响 TodoFilterBar 的 count，泳道展示全量。）
  */
-function swimlanesFor(col: KanbanColumnId): {
+interface LaneVM {
   userId: number;
   label: string;
   tasks: DevTask[];
-}[] {
-  return swimlanesByColumn.value.get(col) ?? [];
 }
 
-const swimlanesByColumn = computed<
-  Map<KanbanColumnId, { userId: number; label: string; tasks: DevTask[] }[]>
->(() => {
-  // 一次遍历同时算出每列的卡片数和泳道 —— 比 4×(filter+sort+group) 省一个数量级
-  const grouped = new Map<
-    KanbanColumnId,
-    Map<number, { userId: number; label: string; tasks: DevTask[] }>
-  >();
-  for (const col of KANBAN_COLUMNS) grouped.set(col.id, new Map());
-
-  for (const t of visibleTasks.value) {
-    for (const col of KANBAN_COLUMNS) {
-      if (!col.statuses.includes(t.status)) continue;
-      const laneMap = grouped.get(col.id)!;
-      let lane = laneMap.get(t.user_id);
-      if (!lane) {
-        lane = { userId: t.user_id, label: `用户 ${t.user_id}`, tasks: [] };
-        laneMap.set(t.user_id, lane);
-      }
-      lane.tasks.push(t);
-      break;
-    }
-  }
-
-  // 每列内按 sort_order 升序,与原行为一致
-  const result = new Map<
-    KanbanColumnId,
-    { userId: number; label: string; tasks: DevTask[] }[]
-  >();
+const columnsById = computed<Map<KanbanColumnId, LaneVM[]>>(() => {
+  const out = new Map<KanbanColumnId, LaneVM[]>();
   for (const col of KANBAN_COLUMNS) {
-    const lanes = Array.from(grouped.get(col.id)!.values());
-    for (const lane of lanes) {
-      lane.tasks.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-    }
-    result.set(col.id, lanes);
+    out.set(col.id, derivedSwimlanes.value.get(col.id) ?? []);
   }
-  return result;
+  return out;
 });
+
+function columnCount(col: KanbanColumnId): number {
+  return derivedColumnCounts.value.get(col) ?? 0;
+}
+
+function lanesFor(col: KanbanColumnId): LaneVM[] {
+  return columnsById.value.get(col) ?? [];
+}
 
 defineEmits<{
   open: [slug: string];
@@ -373,31 +202,3 @@ defineEmits<{
   delete: [slug: string];
 }>();
 </script>
-
-<style scoped>
-/* ── Empty-state fade (FADE_FAST: 0.18s ease-in, 0.12s ease-out) ── */
-.fade-fast-enter-active {
-  opacity: 0;
-  animation: ffi-opacity-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-.fade-fast-leave-active {
-  animation: ffi-opacity-out 0.12s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-@keyframes ffi-opacity-in {
-  to {
-    opacity: 1;
-  }
-}
-@keyframes ffi-opacity-out {
-  to {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fade-fast-enter-active,
-  .fade-fast-leave-active {
-    animation-duration: 0.01ms;
-  }
-}
-</style>

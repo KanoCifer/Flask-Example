@@ -87,11 +87,6 @@ import {
   ChevronRight,
 } from '@lucide/vue';
 import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
-import {
-  frontier,
-  totalActive,
-  completedCount,
-} from '@/features/todos/composables';
 
 const activeTab = defineModel<'frontier' | 'planning' | 'review' | 'kanban'>({
   required: true,
@@ -110,30 +105,37 @@ const activeTabIndex = computed(() =>
 );
 const indicatorY = computed(() => activeTabIndex.value * TAB_ITEM_HEIGHT.value);
 
+// 计数全部走 store.derived —— store.derived 是单次 O(N) 派生的 computed，
+// 这层 computed 只在 derived 重算时再算一次（O(1)），整个 sidebar 一次性。
+// 之前直接调 frontier/totalActive/completedCount 是各自再走一遍 N 遍历。
+const frontierCount = computed(() => store.derived.frontier.length);
+const activeCount = computed(() => store.derived.activeCount);
+const completedCount = computed(() => store.derived.completedCount);
+
 const tabs = computed(() => [
   {
     id: 'frontier' as const,
     label: '推进',
     icon: Rocket,
-    count: frontier(store.tasks).length,
+    count: frontierCount.value,
   },
   {
     id: 'planning' as const,
     label: '规划',
     icon: ClipboardList,
-    count: totalActive(store.tasks),
+    count: activeCount.value,
   },
   {
     id: 'kanban' as const,
     label: '看板',
     icon: KanbanSquare,
-    count: totalActive(store.tasks),
+    count: activeCount.value,
   },
   {
     id: 'review' as const,
     label: '回顾',
     icon: CheckCircle2,
-    count: completedCount(store.tasks),
+    count: completedCount.value,
   },
 ]);
 </script>

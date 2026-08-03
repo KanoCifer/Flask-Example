@@ -116,6 +116,7 @@
         <TaskRow
           v-for="task in doneThisWeek.slice(0, 8)"
           :key="task.slug"
+          class="[content-visibility:auto]"
           :task="task"
           :done="true"
           @open="$emit('open', $event)"
@@ -139,12 +140,6 @@
 import { computed, watch } from 'vue';
 import TaskRow from './TaskRow.vue';
 import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
-import {
-  completedThisWeek,
-  inProgress,
-  urgentActive,
-  typeDistribution,
-} from '@/features/todos/composables';
 import { formatCurrentWeekRange } from '@/lib/dayjs';
 import type { DevTaskType } from '@/features/todos/api';
 import { useAnimateNumber } from '@/composables';
@@ -167,16 +162,17 @@ const TYPE_COLORS: Record<DevTaskType, string> = {
 
 const weekRange = formatCurrentWeekRange();
 
-/** 本周自然周起点（周一）—— 与 completedThisWeek 复用同一口径，保证同比不错位。 */
-const weekStart = computed(() => {
-  const now = new Date();
-  const start = new Date(now);
-  start.setDate(now.getDate() - now.getDay() + 1);
-  start.setHours(0, 0, 0, 0);
-  return start;
-});
-
-const doneThisWeek = computed(() => completedThisWeek(store.tasks));
+// 全部派生走 store.derived —— per-field computed 包一层。
+// 不要用 toRefs(store.derived) —— 见 FrontierPanel 那条注释。
+const doneThisWeek = computed(() => store.derived.completedThisWeek);
+const doneLastWeekCount = computed(() => store.derived.doneLastWeekCount);
+const createdThisWeekCount = computed(
+  () => store.derived.createdThisWeekCount,
+);
+const overdueCount = computed(() => store.derived.overdueCount);
+const urgentActiveCount = computed(() => store.derived.urgentActiveCount);
+const inProgressTasks = computed(() => store.derived.inProgress);
+const typeDist = computed(() => store.derived.typeDistribution);
 
 watch(
   doneThisWeek,
@@ -186,24 +182,9 @@ watch(
   { immediate: true },
 );
 
-/** 上周同口径完成数：updated_at 落在 [上周一, 本周一)。 */
-const doneLastWeek = computed(() => {
-  const start = weekStart.value;
-  const prevStart = new Date(start);
-  prevStart.setDate(start.getDate() - 7);
-  return store.tasks.filter(
-    (t) =>
-      t.status === '已完成' &&
-      !t.is_deleted &&
-      t.updated_at &&
-      new Date(t.updated_at) >= prevStart &&
-      new Date(t.updated_at) < start,
-  ).length;
-});
-
 /** 真实同比：本周完成 − 上周完成。语义着色（增→success，减→destructive）。 */
 const delta = computed(() => {
-  const d = doneThisWeek.value.length - doneLastWeek.value;
+  const d = doneThisWeek.value.length - doneLastWeekCount.value;
   if (d > 0) {
     return { dir: 'up' as const, class: 'text-success', label: `较上周 +${d}` };
   }
@@ -221,47 +202,24 @@ const delta = computed(() => {
   };
 });
 
-const createdThisWeek = computed(
-  () =>
-    store.tasks.filter(
-      (t) =>
-        !t.is_deleted &&
-        t.created_at &&
-        new Date(t.created_at) >= weekStart.value,
-    ).length,
-);
-
-/** 逾期：有截止日、已过期、仍未完成。YYYY-MM-DD 可按字典序比较。 */
-const overdue = computed(() => {
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return store.tasks.filter(
-    (t) =>
-      !t.is_deleted &&
-      t.status !== '已完成' &&
-      t.due_date &&
-      t.due_date < todayStr,
-  ).length;
-});
-
 const supporting = computed(() => {
-  const overdueCount = overdue.value;
-  const p0 = urgentActive(store.tasks);
+  const overdue = overdueCount.value;
+  const p0 = urgentActiveCount.value;
   return [
     {
       label: '新建',
-      value: createdThisWeek.value,
+      value: createdThisWeekCount.value,
       valueClass: 'text-ink',
     },
     {
       label: '进行中',
-      value: inProgress(store.tasks).length,
+      value: inProgressTasks.value.length,
       valueClass: 'text-ink',
     },
     {
       label: '逾期',
-      value: overdueCount,
-      valueClass: overdueCount ? 'text-destructive' : 'text-ink',
+      value: overdue,
+      valueClass: overdue ? 'text-destructive' : 'text-ink',
     },
     {
       label: 'P0',
@@ -272,7 +230,7 @@ const supporting = computed(() => {
 });
 
 const distributionRows = computed(() => {
-  const dist = typeDistribution(store.tasks);
+  const dist = typeDist.value as Record<DevTaskType, number>;
   const total = Object.values(dist).reduce((a, b) => a + b, 0) || 1;
   return (Object.keys(dist) as DevTaskType[]).map((type) => ({
     type,

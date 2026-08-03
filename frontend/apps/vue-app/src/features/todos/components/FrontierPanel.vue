@@ -22,12 +22,12 @@
 
       <div
         v-if="frontierTasks.length"
-        class="columns-1 gap-x-3 sm:columns-2 lg:columns-3"
+        class="columns-1 gap-x-3 contain-intrinsic-size-[auto_600px] sm:columns-2 lg:columns-3"
       >
         <div
           v-for="(task, i) in frontierTasks"
           :key="task.slug"
-          class="frontier-card-enter mb-3 break-inside-avoid"
+          class="frontier-card-enter mb-3 break-inside-avoid [content-visibility:auto]"
           :style="{ '--stagger': `${Math.min(i, 8) * 40}ms` }"
         >
           <FrontierCard
@@ -154,29 +154,21 @@ import { computed } from 'vue';
 import FrontierCard from './FrontierCard.vue';
 import TaskRow from './TaskRow.vue';
 import { useV3DevTaskStore } from '@/features/todos/stores/v3devtasks';
-import {
-  frontier,
-  inProgress,
-  completedThisWeek,
-} from '@/features/todos/composables';
 
 const store = useV3DevTaskStore();
 
-const frontierTasks = computed(() => frontier(store.tasks));
-const inProgressTasks = computed(() => inProgress(store.tasks));
-const doneThisWeek = computed(() => completedThisWeek(store.tasks));
-
-// 未完成、未删除的活跃任务 —— 用于区分 frontier 空态的两种情形。
-const activeTasks = computed(() =>
-  store.tasks.filter((t) => !t.is_deleted && t.status !== '已完成'),
-);
-const activeCount = computed(() => activeTasks.value.length);
-// frontier 为空且仍有活跃任务时，这些任务都在等待前置依赖。
-const blockedCount = computed(
-  () =>
-    activeTasks.value.filter((t) => t.blocked_by && t.blocked_by.length > 0)
-      .length,
-);
+// 所有派生数据走 store.derived —— 单次遍历、4 个 panel 共享。
+//
+// 注意：不能用 `toRefs(store.derived)`。`store.derived` 是 store 的 computed
+// getter，访问时返回当前值（plain 对象快照）。`toRefs(snapshot)` 把每个属性
+// 锚到 **第一次读到的那个对象**，之后 derived 重算出新对象，toRefs 出来的
+// ref 仍然指向旧快照 —— panel 永远不刷新。所以这里把每个字段单独包成 computed
+// 读 `store.derived.<field>`，computed 缓存并跟踪 store.derived 的重算。
+const frontierTasks = computed(() => store.derived.frontier);
+const inProgressTasks = computed(() => store.derived.inProgress);
+const doneThisWeek = computed(() => store.derived.completedThisWeek);
+const activeCount = computed(() => store.derived.activeCount);
+const blockedCount = computed(() => store.derived.blockedCount);
 
 defineEmits<{
   open: [slug: string];

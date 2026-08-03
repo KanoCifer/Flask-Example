@@ -14,6 +14,7 @@ import {
   urgentActive,
   typeDistribution,
   planSyncColumn,
+  buildDevTaskView,
 } from '../devTaskPolicy';
 import type { DevTask } from '@/features/todos/api';
 
@@ -364,5 +365,229 @@ describe('planSyncColumn', () => {
     const tasks = [makeTask({ slug: 'a', status: '待评估' })];
     const result = planSyncColumn(tasks, '进行中', ['a', 'missing']);
     expect(result.map((t) => t.slug)).toEqual(['a']);
+  });
+});
+
+// ── buildDevTaskView ─────────────────────────────────────────────────────
+
+describe('buildDevTaskView', () => {
+  // 锁定"现在"：周三 2026-08-05 12:00，本周一 = 2026-08-03 00:00，
+  // 上周一 = 2026-07-27 00:00，今日 = 2026-08-05。
+  const now = new Date('2026-08-05T12:00:00.000Z');
+
+  it('一次遍历产出 panel 共用的全部派生字段', () => {
+    const tasks = [
+      makeTask({
+        slug: 'frontier-p0',
+        status: '进行中',
+        priority: 'P0 紧急',
+        due_date: '2026-08-10',
+        user_id: 1,
+      }),
+      makeTask({
+        slug: 'blocked',
+        status: '进行中',
+        priority: 'P0 紧急',
+        blocked_by: ['other'],
+        user_id: 1,
+      }),
+      makeTask({
+        slug: 'in-progress',
+        status: '进行中',
+        sort_order: 1,
+        user_id: 2,
+      }),
+      makeTask({
+        slug: 'done-this-week',
+        status: '已完成',
+        updated_at: '2026-08-04T10:00:00.000Z',
+        user_id: 1,
+      }),
+      makeTask({
+        slug: 'done-last-week',
+        status: '已完成',
+        updated_at: '2026-07-30T10:00:00.000Z',
+        user_id: 1,
+      }),
+      makeTask({
+        slug: 'created-this-week',
+        status: '待评估',
+        created_at: '2026-08-04T08:00:00.000Z',
+        user_id: 2,
+      }),
+      makeTask({
+        slug: 'overdue',
+        status: '待评估',
+        due_date: '2026-08-01',
+        user_id: 1,
+      }),
+      makeTask({
+        slug: 'p0-active',
+        status: '待评估',
+        priority: 'P0 紧急',
+        user_id: 1,
+      }),
+      makeTask({
+        slug: 'p0-done',
+        status: '已完成',
+        priority: 'P0 紧急',
+        user_id: 1,
+        updated_at: '2026-08-04T10:00:00.000Z',
+      }),
+      makeTask({ slug: 'soft-deleted', is_deleted: true }),
+    ];
+
+    const view = buildDevTaskView(tasks, now);
+
+    // live: 排除 is_deleted
+    expect(view.live.map((t) => t.slug)).not.toContain('soft-deleted');
+
+    // frontier: 排除已完成 + 排除 blocked；P0 内有 due_date 优先于无 due_date；
+    // P2 内 overdue(有 due) 优先于无 due 的两个；同 priority + 同 due 时 stable sort
+    // 按入参顺序（与老 frontier() 行为一致 —— 老 frontier 单测未覆盖 tie-breaker）。
+    expect(view.frontier.map((t) => t.slug)).toEqual([
+      'frontier-p0',
+      'p0-active',
+      'overdue',
+      'in-progress',
+      'created-this-week',
+    ]);
+
+    // inProgress: status='进行中' 的全部（包含 blocked —— blocked 不影响 inProgress 桶）；
+    // sort_order 同为 0 时按入参 stable 顺序：frontier-p0, blocked；再排 sort_order=1 的 in-progress
+    expect(view.inProgress.map((t) => t.slug)).toEqual([
+      'frontier-p0',
+      'blocked',
+      'in-progress',
+    ]);
+
+    // completedThisWeek: 仅本周更新；updated_at 相同时按入参 stable 顺序
+    expect(view.completedThisWeek.map((t) => t.slug)).toEqual([
+      'done-this-week',
+      'p0-done',
+    ]);
+
+    // doneLastWeekCount: 仅上周同口径
+    expect(view.doneLastWeekCount).toBe(1);
+
+    // createdThisWeekCount
+    expect(view.createdThisWeekCount).toBe(1);
+
+    // overdueCount: 有 due_date + < 今日 + 未完成
+    expect(view.overdueCount).toBe(1);
+
+    // urgentActiveCount: P0 + 未完成 —— frontier-p0, blocked, p0-active 都算
+    expect(view.urgentActiveCount).toBe(3);
+
+    // activeCount: 未完成 + 未删除 —— 9 条未删除 - 3 条已完成(done-this-week, p0-done, done-last-week) = 6
+    expect(view.activeCount).toBe(6);
+
+    // blockedCount: 未完成 + 有 blocked_by
+    expect(view.blockedCount).toBe(1);
+
+    // typeDistribution: 默认 4 类全键值
+    expect(view.typeDistribution).toEqual({
+      功能需求: 9,
+      问题: 0,
+      优化: 0,
+      技术债: 0,
+    });
+
+    // userTaskCounts: 排除 is_deleted
+    // user 1: frontier-p0, blocked, done-this-week, done-last-week, overdue, p0-active, p0-done = 7
+    // user 2: in-progress, created-this-week = 2
+    expect(view.userTaskCounts.get(1)).toBe(7);
+    expect(view.userTaskCounts.get(2)).toBe(2);
+
+    // byStatus 待评估按 sort_order 升序；sort_order 同为 0 时按入参 stable 顺序
+    expect(view.byStatus['待评估'].map((t) => t.slug)).toEqual([
+      'created-this-week',
+      'overdue',
+      'p0-active',
+    ]);
+
+    // columnCounts: 待评估/待排期→todo, 进行中→doing, 已搁置→paused, 已完成→done
+    expect(view.columnCounts.get('todo')).toBe(3);
+    expect(view.columnCounts.get('doing')).toBe(3);
+    expect(view.columnCounts.get('paused')).toBe(0);
+    expect(view.columnCounts.get('done')).toBe(3);
+
+    // swimlanesByColumn: 每条 lane 内按 sort_order 升序
+    const todoLanes = view.swimlanesByColumn.get('todo')!;
+    expect(todoLanes.length).toBe(2);
+    for (const lane of todoLanes) {
+      const orders = lane.tasks.map((t) => t.sort_order ?? 0);
+      const sorted = [...orders].sort((a, b) => a - b);
+      expect(orders).toEqual(sorted);
+    }
+  });
+
+  it('空数组下返回全 0 / 空集合（不抛错）', () => {
+    const view = buildDevTaskView([], now);
+    expect(view.frontier).toEqual([]);
+    expect(view.inProgress).toEqual([]);
+    expect(view.completedThisWeek).toEqual([]);
+    expect(view.doneLastWeekCount).toBe(0);
+    expect(view.createdThisWeekCount).toBe(0);
+    expect(view.overdueCount).toBe(0);
+    expect(view.urgentActiveCount).toBe(0);
+    expect(view.activeCount).toBe(0);
+    expect(view.blockedCount).toBe(0);
+    expect(view.userTaskCounts.size).toBe(0);
+    expect(view.columnCounts.get('todo')).toBe(0);
+    expect(view.swimlanesByColumn.get('todo')).toEqual([]);
+  });
+
+  it('200 条随机任务下不抛错、不退化', () => {
+    const tasks: DevTask[] = [];
+    const statuses: DevTask['status'][] = [
+      '待评估',
+      '待排期',
+      '进行中',
+      '已搁置',
+      '已完成',
+    ];
+    const priorities: DevTask['priority'][] = [
+      'P0 紧急',
+      'P1 高',
+      'P2 中',
+      'P3 低',
+    ];
+    const types: DevTask['type'][] = ['功能需求', '问题', '优化', '技术债'];
+
+    for (let i = 0; i < 200; i++) {
+      const status = statuses[i % statuses.length]!;
+      const isDone = status === '已完成';
+      tasks.push(
+        makeTask({
+          slug: `task-${i}`,
+          status,
+          priority: priorities[i % priorities.length]!,
+          type: types[i % types.length]!,
+          user_id: i % 5,
+          sort_order: i,
+          is_deleted: i % 17 === 0,
+          due_date: i % 3 === 0 ? '2026-08-01' : '2026-08-30',
+          created_at: '2026-08-04T08:00:00.000Z',
+          updated_at: isDone ? '2026-08-04T10:00:00.000Z' : undefined,
+        }),
+      );
+    }
+
+    const view = buildDevTaskView(tasks, now);
+
+    // 基础不变量
+    expect(view.frontier.length).toBeGreaterThan(0);
+    expect(view.userTaskCounts.size).toBeGreaterThan(0);
+    expect(view.activeCount).toBeGreaterThan(0);
+
+    // activeCount = frontier + blocked + 已搁置 + 待评估 + 待排期 + 进行中 - 已完成 - deleted
+    const activeFromTasks = tasks.filter(
+      (t) => !t.is_deleted && t.status !== '已完成',
+    ).length;
+    expect(view.activeCount).toBe(activeFromTasks);
+
+    // live = tasks.filter(!is_deleted)
+    expect(view.live.length).toBe(tasks.filter((t) => !t.is_deleted).length);
   });
 });
