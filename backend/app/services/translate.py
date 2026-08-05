@@ -7,7 +7,7 @@ from app.core.llm_prompts import TRANSLATE_INSTRUCTIONS
 
 
 class TranslateResult(BaseModel):
-    """翻译输出（同时作为 ``output_schema``，约束模型只回译文本身）。"""
+    """翻译输出（约束模型只回译文本身）。"""
 
     text: str
 
@@ -30,8 +30,8 @@ class TranslateService:
             db=None,
             tools=[],
         )
-        run = await agent.arun(
+        response = await agent.arun(
             f"目标语言：{target_lang}\n\n{text}",
             output_schema=TranslateResult,
         )
-        return run.content  # pyright: ignore[reportReturnType]
+        return response.content  # pyright: ignore[reportReturnType]
