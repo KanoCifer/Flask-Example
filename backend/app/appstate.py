@@ -12,6 +12,7 @@ from fastapi import Request
 from redis.asyncio import Redis as AsyncRedis
 
 from app.core.agent import AiAgent
+from app.core.llm_factory import create_llm_model
 from app.plugins.notification import NotificationPlugin
 from app.repositories import (
     DeviceRepo,
@@ -36,6 +37,7 @@ from app.services.public_service import PublicService
 from app.services.rss_service import RssService
 from app.services.status_service import StatusService
 from app.services.sub_service import SubService
+from app.services.translate import TranslateService
 from app.services.user import GitHubAuthService, PasskeyService, UserService
 from app.services.weather_analysis_service import WeatherAnalysisService
 
@@ -62,6 +64,7 @@ class AppState:
     fishing_svc: FishingService
     friendlink_svc: FriendLinkService
     ai_svc: AiService
+    translate_svc: TranslateService
     progress_svc: LearningProgressService
     course_gen_svc: CourseGeneratorService
 
@@ -89,6 +92,7 @@ def new_app_state(redis: AsyncRedis) -> AppState:
 
     ai_agent = AiAgent(expert_weights=FishingExpertScorer.WEIGHTS)
     ai_svc = AiService(agent=ai_agent)
+    translate_svc = TranslateService(model=create_llm_model())
     public_svc = PublicService(repo=public_repo)
     status_svc = StatusService(repo=public_repo)
     gallery_svc = GalleryService(gallery_repo=gallery_repo)
@@ -133,6 +137,7 @@ def new_app_state(redis: AsyncRedis) -> AppState:
         fishing_svc=fishing_svc,
         friendlink_svc=friendlink_svc,
         ai_svc=ai_svc,
+        translate_svc=translate_svc,
         progress_svc=progress_svc,
         course_gen_svc=course_gen_svc,
     )

@@ -32,15 +32,7 @@ def create_llm_model(
     temperature: float = 1,
     timeout: int = 60,
 ) -> OpenAIChat:
-    """创建 OpenAILike 模型实例。
-
-    注意：
-    - role_map 强制 system 角色不走 developer 路线，避免 tbox.cn 等
-      OpenAI-compatible provider 报 400 "developer role is not valid"。
-    - reasoning 走 extra_body 而非 reasoning_effort，因为 reasoning_effort
-      会触发 Agno 将 system prompt 改用 developer role（仅 o1/o3 原生支持）。
-      AntLLM 的 Ring 模型接受 extra_body={"reasoning": {"effort": "high"}}。
-    """
+    """创建 OpenAI 模型实例。"""
     extra_body = {"reasoning": {"effort": "high"}}
 
     return OpenAIChat(
@@ -131,7 +123,7 @@ def create_agent(
     *,
     model: Model,
     instructions: str,
-    db: AsyncPostgresDb,
+    db: AsyncPostgresDb | None = None,
     tools: list | None = None,
     tool_hooks: list | None = None,
     **kwargs,
@@ -140,7 +132,7 @@ def create_agent(
     return Agent(
         model=model,
         instructions=instructions,
-        tools=tools or [create_web_search_tools()],
+        tools=tools if tools is not None else [create_web_search_tools()],
         tool_hooks=tool_hooks if tool_hooks is not None else [_log_tool_call],
         db=db,
         markdown=True,
