@@ -12,3 +12,9 @@ class TranslateRequest(BaseModel):
         min_length=1,
         description="目标语言（如：英语 / 日语 / en）",
     )
+
+
+class TranslateResult(BaseModel):
+    """``POST /v2/translate`` 响应体（``data`` 字段）"""
+
+    text: str = Field(..., description="翻译后的文本")

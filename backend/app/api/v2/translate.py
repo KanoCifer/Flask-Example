@@ -10,8 +10,8 @@ from app.api.des.auth import optional_user
 from app.api.des.limiter import limiter
 from app.appstate import AppState, get_app_state
 from app.core.response import APIResponse
-from app.schemas.translate import TranslateRequest
-from app.services.translate import TranslateResult, TranslateService
+from app.schemas.translate import TranslateRequest, TranslateResult
+from app.services.translate import TranslateService
 
 router = APIRouter(prefix="/translate", tags=["translate"])
 

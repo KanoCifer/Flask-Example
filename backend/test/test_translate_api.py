@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.translate import TranslateResult
+from app.schemas.translate import TranslateResult
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 

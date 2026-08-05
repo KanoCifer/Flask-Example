@@ -2,7 +2,7 @@
 
 不触碰网络 / Redis / LLM：monkeypatch ``create_agent`` 返回 stub agent，
 验证 ``translate`` 的 prompt 拼接、``tools=[]``（纯翻译不挂默认搜索工具）、
-以及 ``output_schema`` 解析后的返回。
+以及 ``use_json_mode`` + ``output_schema`` 解析后的结构化返回。
 """
 
 from __future__ import annotations
@@ -10,7 +10,8 @@ from __future__ import annotations
 import pytest
 
 from app.core.llm_prompts import TRANSLATE_INSTRUCTIONS
-from app.services.translate import TranslateResult, TranslateService
+from app.schemas.translate import TranslateResult
+from app.services.translate import TranslateService
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
