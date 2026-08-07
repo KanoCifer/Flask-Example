@@ -63,6 +63,7 @@ func (c *CurrencyClient) GetExchange(ctx context.Context, baseCurrency string, c
 
 	q := req.URL.Query()
 	q.Set("base", baseCurrency)
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := doWithRetry(ctx, c.http, req)
 	if err != nil {

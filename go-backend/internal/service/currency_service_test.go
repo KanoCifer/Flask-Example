@@ -169,3 +169,31 @@ func TestCurrencyClient_GetExchange_NoRedis_SkipsCache(t *testing.T) {
 		t.Errorf("expected 1 upstream call, got %d", srvHits.Load())
 	}
 }
+
+// TestCurrencyClient_GetExchange_SendsBaseQuery 回归：base 必须作为 query 参数
+// 发到上游。此前只改 req.URL.Query() 的副本未写回 RawQuery，请求恒为无参，
+// 上游默认按 USD 返回，导致任意 base 都拿到 USD 汇率。
+func TestCurrencyClient_GetExchange_SendsBaseQuery(t *testing.T) {
+	gotBase := make(chan string, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBase <- r.URL.Query().Get("base")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(currencySample))
+	}))
+	t.Cleanup(srv.Close)
+
+	cli := newTestCurrencyClient(t, srv.URL, nil)
+
+	if _, err := cli.GetExchange(context.Background(), "CNY", "currency:CNY:2026/08/07", time.Hour); err != nil {
+		t.Fatalf("GetExchange: %v", err)
+	}
+
+	select {
+	case base := <-gotBase:
+		if base != "CNY" {
+			t.Errorf("upstream base = %q, want %q", base, "CNY")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("upstream did not receive a request within 2s")
+	}
+}
