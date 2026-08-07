@@ -71,6 +71,22 @@ func newCapturingServer(t *testing.T, hits *atomic.Int32, body string) *httptest
 	return srv
 }
 
+// waitForCache 轮询等待异步写回的缓存落盘（miniredis），超时则 t.Fatal。
+// 生产代码以 goroutine 写回缓存，响应返回时写回未必完成，直接断言会竞态。
+func waitForCache(t *testing.T, mr *miniredis.Miniredis, key, want string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if cached, err := mr.Get(key); err == nil && cached == want {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("cache key %q not written back to %q within 2s", key, want)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 // ── GetTide ─────────────────────────────────────────────────────────
 
 func TestWeatherService_GetTide_CacheHit(t *testing.T) {
@@ -119,14 +135,8 @@ func TestWeatherService_GetTide_CacheMiss_FetchesUpstream(t *testing.T) {
 		t.Errorf("expected 1 upstream call, got %d", hits.Load())
 	}
 
-	// 缓存写回
-	cached, err := mr.Get("qweather:tide:P2352:20260115")
-	if err != nil {
-		t.Fatalf("miniredis.Get: %v", err)
-	}
-	if cached != `{"code":"200","data":[1,2,3]}` {
-		t.Errorf("cached payload = %q", cached)
-	}
+	// 缓存写回（异步 goroutine，轮询等待落盘）
+	waitForCache(t, mr, "qweather:tide:P2352:20260115", `{"code":"200","data":[1,2,3]}`)
 }
 
 // ── GetCurrent ──────────────────────────────────────────────────────
@@ -202,14 +212,9 @@ func TestWeatherService_GetForecast_PathAndCacheKey(t *testing.T) {
 	if p, _ := gotPath.Load().(string); p != "/v7/weather/3d" {
 		t.Errorf("path = %q, want /v7/weather/3d", p)
 	}
-	// 缓存 key 必须包含 days 后缀（避免 3d / 7d 命中同一 key）
-	cached, err := mr.Get("qweather:forecast:P2352:3d")
-	if err != nil {
-		t.Errorf("expected cache key qweather:forecast:P2352:3d: %v", err)
-	}
-	if cached == "" {
-		t.Error("cache miss — expected forecast payload written to redis")
-	}
+	// 缓存 key 必须包含 days 后缀（避免 3d / 7d 命中同一 key）；
+	// 写回是异步 goroutine，轮询等待落盘。
+	waitForCache(t, mr, "qweather:forecast:P2352:3d", `{"daily":[]}`)
 }
 
 // ── GetIndices ──────────────────────────────────────────────────────

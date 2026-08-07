@@ -147,14 +147,8 @@ func TestQWeatherClient_Get_CacheMissFetches(t *testing.T) {
 		t.Errorf("trace_id = %q, want %q", got, "trace-abc")
 	}
 
-	// 缓存已被写回
-	cached, err := mr.Get("qweather:test:miss")
-	if err != nil {
-		t.Fatalf("miniredis.Get: %v", err)
-	}
-	if cached != samplePayload {
-		t.Errorf("cached = %q, want %q", cached, samplePayload)
-	}
+	// 缓存已被写回（异步 goroutine，轮询等待落盘）
+	waitForCache(t, mr, "qweather:test:miss", samplePayload)
 }
 
 func TestQWeatherClient_Get_UpstreamError(t *testing.T) {
