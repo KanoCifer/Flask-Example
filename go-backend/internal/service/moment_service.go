@@ -81,8 +81,8 @@ func NewMomentService(repo MomentRepositoryer) *MomentService {
 // dto→document 的转换在此层完成：repo 只认 document 类型（与 devtask 模式一致）。
 //
 // status=published 且未显式指定 PublishedAt 时,默认用 now 作为发布时间,
-//避免新建的发布态 moment 在前端列表/详情显示发布时间为 null。
-//draft / archived 状态保持 PublishedAt=nil。
+// 避免新建的发布态 moment 在前端列表/详情显示发布时间为 null。
+// draft / archived 状态保持 PublishedAt=nil。
 func (s *MomentService) Create(
 	ctx context.Context,
 	userID int,

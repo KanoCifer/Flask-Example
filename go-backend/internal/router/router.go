@@ -29,6 +29,7 @@ func Setup(r *gin.Engine, state *app.AppState, redis *redis.Client) {
 	loginLimiter := middleware.NewRateLimiter(redis, "login", 5, 60*time.Second)
 	registerLimiter := middleware.NewRateLimiter(redis, "register", 5, 60*time.Second)
 	likeLimiter := middleware.NewRateLimiter(redis, "like", 25, 24*time.Hour)
+	currencyLimiter := middleware.NewRateLimiter(redis, "currency", 500, time.Hour)
 
 	userH := handler.NewUserHandler(state.UserSvc(), state.Cfg())
 	userH.RegisterRoutes(v3, middleware.AuthMiddleware(), loginLimiter.Middleware(), registerLimiter.Middleware())
@@ -86,8 +87,8 @@ func Setup(r *gin.Engine, state *app.AppState, redis *redis.Client) {
 	wereadH := handler.NewWereadHandler(state.WereadSvc())
 	wereadH.RegisterRoutes(v3, middleware.AuthMiddleware())
 
-	currencyH := handler.NewCurrencyHandler(state.CurrencySvc())
-	currencyH.RegisterRoutes(v3)
+	currencyH := handler.NewCurrencyHandler(state.CurrencySvc(), )
+	currencyH.RegisterRoutes(v3, currencyLimiter.Middleware())
 
 	// 媒体静态服务：把上传的文件以 /api/v3/media/* 暴露，对齐 handler 返回的 url。
 	// 挂在 Static 前，给响应打上公共缓存头，让 CDN 缓存命中（7d，uuid 命名不可变）。

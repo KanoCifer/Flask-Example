@@ -270,4 +270,3 @@ func (s *Service) FetchBooksRecommend(ctx context.Context, userID string, count,
 	}
 	return out, nil
 }
-

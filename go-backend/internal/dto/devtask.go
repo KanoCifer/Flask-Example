@@ -29,7 +29,7 @@ type DevTaskCreate struct {
 	Kind document.TaskKind `json:"kind"`
 	// ParentSlug: 子任务归属的 spec slug。nil = 无归属。
 	ParentSlug *string `json:"parent_slug"`
-	Slug *string `json:"slug"`
+	Slug       *string `json:"slug"`
 }
 
 // DevTaskUpdate 更新任务请求（全字段可选，有值才更新）

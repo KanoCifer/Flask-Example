@@ -37,6 +37,6 @@ func (h *CurrencyHandler) GetExchangeRate(c *gin.Context) {
 
 }
 
-func (h *CurrencyHandler) RegisterRoutes(r *gin.RouterGroup) {
-	r.GET("/currency", h.GetExchangeRate)
+func (h *CurrencyHandler) RegisterRoutes(r *gin.RouterGroup, mw ...gin.HandlerFunc) {
+	r.GET("/currency", append(mw, h.GetExchangeRate)...)
 }
