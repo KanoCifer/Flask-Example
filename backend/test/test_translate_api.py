@@ -12,15 +12,25 @@ from __future__ import annotations
 
 import pytest
 
-from app.schemas.translate import TranslateResult
+from app.schemas.translate import TranslateResult, UsageMetrics
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_translate_endpoint_anonymous(api_app, api_client, monkeypatch):
-    async def _fake_translate(text, target_lang):
+    async def _fake_translate(text, target_lang, user_id=None):
         assert target_lang == "中文"
-        return TranslateResult(text="你好，世界")
+        assert user_id is None  # 匿名请求 user 为 None
+        return TranslateResult(
+            text="你好，世界",
+            usage=UsageMetrics(
+                model="Ling-2.6-1T",
+                input_tokens=10,
+                output_tokens=20,
+                total_tokens=30,
+                duration_ms=500,
+            ),
+        )
 
     api_app.state.services.translate_svc.translate = _fake_translate
 
@@ -32,7 +42,16 @@ async def test_translate_endpoint_anonymous(api_app, api_client, monkeypatch):
     assert resp.status_code == 200
     body = resp.json()
     assert body["message"] == "success"
-    assert body["data"] == {"text": "你好，世界"}
+    assert body["data"] == {
+        "text": "你好，世界",
+        "usage": {
+            "model": "Ling-2.6-1T",
+            "input_tokens": 10,
+            "output_tokens": 20,
+            "total_tokens": 30,
+            "duration_ms": 500,
+        },
+    }
 
 
 async def test_translate_endpoint_requires_text(api_app, api_client):

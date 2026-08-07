@@ -24,7 +24,11 @@ async def translate(
     user: int | None = Depends(optional_user),
     state: AppState = Depends(get_app_state),
 ):
-    """通用翻译：把 ``text`` 翻译成 ``target_lang``，返回 ``{text}``。"""
+    """通用翻译：把 ``text`` 翻译成 ``target_lang``，返回 ``{text}``。
+
+    ``usage``（token 消耗）随 ``data`` 返回；匿名用户 ``user_id`` 为 None，
+    落库时记为 NULL，不落 IP。
+    """
     svc: TranslateService = state.translate_svc
-    result = await svc.translate(payload.text, payload.target_lang)
+    result = await svc.translate(payload.text, payload.target_lang, user_id=user)
     return APIResponse(data=result, message="success")

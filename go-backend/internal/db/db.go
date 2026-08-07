@@ -46,6 +46,7 @@ func InitDB() error {
 		&model.GalleryImage{},
 		&model.Log{},
 		&model.Event{},
+		&model.LlmUsage{},
 	)
 }
 

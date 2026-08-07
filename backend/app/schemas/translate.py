@@ -14,7 +14,20 @@ class TranslateRequest(BaseModel):
     )
 
 
+class UsageMetrics(BaseModel):
+    """单次 LLM 调用的 token 消耗（随翻译结果返回，供调用方展示/统计）。"""
+
+    model: str = Field(..., description="模型 id")
+    input_tokens: int = Field(..., description="本次请求的输入 token")
+    output_tokens: int = Field(..., description="模型生成的输出 token")
+    total_tokens: int = Field(..., description="输入 + 输出 token")
+    duration_ms: int | None = Field(None, description="本次调用耗时（毫秒）")
+
+
 class TranslateResult(BaseModel):
     """``POST /v2/translate`` 响应体（``data`` 字段）"""
 
     text: str = Field(..., description="翻译后的文本")
+    usage: UsageMetrics | None = Field(
+        None, description="本次调用的 token 消耗（可选，向后兼容）"
+    )
