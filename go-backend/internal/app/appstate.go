@@ -33,6 +33,7 @@ type AppState struct {
 	momentSvc   service.Momenter
 	weatherSvc  service.Weatherer
 	wereadSvc   wereadSvc.Reader
+	currencySvc service.Currencyer
 }
 
 // NewAppState 组装所有 service，作为唯一的组合根入口。
@@ -90,11 +91,12 @@ func NewAppState(
 			redis, userRepo, userSvc,
 			cfg.GitHub.ClientID, cfg.GitHub.ClientSecret, cfg.GitHub.RedirectURI,
 		),
-		fishSvc:    service.NewFishService(fishRepo),
-		uploadSvc:  service.NewUploadService(userRepo, cfg),
-		momentSvc:  service.NewMomentService(momentRepo),
-		weatherSvc: service.NewWeatherService(httpCli, redis, cfg.Weather, signer),
-		wereadSvc:  wereadSvc.New(httpCli, redis, wereadRepo),
+		fishSvc:     service.NewFishService(fishRepo),
+		uploadSvc:   service.NewUploadService(userRepo, cfg),
+		momentSvc:   service.NewMomentService(momentRepo),
+		weatherSvc:  service.NewWeatherService(httpCli, redis, cfg.Weather, signer),
+		wereadSvc:   wereadSvc.New(httpCli, redis, wereadRepo),
+		currencySvc: service.NewCurrencyService(httpCli, redis),
 	}
 }
 
@@ -113,5 +115,6 @@ func (a *AppState) UploadSvc() service.Uploader        { return a.uploadSvc }
 func (a *AppState) MomentSvc() service.Momenter        { return a.momentSvc }
 func (a *AppState) WeatherSvc() service.Weatherer      { return a.weatherSvc }
 func (a *AppState) WereadSvc() wereadSvc.Reader        { return a.wereadSvc }
+func (a *AppState) CurrencySvc() service.Currencyer    { return a.currencySvc }
 
 func (a *AppState) Cfg() *config.Config { return a.config }
