@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
+	"github.com/KanoCifer/kuroome-blog/internal/middleware"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 )
 
@@ -59,7 +60,7 @@ func (h *DeployHandler) WebhookDeploy(c *gin.Context) {
 
 	go runDeployment()
 
-	slog.InfoContext(c.Request.Context(), "Deployment triggered by webhook", "ip", c.ClientIP())
+	slog.InfoContext(c.Request.Context(), "Deployment triggered by webhook", "ip", middleware.ClientIP(c))
 	response.Success(c, gin.H{"status": "pending"}, "Deployment triggered successfully")
 }
 

@@ -70,6 +70,12 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
+	// 可信反向代理（同机 nginx 等）：限制 gin 内置 ClientIP() 只信任这些来源，
+	// 覆盖默认"信任所有代理"的行为。真实 IP 的统一解析见 RealClientIPMiddleware。
+	if err := r.SetTrustedProxies(config.Cfg.Server.TrustedProxies); err != nil {
+		slog.Warn("set trusted proxies", "error", err.Error())
+	}
+
 	wa, err := service.NewWebAuthn(config.Cfg.WebAuthn.RPID, config.Cfg.WebAuthn.Origin)
 	if err != nil {
 		slog.Error("init webauthn", "error", err)

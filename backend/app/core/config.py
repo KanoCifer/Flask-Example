@@ -81,6 +81,14 @@ class Settings(BaseSettings):
     # 日志目录。空字符串=用默认 backend/logs/；_info/__error 后缀由 logger 自动追加。
     LOG_DIR: str = ""
 
+    # 可信反向代理（逗号分隔 IP 或 CIDR），如 Nginx：仅这些来源的
+    # X-Forwarded-For 末段被当作真实客户端 IP（uvicorn forwarded_allow_ips）。
+    # 默认仅信任同机反代（loopback）；nginx 在其它网段/容器时需显式补充其地址。
+    # 注意：若 nginx 前还有 CDN（EdgeOne 等），须在 nginx 用 realip 模块把真实
+    # 客户端重写到 $remote_addr（见 docs/rules/environment.md），否则末段是 CDN
+    # 节点 IP。不要在此把 CDN 回源段加为可信——CDN 的 XFF 是追加语义。
+    TRUSTED_PROXIES: str = "127.0.0.1,::1"
+
     MEDIA_PATH: str = ""
 
     model_config = SettingsConfigDict(

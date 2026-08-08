@@ -37,7 +37,7 @@ func SlogMiddleware(logger *slog.Logger) gin.HandlerFunc {
 			slog.String("query", query),
 			slog.Int("status", c.Writer.Status()),
 			slog.Duration("latency", time.Since(start)),
-			slog.String("client_ip", c.ClientIP()),
+			slog.String("client_ip", ClientIP(c)),
 			slog.Int("body_size", c.Writer.Size()),
 		)
 

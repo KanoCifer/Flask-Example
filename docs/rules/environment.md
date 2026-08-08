@@ -21,6 +21,40 @@
 | `MEDIA_PATH`    | 上传文件存储根目录（绝对路径或相对路径）。                                          |
 | `MAX_UPLOAD_MB` | 单文件上传上限（MB），默认 `10`；超出返回 413                                       |
 
+### 可信代理（FastAPI 与 Go 后端共用）
+
+| Variable         | Description                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| `TRUSTED_PROXIES` | 可信反向代理（逗号分隔 IP 或 CIDR），如 Nginx。仅这些来源的 `X-Forwarded-For` 末段被当作真实客户端 IP。默认 `127.0.0.1,::1`（仅同机反代）；Nginx 在其它网段时需补充其地址。FastAPI 端经 uvicorn `forwarded_allow_ips` 生效（`request.client` 与限流/审计共用），Go 端经 gin `SetTrustedProxies` + `RealClientIPMiddleware` 生效。**生产如用 `uvicorn app.main:app` 命令行（supervisor）而非 `dev.py` 启动，需在环境变量中设 `FORWARDED_ALLOW_IPS`（uvicorn 原生读取）与 `TRUSTED_PROXIES` 保持一致**；dev 场景 `dev.py` 已自动透传。 |
+
+#### 前置 CDN（EdgeOne / Cloudflare）
+
+当 nginx 前面再加 CDN（如腾讯云 EdgeOne）时，拓扑变为 `客户端 → CDN → Nginx → 后端`：
+
+- CDN 回源会把与它建连的前序 IP **追加**进 `X-Forwarded-For`（EdgeOne 官方行为，直接用户即真实客户端）；
+- nginx 再用 `$proxy_add_x_forwarded_for` 追加 CDN 节点 IP。
+
+此时后端的"取末段"约定会把 **CDN 节点 IP** 当作客户端，限流/审计/登录 IP 全部塌缩到少数节点 IP。
+
+**必须在 nginx 层用 realip 模块把真实客户端重写到 `$remote_addr`**，后端无需改动：
+
+```nginx
+set_real_ip_from <EdgeOne 回源 IP 段>;
+real_ip_header X-Forwarded-For;
+real_ip_recursive on;
+```
+
+之后 nginx `$proxy_add_x_forwarded_for` 追加的就是真实客户端 IP，两端"取末段"逻辑自动恢复正确。
+
+注意事项：
+
+- **回源 IP 段的唯一官方来源是付费版的「源站防护」**（安全防护 → 源站防护 控制台，或 `DescribeOriginACL` API 轮询）。免费版两处来源均已关闭：
+  - 公开列表接口 `api.edgeone.ai/ips` 已于 2026-07-31 停止服务、2026-08-31 正式下线（实测已返回 `0.0.0.0/0` 占位）；
+  - 免费套餐的「源站防护」功能已于 2025-11-14 下架，需升级个人版/基础版/标准版套餐才有。
+- 因此**免费版无法可靠配置防火墙 IP 白名单**（无可用回源段）。若坚持免费版，只能走应用层替代：后端只信 loopback（两端 `TRUSTED_PROXIES=127.0.0.1,::1`，代码已兜底）、确认后端端口不对外、nginx 不采信伪造头，并接受"源站 IP 可被探测"的残余风险。要彻底隐藏源站，需升级套餐开启源站防护后做网络层白名单。
+- **`set_real_ip_from 0.0.0.0/0`（信任一切）为高风险配置**：攻击者绕过 CDN 直连 nginx 时，可伪造 `EO-Connecting-IP`/`X-Forwarded-For` 任意冒充 IP，限流/审计/登录 IP 全被绕过。拿不到回源段时**不要**用 `0.0.0.0/0` 采信转发头；应改走下面的应用层兜底。
+- 若不做 nginx 侧重写，则须把 CDN 回源段加进两端 `TRUSTED_PROXIES`，并把解析策略改为"从右向左取第一个非可信 IP"（gin/uvicorn 原生逻辑），改动更大且回源段需在两处同步维护。
+
 ### Learning 模块 — DeepSeek + Exa 研究
 
 | Variable            | Description                                                                              |

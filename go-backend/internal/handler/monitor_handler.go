@@ -10,6 +10,7 @@ import (
 
 	"github.com/KanoCifer/kuroome-blog/internal/config"
 	"github.com/KanoCifer/kuroome-blog/internal/dto"
+	"github.com/KanoCifer/kuroome-blog/internal/middleware"
 	"github.com/KanoCifer/kuroome-blog/internal/response"
 	"github.com/KanoCifer/kuroome-blog/internal/service"
 )
@@ -177,7 +178,7 @@ func (h *MonitorHandler) TrackVisitor(c *gin.Context) {
 		response.APIError(c, err.Error())
 		return
 	}
-	req.IpAddress = c.ClientIP()
+	req.IpAddress = middleware.ClientIP(c)
 	if err := h.svc.TrackVisitor(c.Request.Context(), req); err != nil {
 		slog.ErrorContext(c.Request.Context(), "track visitor", "error", err)
 		response.APIError(c, err.Error(), 500)

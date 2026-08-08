@@ -40,6 +40,13 @@ type ServerConfig struct {
 	// LogDir 日志目录。空字符串=用默认 ./logs/，文件名 app.log / app_error.log。
 	// 与 Python 端 Settings.LOG_DIR 字段对齐。
 	LogDir string `mapstructure:"LOG_DIR"`
+	// TrustedProxies 可信反向代理（逗号分隔 IP 或 CIDR）。
+	// 仅当直接连接方命中该列表时，才解析 X-Forwarded-For 末段为真实客户端 IP；
+	// 未命中的请求一律按直连处理（返回 RemoteAddr，忽略伪造的转发头）。
+	// 默认仅信任同机 nginx (loopback)。注意：若 nginx 前还有 CDN（EdgeOne 等），
+	// 须在 nginx 用 realip 模块把真实客户端重写到 $remote_addr，否则末段是 CDN
+	// 节点 IP；不要在此把 CDN 回源段加为可信（CDN 的 XFF 是追加语义）。
+	TrustedProxies []string `mapstructure:"-"`
 }
 
 // SecurityConfig 安全相关密钥与 Cookie。
@@ -149,6 +156,7 @@ var defaults = map[string]any{
 	"ENV":                      "prod",
 	"SAVE_LOGS":                true,
 	"LOG_DIR":                  "./logs",
+	"TRUSTED_PROXIES":          "127.0.0.1,::1",
 	"SECRET_KEY":               "",
 	"JWT_PRIVATE_KEY":          "",
 	"COOKIE_DOMAIN":            "",
@@ -226,6 +234,9 @@ func Load(cfgFile ...string) (*Config, error) {
 	}
 	if ids := viper.GetString("ADMIN_USER_IDS"); ids != "" {
 		cfg.Admin.UserIDs = parseIntList(ids)
+	}
+	if proxies := viper.GetString("TRUSTED_PROXIES"); proxies != "" {
+		cfg.Server.TrustedProxies = splitAndTrim(proxies)
 	}
 
 	Cfg = &cfg

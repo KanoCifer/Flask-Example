@@ -18,6 +18,9 @@ import (
 
 // Setup 装配 gin 引擎：全局中间件 + 路由注册 + 限流。
 func Setup(r *gin.Engine, state *app.AppState, redis *redis.Client) {
+	// RealClientIP 最先挂：解析真实客户端 IP 写入 context，供后续限流 / 日志 /
+	// 审计使用（见 middleware.ClientIP）。依赖 main.go 已 SetTrustedProxies。
+	r.Use(middleware.RealClientIPMiddleware(state.Cfg().Server.TrustedProxies))
 	r.Use(middleware.Duration())
 	r.Use(middleware.Trace())
 	r.Use(middleware.SlogMiddleware(slog.Default()))

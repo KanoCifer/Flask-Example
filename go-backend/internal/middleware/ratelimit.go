@@ -38,7 +38,7 @@ func NewRateLimiter(redis *redis.Client, scope string, limit int, window time.Du
 		scope:   scope,
 		limit:   limit,
 		window:  window,
-		keyFunc: func(c *gin.Context) string { return c.ClientIP() },
+		keyFunc: func(c *gin.Context) string { return ClientIP(c) },
 	}
 	for _, opt := range opts {
 		opt(rl)

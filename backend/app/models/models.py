@@ -79,12 +79,20 @@ class User(Base):
     def get_real_ip(request: Request) -> str:
         """
         获取客户端真实 IP,处理了反向代理 Nginx 的情况
+
+        约定与 app/api/des/limiter.py 的 client_key 一致：nginx 用
+        `$proxy_add_x_forwarded_for` 把真实来源 IP 追加在 X-Forwarded-For 末段，
+        因此取**最右一个非空项**（客户端伪造的首段被忽略）。可信来源的判定由
+        uvicorn 的 ProxyHeadersMiddleware（TRUSTED_PROXIES）完成，此处只做取段。
         """
-        # 1. 尝试从 X-Forwarded-For 获取（经过多层代理时，第一个 IP 才是真实客户端）
+        # 1. 尝试从 X-Forwarded-For 获取（nginx 追加的末段才是真实客户端）
         x_forwarded_for = request.headers.get("X-Forwarded-For")
         if x_forwarded_for:
             # 可能是 "client_ip, proxy1_ip, proxy2_ip" 的格式
-            return x_forwarded_for.split(",")[0].strip()
+            for item in reversed(x_forwarded_for.split(",")):
+                ip = item.strip()
+                if ip:
+                    return ip
 
         # 2. 尝试从 X-Real-IP 获取（常见于简单的单层代理配置）
         x_real_ip = request.headers.get("X-Real-IP")
