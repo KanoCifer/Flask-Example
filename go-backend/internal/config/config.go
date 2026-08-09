@@ -1,7 +1,3 @@
-// Package config 提供应用配置加载：环境变量 > 配置文件 > 缺省值。
-//
-// Config 按域拆分子配置，便于各模块只注入自己需要的部分。字段名与 Python
-// 后端 Settings 类 1:1 对齐，mapstructure tag 对应环境变量名（大写）。
 package config
 
 import (
@@ -37,16 +33,8 @@ type ServerConfig struct {
 	DbLogLevel string `mapstructure:"DB_LOG_LEVEL"`
 	SaveLogs   bool   `mapstructure:"SAVE_LOGS"`
 	ENV        string `mapstructure:"ENV"`
-	// LogDir 日志目录。空字符串=用默认 ./logs/，文件名 app.log / app_error.log。
-	// 与 Python 端 Settings.LOG_DIR 字段对齐。
 	LogDir string `mapstructure:"LOG_DIR"`
-	// TrustedProxies 可信反向代理（逗号分隔 IP 或 CIDR）。
-	// 仅当直接连接方命中该列表时，才解析 X-Forwarded-For 末段为真实客户端 IP；
-	// 未命中的请求一律按直连处理（返回 RemoteAddr，忽略伪造的转发头）。
-	// 默认仅信任同机 nginx (loopback)。注意：若 nginx 前还有 CDN（EdgeOne 等），
-	// 须在 nginx 用 realip 模块把真实客户端重写到 $remote_addr，否则末段是 CDN
-	// 节点 IP；不要在此把 CDN 回源段加为可信（CDN 的 XFF 是追加语义）。
-	TrustedProxies []string `mapstructure:"-"`
+	TrustedProxies []string `mapstructure:"TRUSTED_PROXIES"`
 }
 
 // SecurityConfig 安全相关密钥与 Cookie。
@@ -55,8 +43,7 @@ type SecurityConfig struct {
 	JWTPrivateKey string `mapstructure:"JWT_PRIVATE_KEY"`
 	CookieDomain  string `mapstructure:"COOKIE_DOMAIN"`
 	APIKey        string `mapstructure:"API_KEY"`
-	// DevTaskSecret —— 服务级 JWT 签名密钥（devtask / MCP 专用）。
-	// 独立于 SecretKey（用户 JWT），避免 service token 被当作用户 token 接受。
+
 	DevTaskSecret string `mapstructure:"DEV_TASK_SECRET"`
 }
 
@@ -99,7 +86,7 @@ type FrontendConfig struct {
 
 // AdminConfig 管理员与运维。
 type AdminConfig struct {
-	UserIDs        []int  `mapstructure:"-"` // derived from ADMIN_USER_IDS
+	UserIDs        []int  `mapstructure:"-"`
 	EnableTracking bool   `mapstructure:"ENABLE_TRACKING"`
 	Email          string `mapstructure:"ADMIN_EMAIL"`
 	SendBootEmail  bool   `mapstructure:"SEND_BOOT_EMAIL"`
@@ -119,7 +106,7 @@ type GiteeConfig struct {
 type AmapConfig struct {
 	SecurityCode      string   `mapstructure:"AMAP_SECURITY_CODE"`
 	WebKey            string   `mapstructure:"AMAP_WEB_KEY"`
-	KeyAllowedOrigins []string `mapstructure:"-"` // derived from AMAP_KEY_ALLOWED_ORIGINS
+	KeyAllowedOrigins []string `mapstructure:"-"`
 }
 
 // APIConfig API 元数据。
@@ -147,63 +134,67 @@ type UploadConfig struct {
 	MaxUploadMB int `mapstructure:"MAX_UPLOAD_MB"`
 }
 
-// 缺省值映射；viper 按 key 查找，嵌套 struct 的 key 与根级一致（viper 不自动
-// 加前缀），所以这里仍然用扁平 key。
-var defaults = map[string]any{
-	"PORT":                     5555,
-	"LOG_LEVEL":                "INFO",
-	"DB_LOG_LEVEL":             "WARNING",
-	"ENV":                      "prod",
-	"SAVE_LOGS":                true,
-	"LOG_DIR":                  "./logs",
-	"TRUSTED_PROXIES":          "127.0.0.1,::1",
-	"SECRET_KEY":               "",
-	"JWT_PRIVATE_KEY":          "",
-	"COOKIE_DOMAIN":            "",
-	"API_KEY":                  "",
-	"DATABASE_URL":             "",
-	"MONGO_URI":                "",
-	"REDIS_URL":                "redis://localhost:6379/0",
-	"REDIS_MAX_CONNECTIONS":    50,
-	"RABBITMQ_URL":             "amqp://guest:guest@localhost:5672/",
-	"MAIL_USERNAME":            "",
-	"MAIL_PASSWORD":            "",
-	"MAIL_SERVER":              "smtp.qq.com",
-	"MAIL_PORT":                587,
-	"MAIL_FROM_NAME":           "Kuroome's Mail Service",
-	"GITHUB_CLIENT_ID":         "",
-	"GITHUB_CLIENT_SECRET":     "",
-	"GITHUB_REDIRECT_URI":      "",
-	"WEBAUTHN_RP_ID":           "kanocifer.chat",
-	"WEBAUTHN_ORIGIN":          "https://kanocifer.chat",
-	"FRONTEND_URL":             "https://kanocifer.chat",
-	"VITE_JS_API_TOKEN":        "",
-	"ADMIN_USER_IDS":           "1,2",
-	"ENABLE_TRACKING":          true,
-	"ADMIN_EMAIL":              "",
-	"SEND_BOOT_EMAIL":          true,
-	"FEISHU_WEBHOOK_URL":       "",
-	"GITEE_WEBHOOK_SECRET":     nil,
-	"AMAP_SECURITY_CODE":       "",
-	"AMAP_WEB_KEY":             "",
-	"AMAP_KEY_ALLOWED_ORIGINS": "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,https://kanocifer.chat,https://m.kanocifer.chat",
-	"API_VERSION":              "4.0.0",
-	"API_TITLE":                "Reading List API",
-	"API_DESCRIPTION":          "API文档。Personal reading tracker API built with FastAPI, PostgreSQL, and MongoDB.",
-	"QWEATHER_BASE_URL":        "",
-	"MEDIA_PATH":               "./media",
-	"MAX_UPLOAD_MB":            10,
+func defaultConfig() Config {
+	return Config{
+		Server: ServerConfig{
+			Port:           5555,
+			LogLevel:       "INFO",
+			DbLogLevel:     "WARNING",
+			SaveLogs:       true,
+			ENV:            "prod",
+			LogDir:         "./logs",
+			TrustedProxies: []string{"127.0.0.1", "::1"},
+		},
+		Database: DatabaseConfig{
+			RedisURL:            "redis://localhost:6379/0",
+			RedisMaxConnections: 50,
+			RabbitMQURL:         "amqp://guest:guest@localhost:5672/",
+		},
+		Mail: MailConfig{
+			Server:   "smtp.qq.com",
+			Port:     587,
+			FromName: "Kuroome's Mail Service",
+		},
+		WebAuthn: WebAuthnConfig{
+			RPID:   "kanocifer.chat",
+			Origin: "https://kanocifer.chat",
+		},
+		Frontend: FrontendConfig{
+			URL: "https://kanocifer.chat",
+		},
+		Admin: AdminConfig{
+			UserIDs:        []int{1, 2},
+			EnableTracking: true,
+			SendBootEmail:  true,
+		},
+		Amap: AmapConfig{
+			KeyAllowedOrigins: []string{
+				"http://localhost:5173",
+				"http://localhost:5174",
+				"http://127.0.0.1:5173",
+				"http://127.0.0.1:5174",
+				"https://kanocifer.chat",
+				"https://m.kanocifer.chat",
+			},
+		},
+		API: APIConfig{
+			Version:     "5.0.0",
+			Title:       "Kuroome API",
+			Description: "Kuroome API built with Gin, PostgreSQL, and MongoDB.",
+		},
+		Upload: UploadConfig{
+			UploadDir:   "./media",
+			MaxUploadMB: 10,
+		},
+	}
 }
 
 var Cfg *Config
 
-// Load 读取配置：环境变量 > 配置文件 > 缺省值。
-//
-// cfgFile 非空时作为显式路径；否则查找 ./configs/config.yaml。配置文件缺失
-// 不是 fatal（仅解析错误会返回错误），缺失字段回退到 defaults。
 func Load(cfgFile ...string) (*Config, error) {
-	for k, v := range defaults {
-		viper.SetDefault(k, v)
+	cfg := defaultConfig()
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, err
 	}
 
 	if len(cfgFile) > 0 && cfgFile[0] != "" {
@@ -223,12 +214,9 @@ func Load(cfgFile ...string) (*Config, error) {
 
 	viper.AutomaticEnv()
 
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, err
-	}
-
 	// 逗号分隔的字符串 → slice；viper 的 mapstructure 不会自动 split。
+	// 文件/环境变量未设置对应 key 时 GetString 返回 ""，跳过即保留
+	// defaultConfig() 里的默认 slice。
 	if origins := viper.GetString("AMAP_KEY_ALLOWED_ORIGINS"); origins != "" {
 		cfg.Amap.KeyAllowedOrigins = splitAndTrim(origins)
 	}
