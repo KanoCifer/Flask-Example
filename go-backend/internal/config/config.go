@@ -193,9 +193,6 @@ var Cfg *Config
 
 func Load(cfgFile ...string) (*Config, error) {
 	cfg := defaultConfig()
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, err
-	}
 
 	if len(cfgFile) > 0 && cfgFile[0] != "" {
 		viper.SetConfigFile(cfgFile[0])
@@ -213,6 +210,12 @@ func Load(cfgFile ...string) (*Config, error) {
 	}
 
 	viper.AutomaticEnv()
+
+	// 必须在 ReadInConfig + AutomaticEnv 之后再 Unmarshal：否则 viper 的 key
+	// store 为空，文件与环境变量全部被忽略，只留下 defaultConfig() 默认值。
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
 
 	// 逗号分隔的字符串 → slice；viper 的 mapstructure 不会自动 split。
 	// 文件/环境变量未设置对应 key 时 GetString 返回 ""，跳过即保留

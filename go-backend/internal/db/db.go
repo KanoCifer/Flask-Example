@@ -108,9 +108,6 @@ func GetRedis() *redis.Client {
 	return rdb
 }
 
-// databaseURL 优先从环境变量 DATABASE_URL 读取，回退到 config.Cfg。
-// viper 的 AutomaticEnv 在 mapstructure 值为空字符串时不覆盖 default，
-// 导致 viper 读到的 DATABASE_URL 常为空；直接从 os 读可以绕过这个问题。
 func databaseURL() string {
 	if url := os.Getenv("DATABASE_URL"); url != "" {
 		return url

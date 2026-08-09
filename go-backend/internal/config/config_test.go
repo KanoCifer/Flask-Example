@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestSplitAndTrim(t *testing.T) {
 	tests := []struct {
@@ -28,6 +32,45 @@ func TestSplitAndTrim(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestLoadAppliesConfigFile 回归测试：Load 必须把 config 文件里的值
+// 实际 merge 进 Cfg，否则会出现"文件被静默忽略、只留默认值"的 bug
+// （曾导致 DATABASE_URL 为空、DB 连到默认 unix socket）。
+func TestLoadAppliesConfigFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	content := `
+database:
+  DATABASE_URL: "postgres://test:pass@localhost/testdb"
+  MONGO_URI: "mongodb://mongo:27017/"
+server:
+  PORT: 9999
+  LOG_LEVEL: "DEBUG"
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := cfg.Database.DatabaseURL, "postgres://test:pass@localhost/testdb"; got != want {
+		t.Errorf("DatabaseURL = %q, want %q", got, want)
+	}
+	if got, want := cfg.Database.MongoURI, "mongodb://mongo:27017/"; got != want {
+		t.Errorf("MongoURI = %q, want %q", got, want)
+	}
+	if got, want := cfg.Server.Port, 9999; got != want {
+		t.Errorf("Port = %d, want %d", got, want)
+	}
+	if got, want := cfg.Server.LogLevel, "DEBUG"; got != want {
+		t.Errorf("LogLevel = %q, want %q", got, want)
+	}
+	// 文件中未出现的字段应保留 defaultConfig() 的默认值。
+	if got, want := cfg.Upload.MaxUploadMB, 10; got != want {
+		t.Errorf("MaxUploadMB = %d, want default %d", got, want)
 	}
 }
 
