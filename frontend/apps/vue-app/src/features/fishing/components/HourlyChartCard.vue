@@ -160,12 +160,12 @@ const chartOption = computed(() => {
               const unit = isTemp ? '°C' : 'mm';
               return `<div style="display:flex;align-items:center;gap:8px;margin-top:3px;">
               <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${
-                isTemp ? tempColor : rainColor
-              };"></span>
+                              isTemp ? tempColor : rainColor
+                            };"></span>
               <span style="color:${p.mutedForeground};font-size:11px;letter-spacing:0.02em;">${it.seriesName}</span>
               <span style="font-weight:600;margin-left:auto;font-variant-numeric:tabular-nums;color:${
-                isTemp ? tempColor : p.foreground
-              };">${it.data}${unit}</span>
+                              isTemp ? tempColor : p.foreground
+                            };">${it.data}${unit}</span>
             </div>`;
             })
             .join('');

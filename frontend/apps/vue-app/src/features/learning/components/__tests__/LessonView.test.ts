@@ -90,9 +90,7 @@ function makeSingleChoice(): Exercise {
   };
 }
 
-function makeLesson(
-  overrides: Partial<LearningLesson> = {},
-): LearningLesson {
+function makeLesson(overrides: Partial<LearningLesson> = {}): LearningLesson {
   return {
     id: 1,
     title: 'Rust 入门 · 第 1 课',
@@ -103,9 +101,7 @@ function makeLesson(
   };
 }
 
-function makeCourse(
-  overrides: Partial<LearningCourse> = {},
-): LearningCourse {
+function makeCourse(overrides: Partial<LearningCourse> = {}): LearningCourse {
   return {
     course_id: 'rust--abcd1234',
     topic: 'Rust 入门',
@@ -208,9 +204,7 @@ describe('LessonView', () => {
   it('渲染 lesson 标题、面包屑 + 课序号', async () => {
     const wrapper = await mountView({
       course: makeCourse({
-        lessons: [
-          makeLesson({ id: 1, title: '所有权', slug: 'ownership' }),
-        ],
+        lessons: [makeLesson({ id: 1, title: '所有权', slug: 'ownership' })],
       }),
     });
     await flushPromises();
@@ -305,7 +299,9 @@ describe('LessonView', () => {
   });
 
   it('「下一课」:pending 路径 → poll 课程 + 跳到 lesson 详情', async () => {
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout'] });
+    vi.useFakeTimers({
+      toFake: ['setInterval', 'clearInterval', 'setTimeout'],
+    });
     try {
       const newCourse = makeCourse({
         lessons: [
@@ -395,9 +391,7 @@ describe('LessonView', () => {
       course: makeCourse({
         lessons: [makeLesson({ id: 1, title: 'L1' })],
       }),
-      progressList: [
-        makeProgressItem({ sessions_done: [1], next_session: 2 }),
-      ],
+      progressList: [makeProgressItem({ sessions_done: [1], next_session: 2 })],
     });
     await flushPromises();
 

@@ -131,9 +131,11 @@ const onClear = () => {
     :aria-disabled="isInactive"
     :aria-label="hasCover ? '点击或拖拽以替换封面' : prompt"
     :style="{ aspectRatio: aspect }"
-    class="group bg-surface/40 text-ink relative w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed outline-none transition-all select-none"
+    class="group bg-surface/40 text-ink relative w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed transition-all outline-none select-none"
     :class="[
-      hasCover ? 'border-solid border-border' : 'hover:border-muted-foreground hover:bg-surface',
+      hasCover
+        ? 'border-border border-solid'
+        : 'hover:border-muted-foreground hover:bg-surface',
       isDragging ? 'border-ink bg-surface scale-[0.99]' : '',
       isInactive ? 'pointer-events-none opacity-60' : '',
     ]"

@@ -1,9 +1,6 @@
 import { llmService } from '@/lib';
 import type { StreamFrameType } from '@/lib/llm';
-import {
-  fishingGateway,
-  type FishingGateway,
-} from '@readinglist/api';
+import { fishingGateway, type FishingGateway } from '@readinglist/api';
 import type { AnalysisPayload } from '../types';
 import type {
   FishingFeedbackPayload,
@@ -96,9 +93,9 @@ export const fishingMapService = (): FishingMapService => {
       indices: WeatherIndex[];
       tideData: TideData | null;
     }> {
-      const data = (await gateway.getWeatherFull(
-        payload,
-      )) as WeatherFullResponse | undefined;
+      const data = (await gateway.getWeatherFull(payload)) as
+        | WeatherFullResponse
+        | undefined;
       const now = data?.current?.now;
       const daily = data?.daily?.daily;
       const hourly = data?.hourly?.hourly as WeatherHourly[] | undefined;

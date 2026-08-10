@@ -102,7 +102,12 @@ const canSubmit = computed(() => editorCanSubmit.value && !submitting.value);
 /** radiogroup 键处理 —— 与 ARIA radiogroup pattern 一致: ← / → / ↑ / ↓ 切换选中。 */
 function onKindKeydown(event: KeyboardEvent): void {
   const k = event.key;
-  if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') {
+  if (
+    k !== 'ArrowLeft' &&
+    k !== 'ArrowRight' &&
+    k !== 'ArrowUp' &&
+    k !== 'ArrowDown'
+  ) {
     return;
   }
   event.preventDefault();
@@ -237,7 +242,9 @@ watch(
         </div>
 
         <!-- 可滚动主体 -->
-        <div class="flex-1 space-y-5 overflow-y-auto contain-[layout_paint_scroll_style] px-6 py-5">
+        <div
+          class="flex-1 space-y-5 overflow-y-auto px-6 py-5 contain-[layout_paint_scroll_style]"
+        >
           <!-- 交互迷你地图选点 -->
           <div class="space-y-3">
             <div class="text-muted flex items-center gap-1.5">
@@ -311,12 +318,20 @@ watch(
               <div
                 :class="[
                   'flex gap-2 rounded-2xl p-1',
-                  kindTouched && draft.kind === null ? 'ring-2 ring-offset-1 ring-offset-[var(--page)] ring-[color:var(--destructive)]/40' : '',
+                  kindTouched && draft.kind === null
+                    ? 'ring-2 ring-[color:var(--destructive)]/40 ring-offset-1 ring-offset-[var(--page)]'
+                    : '',
                 ]"
                 role="radiogroup"
                 aria-labelledby="spot-form-kind-label"
-                :aria-invalid="kindTouched && draft.kind === null ? 'true' : 'false'"
-                :aria-describedby="kindTouched && draft.kind === null ? 'spot-form-kind-error' : undefined"
+                :aria-invalid="
+                  kindTouched && draft.kind === null ? 'true' : 'false'
+                "
+                :aria-describedby="
+                  kindTouched && draft.kind === null
+                    ? 'spot-form-kind-error'
+                    : undefined
+                "
                 @keydown="onKindKeydown"
               >
                 <button
@@ -326,7 +341,11 @@ watch(
                   role="radio"
                   :aria-checked="draft.kind === k"
                   :aria-label="FISHING_SPOT_KIND_LABELS[k]"
-                  :tabindex="draft.kind === k || (draft.kind === null && k === kinds[0]) ? 0 : -1"
+                  :tabindex="
+                    draft.kind === k || (draft.kind === null && k === kinds[0])
+                      ? 0
+                      : -1
+                  "
                   class="bg-surface text-ink hover:border-accent/60 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
                   :class="
                     draft.kind === k
@@ -550,11 +569,7 @@ watch(
           >
             取消
           </button>
-          <UiButton
-            size="md"
-            :disabled="!canSubmit"
-            @click="handleSubmit"
-          >
+          <UiButton size="md" :disabled="!canSubmit" @click="handleSubmit">
             <Loader2 v-if="submitting" class="h-4 w-4 animate-spin" />
             {{ submitting ? '创建中...' : '添加钓点' }}
           </UiButton>

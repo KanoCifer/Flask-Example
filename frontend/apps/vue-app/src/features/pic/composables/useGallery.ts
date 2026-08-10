@@ -23,7 +23,9 @@ export const useGallery = () => {
         ...img,
         rawUrl: img.url,
         url: rewriteMediaUrl(img.url),
-        ...(img.thumbnailUrl && { thumbnailUrl: rewriteMediaUrl(img.thumbnailUrl) }),
+        ...(img.thumbnailUrl && {
+          thumbnailUrl: rewriteMediaUrl(img.thumbnailUrl),
+        }),
         ...(img.mediumUrl && { mediumUrl: rewriteMediaUrl(img.mediumUrl) }),
       }));
     } catch {
@@ -54,7 +56,8 @@ export const useGallery = () => {
     const target = images.value[index];
     const prev = { ...target };
     // 就地合并，保持响应性（PicDetailModal 的 selectedImage 指向同一对象）
-    if (partial.description !== undefined) target.description = partial.description;
+    if (partial.description !== undefined)
+      target.description = partial.description;
     if (partial.uploadedAt !== undefined) {
       target.uploadedAt = partial.uploadedAt ?? undefined;
     }

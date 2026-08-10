@@ -245,7 +245,9 @@
             aria-label="拍摄参数"
           >
             <template v-for="(item, i) in exifItems" :key="item.label">
-              <span v-if="i > 0" class="text-white/20" aria-hidden="true">·</span>
+              <span v-if="i > 0" class="text-white/20" aria-hidden="true"
+                >·</span
+              >
               <span class="flex items-center gap-1.5">
                 <span class="text-white/40">{{ item.label }}</span>
                 <span class="text-white/80">{{ item.value }}</span>
@@ -334,7 +336,11 @@
 import { motion } from 'motion-v';
 import dayjs from 'dayjs';
 import { computed, nextTick, ref, watch } from 'vue';
-import type { ExifInfo, GalleryImage, UpdateImagePayload } from '@readinglist/api';
+import type {
+  ExifInfo,
+  GalleryImage,
+  UpdateImagePayload,
+} from '@readinglist/api';
 
 const props = defineProps<{
   image: GalleryImage | null;

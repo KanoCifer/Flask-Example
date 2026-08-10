@@ -231,10 +231,7 @@ export function buildDevTaskView(
     if (t.status === '进行中') inProgressArr.push(t);
 
     // frontier：未完成且无阻塞
-    if (
-      !isDone &&
-      (!t.blocked_by || t.blocked_by.length === 0)
-    ) {
+    if (!isDone && (!t.blocked_by || t.blocked_by.length === 0)) {
       frontierArr.push(t);
     }
 
@@ -254,11 +251,7 @@ export function buildDevTaskView(
     }
 
     // overdue：有截止日 + 已过期 + 未完成；YYYY-MM-DD 可字典序比较
-    if (
-      !isDone &&
-      t.due_date &&
-      t.due_date < todayStr
-    ) {
+    if (!isDone && t.due_date && t.due_date < todayStr) {
       overdueCount++;
     }
 

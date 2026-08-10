@@ -19,13 +19,7 @@
  * - edit:   从 initial(SpotDetail)派生 name/description/tags/rating/kind;pictures 由 initial.images 推;
  *           editing 初始为 false;coordinate 始终 null(坐标编辑走其它 seam,本 seam 不接手)。
  */
-import {
-  computed,
-  ref,
-  watch,
-  type ComputedRef,
-  type Ref,
-} from 'vue';
+import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 
@@ -37,10 +31,7 @@ import type {
   SpotDetail,
   UpdateFishingSpotPayload,
 } from '@readinglist/types';
-import {
-  SPOT_MAX_PICTURES,
-  SPOT_MAX_UPLOAD_BYTES,
-} from '@readinglist/types';
+import { SPOT_MAX_PICTURES, SPOT_MAX_UPLOAD_BYTES } from '@readinglist/types';
 
 export interface UseSpotEditorOptions {
   /** 'create'：表单初始全空;coordinate 取 initialLocation | null。 */
@@ -257,9 +248,7 @@ export function useSpotEditor(
   });
 
   // ── 派生 ──
-  const canAddMore = computed(
-    () => pictures.value.length < SPOT_MAX_PICTURES,
-  );
+  const canAddMore = computed(() => pictures.value.length < SPOT_MAX_PICTURES);
 
   const canSubmit = computed(() => {
     if (isUploading.value) return false;
@@ -288,9 +277,7 @@ export function useSpotEditor(
     );
   });
 
-  const isEditing = computed(() =>
-    mode === 'edit' ? editing.value : false,
-  );
+  const isEditing = computed(() => (mode === 'edit' ? editing.value : false));
 
   // ── edit 模式动作 ──
   function startEdit(): void {
@@ -411,9 +398,7 @@ export function useSpotEditor(
 // ── helpers ──
 
 /** create 模式下的空 draft;coordinate 初始取 initialLocation ?? null。 */
-function makeEmptyDraft(
-  initialLocation?: [number, number],
-): SpotEditorDraft {
+function makeEmptyDraft(initialLocation?: [number, number]): SpotEditorDraft {
   return {
     name: '',
     description: '',

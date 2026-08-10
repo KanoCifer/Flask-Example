@@ -1,11 +1,7 @@
 // upload 域入口（deep module public surface）
 
 export { uploadGateway } from '@readinglist/api';
-export type {
-  UploadGateway,
-  UploadType,
-  UploadConfig,
-} from '@readinglist/api';
+export type { UploadGateway, UploadType, UploadConfig } from '@readinglist/api';
 
 export { useUpload } from './composables/useUpload';
 export type {
@@ -21,8 +17,4 @@ export type {
   ImageAlign,
 } from './runtime/markdownImageRuntime';
 
-export {
-  UploadDropzone,
-  UploadProgress,
-  CoverUploader,
-} from './components';
+export { UploadDropzone, UploadProgress, CoverUploader } from './components';

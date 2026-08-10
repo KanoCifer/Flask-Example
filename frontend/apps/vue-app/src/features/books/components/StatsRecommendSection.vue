@@ -80,53 +80,53 @@
             :layoutId="RECOMMEND_COVER_LAYOUT_ID_PREFIX + book.bookId"
             class="bg-surface relative aspect-[2/3] w-full overflow-hidden rounded-md shadow-sm"
           >
-          <img
-            v-if="book.cover"
-            :src="book.cover"
-            :alt="book.title"
-            loading="lazy"
-            class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-          />
-          <span
-            v-if="book.newRating > 0"
-            class="bg-page/80 text-ink absolute top-2 right-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums backdrop-blur-md"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              class="text-ink h-3 w-3"
-              aria-hidden="true"
+            <img
+              v-if="book.cover"
+              :src="book.cover"
+              :alt="book.title"
+              loading="lazy"
+              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+            <span
+              v-if="book.newRating > 0"
+              class="bg-page/80 text-ink absolute top-2 right-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums backdrop-blur-md"
             >
-              <path
-                fill-rule="evenodd"
-                d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.007Z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            {{ ratingScore(book.newRating) }}
-          </span>
-        </Motion>
-        <div class="min-w-0">
-          <p class="text-ink line-clamp-2 font-serif text-base leading-tight">
-            {{ book.title }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                class="text-ink h-3 w-3"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.007Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              {{ ratingScore(book.newRating) }}
+            </span>
+          </Motion>
+          <div class="min-w-0">
+            <p class="text-ink line-clamp-2 font-serif text-base leading-tight">
+              {{ book.title }}
+            </p>
+            <p v-if="book.author" class="text-muted mt-1 truncate text-xs">
+              {{ book.author }}
+            </p>
+          </div>
+          <p
+            v-if="book.reason"
+            class="text-muted line-clamp-2 text-xs leading-relaxed"
+          >
+            {{ book.reason }}
           </p>
-          <p v-if="book.author" class="text-muted mt-1 truncate text-xs">
-            {{ book.author }}
+          <p
+            v-if="book.readingCount"
+            class="text-muted/80 mt-auto text-[11px] tabular-nums"
+          >
+            {{ readingCountLabel(book.readingCount) }}
           </p>
-        </div>
-        <p
-          v-if="book.reason"
-          class="text-muted line-clamp-2 text-xs leading-relaxed"
-        >
-          {{ book.reason }}
-        </p>
-        <p
-          v-if="book.readingCount"
-          class="text-muted/80 mt-auto text-[11px] tabular-nums"
-        >
-          {{ readingCountLabel(book.readingCount) }}
-        </p>
         </button>
       </Motion>
     </template>

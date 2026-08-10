@@ -11,7 +11,8 @@ const apiClientMock = {
 
 vi.mock('@readinglist/api', () => ({
   blogGateway: {
-    getBlogs: (query?: unknown) => apiClientMock.get('v3/blogs', { params: query }),
+    getBlogs: (query?: unknown) =>
+      apiClientMock.get('v3/blogs', { params: query }),
     getBlogPost: (postId: string) => apiClientMock.get(`v3/blogs/${postId}`),
     getTags: async () => {
       const res = await apiClientMock.get('v3/tags');

@@ -360,17 +360,21 @@ defineExpose({
       @close="togglePreview"
     >
       <div class="flex h-[min(85vh,920px)] flex-col">
-        <div class="flex shrink-0 items-center justify-between border-b px-6 py-3">
+        <div
+          class="flex shrink-0 items-center justify-between border-b px-6 py-3"
+        >
           <h2 class="text-muted text-xs font-medium tracking-wide">预览</h2>
           <button
             type="button"
-            class="text-muted hover:text-ink rounded-full px-3 py-1 text-xs font-semibold transition hover:bg-surface"
+            class="text-muted hover:text-ink hover:bg-surface rounded-full px-3 py-1 text-xs font-semibold transition"
             @click="togglePreview"
           >
             关闭
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto contain-[layout_paint_scroll_style] bg-page">
+        <div
+          class="bg-page flex-1 overflow-y-auto contain-[layout_paint_scroll_style]"
+        >
           <ArticlePreview
             :post-id="postId"
             :title="title || '无标题'"

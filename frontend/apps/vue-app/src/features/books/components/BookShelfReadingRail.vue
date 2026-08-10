@@ -23,7 +23,7 @@
     <div class="relative -mx-12">
       <div
         ref="railEl"
-        class="flex snap-x snap-mandatory scroll-px-4 scrollbar-none gap-3 overflow-x-auto contain-[layout_paint_scroll_style] px-4 pb-2 sm:scroll-px-6 sm:gap-4 sm:px-6 md:scroll-px-10 md:px-10 [&::-webkit-scrollbar]:hidden"
+        class="flex snap-x snap-mandatory scroll-px-4 scrollbar-none gap-3 overflow-x-auto px-4 pb-2 contain-[layout_paint_scroll_style] sm:scroll-px-6 sm:gap-4 sm:px-6 md:scroll-px-10 md:px-10 [&::-webkit-scrollbar]:hidden"
       >
         <Motion
           v-for="(book, index) in books"

@@ -166,9 +166,7 @@ const weekRange = formatCurrentWeekRange();
 // 不要用 toRefs(store.derived) —— 见 FrontierPanel 那条注释。
 const doneThisWeek = computed(() => store.derived.completedThisWeek);
 const doneLastWeekCount = computed(() => store.derived.doneLastWeekCount);
-const createdThisWeekCount = computed(
-  () => store.derived.createdThisWeekCount,
-);
+const createdThisWeekCount = computed(() => store.derived.createdThisWeekCount);
 const overdueCount = computed(() => store.derived.overdueCount);
 const urgentActiveCount = computed(() => store.derived.urgentActiveCount);
 const inProgressTasks = computed(() => store.derived.inProgress);

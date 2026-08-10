@@ -41,7 +41,8 @@ describe('useWereadBookDetail', () => {
   });
 
   it('bookId 为 null 时不请求', async () => {
-    const { useWereadBookDetail: hook } = await import('../useWereadBookDetail');
+    const { useWereadBookDetail: hook } =
+      await import('../useWereadBookDetail');
     const bookId: Ref<string | null> = ref(null);
     const { detail } = hook(bookId);
     await nextTick();
@@ -51,7 +52,8 @@ describe('useWereadBookDetail', () => {
 
   it('bookId 变化时发起请求并回填 detail', async () => {
     getBookInfo.mockResolvedValue({ data: makeDetail('b1') });
-    const { useWereadBookDetail: hook } = await import('../useWereadBookDetail');
+    const { useWereadBookDetail: hook } =
+      await import('../useWereadBookDetail');
     const bookId: Ref<string | null> = ref(null);
     const { detail } = hook(bookId);
 
@@ -67,7 +69,8 @@ describe('useWereadBookDetail', () => {
 
   it('第二次打开同一本书命中缓存，不再请求', async () => {
     getBookInfo.mockResolvedValue({ data: makeDetail('b1') });
-    const { useWereadBookDetail: hook } = await import('../useWereadBookDetail');
+    const { useWereadBookDetail: hook } =
+      await import('../useWereadBookDetail');
     const bookId: Ref<string | null> = ref('b1');
 
     // 首次：写缓存
@@ -87,7 +90,8 @@ describe('useWereadBookDetail', () => {
 
   it('refresh(true) 强制绕过缓存重新请求', async () => {
     getBookInfo.mockResolvedValue({ data: makeDetail('b1') });
-    const { useWereadBookDetail: hook } = await import('../useWereadBookDetail');
+    const { useWereadBookDetail: hook } =
+      await import('../useWereadBookDetail');
     const bookId = ref<string | null>('b1');
     const { fetchDetail } = hook(bookId);
     await new Promise((r) => setTimeout(r, 0));
@@ -109,7 +113,8 @@ describe('useWereadBookDetail', () => {
       )
       .mockResolvedValueOnce({ data: makeDetail('b2') });
 
-    const { useWereadBookDetail: hook } = await import('../useWereadBookDetail');
+    const { useWereadBookDetail: hook } =
+      await import('../useWereadBookDetail');
     const bookId = ref<string | null>('b1');
     const { detail } = hook(bookId);
     await nextTick();
@@ -127,7 +132,8 @@ describe('useWereadBookDetail', () => {
 
   it('接口返回 message 无 data 时写入 error', async () => {
     getBookInfo.mockResolvedValue({ message: '加载详情失败' });
-    const { useWereadBookDetail: hook } = await import('../useWereadBookDetail');
+    const { useWereadBookDetail: hook } =
+      await import('../useWereadBookDetail');
     const bookId = ref<string | null>('b1');
     const { detail, error } = hook(bookId);
     await new Promise((r) => setTimeout(r, 0));

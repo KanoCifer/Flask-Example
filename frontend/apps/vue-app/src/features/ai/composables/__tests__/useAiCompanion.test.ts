@@ -600,9 +600,7 @@ describe('useAiCompanion', () => {
       const c = useAiCompanion({ content: '<p>x</p>' });
       const notify = vi.fn();
 
-      vi.mocked(aiGateway.streamThread).mockImplementationOnce(
-        async () => {},
-      );
+      vi.mocked(aiGateway.streamThread).mockImplementationOnce(async () => {});
 
       // capture the first call (default impl resolves, so this is fine)
       await c.generateBriefing(notify);

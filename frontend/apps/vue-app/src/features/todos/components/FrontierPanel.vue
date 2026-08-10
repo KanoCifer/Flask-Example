@@ -22,7 +22,7 @@
 
       <div
         v-if="frontierTasks.length"
-        class="columns-1 gap-x-3 contain-intrinsic-size-[auto_600px] sm:columns-2 lg:columns-3"
+        class="contain-intrinsic-size-[auto_600px] columns-1 gap-x-3 sm:columns-2 lg:columns-3"
       >
         <div
           v-for="(task, i) in frontierTasks"

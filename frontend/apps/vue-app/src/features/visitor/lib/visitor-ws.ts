@@ -9,7 +9,8 @@ let wsConnect: (() => void) | null = null;
 let wsSendPing: (() => void) | null = null;
 /** 全局单例的 connectionDelay ref，供 Footer 等组件只读订阅 */
 export let connectionDelay:
-  ReturnType<typeof useWebSocket>['connectionDelay'] | null = null;
+  | ReturnType<typeof useWebSocket>['connectionDelay']
+  | null = null;
 /** 全局单例的连接状态 ref */
 export let isConnected: ReturnType<typeof useWebSocket>['isConnected'] | null =
   null;

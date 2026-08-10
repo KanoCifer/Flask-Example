@@ -115,9 +115,11 @@ export class FishingMapRuntime {
   }
 
   private attachKeyboard(index: number, marker: AMap.Marker): void {
-    const getDomElement = (marker as unknown as {
-      getDomElement?: () => HTMLElement | null;
-    }).getDomElement;
+    const getDomElement = (
+      marker as unknown as {
+        getDomElement?: () => HTMLElement | null;
+      }
+    ).getDomElement;
     if (typeof getDomElement !== 'function') return;
     const dom = getDomElement.call(marker);
     if (!dom) return;

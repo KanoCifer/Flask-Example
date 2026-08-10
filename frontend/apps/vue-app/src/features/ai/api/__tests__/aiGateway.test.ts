@@ -34,8 +34,11 @@ vi.mock('@readinglist/api', () => {
     aiGateway: {
       streamThread: (body: unknown, handlers: unknown, signal?: AbortSignal) =>
         stream('/v2/llm/thread/stream', body, handlers, signal),
-      weatherAnalysis: (body: unknown, handlers: unknown, signal?: AbortSignal) =>
-        stream('/v2/llm/weather-analysis', body, handlers, signal),
+      weatherAnalysis: (
+        body: unknown,
+        handlers: unknown,
+        signal?: AbortSignal,
+      ) => stream('/v2/llm/weather-analysis', body, handlers, signal),
     },
   };
 });

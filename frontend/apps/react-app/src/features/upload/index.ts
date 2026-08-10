@@ -1,9 +1,5 @@
 export { uploadGateway } from '@readinglist/api';
-export type {
-  UploadType,
-  UploadConfig,
-  UploadGateway,
-} from '@readinglist/api';
+export type { UploadType, UploadConfig, UploadGateway } from '@readinglist/api';
 
 export { useUpload } from './composables/useUpload';
 export type {

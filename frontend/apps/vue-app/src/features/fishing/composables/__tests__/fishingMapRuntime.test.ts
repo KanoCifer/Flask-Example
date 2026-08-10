@@ -66,11 +66,9 @@ describe('FishingMapRuntime', () => {
 
       // 取出最后 3 个 marker 实例(前几个可能是 Geolocation/InfoWindow 旁路)
       // 实际上 ns.Marker 只被 renderMarkers 调用;我们从 mock 推
-      const markerCalls = (ns.Marker as unknown as ReturnType<typeof vi.fn>).mock
-        .results;
-      const createdMarkers = markerCalls.map(
-        (r) => r.value as FakeMarker,
-      );
+      const markerCalls = (ns.Marker as unknown as ReturnType<typeof vi.fn>)
+        .mock.results;
+      const createdMarkers = markerCalls.map((r) => r.value as FakeMarker);
 
       // 模拟点击第二个 marker
       createdMarkers[1].emit('click');
@@ -94,8 +92,8 @@ describe('FishingMapRuntime', () => {
       // 切到只显示 lake
       runtime.setVisibleKinds(new Set(['lake']));
 
-      const markerCalls = (ns.Marker as unknown as ReturnType<typeof vi.fn>).mock
-        .results;
+      const markerCalls = (ns.Marker as unknown as ReturnType<typeof vi.fn>)
+        .mock.results;
       const created = markerCalls.map((r) => r.value as FakeMarker);
 
       // 全部卸下(setMap(null) 是 leaving 路径;FakeMap.setMap 走 remove)
@@ -124,8 +122,8 @@ describe('FishingMapRuntime', () => {
       // 模拟:仅 lake 可见
       runtime.setVisibleKinds(new Set(['lake']));
 
-      const markerCalls = (ns.Marker as unknown as ReturnType<typeof vi.fn>).mock
-        .results;
+      const markerCalls = (ns.Marker as unknown as ReturnType<typeof vi.fn>)
+        .mock.results;
       const created = markerCalls.map((r) => r.value as FakeMarker);
 
       // 不销毁实例 —— 三个 marker 都还在
@@ -186,8 +184,9 @@ describe('FishingMapRuntime', () => {
       // InfoWindow 关闭
       expect(hoverWindow.isOpen).toBe(false);
       // 创建过的 marker 实例仍在 mock results 里(构造事实),但 getMap() 为 null
-      const created = (ns.Marker as unknown as ReturnType<typeof vi.fn>).mock.results
-        .map((r) => r.value as FakeMarker);
+      const created = (
+        ns.Marker as unknown as ReturnType<typeof vi.fn>
+      ).mock.results.map((r) => r.value as FakeMarker);
       created.forEach((m) => {
         // leaving class 路径会 setMap(null) 异步;此断言为「dispose 后不应仍挂载」
         // FakeMarker.setMap 在 dispose 同步路径里直接 setMap(null) → attachedMap = null

@@ -30,7 +30,7 @@
       class="grid max-h-[calc(88vh-72px)] grid-cols-1 gap-0 overflow-hidden md:grid-cols-[minmax(0,1fr)_220px]"
     >
       <form
-        class="space-y-5 overflow-y-auto contain-[layout_paint_scroll_style] px-7 py-6"
+        class="space-y-5 overflow-y-auto px-7 py-6 contain-[layout_paint_scroll_style]"
         @submit.prevent="handleSubmit"
       >
         <!-- 内容 -->
@@ -284,7 +284,7 @@
 
       <!-- 右侧设置 -->
       <aside
-        class="bg-surface/30 /40 space-y-4 overflow-y-auto contain-[layout_paint_scroll_style] border-t px-5 py-6 md:border-t-0 md:border-l"
+        class="bg-surface/30 /40 space-y-4 overflow-y-auto border-t px-5 py-6 contain-[layout_paint_scroll_style] md:border-t-0 md:border-l"
       >
         <div>
           <div
@@ -488,7 +488,6 @@ const form = reactive<MomentFormState>({
 });
 
 const tagInput = ref('');
-
 
 // ── 附件(图片) ──────────────────────────────────────────
 // 复用 useUpload(type='gallery')，与 SpotFormPanel / PicUploadModal 同源。

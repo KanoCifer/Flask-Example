@@ -76,7 +76,8 @@ export const useFishingMapStore = defineStore('fishingMap', () => {
       liveWeather.value = now;
       forecasts.value = daily;
       weatherHourly.value = hourlyWrapper?.hourly ?? [];
-      locationName.value = nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点');
+      locationName.value =
+        nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点');
       weatherIndices.value = [];
       tideData.value = fishingIndex.tide_data ?? null;
       indexData.value = fishingIndex;

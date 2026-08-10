@@ -90,7 +90,9 @@ onBeforeUnmount(() => {
           <!-- 背景模糊 -->
           <div>
             <div class="mb-2 flex items-center justify-between">
-              <span class="text-ink flex items-center gap-1.5 text-sm font-medium">
+              <span
+                class="text-ink flex items-center gap-1.5 text-sm font-medium"
+              >
                 <!-- 模糊图标 -->
                 <svg
                   class="text-muted h-4 w-4"
@@ -128,7 +130,9 @@ onBeforeUnmount(() => {
           <!-- 背景亮度 -->
           <div>
             <div class="mb-2 flex items-center justify-between">
-              <span class="text-ink flex items-center gap-1.5 text-sm font-medium">
+              <span
+                class="text-ink flex items-center gap-1.5 text-sm font-medium"
+              >
                 <!-- 亮度图标 -->
                 <svg
                   class="text-muted h-4 w-4"
@@ -167,7 +171,9 @@ onBeforeUnmount(() => {
           <!-- 背景缩放 -->
           <div>
             <div class="mb-2 flex items-center justify-between">
-              <span class="text-ink flex items-center gap-1.5 text-sm font-medium">
+              <span
+                class="text-ink flex items-center gap-1.5 text-sm font-medium"
+              >
                 <!-- 缩放图标 -->
                 <svg
                   class="text-muted h-4 w-4"

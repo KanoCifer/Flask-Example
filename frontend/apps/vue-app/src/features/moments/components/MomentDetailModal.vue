@@ -89,7 +89,9 @@
       class="grid max-h-[calc(88vh-64px)] grid-cols-1 gap-0 overflow-hidden md:grid-cols-[minmax(0,1fr)_220px]"
     >
       <!-- 左：内容 -->
-      <div class="contain-[layout_paint_scroll_style] overflow-y-auto px-8 py-8">
+      <div
+        class="overflow-y-auto px-8 py-8 contain-[layout_paint_scroll_style]"
+      >
         <!-- 心情 -->
         <div
           v-if="moment.mood"

@@ -203,7 +203,10 @@ class FakeGeolocation {
   }
 
   getCurrentPosition(
-    cb: (status: string, result: { position: { lng: number; lat: number }; info?: string }) => void,
+    cb: (
+      status: string,
+      result: { position: { lng: number; lat: number }; info?: string },
+    ) => void,
   ): void {
     if (FakeGeolocation.nextStatus === 'complete') {
       const [lng, lat] = FakeGeolocation.nextPosition;
@@ -255,7 +258,11 @@ export function createInMemoryAmap() {
   function makeCitySearch(this: unknown): FakeCitySearch {
     return new FakeCitySearch();
   }
-  function makePixel(this: unknown, x: number, y: number): { x: number; y: number } {
+  function makePixel(
+    this: unknown,
+    x: number,
+    y: number,
+  ): { x: number; y: number } {
     return { x, y };
   }
   function makeDriving(
@@ -304,6 +311,8 @@ export function createInMemoryAmap() {
       Polyline: PolylineSpy as unknown as new (
         opts: ConstructorParameters<typeof FakePolyline>[0],
       ) => FakePolyline,
-    } as unknown as Record<string, unknown> & { _internals: { map: FakeMap; markers: FakeMarker[] } } as any,
+    } as unknown as Record<string, unknown> & {
+      _internals: { map: FakeMap; markers: FakeMarker[] };
+    } as any,
   };
 }

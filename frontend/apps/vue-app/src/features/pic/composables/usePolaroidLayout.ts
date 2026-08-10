@@ -23,9 +23,7 @@ export const usePolaroidLayout = ({ images }: UsePolaroidLayoutOptions) => {
   const getAspectRatio = (img: GalleryImage | undefined): number => {
     const ar =
       (img?.aspectRatio && img.aspectRatio > 0 ? img.aspectRatio : null) ??
-      (img?.width && img.height && img.height > 0
-        ? img.width / img.height
-        : 1);
+      (img?.width && img.height && img.height > 0 ? img.width / img.height : 1);
     return ar; // w/h,直接用于 CSS aspect-ratio
   };
 

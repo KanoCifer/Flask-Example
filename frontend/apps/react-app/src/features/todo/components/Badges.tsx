@@ -9,11 +9,9 @@ import type { ReactNode } from 'react';
 // ── 类型 chip ──
 const TYPE_CLASS: Record<DevTaskType, string> = {
   问题: 'border-rose-200 bg-rose-50/60 text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-400',
-  功能需求:
-    'border-blue-200 bg-blue-50/60 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/30 dark:text-blue-400',
+  功能需求: 'border-blue-200 bg-blue-50/60 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/30 dark:text-blue-400',
   优化: 'border-amber-200 bg-amber-50/60 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400',
-  技术债:
-    'border-purple-200 bg-purple-50/60 text-purple-700 dark:border-purple-800/60 dark:bg-purple-950/30 dark:text-purple-400',
+  技术债: 'border-purple-200 bg-purple-50/60 text-purple-700 dark:border-purple-800/60 dark:bg-purple-950/30 dark:text-purple-400',
 };
 
 export function TypeBadge({ type }: { type: DevTaskType }) {
@@ -50,10 +48,8 @@ const STATUS_CLASS: Record<DevTaskStatus, string> = {
   待评估: ' text-muted',
   待排期: 'border-chart-3/40 bg-chart-3/10 text-chart-3',
   进行中: 'border-accent/40 bg-accent/10 text-ink',
-  已搁置:
-    'border-amber-300/50 bg-amber-50/60 text-amber-700 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-400',
-  已完成:
-    'border-emerald-300/50 bg-emerald-50/60 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/20 dark:text-emerald-400',
+  已搁置: 'border-amber-300/50 bg-amber-50/60 text-amber-700 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-400',
+  已完成: 'border-emerald-300/50 bg-emerald-50/60 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/20 dark:text-emerald-400',
 };
 
 const STATUS_DOT: Record<DevTaskStatus, string> = {

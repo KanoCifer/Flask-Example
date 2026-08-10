@@ -7,7 +7,11 @@ import {
   applySchemeToDocument,
   isColorScheme,
 } from '@readinglist/utils';
-import type { ColorScheme, Theme as UtilsTheme, FontFamily as UtilsFontFamily } from '@readinglist/utils';
+import type {
+  ColorScheme,
+  Theme as UtilsTheme,
+  FontFamily as UtilsFontFamily,
+} from '@readinglist/utils';
 
 type Theme = UtilsTheme;
 type FontFamily = UtilsFontFamily;

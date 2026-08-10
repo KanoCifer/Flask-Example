@@ -117,7 +117,9 @@ watch(
         </header>
 
         <!-- 可滚动主体 —— 原样复用 WeatherAnalysis -->
-        <div class="flex-1 overflow-y-auto contain-[layout_paint_scroll_style] px-5 py-4">
+        <div
+          class="flex-1 overflow-y-auto px-5 py-4 contain-[layout_paint_scroll_style]"
+        >
           <WeatherAnalysis :weather_data="payload" :auto-analyze="open" />
         </div>
       </aside>

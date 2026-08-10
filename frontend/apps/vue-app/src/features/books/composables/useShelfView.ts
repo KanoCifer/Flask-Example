@@ -170,11 +170,7 @@ export function useShelfView(visibleBooks: Ref<WereadUserBook[]>) {
     // 默认 sort='recent' 且无搜索时,直接复用已排序的 readingSortedByRecent(仅 reading 桶命中)
     // — 其他桶 + 有搜索时仍按 SORTERS[sort] 排,但只排一次,Vue computed 会缓存结果到下次依赖变化
     const sorter = SORTERS[sort.value];
-    if (
-      sorter === sortByRecent &&
-      !q &&
-      filter.value === 'reading'
-    ) {
+    if (sorter === sortByRecent && !q && filter.value === 'reading') {
       return readingSortedByRecent.value;
     }
     return [...base].sort(sorter);

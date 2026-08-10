@@ -116,9 +116,8 @@ interface PathClassifier<Kinds extends string> {
 }
 
 const blogClassifier: PathClassifier<BlogPathKind> = (() => {
-  const fn = ((path: string) => classifyBlogPath(path)) as PathClassifier<
-    BlogPathKind
-  >;
+  const fn = ((path: string) =>
+    classifyBlogPath(path)) as PathClassifier<BlogPathKind>;
   fn.isGoingDeeper = (from, to) => {
     if (from === 'list' && (to === 'detail' || to === 'editor')) return true;
     if (from === 'detail' && to === 'editor') return true;
@@ -128,9 +127,8 @@ const blogClassifier: PathClassifier<BlogPathKind> = (() => {
 })();
 
 const learningClassifier: PathClassifier<LearningPathKind> = (() => {
-  const fn = ((path: string) => classifyLearningPath(path)) as PathClassifier<
-    LearningPathKind
-  >;
+  const fn = ((path: string) =>
+    classifyLearningPath(path)) as PathClassifier<LearningPathKind>;
   fn.isGoingDeeper = (from, to) => {
     if (from === 'list' && (to === 'course' || to === 'lesson')) return true;
     if (from === 'course' && to === 'lesson') return true;
@@ -148,18 +146,12 @@ export type BlogPathKind = 'list' | 'detail' | 'editor' | 'other';
 export function classifyBlogPath(path: string): BlogPathKind {
   const normalized = path.split('?')[0]?.split('#')[0] ?? path;
 
-  if (
-    normalized === '/blog' ||
-    /^\/blog\/category\/[^/]+$/.test(normalized)
-  ) {
+  if (normalized === '/blog' || /^\/blog\/category\/[^/]+$/.test(normalized)) {
     return 'list';
   }
 
   // 编辑器必须在详情之前判断 —— `/blog/:id/edit` 也是 `/^\/blog\/[^/]+$/` 的子集。
-  if (
-    normalized === '/blog/new' ||
-    /^\/blog\/[^/]+\/edit$/.test(normalized)
-  ) {
+  if (normalized === '/blog/new' || /^\/blog\/[^/]+\/edit$/.test(normalized)) {
     return 'editor';
   }
 

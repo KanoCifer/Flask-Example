@@ -8,7 +8,11 @@ import {
   isColorScheme,
   STORAGE_KEYS,
 } from '@readinglist/utils';
-import type { ColorScheme, Theme as UtilsTheme, FontFamily as UtilsFontFamily } from '@readinglist/utils';
+import type {
+  ColorScheme,
+  Theme as UtilsTheme,
+  FontFamily as UtilsFontFamily,
+} from '@readinglist/utils';
 
 // 供仍从 @/stores 导入的模块保持兼容
 export { COLOR_SCHEMES, isColorScheme } from '@readinglist/utils';
@@ -51,7 +55,9 @@ export const useThemeStore = defineStore('theme', () => {
     localStorage.setItem(STORAGE_KEYS.bgBrightness, String(val));
   };
 
-  const bgScale = ref<number>(Number(localStorage.getItem(STORAGE_KEYS.bgScale) || 1.05));
+  const bgScale = ref<number>(
+    Number(localStorage.getItem(STORAGE_KEYS.bgScale) || 1.05),
+  );
 
   const saveBgScale = (val: number) => {
     bgScale.value = val;

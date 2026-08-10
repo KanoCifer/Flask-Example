@@ -141,7 +141,8 @@ const router = createRouter({
     {
       path: '/learning',
       name: 'learning',
-      component: () => import('@/features/learning/components/LearningList.vue'),
+      component: () =>
+        import('@/features/learning/components/LearningList.vue'),
       meta: {
         title: "学习 - Kuroome's Blog",
         description: 'AI 课程生成 · 自主练习 · 客户端判分。',

@@ -49,7 +49,9 @@ describe('PicDetailModal', () => {
 
   it('editable=true 时渲染「编辑」按钮', () => {
     const wrapper = mountModal(makeImage(), true);
-    expect(wrapper.find('button[aria-label="编辑图片信息"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="编辑图片信息"]').exists()).toBe(
+      true,
+    );
   });
 
   it('点击「编辑」后展示描述 + 上传时间 + EXIF 输入组', async () => {
@@ -57,7 +59,9 @@ describe('PicDetailModal', () => {
     await wrapper.find('button[aria-label="编辑图片信息"]').trigger('click');
     await nextTick();
 
-    expect(wrapper.find('textarea[aria-label="编辑拍摄笔记"]').exists()).toBe(true);
+    expect(wrapper.find('textarea[aria-label="编辑拍摄笔记"]').exists()).toBe(
+      true,
+    );
     expect(wrapper.find('input[type="datetime-local"]').exists()).toBe(true);
     // EXIF 只渲染当前已有的键（camera / iso）
     expect(wrapper.find('input[aria-label="相机"]').exists()).toBe(true);
@@ -85,7 +89,11 @@ describe('PicDetailModal', () => {
     expect(updateEvents).toHaveLength(1);
     const [id, partial] = updateEvents![0] as [
       string,
-      { description: string; uploadedAt: string | null; exif: Record<string, string> | null },
+      {
+        description: string;
+        uploadedAt: string | null;
+        exif: Record<string, string> | null;
+      },
     ];
     expect(id).toBe('img-1');
     expect(partial.description).toBe('新的描述');
@@ -96,8 +104,12 @@ describe('PicDetailModal', () => {
 
   it('editable=false 时不渲染「编辑」「保存」按钮', () => {
     const wrapper = mountModal(makeImage(), false);
-    expect(wrapper.find('button[aria-label="编辑图片信息"]').exists()).toBe(false);
-    expect(wrapper.find('button[aria-label="保存对图片信息的修改"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="编辑图片信息"]').exists()).toBe(
+      false,
+    );
+    expect(
+      wrapper.find('button[aria-label="保存对图片信息的修改"]').exists(),
+    ).toBe(false);
   });
 
   it('切换 image 时表单状态重置', async () => {

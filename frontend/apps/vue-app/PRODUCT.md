@@ -38,7 +38,7 @@ The differentiating mechanism is **prompt-to-package**: a single natural-languag
 topic (optionally paired with a learning goal) yields a complete
 lesson-exercises-resource triple, with lessons materialized progressively on
 demand. This is not a flashcard app, not a notebook, not an LMS — it is a
-*prompt → curated learning artifact* pipeline that the owner drives and visitors
+_prompt → curated learning artifact_ pipeline that the owner drives and visitors
 read.
 
 ## Operating Context
@@ -115,7 +115,7 @@ already exposes.
    Power-user affordances (keyboard enter to submit, optimistic progress,
    one-click resume) live alongside visitor-legible copy and structure.
 5. **Lesson is the unit of progress; the course is the unit of identity.**
-   Visitors should be able to read the course *as an artifact*; the owner
+   Visitors should be able to read the course _as an artifact_; the owner
    moves through it lesson by lesson.
 
 ## Accessibility & Inclusion

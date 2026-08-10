@@ -39,7 +39,6 @@ const SHIMMER_TEXTS = [
   '正在结合潮汐节奏...',
 ];
 
-
 /**
  * AI 分析组件 —— Apple HIG surface。
  *

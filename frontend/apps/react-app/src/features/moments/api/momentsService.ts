@@ -1,7 +1,4 @@
-import {
-  momentsGateway,
-  type MomentsGateway,
-} from '@readinglist/api';
+import { momentsGateway, type MomentsGateway } from '@readinglist/api';
 import type {
   Moment,
   MomentCreatePayload,

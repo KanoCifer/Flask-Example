@@ -1,8 +1,5 @@
 // 竞态守卫已迁移到 @readinglist/utils，此处重新导出以保持兼容
-import {
-  createSequencedTask,
-  type SequencedResult,
-} from '@readinglist/utils';
+import { createSequencedTask, type SequencedResult } from '@readinglist/utils';
 
 export { createSequencedTask, type SequencedResult };
 

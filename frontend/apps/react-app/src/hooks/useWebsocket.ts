@@ -62,10 +62,7 @@ export function useWebsocket(options: UseWebSocketOptions) {
     manager.connect();
 
     const handleVisibility = () => {
-      if (
-        document.visibilityState === 'visible' &&
-        !manager.isConnected
-      ) {
+      if (document.visibilityState === 'visible' && !manager.isConnected) {
         manager.connect();
       }
     };

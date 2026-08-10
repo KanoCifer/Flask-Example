@@ -399,7 +399,9 @@ onUnmounted(() => {
 
     <!-- 有数据: 结果区 + 脚注 -->
     <div v-else class="flex min-h-0 flex-1 flex-col gap-3">
-      <div class="bg-surface/40 flex-1 overflow-auto contain-[layout_paint_scroll_style] rounded-xl p-4">
+      <div
+        class="bg-surface/40 flex-1 overflow-auto rounded-xl p-4 contain-[layout_paint_scroll_style]"
+      >
         <div class="text-muted mb-3 flex items-center gap-2 text-xs">
           <span
             class="bg-surface/40 h-1.5 w-1.5 rounded-full"

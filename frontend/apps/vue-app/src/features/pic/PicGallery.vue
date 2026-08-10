@@ -119,10 +119,7 @@ import PicDetailModal from './components/PicDetailModal.vue';
 import PicUploadModal from './components/PicUploadModal.vue';
 import PolaroidCard from './components/PolaroidCard.vue';
 import { Button } from '@/components';
-import {
-  useGallery,
-  usePolaroidLayout,
-} from '@/features/pic/composables';
+import { useGallery, usePolaroidLayout } from '@/features/pic/composables';
 import type { GalleryImage, UpdateImagePayload } from '@readinglist/api';
 import { useAuthStore } from '@/features/auth';
 import { useNotificationStore } from '@/stores';

@@ -14,7 +14,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MapMarker } from '@readinglist/types';
 import { FishingMapRuntime } from '../FishingMapRuntime';
-import { createInMemoryAmap, FakeInfoWindow, FakeMarker } from '../inMemoryAmap';
+import {
+  createInMemoryAmap,
+  FakeInfoWindow,
+  FakeMarker,
+} from '../inMemoryAmap';
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -177,10 +181,7 @@ describe('FishingMapRuntime', () => {
       const { map } = createInMemoryAmap();
       const runtime = new FishingMapRuntime(map as any, ns as any);
 
-      const routeInfo = await runtime.planRoute(
-        [113.4, 23.06],
-        [113.5, 23.1],
-      );
+      const routeInfo = await runtime.planRoute([113.4, 23.06], [113.5, 23.1]);
 
       expect(routeInfo).toBeDefined();
       expect(typeof routeInfo.distance).toBe('number');
@@ -217,11 +218,8 @@ describe('FishingMapRuntime', () => {
       runtime.dispose();
 
       expect(hoverWindow.isOpen).toBe(false);
-      const created = (ns.Marker as any).mock
-        .results;
-      const markerInstances = created.map(
-        (r: any) => r.value as FakeMarker,
-      );
+      const created = (ns.Marker as any).mock.results;
+      const markerInstances = created.map((r: any) => r.value as FakeMarker);
       // 非 userLocationMarker 应已 detach
       markerInstances
         .filter((m: FakeMarker) => (m as FakeMarker).zIndex !== 200)

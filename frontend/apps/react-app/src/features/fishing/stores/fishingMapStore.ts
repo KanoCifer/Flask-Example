@@ -132,8 +132,7 @@ export const useFishingMapStore = create<FishingMapState>((set, get) => ({
         liveWeather: now,
         forecasts: daily,
         weatherHourly: fishingIndex.hourly_weather?.hourly ?? [],
-        locationName:
-          nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点'),
+        locationName: nameFromEnriched || (now?.text ? '当前位置' : '钓鱼地点'),
         weatherIndices: [],
         tideData: fishingIndex.tide_data ?? null,
         indexData: fishingIndex,

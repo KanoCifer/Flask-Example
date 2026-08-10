@@ -300,9 +300,7 @@ const PIN_KIND_BG: Record<FishingSpotKind, string> = {
                 >
                   {{ spot.extraData?.name || '未命名钓点' }}
                 </p>
-                <p
-                  class="text-muted mt-1 truncate text-xs leading-snug"
-                >
+                <p class="text-muted mt-1 truncate text-xs leading-snug">
                   {{ regionLabel(spot) || '&nbsp;' }}
                 </p>
                 <p

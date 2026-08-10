@@ -118,7 +118,9 @@ describe('useSpotEditor', () => {
     editor.removePicture(removed);
     expect(editor.canAddMore.value).toBe(true);
     expect(editor.pictures.value).toHaveLength(8);
-    expect(editor.pictures.value.find((p) => p.id === removed.id)).toBeUndefined();
+    expect(
+      editor.pictures.value.find((p) => p.id === removed.id),
+    ).toBeUndefined();
   });
 
   it('E · buildPayload() 在两种模式下 schema 正确', () => {
@@ -154,7 +156,12 @@ describe('useSpotEditor', () => {
     editEditor.draft.value.tags = '自然, 大水面, 交通便利';
     editEditor.pictures.value = [
       ...editEditor.pictures.value,
-      { id: 'new', uploadedAt: '', url: 'https://x.com/c.jpg', description: '' },
+      {
+        id: 'new',
+        uploadedAt: '',
+        url: 'https://x.com/c.jpg',
+        description: '',
+      },
     ];
 
     const editPayload = editEditor.buildPayload();
@@ -164,7 +171,11 @@ describe('useSpotEditor', () => {
       tags: ['自然', '大水面', '交通便利'],
       rating: 4,
       kind: 'lake',
-      images: ['https://x.com/a.jpg', 'https://x.com/b.jpg', 'https://x.com/c.jpg'],
+      images: [
+        'https://x.com/a.jpg',
+        'https://x.com/b.jpg',
+        'https://x.com/c.jpg',
+      ],
     });
     // edit payload 不应有 location(由其它 seam 维持)与 id
     expect('location' in (editPayload as Record<string, unknown>)).toBe(false);

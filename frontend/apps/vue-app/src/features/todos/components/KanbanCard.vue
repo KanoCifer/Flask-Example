@@ -1,6 +1,6 @@
 <template>
   <article
-    class="bg-card/30 group border-border block w-full rounded-3xl border p-3 text-left [content-visibility:auto] contain-intrinsic-size-[auto_180px]"
+    class="bg-card/30 group border-border contain-intrinsic-size-[auto_180px] block w-full rounded-3xl border p-3 text-left [content-visibility:auto]"
     :class="[
       isDragging ? 'cursor-grabbing opacity-50' : 'cursor-grab',
       done ? 'opacity-70' : '',

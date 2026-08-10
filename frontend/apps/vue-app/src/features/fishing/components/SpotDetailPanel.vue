@@ -21,7 +21,11 @@ import {
 import SpotMiniMap from '@/features/fishing/components/SpotMiniMap.vue';
 import SpotPhotoLightbox from '@/features/fishing/components/SpotPhotoLightbox.vue';
 import { useSpotEditor } from '@/features/fishing/composables';
-import type { MapMarker, SpotDetail, UpdateFishingSpotPayload } from '@readinglist/types';
+import type {
+  MapMarker,
+  SpotDetail,
+  UpdateFishingSpotPayload,
+} from '@readinglist/types';
 import { SPOT_MAX_PICTURES } from '@readinglist/types';
 import { fishingSpotsGateway } from '@readinglist/api';
 import { UploadDropzone, UploadProgress } from '@/features/upload/components';
@@ -308,7 +312,9 @@ watch(
         </header>
 
         <!-- 可滚动主体 -->
-        <div class="flex-1 space-y-6 overflow-y-auto contain-[layout_paint_scroll_style] px-6 py-5">
+        <div
+          class="flex-1 space-y-6 overflow-y-auto px-6 py-5 contain-[layout_paint_scroll_style]"
+        >
           <!-- 标签 -->
           <ul v-if="spot?.tags.length" class="flex flex-wrap gap-1.5">
             <li
@@ -412,9 +418,7 @@ watch(
               <!-- 空态:通用 UploadDropzone -->
               <UploadDropzone
                 v-if="
-                  pictures.length === 0 &&
-                  !previewUrl &&
-                  !spot?.images.length
+                  pictures.length === 0 && !previewUrl && !spot?.images.length
                 "
                 accept="image/*"
                 :disabled="isUploading"

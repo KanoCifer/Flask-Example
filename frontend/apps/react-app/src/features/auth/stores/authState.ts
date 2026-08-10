@@ -1,8 +1,4 @@
-import {
-  createAuthGateway,
-  userCache,
-  type UserInfo,
-} from '@/features/auth';
+import { createAuthGateway, userCache, type UserInfo } from '@/features/auth';
 import { tokenService } from '@readinglist/utils';
 import { refreshAccessToken } from '@readinglist/api';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';

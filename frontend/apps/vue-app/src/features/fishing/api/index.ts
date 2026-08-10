@@ -7,8 +7,6 @@ export type {
   DeleteFishingSpotOptions,
 } from '@readinglist/api';
 
-
-
 // 钓点 / 天气领域类型 —— 真源在 @readinglist/types
 export type {
   CreateFishingSpotPayload,

@@ -80,7 +80,7 @@
               size="icon"
               :aria-label="showKey ? '隐藏 API Key' : '显示 API Key'"
               :aria-pressed="showKey"
-              class="!active:scale-100 !rounded-lg text-muted hover:text-ink focus:ring-ring absolute inset-y-0 right-2 my-auto h-8 w-8 focus:ring-2"
+              class="!active:scale-100 text-muted hover:text-ink focus:ring-ring absolute inset-y-0 right-2 my-auto h-8 w-8 !rounded-lg focus:ring-2"
               @click="toggleKeyVisibility"
             >
               <!-- 双眼图标 cross-fade:始终留在 DOM 里,用 opacity 切换 -->

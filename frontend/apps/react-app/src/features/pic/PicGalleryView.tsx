@@ -309,8 +309,7 @@ export default function PicGalleryView() {
                 description: partial.description ?? img.description,
                 uploadedAt: partial.uploadedAt ?? img.uploadedAt,
                 exif:
-                  (partial.exif as unknown as ExifInfo | undefined) ??
-                  img.exif,
+                  (partial.exif as unknown as ExifInfo | undefined) ?? img.exif,
               }
             : img,
         ),
@@ -406,7 +405,10 @@ export default function PicGalleryView() {
                     className="bg-page ring-border flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl p-8 shadow-sm ring-1"
                     onClick={() => openImageDetail(image)}
                   >
-                    <ImageOff className="h-8 w-8 text-muted opacity-60" strokeWidth={1.5} />
+                    <ImageOff
+                      className="text-muted h-8 w-8 opacity-60"
+                      strokeWidth={1.5}
+                    />
                     <p className="text-muted text-xs">加载失败</p>
                   </div>
                 ) : (
@@ -492,7 +494,10 @@ export default function PicGalleryView() {
               <div className="bg-surface/50 relative flex max-h-[62dvh] w-full items-center justify-center p-4">
                 {selectedImage.status === 'failed' ? (
                   <div className="flex flex-col items-center gap-2 opacity-60">
-                    <ImageOff className="h-10 w-10 text-muted" strokeWidth={1.5} />
+                    <ImageOff
+                      className="text-muted h-10 w-10"
+                      strokeWidth={1.5}
+                    />
                     <p className="text-muted text-sm">加载失败</p>
                   </div>
                 ) : (
@@ -694,7 +699,8 @@ export default function PicGalleryView() {
                       点击选择图片
                     </p>
                     <p className="text-muted mt-2 text-xs">
-                      支持 JPG、PNG、GIF、WebP、HEIF/HEIC (最大 {formatFileSize(PIC_MAX_IMAGE_BYTES)})
+                      支持 JPG、PNG、GIF、WebP、HEIF/HEIC (最大{' '}
+                      {formatFileSize(PIC_MAX_IMAGE_BYTES)})
                     </p>
                   </div>
                 )}

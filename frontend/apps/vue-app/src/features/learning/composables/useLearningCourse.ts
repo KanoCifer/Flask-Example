@@ -123,14 +123,10 @@ export function useLearningCourse() {
 
       // 立即 GET 一次,可能后端同步生成好,直接拿到 ready 走 fast-path。
       const initial = await learningGateway.getCourse(created.course_id);
-      const result = await pollUntilSettled(
-        created.course_id,
-        initial,
-      );
+      const result = await pollUntilSettled(created.course_id, initial);
       return result;
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : '课程生成失败,请稍后重试';
+      const msg = e instanceof Error ? e.message : '课程生成失败,请稍后重试';
       error.value = msg;
       throw e instanceof Error ? e : new Error(msg);
     } finally {
@@ -256,8 +252,7 @@ export function useLearningCourse() {
       }
       return resp;
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : '生成下一课失败,请稍后再试';
+      const msg = e instanceof Error ? e.message : '生成下一课失败,请稍后再试';
       error.value = msg;
       throw e instanceof Error ? e : new Error(msg);
     }
@@ -372,8 +367,7 @@ export function useLearningCourse() {
       upsertProgress(updated);
       return updated;
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : '标记进度失败,请稍后再试';
+      const msg = e instanceof Error ? e.message : '标记进度失败,请稍后再试';
       error.value = msg;
       throw e instanceof Error ? e : new Error(msg);
     }
@@ -390,8 +384,7 @@ export function useLearningCourse() {
       upsertProgress(updated);
       return updated;
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : '标记进度失败,请稍后再试';
+      const msg = e instanceof Error ? e.message : '标记进度失败,请稍后再试';
       error.value = msg;
       throw e instanceof Error ? e : new Error(msg);
     }

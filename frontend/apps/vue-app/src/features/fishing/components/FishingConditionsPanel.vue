@@ -169,10 +169,7 @@ function openWeather(): void {
     </p>
 
     <!-- 占位:store 未就绪时给一句提示,避免空白按钮显得空荡 -->
-    <p
-      v-if="!liveWeather"
-      class="text-muted text-xs leading-tight"
-    >
+    <p v-if="!liveWeather" class="text-muted text-xs leading-tight">
       定位后将展示实时天气与渔情窗口
     </p>
   </button>

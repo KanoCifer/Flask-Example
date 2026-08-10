@@ -1,7 +1,4 @@
-import {
-  rssGateway,
-  type RssGateway,
-} from '@readinglist/api';
+import { rssGateway, type RssGateway } from '@readinglist/api';
 import type {
   RssArticle,
   RssArticleListResponse,

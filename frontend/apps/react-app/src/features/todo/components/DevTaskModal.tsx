@@ -22,11 +22,9 @@ const STATUSES: DevTaskStatus[] = [
 
 const TYPE_ACTIVE: Record<DevTaskType, string> = {
   问题: 'border-rose-300/60 bg-rose-50 text-rose-700 dark:border-rose-700/60 dark:bg-rose-950/30 dark:text-rose-400',
-  功能需求:
-    'border-blue-300/60 bg-blue-50 text-blue-700 dark:border-blue-700/60 dark:bg-blue-950/30 dark:text-blue-400',
+  功能需求: 'border-blue-300/60 bg-blue-50 text-blue-700 dark:border-blue-700/60 dark:bg-blue-950/30 dark:text-blue-400',
   优化: 'border-amber-300/60 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-400',
-  技术债:
-    'border-purple-300/60 bg-purple-50 text-purple-700 dark:border-purple-700/60 dark:bg-purple-950/30 dark:text-purple-400',
+  技术债: 'border-purple-300/60 bg-purple-50 text-purple-700 dark:border-purple-700/60 dark:bg-purple-950/30 dark:text-purple-400',
 };
 
 const PRIORITY_ACTIVE: Record<DevTaskPriority, string> = {

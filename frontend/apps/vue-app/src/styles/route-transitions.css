@@ -112,11 +112,9 @@
 .page-side-by-side-leave-active {
   transition:
     opacity var(--page-fade-dur) var(--page-fade-ease),
-    transform
-      calc(var(--page-slide-dur) * var(--page-exit-enabled))
+    transform calc(var(--page-slide-dur) * var(--page-exit-enabled))
       var(--page-slide-ease),
-    filter
-      calc(var(--page-slide-dur) * var(--page-exit-enabled))
+    filter calc(var(--page-slide-dur) * var(--page-exit-enabled))
       var(--page-slide-ease);
   will-change: opacity, transform, filter;
 }

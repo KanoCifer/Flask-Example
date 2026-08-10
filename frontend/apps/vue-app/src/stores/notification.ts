@@ -17,10 +17,12 @@ export const useNotificationStore = defineStore('notification', () => {
     toasts,
     push: (message: string, type?: ToastType, timeout?: number) =>
       queue.push(message, type, timeout),
-    success: (message: string, timeout?: number) => queue.success(message, timeout),
+    success: (message: string, timeout?: number) =>
+      queue.success(message, timeout),
     error: (message: string, timeout?: number) => queue.error(message, timeout),
     info: (message: string, timeout?: number) => queue.info(message, timeout),
-    warning: (message: string, timeout?: number) => queue.warning(message, timeout),
+    warning: (message: string, timeout?: number) =>
+      queue.warning(message, timeout),
     dismiss: (id: number) => queue.dismiss(id),
     clear: () => queue.clear(),
   };

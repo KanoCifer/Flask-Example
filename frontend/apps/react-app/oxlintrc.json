@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript"],
+  "plugins": ["react", "typescript", "unicorn", "oxc", "import"],
   "env": {
     "browser": true
   },
@@ -8,6 +8,19 @@
     "correctness": "deny",
     "suspicious": "warn",
     "perf": "deny"
+  },
+  "rules": {
+    "no-console": ["warn", { "allow": ["error", "warn"] }],
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/consistent-type-imports": "warn",
+    "@typescript-eslint/consistent-type-definitions": "warn",
+    "import/no-duplicates": "error",
+    "import/no-cycle": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/no-array-index-key": "warn"
   },
   "ignorePatterns": ["dist/", "dist-ssr/", "coverage/"]
 }

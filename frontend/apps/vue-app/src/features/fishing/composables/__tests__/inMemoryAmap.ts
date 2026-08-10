@@ -147,7 +147,10 @@ class FakeGeolocation {
   }
 
   getCurrentPosition(
-    cb: (status: string, result: { position: { lng: number; lat: number } }) => void,
+    cb: (
+      status: string,
+      result: { position: { lng: number; lat: number } },
+    ) => void,
   ): void {
     if (FakeGeolocation.nextStatus === 'complete') {
       const [lng, lat] = FakeGeolocation.nextPosition;
@@ -206,7 +209,11 @@ export function createInMemoryAmap() {
   function makeCitySearch(this: unknown): FakeCitySearch {
     return new FakeCitySearch();
   }
-  function makePixel(this: unknown, x: number, y: number): { x: number; y: number } {
+  function makePixel(
+    this: unknown,
+    x: number,
+    y: number,
+  ): { x: number; y: number } {
     return { x, y };
   }
 

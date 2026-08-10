@@ -59,7 +59,10 @@ import type {
 } from '@/features/todos/api';
 import KanbanColumn from './KanbanColumn.vue';
 import TodoFilterBar, { type MemberChip } from './TodoFilterBar.vue';
-import { KANBAN_COLUMNS, type KanbanColumnId } from '@/features/todos/composables/devTaskPolicy';
+import {
+  KANBAN_COLUMNS,
+  type KanbanColumnId,
+} from '@/features/todos/composables/devTaskPolicy';
 
 const store = useV3DevTaskStore();
 
@@ -142,9 +145,7 @@ const derivedSwimlanes = computed(() => store.derived.swimlanesByColumn);
 /** 成员 chip —— 直接复用 derived.userTaskCounts，不再自己 filter。 */
 const memberChips = computed<MemberChip[]>(() =>
   Array.from(userTaskCounts.value.entries())
-    .sort(
-      (a: [number, number], b: [number, number]) => b[1] - a[1],
-    )
+    .sort((a: [number, number], b: [number, number]) => b[1] - a[1])
     .map(([userId, count]) => ({
       userId,
       label: `用户 ${userId}`,

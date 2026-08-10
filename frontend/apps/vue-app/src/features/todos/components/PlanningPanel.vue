@@ -311,9 +311,7 @@ function measureViewport() {
 function measureRowHeight() {
   const el = listEl.value;
   if (!el) return;
-  const firstRow = el.querySelector<HTMLElement>(
-    '[data-planning-row]',
-  );
+  const firstRow = el.querySelector<HTMLElement>('[data-planning-row]');
   if (!firstRow) return;
   const h = firstRow.getBoundingClientRect().height;
   if (h > 0 && Math.abs(h - rowHeight.value) > 0.5) {

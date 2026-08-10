@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "跨前端共享的构建/测试/格式化配置（vite、vitest、tsconfig、prettier）",
+  "description": "跨前端共享的构建/测试/格式化配置（vite、vitest、tsconfig、oxfmt）",
   "exports": {
     ".": "./src/index.ts",
     "./vitest-setup": "./src/vitest-setup.ts",

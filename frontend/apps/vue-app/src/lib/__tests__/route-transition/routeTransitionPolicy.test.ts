@@ -118,14 +118,11 @@ describe('resolvePageSlideDirection', () => {
   });
 
   it('列表 → 详情 → 正向（进入从右）', () => {
+    expect(resolvePageSlideDirection('/blog', '/blog/my-first-post')).toBe(
+      PAGE_SLIDE_FORWARD,
+    );
     expect(
-      resolvePageSlideDirection('/blog', '/blog/my-first-post'),
-    ).toBe(PAGE_SLIDE_FORWARD);
-    expect(
-      resolvePageSlideDirection(
-        '/blog/category/tech',
-        '/blog/my-first-post',
-      ),
+      resolvePageSlideDirection('/blog/category/tech', '/blog/my-first-post'),
     ).toBe(PAGE_SLIDE_FORWARD);
   });
 
@@ -136,14 +133,11 @@ describe('resolvePageSlideDirection', () => {
   });
 
   it('详情 → 列表 → 反向（进入从左）', () => {
+    expect(resolvePageSlideDirection('/blog/my-first-post', '/blog')).toBe(
+      PAGE_SLIDE_BACKWARD,
+    );
     expect(
-      resolvePageSlideDirection('/blog/my-first-post', '/blog'),
-    ).toBe(PAGE_SLIDE_BACKWARD);
-    expect(
-      resolvePageSlideDirection(
-        '/blog/my-first-post',
-        '/blog/category/tech',
-      ),
+      resolvePageSlideDirection('/blog/my-first-post', '/blog/category/tech'),
     ).toBe(PAGE_SLIDE_BACKWARD);
   });
 
@@ -172,17 +166,14 @@ describe('resolvePageSlideDirection', () => {
   });
 
   it('学习列表 → 课程 → 正向（进入从右）', () => {
-    expect(
-      resolvePageSlideDirection('/learning', '/learning/course/abc'),
-    ).toBe(PAGE_SLIDE_FORWARD);
+    expect(resolvePageSlideDirection('/learning', '/learning/course/abc')).toBe(
+      PAGE_SLIDE_FORWARD,
+    );
   });
 
   it('学习列表 → 单课 → 正向', () => {
     expect(
-      resolvePageSlideDirection(
-        '/learning',
-        '/learning/course/abc/lesson/2',
-      ),
+      resolvePageSlideDirection('/learning', '/learning/course/abc/lesson/2'),
     ).toBe(PAGE_SLIDE_FORWARD);
   });
 
@@ -205,29 +196,23 @@ describe('resolvePageSlideDirection', () => {
   });
 
   it('学习课程 → 列表 → 反向', () => {
-    expect(
-      resolvePageSlideDirection('/learning/course/abc', '/learning'),
-    ).toBe(PAGE_SLIDE_BACKWARD);
+    expect(resolvePageSlideDirection('/learning/course/abc', '/learning')).toBe(
+      PAGE_SLIDE_BACKWARD,
+    );
   });
 
   it('学习单课 → 列表 → 反向', () => {
     expect(
-      resolvePageSlideDirection(
-        '/learning/course/abc/lesson/2',
-        '/learning',
-      ),
+      resolvePageSlideDirection('/learning/course/abc/lesson/2', '/learning'),
     ).toBe(PAGE_SLIDE_BACKWARD);
   });
 
   it('博客 ↔ 学习跨分类 → 兜底正向', () => {
+    expect(resolvePageSlideDirection('/blog', '/learning')).toBe(
+      PAGE_SLIDE_FORWARD,
+    );
     expect(
-      resolvePageSlideDirection('/blog', '/learning'),
-    ).toBe(PAGE_SLIDE_FORWARD);
-    expect(
-      resolvePageSlideDirection(
-        '/learning/course/abc',
-        '/blog/first-post',
-      ),
+      resolvePageSlideDirection('/learning/course/abc', '/blog/first-post'),
     ).toBe(PAGE_SLIDE_FORWARD);
   });
 });
@@ -246,12 +231,12 @@ describe('classifyLearningPath', () => {
     },
   );
 
-  it.each([
-    '/learning/course/abc/lesson/1',
-    '/learning/course/abc/lesson/2',
-  ])('单课路径 %s → lesson', (path) => {
-    expect(classifyLearningPath(path)).toBe('lesson');
-  });
+  it.each(['/learning/course/abc/lesson/1', '/learning/course/abc/lesson/2'])(
+    '单课路径 %s → lesson',
+    (path) => {
+      expect(classifyLearningPath(path)).toBe('lesson');
+    },
+  );
 
   it.each([
     '/learning/',

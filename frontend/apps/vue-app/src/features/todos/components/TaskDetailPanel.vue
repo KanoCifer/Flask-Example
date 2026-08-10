@@ -57,7 +57,9 @@
         </header>
 
         <!-- body -->
-        <div class="flex-1 overflow-y-auto contain-[layout_paint_scroll_style] px-5 py-5">
+        <div
+          class="flex-1 overflow-y-auto px-5 py-5 contain-[layout_paint_scroll_style]"
+        >
           <!-- 任务不存在 / 已删除 -->
           <div
             v-if="!task"

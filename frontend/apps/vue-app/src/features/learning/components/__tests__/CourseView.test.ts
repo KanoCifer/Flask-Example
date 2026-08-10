@@ -83,9 +83,7 @@ vi.mock('@vueuse/head', () => ({
 
 // ── helpers ────────────────────────────────────────────────────────────
 
-function makeLesson(
-  overrides: Partial<LearningLesson> = {},
-): LearningLesson {
+function makeLesson(overrides: Partial<LearningLesson> = {}): LearningLesson {
   return {
     id: 1,
     title: 'Rust 入门 · 第 1 课',
@@ -96,9 +94,7 @@ function makeLesson(
   };
 }
 
-function makeCourse(
-  overrides: Partial<LearningCourse> = {},
-): LearningCourse {
+function makeCourse(overrides: Partial<LearningCourse> = {}): LearningCourse {
   return {
     course_id: 'rust--abcd1234',
     topic: 'Rust 入门',
@@ -135,7 +131,12 @@ interface MountOpts {
   courseAfterGenerate?: LearningCourse | null;
   routeParams?: Record<string, string>;
   /** `listFiles` 的返回（「原始文件」面板清单）。 */
-  courseFiles?: Array<{ name: string; rel_path: string; size: number; mtime: number }>;
+  courseFiles?: Array<{
+    name: string;
+    rel_path: string;
+    size: number;
+    mtime: number;
+  }>;
 }
 
 async function mountView(opts: MountOpts = {}): Promise<VueWrapper> {
@@ -158,9 +159,7 @@ async function mountView(opts: MountOpts = {}): Promise<VueWrapper> {
   getCourseMock.mockResolvedValueOnce(makeReady(course));
   // generateNextLesson 后若调用 getCourse(poll)→ 返回新课程
   if (opts.courseAfterGenerate) {
-    getCourseMock.mockResolvedValueOnce(
-      makeReady(opts.courseAfterGenerate),
-    );
+    getCourseMock.mockResolvedValueOnce(makeReady(opts.courseAfterGenerate));
   }
   // 后续 getCourse 调用兜底(兜底返回当前 course)
   getCourseMock.mockResolvedValue(makeReady(course));
@@ -218,9 +217,7 @@ describe('CourseView', () => {
       }),
       // sessions_done=[1] + next_session=2 → 第 1 课「已完成」,第 2 课「当前」,
       // 第 3 课「未开始」
-      progressList: [
-        makeProgressItem({ sessions_done: [1], next_session: 2 }),
-      ],
+      progressList: [makeProgressItem({ sessions_done: [1], next_session: 2 })],
     });
     await flushPromises();
 
@@ -259,7 +256,9 @@ describe('CourseView', () => {
 
   it('「继续下一课」点击 → generateNextLesson 被调;pending 时轮询后跳转 lesson 详情', async () => {
     // useFakeTimers 推进 ``pollForLesson`` 里的 setInterval(3000ms)
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout'] });
+    vi.useFakeTimers({
+      toFake: ['setInterval', 'clearInterval', 'setTimeout'],
+    });
     try {
       const newCourse = makeCourse({
         lessons: [
@@ -316,9 +315,7 @@ describe('CourseView', () => {
           makeLesson({ id: 2, title: 'L2' }),
         ],
       }),
-      progressList: [
-        makeProgressItem({ sessions_done: [1], next_session: 2 }),
-      ],
+      progressList: [makeProgressItem({ sessions_done: [1], next_session: 2 })],
       generateResult: {
         course_id: 'rust--abcd1234',
         next_lesson: null,
@@ -456,9 +453,7 @@ describe('CourseView', () => {
     // mountView 已 reset 并默认 resolve;此处覆盖为 reject
     downloadBundleMock.mockRejectedValueOnce(new Error('boom'));
 
-    await wrapper
-      .find('button[aria-label="下载原始文件"]')
-      .trigger('click');
+    await wrapper.find('button[aria-label="下载原始文件"]').trigger('click');
     await flushPromises();
     await flushPromises();
 
@@ -479,9 +474,7 @@ describe('CourseView', () => {
         }),
     );
 
-    await wrapper
-      .find('button[aria-label="下载原始文件"]')
-      .trigger('click');
+    await wrapper.find('button[aria-label="下载原始文件"]').trigger('click');
     await flushPromises();
     await flushPromises();
 
@@ -496,8 +489,18 @@ describe('CourseView', () => {
   it('「原始文件」面板展开后列出 lessons + resource + MISSION', async () => {
     const wrapper = await mountView({
       courseFiles: [
-        { name: '0001-lesson-1.md', rel_path: 'lessons/0001-lesson-1.md', size: 1234, mtime: 1 },
-        { name: '0002-lesson-2.md', rel_path: 'lessons/0002-lesson-2.md', size: 567, mtime: 1 },
+        {
+          name: '0001-lesson-1.md',
+          rel_path: 'lessons/0001-lesson-1.md',
+          size: 1234,
+          mtime: 1,
+        },
+        {
+          name: '0002-lesson-2.md',
+          rel_path: 'lessons/0002-lesson-2.md',
+          size: 567,
+          mtime: 1,
+        },
         { name: 'resource.md', rel_path: 'resource.md', size: 89, mtime: 1 },
         { name: 'MISSION.md', rel_path: 'MISSION.md', size: 90, mtime: 1 },
       ],
@@ -526,19 +529,20 @@ describe('CourseView', () => {
   it('每行下载图标触发对应单文件下载', async () => {
     const wrapper = await mountView({
       courseFiles: [
-        { name: '0001-lesson-1.md', rel_path: 'lessons/0001-lesson-1.md', size: 1234, mtime: 1 },
+        {
+          name: '0001-lesson-1.md',
+          rel_path: 'lessons/0001-lesson-1.md',
+          size: 1234,
+          mtime: 1,
+        },
       ],
     });
     await flushPromises();
 
-    await wrapper
-      .find('button[aria-controls="files-panel"]')
-      .trigger('click');
+    await wrapper.find('button[aria-controls="files-panel"]').trigger('click');
     await flushPromises();
 
-    const fileBtn = wrapper.find(
-      'button[aria-label="下载 0001-lesson-1.md"]',
-    );
+    const fileBtn = wrapper.find('button[aria-label="下载 0001-lesson-1.md"]');
     expect(fileBtn.exists()).toBe(true);
     await fileBtn.trigger('click');
     await flushPromises();
@@ -552,16 +556,19 @@ describe('CourseView', () => {
   it('单文件下载失败同样显示错误横幅', async () => {
     const wrapper = await mountView({
       courseFiles: [
-        { name: '0001-lesson-1.md', rel_path: 'lessons/0001-lesson-1.md', size: 1234, mtime: 1 },
+        {
+          name: '0001-lesson-1.md',
+          rel_path: 'lessons/0001-lesson-1.md',
+          size: 1234,
+          mtime: 1,
+        },
       ],
     });
     await flushPromises();
     // mountView 已 reset;此处覆盖为 reject
     downloadFileMock.mockRejectedValueOnce(new Error('boom'));
 
-    await wrapper
-      .find('button[aria-controls="files-panel"]')
-      .trigger('click');
+    await wrapper.find('button[aria-controls="files-panel"]').trigger('click');
     await flushPromises();
     await wrapper
       .find('button[aria-label="下载 0001-lesson-1.md"]')

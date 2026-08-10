@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["vue", "typescript", "vitest"],
+  "plugins": ["vue", "typescript", "unicorn", "oxc", "vitest", "import"],
   "env": {
     "browser": true
   },
@@ -8,6 +8,17 @@
     "correctness": "deny",
     "suspicious": "warn",
     "perf": "deny"
+  },
+  "rules": {
+    "no-console": ["warn", { "allow": ["error", "warn"] }],
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/consistent-type-imports": "warn",
+    "@typescript-eslint/consistent-type-definitions": "warn",
+    "import/no-duplicates": "error",
+    "import/no-cycle": "error"
   },
   "ignorePatterns": ["dist/", "dist-ssr/", "coverage/"]
 }

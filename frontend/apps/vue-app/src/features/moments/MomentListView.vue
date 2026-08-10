@@ -145,7 +145,12 @@
       :has-prev="hasPrev"
       :has-next="hasNext"
       :is-admin="isAdmin"
-      @update:open="(v) => { detailOpen = v; if (!v) activeOverride = null; }"
+      @update:open="
+        (v) => {
+          detailOpen = v;
+          if (!v) activeOverride = null;
+        }
+      "
       @navigate="navigateDetail"
       @edit="openEditor($event)"
       @delete="confirmDelete"
@@ -321,7 +326,7 @@ const activeMoment = computed<Moment | null>(
   () =>
     activeOverride.value ??
     (detailId.value
-      ? publicList.value.find((m) => m.id === detailId.value) ?? null
+      ? (publicList.value.find((m) => m.id === detailId.value) ?? null)
       : null),
 );
 

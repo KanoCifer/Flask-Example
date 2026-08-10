@@ -159,8 +159,7 @@ export function useMap(
           setIsMapReady(true);
         });
       } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : '地图初始化失败';
+        const message = err instanceof Error ? err.message : '地图初始化失败';
         notifyError(message);
         setIsMapReady(false);
       }

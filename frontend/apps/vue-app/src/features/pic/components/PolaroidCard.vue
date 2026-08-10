@@ -34,23 +34,40 @@
           <!-- 加载失败态 -->
           <template v-if="image.status === 'failed'">
             <div
-              class="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-1 text-muted"
+              class="text-muted pointer-events-none flex h-full w-full flex-col items-center justify-center gap-1"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-              <span class="text-muted font-family-dongfang text-[10px] italic tracking-wide opacity-80">加载失败</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-6 w-6"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+              <span
+                class="text-muted font-family-dongfang text-[10px] tracking-wide italic opacity-80"
+                >加载失败</span
+              >
             </div>
           </template>
 
           <!-- 处理中态:柔色蒙层 + spinner -->
           <template v-else-if="image.status === 'processing'">
             <div
-              class="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-1 text-muted"
+              class="text-muted pointer-events-none flex h-full w-full flex-col items-center justify-center gap-1"
             >
               <div
                 class="border-accent/60 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
                 aria-hidden="true"
               ></div>
-              <span class="text-muted font-family-dongfang text-[10px] italic tracking-wide opacity-80">处理中</span>
+              <span
+                class="text-muted font-family-dongfang text-[10px] tracking-wide italic opacity-80"
+                >处理中</span
+              >
             </div>
           </template>
 
@@ -164,13 +181,14 @@ const dateLabel = computed(() => {
 });
 
 // 图片源:后端已回填 thumbnailUrl 时优先用,否则回退 url
-const photoSrc = computed(
-  () => props.image.thumbnailUrl ?? props.image.url,
-);
+const photoSrc = computed(() => props.image.thumbnailUrl ?? props.image.url);
 
 // 处理中/失败态不显示 hover 放大镜
 const showHoverOverlay = computed(
-  () => !props.isEditMode && props.image.status !== 'processing' && props.image.status !== 'failed',
+  () =>
+    !props.isEditMode &&
+    props.image.status !== 'processing' &&
+    props.image.status !== 'failed',
 );
 
 // 点击/选中区分:编辑模式下点击卡片切换选中,非编辑模式打开详情
@@ -186,7 +204,8 @@ const onClick = (e: MouseEvent) => {
     return;
   }
   // 处理中/失败态不打开详情
-  if (props.image.status === 'processing' || props.image.status === 'failed') return;
+  if (props.image.status === 'processing' || props.image.status === 'failed')
+    return;
   emit('select', props.image, props.index);
 };
 </script>

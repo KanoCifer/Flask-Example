@@ -48,9 +48,7 @@ interface GeolocationService {
  * offset 为 (x, y) 像素偏移,content 直接接受 DOM 字符串或 HTMLElement。
  */
 interface InfoWindowInstance {
-  setContent(
-    content: string | HTMLElement,
-  ): void;
+  setContent(content: string | HTMLElement): void;
   setPosition(position: [number, number] | AMap.LngLat): void;
   open(map: AMap.Map, position?: [number, number] | AMap.LngLat): void;
   close(): void;

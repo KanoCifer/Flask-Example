@@ -15,10 +15,7 @@
 import { computed } from 'vue';
 import type { CSSProperties } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {
-  resolvePageSlideDirection,
-  resolveTransitionName,
-} from '@/lib';
+import { resolvePageSlideDirection, resolveTransitionName } from '@/lib';
 
 defineOptions({ name: 'RouteTransition' });
 

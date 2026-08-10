@@ -12,13 +12,10 @@
         size="icon"
         :disabled="isSyncing"
         aria-label="同步书架"
-        class="bg-page/60 hover:bg-secondary text-ink !rounded-full h-10 w-10 border backdrop-blur-md"
+        class="bg-page/60 hover:bg-secondary text-ink h-10 w-10 !rounded-full border backdrop-blur-md"
         @click="$emit('sync')"
       >
-        <CloudSync
-          class="h-5 w-5"
-          :class="{ 'animate-breathe': isSyncing }"
-        />
+        <CloudSync class="h-5 w-5" :class="{ 'animate-breathe': isSyncing }" />
       </Button>
     </template>
     <template #ribbon>
