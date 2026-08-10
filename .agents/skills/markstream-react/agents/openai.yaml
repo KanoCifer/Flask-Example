@@ -1,0 +1,4 @@
+interface:
+  display_name: Markstream React
+  short_description: Wire beta markstream-react in React or Next
+  default_prompt: Use $markstream-react to integrate the beta markstream-react package into this React or Next repository with the correct entrypoint, local component maps, safe client boundaries, and optional peers.

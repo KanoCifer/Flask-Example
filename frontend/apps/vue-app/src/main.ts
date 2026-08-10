@@ -1,8 +1,10 @@
 import { createHead } from '@vueuse/head';
 import { createPinia, setActivePinia } from 'pinia';
 import { createApp } from 'vue';
+import { createI18n } from 'vue-i18n';
 import App from './App.vue';
 import { isColorScheme } from '@readinglist/utils';
+import { messages } from '@readinglist/brand/locales';
 import './styles/base.css'; // Tailwind v4 入口
 import './styles/backgrounds.css'; // 背景渐变
 import './styles/base.scss'; // font-face sass
@@ -30,12 +32,19 @@ if (typeof document !== 'undefined') {
 const app = createApp(App);
 const pinia = createPinia();
 const head = createHead();
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  fallbackLocale: 'en',
+  messages,
+});
 
 setActivePinia(pinia);
 
 app.use(pinia);
 app.use(router);
 app.use(head);
+app.use(i18n);
 
 if (typeof window !== 'undefined') {
   initVisitorWebSocket(pinia);

@@ -9,7 +9,9 @@
     "./themes/*": "./themes/*.css",
     "./prose": "./prose.css",
     "./prose-magazine": "./prose-magazine.css",
-    "./twikoo": "./twikoo.css"
+    "./twikoo": "./twikoo.css",
+    "./locales": "./locales/index.ts",
+    "./locales/*": "./locales/*"
   },
   "style": "./themes/index.css"
 }

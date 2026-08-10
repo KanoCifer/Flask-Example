@@ -101,6 +101,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/noon',
+      name: 'noon',
+      component: () => import('@/features/noontool/NoonToolView.vue'),
+      meta: {
+        title: 'NoonTool — Noon 卖家的商品上架工具',
+        description:
+          'NoonTool 是一款 Chrome 浏览器扩展，从 1688 源页抓取商品，解析、翻译、建图并逐件发布到 Noon UAE 与 Saudi。无需 API Key、无 OAuth、所有配置保留在本地。',
+        keywords: 'NoonTool,1688,Noon 上架,Noon UAE,Noon Saudi,浏览器扩展',
+      },
+    },
+    {
       // 布局壳：顶栏 + 浮层常驻，主体由子路由切换。父路由不设 name，
       // 避免被 push 到父路由时主体区域空白。
       path: '/fishing-map',
