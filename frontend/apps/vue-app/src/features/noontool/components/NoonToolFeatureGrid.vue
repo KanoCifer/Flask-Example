@@ -9,25 +9,29 @@ const { t } = useI18n();
 
 type FeatureKey = Extract<
   IconKey,
-  'pipeline' | 'cart' | 'translate' | 'competitor' | 'serial' | 'ai'
+  'pipeline' | 'multiAccount' | 'translate' | 'image' | 'serial' | 'ai'
 >;
 
 const featureKeys: FeatureKey[] = [
   'pipeline',
-  'cart',
+  'multiAccount',
   'translate',
-  'competitor',
+  'image',
   'serial',
   'ai',
 ];
 
 const featureImages: Record<FeatureKey, string> = {
   pipeline: '/noontool-screens/02-feature-pipeline.png',
-  cart: '/noontool-screens/03-feature-cart.png',
+  multiAccount: '/noontool-screens/03-feature-multiAccount.png',
   translate: '/noontool-screens/04-feature-translate.png',
-  competitor: '/noontool-screens/05-feature-competitor.png',
+  image: '/noontool-screens/05-feature-image.png',
   serial: '/noontool-screens/06-feature-serial.png',
   ai: '/noontool-screens/07-feature-ai.png',
+};
+
+const featureVideos: Partial<Record<FeatureKey, string>> = {
+  multiAccount: '/noontool-screens/03-feature-multiAccount.mov',
 };
 </script>
 
@@ -70,6 +74,7 @@ const featureImages: Record<FeatureKey, string> = {
         </p>
         <NoonToolScreenshot
           :src="featureImages[key]"
+          :video-src="featureVideos[key]"
           :alt="t('noonTool.features.items.' + key + '.imageAlt')"
           aspect="3/2"
         />

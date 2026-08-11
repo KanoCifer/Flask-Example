@@ -39,7 +39,7 @@ const steps = ['capture', 'confirm', 'publish'] as const;
     </ol>
 
     <NoonToolScreenshot
-      src="/noontool-screens/08-how.png"
+      video-src="/noontool-screens/01-hero.mp4"
       :alt="t('noonTool.how.imageAlt')"
       aspect="2/1"
       :caption="t('noonTool.hero.screenshotCaption')"

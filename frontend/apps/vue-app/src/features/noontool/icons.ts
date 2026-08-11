@@ -1,8 +1,8 @@
 export const icons = {
   pipeline: 'Rocket',
-  cart: 'ShoppingCart',
+  multiAccount: 'Store',
   translate: 'Languages',
-  competitor: 'Eye',
+  image: 'Image',
   serial: 'ListOrdered',
   ai: 'Sparkles',
   privacy: 'ShieldCheck',

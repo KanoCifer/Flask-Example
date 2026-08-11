@@ -1,68 +1,68 @@
 export default {
   noonTool: {
     meta: {
-      title: "NoonTool — The listing tool for Noon sellers",
+      title: "NoonTool — Put 1688 products on Noon",
       description:
-        "NoonTool is a Chrome browser extension that captures 1688 product pages, parses structured data, translates CN → EN / AR, builds compliant images, and publishes each item to Noon UAE and Saudi. Store settings, account config and session cookies stay on your machine; translation and image processing run on the extension's bundled bridge backend, which stores no account data.",
+        "NoonTool is a Chrome extension that captures 1688 product pages, translates the details (Chinese to English and Arabic), prepares images, and publishes each product to Noon UAE and Saudi. Store settings and account config stay on your machine; translation and image processing run on the tool's own service, which stores no account data.",
       keywords: ["NoonTool", "1688", "Noon listing", "Noon UAE", "Noon Saudi", "browser extension"],
     },
     hero: {
-      eyebrow: "NoonTool · Browser extension",
-      headline: "Move 1688 goods onto Noon",
+      eyebrow: "NoonTool · Chrome extension",
+      headline: "Put 1688 products on Noon",
       subheadline:
-        "NoonTool is the listing tool for Noon sellers: capture from a 1688 source, translate (CN → EN / AR), build images and publish each product to Noon — one warm yellow confirm at a time.",
+        "NoonTool helps Noon sellers publish products: capture from a 1688 page, translate (Chinese to English and Arabic), prepare images, and publish each product to Noon — one warm yellow confirm at a time.",
       ctaPrimary: "Add to Chrome",
       ctaPrimaryHint: "Chrome Web Store link TBD",
       ctaSecondary: "See how it works",
       localeZh: "中文",
       localeEn: "EN",
       screenshotAlt: "NoonTool main interface screenshot",
-      screenshotCaption: "Right-edge drawer, bottom-right pill FAB, one yellow confirm per item",
+      screenshotCaption: "A side drawer on the right, one yellow confirm per product",
     },
     trust: {
-      item1Label: "API keys",
+      item1Label: "Keys needed",
       item1Value: "0",
       item1Note: "never asked for, never stored",
-      item2Label: "Telemetry",
+      item2Label: "Tracking",
       item2Value: "0",
       item2Note: "no analytics, no tracking",
-      item3Label: "Local config",
+      item3Label: "Local data",
       item3Value: "100%",
-      item3Note: "kept in chrome.storage.local",
+      item3Note: "kept in your browser",
     },
     features: {
-      sectionTitle: "Five things that actually save time",
-      sectionSubtitle: "Built around the day of an operator running multiple stores",
+      sectionTitle: "Six ways it saves you time",
+      sectionSubtitle: "Designed for operators running several stores",
       items: {
         pipeline: {
-          title: "One-click 1688 → Noon listing",
-          imageAlt: "Screenshot of source snapshot, GoodsList batch, and the product/create chain",
-          body: "Source snapshot → GoodsList batch → product/create chain → activate + warranty close-out.",
+          title: "One click from 1688 to Noon",
+          imageAlt: "Screenshot of the one-click capture-to-publish flow",
+          body: "Capture the source page, add it to your batch, submit it, and finish with activation and warranty — all in one flow.",
         },
-        cart: {
-          title: "1688 cart capture",
-          imageAlt: "Screenshot of capturing multiple 1688 cart items at once",
-          body: "Pick several items on a 1688 cart page and pull them into the GoodsList as a batch — no per-detail-page clicks. Coming in the next release.",
+        multiAccount: {
+          title: "Manage several stores in one place",
+          imageAlt: "Screenshot of the multi-store list and switching in the side panel",
+          body: "Keep all your Noon stores in one panel and switch stores to auto-fill the listing settings.",
         },
         translate: {
-          title: "CN → EN / AR auto-translation",
-          imageAlt: "Screenshot of the translation pipeline",
-          body: "Translate titles, selling points and attributes inline for both Noon UAE and Saudi.",
+          title: "Auto-translate Chinese to English and Arabic",
+          imageAlt: "Screenshot of the translation result",
+          body: "Titles, selling points and attributes are translated automatically, covering both Noon UAE and Saudi.",
         },
-        competitor: {
-          title: "www.noon.com competitor scraping",
-          imageAlt: "Screenshot of the competitor-watch task list",
-          body: "Paste a public Noon product link and auto-pull title, selling points, images and category into a local draft. Coming in the next release.",
+        image: {
+          title: "Product images ready to publish",
+          imageAlt: "Screenshot of images being prepared to the 660×900 spec",
+          body: "Images are resized and cleaned to Noon's spec (660×900, white background) automatically, so non-compliant pictures never block a listing.",
         },
         serial: {
-          title: "Serial batch, fail-fast",
-          imageAlt: "Screenshot of independent ListingProduct entries",
-          body: "One independent ListingProduct per run. The first failure halts the batch — no half-published listings.",
+          title: "Publish one by one, stop on the first problem",
+          imageAlt: "Screenshot of independently published products",
+          body: "Each product is published independently. If one fails, the batch stops — no half-published listings.",
         },
         ai: {
-          title: "Noon-compliant category AI",
-          imageAlt: "Screenshot of FullTypeCategory prediction",
-          body: "FullTypeCategory predicted from cate_list / official_ai_predict (1688 capture output); no hand-picked taxonomies.",
+          title: "Category suggested automatically",
+          imageAlt: "Screenshot of the suggested Noon category",
+          body: "The Noon category is suggested from the 1688 data, so you don't have to pick it by hand.",
         },
       },
     },
@@ -71,90 +71,110 @@ export default {
       imageAlt: "Screenshot of the three-step flow: capture, confirm, publish",
       steps: {
         capture: {
-          title: "Capture from a 1688 source page",
-          body: "Open any 1688 product detail; the extension extracts structured fields and adds them to the GoodsList.",
+          title: "Capture a 1688 product page",
+          body: "Open any 1688 product page; the extension pulls the details into your batch.",
         },
         confirm: {
           title: "Confirm one yellow row at a time",
-          body: "The right-edge drawer shows each item for review — adjust price, currency, attributes. Yellow Rarity Rule keeps every step clear. [Yellow Rarity Rule naming pending product confirmation]",
+          body: "The drawer on the right shows each product for review — adjust price, currency and details. One warm yellow confirm keeps every step clear.",
         },
         publish: {
-          title: "Publish each item to Noon",
-          body: "Submit to product/create, activate, register warranty. Fail-fast with safe retry.",
+          title: "Publish each product to Noon",
+          body: "Submit the product, activate it and register the warranty. If something fails, the batch stops and you can retry safely.",
         },
       },
     },
     audience: {
-      title: "Built for this operator",
-      body: "External Noon sellers (operators and store leads) working in Chinese, sourcing from 1688 and listing on Noon UAE (ae) / Saudi (sa).",
+      title: "Made for this kind of seller",
+      body: "Chinese-speaking sellers who source from 1688 and list on Noon UAE and Saudi.",
     },
     privacy: {
       sectionTitle: "Where your data goes",
       sectionSubtitle:
-        "Three columns at a glance: stays local, only goes to Noon, never seen by us",
+        "At a glance: what stays on your machine, what goes only to Noon, what we never see",
       colLocal: "Stays on your machine",
       colEgress: "Only sent to Noon",
       colNever: "Never seen by us",
       local: [
-        "noonListingStoreSettings (country / partnerCode / warehouseId / quantity / warranty / brand)",
-        "noonConfig (account and per-store configuration)",
-        "Your already-logged-in noon.partners session cookie (chrome.cookies)",
+        "Your store settings (country, partner code, warehouse, quantity, warranty, brand)",
+        "Your store records and which store is active",
+        "Your product batches and drafts",
       ],
       egress: [
-        "Product fields you submit to Noon (title / description / attributes / price / stock)",
-        "Images you submit to Noon (processed 660×900 JPEG)",
-        "Warranty / activation requests you submit to Noon",
+        "The product details you submit to Noon (title, description, attributes, price, stock)",
+        "The images you submit to Noon (prepared to 660×900)",
+        "The warranty and activation requests you submit to Noon",
       ],
       never: [
         "Your Noon account password",
-        "Any API key or OAuth token",
-        "Any telemetry, analytics, or tracking data",
+        "Any login keys or access tokens",
+        "Any tracking, analytics, or telemetry data",
         "Your browsing history or unrelated cookies",
       ],
     },
     permissions: {
-      sectionTitle: "Permissions, line by line",
-      sectionSubtitle: "Four core permissions up top; all 11 in the collapsed list below",
+      sectionTitle: "Permissions, explained",
+      sectionSubtitle: "Three core permissions; the sites the tool uses are listed below",
       top: {
+        tabs: {
+          name: "Tabs",
+          reason: "Find the Noon page you have open and switch to it.",
+        },
         storage: {
-          name: "storage",
-          reason: "Persist store settings and account configuration in chrome.storage.local.",
-        },
-        cookies: {
-          name: "cookies",
-          reason: "Reuse your already-logged-in noon.partners session cookie so the extension can list on your behalf.",
-        },
-        activeTab: {
-          name: "activeTab",
-          reason: "Only access the current 1688 / Noon tab when you actively click the icon.",
+          name: "Storage",
+          reason: "Save your store records, settings and batches in your browser.",
         },
         sidePanel: {
-          name: "sidePanel",
-          reason: "Host NoonTool's right-edge drawer inside Chrome's side panel.",
+          name: "Side panel",
+          reason: "Show the store-management panel in Chrome's side panel.",
         },
       },
       fullTitle: "Show the full permission list",
       full: {
+        hostsTitle: "Sites the tool uses",
         permissions: {
-          scripting:
-            "Inject capture / translate scripts into 1688 / Noon pages only on explicit user trigger.",
-          tabs: "Enumerate tabs to locate 1688 source pages and Noon target pages.",
-          storage: "Persist store settings, account configuration and translation memory.",
-          cookies: "Reuse your already-logged-in noon.partners session so the extension can list on your behalf.",
-          sidePanel: "Host the right-edge drawer console.",
-          activeTab: "Only access the active tab on explicit trigger.",
-          declarativeNetRequest:
-            "Rewrite requests on the URL whitelist so capture and publish only hit target domains.",
+          tabs: {
+            name: "Tabs",
+            reason: "Find and switch to the Noon page you have open.",
+          },
+          storage: {
+            name: "Storage",
+            reason: "Save your store records, settings and batches.",
+          },
+          sidePanel: {
+            name: "Side panel",
+            reason: "Show the store-management panel in the side panel.",
+          },
         },
         hosts: {
-          noon: "Noon UAE / Saudi storefront and partner management surfaces",
-          noonPartners: "Noon Partners backend (catalog / fbp)",
-          noonCdn: "Noon image and asset CDN",
-          cdn1688: "1688 product image asset domains",
-          alicom: "1688 storefront and login domains",
-          alibabaCdn: "1688 static asset CDN",
-          backend:
-            "Plugin-built bridge backend (translation and image processing; no account data stored)",
+          noon: {
+            name: "Noon website",
+            reason: "Noon UAE / Saudi product and store pages",
+          },
+          noonPartners: {
+            name: "Noon partner area",
+            reason: "Noon's partner management pages (product catalog)",
+          },
+          noonCdn: {
+            name: "Noon image server",
+            reason: "Noon's image and file server",
+          },
+          cdn1688: {
+            name: "1688 image server",
+            reason: "1688 product image servers",
+          },
+          alicom: {
+            name: "1688 website",
+            reason: "1688 product and login pages",
+          },
+          alibabaCdn: {
+            name: "1688 file server",
+            reason: "1688 static file servers",
+          },
+          backend: {
+            name: "Tool's own service",
+            reason: "Handles translation and image processing; stores no account data",
+          },
         },
       },
     },
@@ -163,31 +183,31 @@ export default {
       items: {
         free: {
           q: "Is NoonTool free?",
-          a: "Yes — the tool itself is free. Settings and cookie jars stay in your own browser; no subscription.",
+          a: "Yes — the tool itself is free. Settings and cookies stay in your own browser; no subscription.",
         },
         apiKey: {
-          q: "Do I need to provide an API key or OAuth token?",
-          a: "No. NoonTool bridges into your already-logged-in Noon session via a content-script cookie channel. It never touches credentials.",
+          q: "Do I need to provide a key or sign in somewhere?",
+          a: "No. NoonTool works through your existing Noon login (cookies), so you never have to enter a password or key.",
         },
         regions: {
           q: "Which Noon regions are supported?",
-          a: "Noon UAE (ae) and Noon Saudi (sa) today. Other regions are not validated and not promised.",
+          a: "Noon UAE and Noon Saudi today. Other regions are not validated and not promised.",
         },
         sources: {
-          q: "Do you support sources other than 1688?",
-          a: "Sources are pluggable: 1688 is the live implementation. Other platforms are listed as planned in the product doc; nothing is committed.",
+          q: "Can I use sources other than 1688?",
+          a: "1688 is supported today. Other platforms are planned, but not promised.",
         },
         data: {
           q: "Where is my data stored?",
-          a: "Locally. Store settings go to chrome.storage.local. No server-side profile, no cloud sync.",
+          a: "On your machine. Settings are saved in your browser's local storage. No server-side account, no cloud sync.",
         },
         translation: {
           q: "How good is the translation? Should I proofread?",
-          a: "Translation runs inline (CN → EN / AR). High-value SKUs and brand terms should be spot-checked — auto-translation is not promised at native level.",
+          a: "Translation is automatic (Chinese to English and Arabic). For high-value or brand items, do a quick spot-check before publishing — auto-translation isn't guaranteed to be native-level.",
         },
         failure: {
           q: "What happens if a listing fails?",
-          a: "The batch stops on the first failed item. The failed row is flagged in the GoodsList and can be retried singly or fixed manually.",
+          a: "The batch stops on the first failed item. That item is flagged in the list and can be retried on its own or fixed manually.",
         },
       },
     },

@@ -65,7 +65,7 @@ const { t } = useI18n();
 
       <div>
         <NoonToolScreenshot
-          src="/noontool-screens/01-hero.png"
+          videoSrc="/noontool-screens/01-hero.mp4"
           :alt="t('noonTool.hero.screenshotAlt')"
           aspect="16/10"
           :caption="t('noonTool.hero.screenshotCaption')"

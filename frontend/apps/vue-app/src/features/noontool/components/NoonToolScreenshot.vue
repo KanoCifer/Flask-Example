@@ -2,30 +2,38 @@
 /**
  * Story-style usage:
  *   <NoonToolScreenshot src="/noontool-screens/01-hero.png" alt="..." aspect="16/10" />
+ *   <NoonToolScreenshot videoSrc="/noontool-screens/hero.mp4" alt="..." aspect="16/10" />
  *   <NoonToolScreenshot src="..." alt="..." aspect="3/2" caption="..." />
  *   <NoonToolScreenshot src="..." alt="..." aspect="2/1" />
  *
- * Renders a fixed-aspect-ratio figure with a real screenshot.
+ * Renders a fixed-aspect-ratio figure with a screenshot or a looping video.
+ * Pass `videoSrc` to show a muted, looping video instead of an image; it plays
+ * only while scrolled into view (≥25% visible), with no controls.
  * Click (or Enter / Space) the figure to open a larger preview in a modal.
- * When the image fails to load, the slot is empty (silently blank) per design.
+ * When the media fails to load, the slot is empty (silently blank) per design.
  */
-import { ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { Modal } from '@/components/ui/modal';
 
 type Aspect = '16/10' | '3/2' | '2/1';
 
 const props = withDefaults(
   defineProps<{
-    src: string;
+    src?: string;
+    videoSrc?: string;
     alt: string;
     aspect?: Aspect;
     caption?: string;
   }>(),
   {
+    src: '',
+    videoSrc: '',
     aspect: '16/10',
     caption: '',
   },
 );
+
+const isVideo = () => Boolean(props.videoSrc);
 
 const aspectClass = {
   '16/10': 'aspect-[16/10]',
@@ -34,6 +42,33 @@ const aspectClass = {
 }[props.aspect];
 
 const previewOpen = ref(false);
+
+// 视口内才播放：卡片视频去掉 autoplay，由 IntersectionObserver 控制
+// 进入视口（≥25% 可见）即播放、离开即暂停，避免视口外空耗资源。
+const videoRef = ref<HTMLVideoElement | null>(null);
+let observer: IntersectionObserver | null = null;
+
+function onVideoIntersect(entries: IntersectionObserverEntry[]) {
+  const video = videoRef.value;
+  if (!video) return;
+  const visible = entries.some((e) => e.isIntersecting);
+  if (visible) {
+    video.play().catch(() => {});
+  } else {
+    video.pause();
+  }
+}
+
+onMounted(() => {
+  if (!isVideo() || !videoRef.value) return;
+  observer = new IntersectionObserver(onVideoIntersect, { threshold: 0.25 });
+  observer.observe(videoRef.value);
+});
+
+onUnmounted(() => {
+  observer?.disconnect();
+  observer = null;
+});
 
 function openPreview() {
   previewOpen.value = true;
@@ -61,7 +96,18 @@ function onFigureKeydown(e: KeyboardEvent) {
       @click="openPreview"
       @keydown="onFigureKeydown"
     >
+      <video
+        v-if="isVideo()"
+        ref="videoRef"
+        :src="props.videoSrc"
+        class="absolute inset-0 h-full w-full object-cover"
+        muted
+        loop
+        playsinline
+        preload="metadata"
+      />
       <img
+        v-else
         :src="props.src"
         :alt="props.alt"
         loading="lazy"
@@ -104,7 +150,18 @@ function onFigureKeydown(e: KeyboardEvent) {
       <div
         class="bg-card/0 relative flex min-h-0 flex-1 items-center justify-center p-3 sm:p-4"
       >
+        <video
+          v-if="isVideo()"
+          :src="props.videoSrc"
+          class="max-h-[80vh] w-full rounded-lg object-contain"
+          autoplay
+          muted
+          loop
+          playsinline
+          controls
+        />
         <img
+          v-else
           :src="props.src"
           :alt="props.alt"
           class="max-h-[80vh] w-full rounded-lg object-contain"

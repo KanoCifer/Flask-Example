@@ -5,16 +5,8 @@ import { Card } from '@/components/ui/card';
 
 const { t } = useI18n();
 
-const topKeys = ['storage', 'cookies', 'activeTab', 'sidePanel'] as const;
-const allPerms = [
-  'scripting',
-  'tabs',
-  'storage',
-  'cookies',
-  'sidePanel',
-  'activeTab',
-  'declarativeNetRequest',
-] as const;
+const topKeys = ['tabs', 'storage', 'sidePanel'] as const;
+const allPerms = ['tabs', 'storage', 'sidePanel'] as const;
 const hostKeys = [
   'noon',
   'noonPartners',
@@ -42,7 +34,7 @@ const showFull = ref(false);
       </p>
     </header>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Card
         v-for="key in topKeys"
         :key="key"
@@ -98,9 +90,11 @@ const showFull = ref(false);
               </h4>
               <dl class="space-y-2">
                 <div v-for="p in allPerms" :key="p" class="flex gap-2">
-                  <dt class="text-ink shrink-0 font-mono text-xs">{{ p }}</dt>
+                  <dt class="text-ink shrink-0 text-xs font-semibold">
+                    {{ t(`noonTool.permissions.full.permissions.${p}.name`) }}
+                  </dt>
                   <dd class="text-muted text-xs leading-relaxed">
-                    {{ t(`noonTool.permissions.full.permissions.${p}`) }}
+                    {{ t(`noonTool.permissions.full.permissions.${p}.reason`) }}
                   </dd>
                 </div>
               </dl>
@@ -109,13 +103,15 @@ const showFull = ref(false);
               <h4
                 class="text-accent mb-2 text-xs font-semibold tracking-wider uppercase"
               >
-                Host permissions
+                {{ t('noonTool.permissions.full.hostsTitle') }}
               </h4>
               <dl class="space-y-2">
                 <div v-for="h in hostKeys" :key="h" class="flex gap-2">
-                  <dt class="text-ink shrink-0 font-mono text-xs">{{ h }}</dt>
+                  <dt class="text-ink shrink-0 text-xs font-semibold">
+                    {{ t(`noonTool.permissions.full.hosts.${h}.name`) }}
+                  </dt>
                   <dd class="text-muted text-xs leading-relaxed">
-                    {{ t(`noonTool.permissions.full.hosts.${h}`) }}
+                    {{ t(`noonTool.permissions.full.hosts.${h}.reason`) }}
                   </dd>
                 </div>
               </dl>
