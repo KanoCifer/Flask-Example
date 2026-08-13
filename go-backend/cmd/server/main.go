@@ -93,6 +93,6 @@ func main() {
 
 	sendBootNotification()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", config.Cfg.Server.Port)
+	addr := fmt.Sprintf("0.0.0.0:%d", config.Cfg.Server.Port)
 	r.Run(addr)
 }
