@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -50,6 +51,8 @@ func newQWeatherClient(
 	base string,
 	signer *qweather.Signer,
 ) *qweatherClient {
+	// 去掉尾部斜杠，避免与 path 首斜杠拼接出 "//geo/..." 导致上游 404。
+	base = strings.TrimRight(base, "/")
 	return &qweatherClient{
 		http:   http,
 		redis:  redis,
