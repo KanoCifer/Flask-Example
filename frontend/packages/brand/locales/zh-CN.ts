@@ -15,6 +15,7 @@ export default {
       ctaPrimary: '下载插件',
       ctaPrimaryHint: '下载 nomu-*.zip，直接拖入 Chrome 扩展管理页即可安装',
       ctaSecondary: '看看它做什么',
+      ctaTertiary: '查看文档',
       localeZh: '中文',
       localeEn: 'EN',
       screenshotAlt: 'Nomu 主界面截图',

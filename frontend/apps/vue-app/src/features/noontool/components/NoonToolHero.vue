@@ -8,6 +8,9 @@ import NoonToolScreenshot from './NoonToolScreenshot.vue';
 
 const { t } = useI18n();
 
+// 线上文档站（VitePress），base 为 /docs/
+const DOCS_URL = 'https://kanocifer.chat/docs/';
+
 // public/nomu-*.zip 由扩展仓库构建产物拷入，文件名带版本号
 const modules = import.meta.glob('/public/nomu-*.zip', {
   eager: true,
@@ -59,6 +62,15 @@ const downloadHref = Object.values(modules)[0] ?? '#';
           class="border-border bg-card text-ink focus-visible:ring-ring motion-safe:hover:bg-surface inline-flex items-center justify-center rounded-xl border px-5 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
         >
           {{ t('noonTool.hero.ctaSecondary') }}
+        </a>
+        <a
+          :href="DOCS_URL"
+          target="_blank"
+          rel="noopener"
+          class="text-muted focus-visible:ring-ring motion-safe:hover:text-ink inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          <component :is="(LucideIcons as any)[icons.docs]" :size="16" />
+          {{ t('noonTool.hero.ctaTertiary') }}
         </a>
       </div>
 
