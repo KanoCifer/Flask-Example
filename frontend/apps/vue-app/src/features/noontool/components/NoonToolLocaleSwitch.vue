@@ -20,8 +20,8 @@ const optionRefs = ref<Record<string, HTMLElement | null>>({});
 const indicator = ref({ x: 0, width: 0 });
 
 function setOptionRef(code: string) {
-  return (el: Element | null) => {
-    if (el) optionRefs.value[code] = el as HTMLElement;
+  return (el: unknown) => {
+    if (el instanceof HTMLElement) optionRefs.value[code] = el;
     else delete optionRefs.value[code];
   };
 }
