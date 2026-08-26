@@ -144,15 +144,16 @@ const tabs = computed(() => [
 /* Tab 指示器滑动过渡：与 BasicNav indicator 同缓动 cubic-bezier(.32,.72,0,1) */
 .tab-indicator {
   transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
-  will-change: transform;
 }
 
-/* 折叠态宽度过渡：与 tab 指示器同缓动，宽度变化时主区同步滑动 */
+/* 折叠态缩放过渡：走 transform，避免触发父 grid `auto_1fr` 重排；
+ * 真实宽度仍由 lg:w-14 / lg:w-60 类同步切换，但动画只补一层视觉插值，
+ * 主线程不再做 layout/paint，只做合成层 transform，60fps。 */
 .sidebar-collapse-transition {
-  transition:
-    width 0.28s cubic-bezier(0.32, 0.72, 0, 1),
-    padding 0.28s cubic-bezier(0.32, 0.72, 0, 1);
-  will-change: width, padding;
+  /* ponytail: 用 transform 替代 width 动画，绕开 grid layout；
+   * 升级路径：若未来 grid 改为 flex-basis 容器，可改回 width。 */
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
