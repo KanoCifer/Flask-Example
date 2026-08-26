@@ -12,13 +12,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@readinglist/utils": "workspace:*",
     "@readinglist/types": "workspace:*",
+    "@readinglist/utils": "workspace:*",
     "@simplewebauthn/browser": "^13.3.0",
-    "axios": "^1.18.1"
+    "axios": "^1.19.0"
   },
   "devDependencies": {
     "typescript": "^7.0.2",
-    "vite": "^8.1.5"
+    "vite": "^8.2.2"
   }
 }
