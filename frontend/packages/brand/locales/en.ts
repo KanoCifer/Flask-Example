@@ -15,6 +15,7 @@ export default {
       ctaPrimary: 'Download Extension',
       ctaPrimaryHint: 'Download nomu-*.zip, then drag it onto the Chrome extensions page to install',
       ctaSecondary: 'See what it does',
+      ctaDocs: 'Read the docs',
       localeZh: '中文',
       localeEn: 'EN',
       screenshotAlt: 'Nomu main interface screenshot',

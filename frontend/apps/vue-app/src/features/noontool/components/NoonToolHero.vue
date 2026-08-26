@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import { motion } from 'motion-v';
 import * as LucideIcons from '@lucide/vue';
+import { Button as UiButton } from '@/components';
 import { icons } from '../icons';
 import NoonToolLocaleSwitch from './NoonToolLocaleSwitch.vue';
 import NoonToolScreenshot from './NoonToolScreenshot.vue';
@@ -27,7 +28,7 @@ const downloadHref = Object.values(modules)[0] ?? '#';
       :initial="{ opacity: 0, y: 12 }"
       :animate="{ opacity: 1, y: 0 }"
       :transition="{ duration: 0.4, ease: 'easeOut' }"
-      class="space-y-5 pt-16 md:max-w-3xl md:pt-20"
+      class="relative space-y-5 pt-16 md:max-w-3xl md:pt-20"
     >
       <div class="flex items-center gap-2">
         <img src="/icon/512.png" alt="Nomu" class="h-7 w-7 rounded-md" />
@@ -53,23 +54,44 @@ const downloadHref = Object.values(modules)[0] ?? '#';
       </p>
 
       <div class="flex flex-wrap items-center gap-3 pt-2">
-        <a
+        <UiButton
+          as="a"
+          variant="default"
           :href="downloadHref"
           download
-          class="bg-accent text-contrast focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
+          class="gap-2 px-5 py-2.5 shadow-sm"
         >
           <component :is="(LucideIcons as any)[icons.cta]" :size="16" />
           {{ t('noonTool.hero.ctaPrimary') }}
-        </a>
-        <a
+        </UiButton>
+        <UiButton
+          as="a"
+          variant="outline"
           href="#features"
-          class="border-border bg-card text-ink focus-visible:ring-ring motion-safe:hover:bg-surface inline-flex items-center justify-center rounded-xl border px-5 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
+          class="px-5 py-2.5"
         >
           {{ t('noonTool.hero.ctaSecondary') }}
-        </a>
+        </UiButton>
+        <UiButton
+          as="a"
+          variant="ghost"
+          href="https://kanocifer.chat/docs/"
+          target="_blank"
+          rel="noopener"
+          class="gap-1.5 px-2 py-2.5"
+        >
+          <component :is="(LucideIcons as any)[icons.docs]" :size="14" />
+          {{ t('noonTool.hero.ctaDocs') }}
+        </UiButton>
       </div>
 
       <p class="text-muted pt-1 text-xs">{{ t('noonTool.trust.motto') }}</p>
+
+      <img
+        src="/icon/512.png"
+        alt="Nomu logo"
+        class="absolute top-3/5 -right-70 size-64 -translate-y-1/2 transform"
+      />
     </motion.div>
 
     <div class="mt-10 md:mt-14">

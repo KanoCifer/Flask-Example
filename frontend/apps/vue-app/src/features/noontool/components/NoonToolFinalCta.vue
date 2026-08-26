@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import * as LucideIcons from '@lucide/vue';
+import { Button as UiButton } from '@/components';
 import { icons } from '../icons';
 
 const { t } = useI18n();
@@ -34,14 +35,16 @@ const downloadHref = Object.values(modules)[0] ?? '#';
         {{ t('noonTool.finalCta.body') }}
       </p>
       <div class="flex justify-center pt-2">
-        <a
+        <UiButton
+          as="a"
+          variant="default"
           :href="downloadHref"
           download
-          class="bg-accent text-contrast focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-medium shadow-sm transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
+          class="gap-2 px-6 py-3 shadow-sm"
         >
           <component :is="(LucideIcons as any)[icons.cta]" :size="16" />
           {{ t('noonTool.finalCta.button') }}
-        </a>
+        </UiButton>
       </div>
       <p class="text-muted pt-1 text-xs">
         {{ t('noonTool.footer.license') }} · © {{ year }}
