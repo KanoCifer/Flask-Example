@@ -5,7 +5,6 @@ import { Button as UiButton } from '@/components';
 import { icons } from '../icons';
 
 const { t } = useI18n();
-const year = new Date().getFullYear();
 
 // 与 Hero 同源：public/nomu-*.zip 构建产物，文件名带版本号
 const modules = import.meta.glob('/public/nomu-*.zip', {
@@ -20,12 +19,12 @@ const downloadHref = Object.values(modules)[0] ?? '#';
   <section aria-labelledby="final-cta-heading" class="text-center">
     <div class="mx-auto max-w-2xl space-y-4 py-10">
       <div class="flex items-center justify-center gap-2">
-        <img src="/icon/512.png" alt="Nomu" class="h-8 w-8 rounded-md" />
-        <span class="text-ink text-lg font-semibold tracking-tight">Nomu</span>
+        <img src="/icon/512.png" alt="Nomu" class="h-6 w-6 rounded-md" />
+        <span class="text-ink text-base font-semibold tracking-tight">Nomu</span>
       </div>
       <h2
         id="final-cta-heading"
-        class="text-ink text-2xl font-semibold md:text-4xl md:leading-tight"
+        class="text-ink text-3xl leading-tight font-semibold md:text-5xl md:leading-[1.05]"
       >
         {{ t('noonTool.finalCta.title') }}
       </h2>
@@ -40,15 +39,12 @@ const downloadHref = Object.values(modules)[0] ?? '#';
           variant="default"
           :href="downloadHref"
           download
-          class="gap-2 px-6 py-3 shadow-sm"
+          class="gap-2 px-6 py-3"
         >
           <component :is="(LucideIcons as any)[icons.cta]" :size="16" />
           {{ t('noonTool.finalCta.button') }}
         </UiButton>
       </div>
-      <p class="text-muted pt-1 text-xs">
-        {{ t('noonTool.footer.license') }} · © {{ year }}
-      </p>
     </div>
   </section>
 </template>

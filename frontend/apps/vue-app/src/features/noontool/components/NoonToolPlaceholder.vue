@@ -29,7 +29,7 @@ const aspectClass = {
 
 <template>
   <figure
-    class="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-card/40 text-muted shadow-[0_8px_24px_-12px_oklch(0.7_0.13_95/0.35)] transition-shadow motion-safe:hover:shadow-[0_12px_32px_-12px_oklch(0.7_0.13_95/0.5)]"
+    class="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-card/40 text-muted shadow-md transition-shadow motion-safe:hover:shadow-lg"
     :class="aspectClass"
     role="img"
     :aria-label="label"

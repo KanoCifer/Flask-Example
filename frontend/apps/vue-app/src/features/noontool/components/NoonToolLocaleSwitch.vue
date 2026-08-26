@@ -120,9 +120,8 @@ function pick(code: string) {
         }"
         :transition="{
           type: 'spring',
-          stiffness: 380,
-          damping: 32,
-          mass: 0.6,
+          duration: 0.3,
+          bounce: 0,
         }"
       />
     </div>

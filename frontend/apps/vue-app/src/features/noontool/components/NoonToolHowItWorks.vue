@@ -17,7 +17,10 @@ const steps = ['capture', 'confirm', 'publish'] as const;
       <p class="text-muted text-xs font-medium tracking-widest uppercase">
         {{ t('noonTool.how.eyebrow') }}
       </p>
-      <h2 id="how-heading" class="text-ink text-2xl font-semibold md:text-4xl">
+      <h2
+        id="how-heading"
+        class="text-ink text-3xl leading-tight font-semibold md:text-5xl"
+      >
         {{ t('noonTool.how.sectionTitle') }}
       </h2>
     </header>
@@ -31,9 +34,9 @@ const steps = ['capture', 'confirm', 'publish'] as const;
         class="flex flex-col gap-3 py-6 md:px-6"
         :class="idx > 0 ? 'md:border-border/60 md:border-l' : ''"
       >
-        <span class="text-accent text-sm font-semibold tabular-nums">{{
-          String(idx + 1).padStart(2, '0')
-        }}</span>
+        <span class="text-accent text-sm font-semibold tabular-nums">
+          {{ String(idx + 1).padStart(2, '0') }}
+        </span>
         <h3 class="text-ink text-lg font-semibold">
           {{ t(`noonTool.how.steps.${step}.title`) }}
         </h3>

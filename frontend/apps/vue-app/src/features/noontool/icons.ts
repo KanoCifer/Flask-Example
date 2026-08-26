@@ -13,6 +13,10 @@ export const icons = {
   docs: 'BookOpen',
   github: 'Code',
   footerLink: 'ArrowUpRight',
+  roadmapSources: 'PackageSearch',
+  roadmapEgypt: 'Sparkles',
+  roadmapTemplates: 'LayoutTemplate',
+  roadmapBatch: 'ImagePlus',
 } as const;
 
 export type IconKey = keyof typeof icons;

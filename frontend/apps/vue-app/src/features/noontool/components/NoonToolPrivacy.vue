@@ -24,7 +24,7 @@ function lines(key: string): string[] {
       </p>
       <h2
         id="privacy-heading"
-        class="text-ink text-2xl font-semibold md:text-4xl"
+        class="text-ink text-3xl leading-tight font-semibold md:text-5xl"
       >
         {{ t('noonTool.privacy.sectionTitle') }}
       </h2>
@@ -43,10 +43,10 @@ function lines(key: string): string[] {
         ]"
       >
         <h3
-          class="text-accent flex items-center gap-2 text-sm font-semibold tracking-wide uppercase"
+          class="text-accent flex items-center gap-2 text-sm font-semibold tracking-widest uppercase"
         >
           <span class="inline-flex size-4 shrink-0 items-center justify-center">
-            <component :is="(LucideIcons as any)[icons[col.icon]]" :size="14" />
+            <component :is="(LucideIcons as any)[icons[col.icon]]" :size="14" :stroke-width="1.75" />
           </span>
           {{ t(`noonTool.privacy.${col.labelKey}`) }}
         </h3>
@@ -58,7 +58,7 @@ function lines(key: string): string[] {
           >
             <span
               aria-hidden="true"
-              class="bg-accent mt-[0.55rem] inline-block size-1.5 shrink-0 rounded-full"
+              class="bg-accent mt-2 inline-block size-1.5 shrink-0 rounded-full"
             />
             <span>{{ line }}</span>
           </li>

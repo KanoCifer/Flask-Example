@@ -92,7 +92,7 @@ function onFigureKeydown(e: KeyboardEvent) {
       role="button"
       tabindex="0"
       :aria-label="alt"
-      class="group/zoom border-border bg-card/40 focus-visible:ring-ring relative block h-full w-full cursor-zoom-in overflow-hidden rounded-2xl border shadow-[0_8px_24px_-12px_oklch(0.7_0.13_95/0.35)] transition-shadow focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none motion-safe:hover:shadow-[0_12px_32px_-12px_oklch(0.7_0.13_95/0.5)]"
+      class="group/zoom border-border bg-card/40 focus-visible:ring-ring relative block h-full w-full cursor-zoom-in overflow-hidden rounded-2xl border shadow-md transition-shadow focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none motion-safe:hover:shadow-lg"
       @click="openPreview"
       @keydown="onFigureKeydown"
     >
@@ -116,7 +116,7 @@ function onFigureKeydown(e: KeyboardEvent) {
       />
 
       <span
-        class="bg-card/80 text-ink/70 pointer-events-none absolute top-3 right-3 inline-flex items-center justify-center rounded-full p-1.5 opacity-0 shadow-sm backdrop-blur transition-opacity group-hover/zoom:opacity-100 group-focus-visible/zoom:opacity-100"
+        class="bg-card/80 text-ink/70 pointer-events-none absolute top-3 right-3 inline-flex items-center justify-center rounded-full p-1.5 opacity-0 shadow-sm backdrop-blur transition-opacity duration-150 ease-[cubic-bezier(0.2,0,0,1)] group-hover/zoom:opacity-100 group-focus-visible/zoom:opacity-100"
         aria-hidden="true"
       >
         <svg

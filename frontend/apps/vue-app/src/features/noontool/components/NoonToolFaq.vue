@@ -26,7 +26,10 @@ function toggle(key: string) {
 <template>
   <section aria-labelledby="faq-heading" class="space-y-6">
     <header class="text-center">
-      <h2 id="faq-heading" class="text-ink text-2xl font-semibold md:text-3xl">
+      <h2
+        id="faq-heading"
+        class="text-ink text-3xl leading-tight font-semibold md:text-4xl"
+      >
         {{ t('noonTool.faq.sectionTitle') }}
       </h2>
     </header>
@@ -46,7 +49,7 @@ function toggle(key: string) {
           @click="toggle(key)"
         >
           <svg
-            class="text-muted h-4 w-4 shrink-0 transition-transform"
+            class="text-muted h-4 w-4 shrink-0 transition-transform duration-200"
             :class="{ 'rotate-180': openKeys.includes(key) }"
             fill="none"
             viewBox="0 0 24 24"

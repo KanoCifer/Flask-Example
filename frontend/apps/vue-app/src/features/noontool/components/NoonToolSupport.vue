@@ -23,7 +23,7 @@ const channelKeys = ['wechat', 'docs', 'github'] as const;
       </p>
       <h2
         id="support-heading"
-        class="text-ink text-2xl font-semibold md:text-4xl"
+        class="text-ink text-3xl leading-tight font-semibold md:text-5xl"
       >
         {{ t('noonTool.support.sectionTitle') }}
       </h2>
@@ -42,9 +42,9 @@ const channelKeys = ['wechat', 'docs', 'github'] as const;
         :class="idx > 0 ? 'md:border-border/60 md:border-l' : ''"
       >
         <span
-          class="text-accent inline-flex size-5 shrink-0 items-center justify-center"
+          class="text-accent bg-accent/10 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
         >
-          <component :is="(LucideIcons as any)[icons[key]]" :size="16" />
+          <component :is="(LucideIcons as any)[icons[key]]" :size="14" :stroke-width="1.75" />
         </span>
         <h3 class="text-ink text-base font-semibold">
           {{ t(`noonTool.support.channels.${key}.title`) }}

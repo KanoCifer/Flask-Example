@@ -25,7 +25,7 @@ const showFull = ref(false);
     <header class="space-y-2 text-center">
       <h2
         id="permissions-heading"
-        class="text-ink text-2xl font-semibold md:text-3xl"
+        class="text-ink text-3xl leading-tight font-semibold md:text-4xl"
       >
         {{ t('noonTool.permissions.sectionTitle') }}
       </h2>
@@ -60,7 +60,7 @@ const showFull = ref(false);
         @click="showFull = !showFull"
       >
         <svg
-          class="text-muted h-4 w-4 shrink-0 transition-transform"
+          class="text-muted h-4 w-4 shrink-0 transition-transform duration-200"
           :class="{ 'rotate-180': showFull }"
           fill="none"
           viewBox="0 0 24 24"
@@ -84,7 +84,7 @@ const showFull = ref(false);
           <div class="grid gap-6 p-4 md:grid-cols-2">
             <div>
               <h4
-                class="text-accent mb-2 text-xs font-semibold tracking-wider uppercase"
+                class="text-accent mb-2 text-xs font-semibold tracking-widest uppercase"
               >
                 {{ t('noonTool.permissions.sectionTitle') }}
               </h4>
@@ -101,7 +101,7 @@ const showFull = ref(false);
             </div>
             <div>
               <h4
-                class="text-accent mb-2 text-xs font-semibold tracking-wider uppercase"
+                class="text-accent mb-2 text-xs font-semibold tracking-widest uppercase"
               >
                 {{ t('noonTool.permissions.full.hostsTitle') }}
               </h4>

@@ -46,7 +46,7 @@ const featureVideos: Partial<Record<FeatureKey, string>> = {
       </p>
       <h2
         id="features-heading"
-        class="text-ink text-2xl font-semibold md:text-4xl"
+        class="text-ink text-3xl leading-tight font-semibold md:text-5xl"
       >
         {{ t('noonTool.features.sectionTitle') }}
       </h2>
@@ -65,9 +65,9 @@ const featureVideos: Partial<Record<FeatureKey, string>> = {
       >
         <div class="flex items-center gap-2.5">
           <span
-            class="text-accent inline-flex size-5 shrink-0 items-center justify-center"
+            class="text-accent bg-accent/10 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
           >
-            <component :is="(LucideIcons as any)[icons[key]]" :size="16" />
+            <component :is="(LucideIcons as any)[icons[key]]" :size="14" :stroke-width="1.75" />
           </span>
           <h3 class="text-ink text-base font-semibold">
             {{ t(`noonTool.features.items.${key}.title`) }}
