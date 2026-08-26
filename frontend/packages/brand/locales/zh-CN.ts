@@ -236,7 +236,7 @@ export default {
       hint: '下载 zip 后在 Chrome 扩展页以开发者模式加载',
     },
     footer: {
-      tagline： 'Nomu：一款易用的 Noon 平台插件',
+      tagline: 'Nomu：一款易用的 Noon 平台插件',
       links: {
         privacy: '隐私',
         changelog: '更新日志',
