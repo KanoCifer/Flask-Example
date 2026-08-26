@@ -17,6 +17,14 @@ const downloadHref = Object.values(modules)[0] ?? '#';
 <template>
   <section aria-labelledby="final-cta-heading" class="text-center">
     <div class="mx-auto max-w-2xl space-y-4 py-10">
+      <img
+        src="/logo/logo.png"
+        alt="Nomu"
+        width="56"
+        height="56"
+        class="mx-auto rounded-2xl shadow-sm"
+      />
+
       <h2
         id="final-cta-heading"
         class="text-ink text-2xl font-semibold md:text-4xl md:leading-tight"
