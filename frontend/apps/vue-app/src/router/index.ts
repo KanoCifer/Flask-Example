@@ -103,12 +103,12 @@ const router = createRouter({
     {
       path: '/noon',
       name: 'noon',
-      component: () => import('@/features/noontool/NoonToolView.vue'),
+      component: () => import('@/features/noontool/NomuView.vue'),
       meta: {
-        title: 'NoonTool — Noon 卖家的商品上架工具',
+        title: 'Nomu — Noon 卖家的商品上架工具',
         description:
-          'NoonTool 是一款 Chrome 浏览器扩展，从 1688 源页抓取商品，解析、翻译、建图并逐件发布到 Noon UAE 与 Saudi。无需 API Key、无 OAuth、所有配置保留在本地。',
-        keywords: 'NoonTool,1688,Noon 上架,Noon UAE,Noon Saudi,浏览器扩展',
+          'Nomu 是一款 Chrome 浏览器扩展，从 1688 源页抓取商品，解析、翻译、建图并逐件发布到 Noon UAE 与 Saudi。无需 API Key、无 OAuth、所有配置保留在本地。',
+        keywords: 'Nomu,1688,Noon 上架,Noon UAE,Noon Saudi,浏览器扩展',
       },
     },
     {

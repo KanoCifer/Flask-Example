@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { Card } from '@/components/ui/card';
 import NoonToolScreenshot from './NoonToolScreenshot.vue';
 
 const { t } = useI18n();
@@ -14,19 +13,25 @@ const steps = ['capture', 'confirm', 'publish'] as const;
     aria-labelledby="how-heading"
     class="space-y-6"
   >
-    <header class="text-center">
-      <h2 id="how-heading" class="text-ink text-2xl font-semibold md:text-3xl">
+    <header class="max-w-3xl space-y-3">
+      <p class="text-muted text-xs font-medium tracking-widest uppercase">
+        {{ t('noonTool.how.eyebrow') }}
+      </p>
+      <h2 id="how-heading" class="text-ink text-2xl font-semibold md:text-4xl">
         {{ t('noonTool.how.sectionTitle') }}
       </h2>
     </header>
 
-    <ol class="grid gap-4 md:grid-cols-3">
-      <Card
+    <ol
+      class="divide-border/60 border-border/60 grid grid-cols-1 divide-y border-y md:grid-cols-3"
+    >
+      <li
         v-for="(step, idx) in steps"
         :key="step"
-        class="border-border/60 bg-card/70 gap-3 p-5"
+        class="flex flex-col gap-3 py-6 md:px-6"
+        :class="idx > 0 ? 'md:border-border/60 md:border-l' : ''"
       >
-        <span class="text-muted text-xs tracking-wider uppercase">{{
+        <span class="text-accent text-sm font-semibold tabular-nums">{{
           String(idx + 1).padStart(2, '0')
         }}</span>
         <h3 class="text-ink text-lg font-semibold">
@@ -35,7 +40,7 @@ const steps = ['capture', 'confirm', 'publish'] as const;
         <p class="text-muted text-sm leading-relaxed">
           {{ t(`noonTool.how.steps.${step}.body`) }}
         </p>
-      </Card>
+      </li>
     </ol>
 
     <NoonToolScreenshot

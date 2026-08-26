@@ -38,10 +38,10 @@ useHead({
     <div class="mx-auto max-w-6xl space-y-16 px-4 py-25 md:space-y-24 md:px-8">
       <NoonToolHero />
       <NoonToolTrustStrip />
+      <NoonToolPrivacy />
       <NoonToolFeatureGrid id="features" />
       <NoonToolHowItWorks id="how-it-works" />
       <NoonToolAudience />
-      <NoonToolPrivacy />
       <NoonToolPermissions />
       <NoonToolFaq />
       <NoonToolFinalCta />
