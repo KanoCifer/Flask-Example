@@ -5,8 +5,8 @@ import { Card } from '@/components/ui/card';
 
 const { t } = useI18n();
 
-const topKeys = ['tabs', 'storage', 'sidePanel'] as const;
-const allPerms = ['tabs', 'storage', 'sidePanel'] as const;
+const topKeys = ['tabs', 'storage', 'sidePanel', 'cookies'] as const;
+const allPerms = ['tabs', 'storage', 'sidePanel', 'cookies'] as const;
 const hostKeys = [
   'noon',
   'noonPartners',

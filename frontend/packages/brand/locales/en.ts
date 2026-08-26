@@ -1,42 +1,41 @@
 export default {
   noonTool: {
     meta: {
-      title: 'Nomu — Put 1688 products on Noon',
+      title: 'Nomu: an easy-to-use Chrome extension for Noon',
       description:
         "Nomu is a Chrome extension that captures 1688 product pages, translates the details (Chinese to English and Arabic), prepares images, and publishes each product to Noon UAE and Saudi. Store settings and account config stay on your machine; translation and image processing run on the tool's own service, which stores no account data.",
       keywords: ['Nomu', '1688', 'Noon listing', 'Noon UAE', 'Noon Saudi', 'browser extension'],
     },
     hero: {
       eyebrow: 'Nomu · Chrome extension',
-      headline: 'From 1688 pages,',
-      headlineTail: 'onto Noon shelves',
+      headline: 'An easy-to-use',
+      headlineTail: 'Noon Chrome extension',
       subheadline:
-        'Same 1688 pages you already browse, same Noon stores you already run. Nomu folds capture, translation, image prep and per-item publishing into one pipeline — source page to listed product, one warm yellow confirm at a time.',
+        'Same 1688 pages you already browse, same Noon stores you already run. Capture, translation, image prep and per-item publishing run as one pipeline, from source page to listed product.',
       ctaPrimary: 'Download Extension',
       ctaPrimaryHint: 'Download nomu-*.zip, then drag it onto the Chrome extensions page to install',
       ctaSecondary: 'See what it does',
-      ctaTertiary: 'Read the docs',
       localeZh: '中文',
       localeEn: 'EN',
       screenshotAlt: 'Nomu main interface screenshot',
-      screenshotCaption: 'A side drawer on the right, one yellow confirm per product',
+      screenshotCaption: 'The drawer on the right, one confirmed product at a time',
     },
     trust: {
       motto: 'No keys required · No tracking · Data stays local',
     },
     features: {
       eyebrow: 'Features',
-      sectionTitle: 'Capture once. The pipeline handles the rest.',
+      sectionTitle: 'Capture products. The extension handles the rest.',
       sectionSubtitle:
-        'Every step ships with a sensible default: translation is automatic, images are made compliant, categories are suggested. You only nod at the yellow highlights.',
+        'Every step ships with a sensible default: automatic translation, compliant images and AI category suggestions. Your part is checking the highlights before anything goes out.',
       items: {
         pipeline: {
-          title: 'One click from 1688 to Noon',
+          title: 'Send 1688 products to Noon',
           imageAlt: 'Screenshot of the one-click capture-to-publish flow',
-          body: 'Capture the source page, add it to your batch, submit it, and finish with activation and warranty — all in one flow.',
+          body: 'Capture the source page, add it to your batch, then submit for listing, activation and warranty registration in one flow.',
         },
         multiAccount: {
-          title: 'Manage several stores in one place',
+          title: 'Store management in one place',
           imageAlt: 'Screenshot of the multi-store list and switching in the side panel',
           body: 'Keep all your Noon stores in one panel and switch stores to auto-fill the listing settings.',
         },
@@ -48,12 +47,12 @@ export default {
         image: {
           title: 'Product images ready to publish',
           imageAlt: 'Screenshot of images being prepared to the 660×900 spec',
-          body: "Images are resized and cleaned to Noon's spec (660×900, white background) automatically, so non-compliant pictures never block a listing.",
+          body: "Images are resized onto white backgrounds at Noon's 660×900 spec automatically, so a non-compliant picture never blocks a listing.",
         },
         serial: {
           title: 'Publish one by one, stop on the first problem',
           imageAlt: 'Screenshot of independently published products',
-          body: 'Each product is published independently. If one fails, the batch stops — no half-published listings.',
+          body: 'Each product publishes on its own. If one fails, the whole batch stops instead of leaving half-published listings behind.',
         },
         ai: {
           title: 'Category suggested automatically',
@@ -72,8 +71,8 @@ export default {
           body: 'Open any 1688 product page; the extension pulls the details into your batch.',
         },
         confirm: {
-          title: 'Confirm one yellow row at a time',
-          body: 'The drawer on the right shows each product for review — adjust price, currency and details. One warm yellow confirm keeps every step clear.',
+          title: 'Confirm one highlighted row at a time',
+          body: 'The drawer shows each product for review. Price, currency, translations and category can all be adjusted before anything is submitted.',
         },
         publish: {
           title: 'Publish each product to Noon',
@@ -88,7 +87,7 @@ export default {
       eyebrow: 'Privacy',
       sectionTitle: "A tool that works for you shouldn't ask for blind trust.",
       sectionSubtitle:
-        "An extension can touch your store settings and every submission you make — it should never be a black box. Don't just take our word that nothing is collected: the data flow below is split into three columns you can check at a glance.",
+        "An extension can touch your store settings and every submission you make. It shouldn't be a black box, so the data flow below is split into three columns you can check at a glance.",
       colLocal: 'Stays on your machine',
       colEgress: 'Only sent to Noon',
       colNever: 'Never seen by us',
@@ -98,9 +97,9 @@ export default {
         'Your product batches and drafts',
       ],
       egress: [
-        'The product details you submit to Noon (title, description, attributes, price, stock)',
-        'The images you submit to Noon (prepared to 660×900)',
-        'The warranty and activation requests you submit to Noon',
+        'Product details (title, description, attributes, price, stock)',
+        'Product images (prepared to 660×900)',
+        'Warranty and activation requests',
       ],
       never: [
         'Your Noon account password',
@@ -111,7 +110,7 @@ export default {
     },
     permissions: {
       sectionTitle: 'Permissions, explained',
-      sectionSubtitle: 'Three core permissions; the sites the tool uses are listed below',
+      sectionSubtitle: 'Four core permissions; the sites the tool uses are listed below',
       top: {
         tabs: {
           name: 'Tabs',
@@ -124,6 +123,10 @@ export default {
         sidePanel: {
           name: 'Side panel',
           reason: "Show the store-management panel in Chrome's side panel.",
+        },
+        cookies: {
+          name: 'Cookies',
+          reason: 'Read and use your cookies to talk to Noon',
         },
       },
       fullTitle: 'Show the full permission list',
@@ -141,6 +144,10 @@ export default {
           sidePanel: {
             name: 'Side panel',
             reason: 'Show the store-management panel in the side panel.',
+          },
+          cookies: {
+            name: 'Cookies',
+            reason: 'Read and use your cookies to talk to Noon',
           },
         },
         hosts: {
@@ -180,7 +187,7 @@ export default {
       items: {
         free: {
           q: 'Is Nomu free?',
-          a: 'Yes — the tool itself is free. Settings and cookies stay in your own browser; no subscription.',
+          a: 'Yes, the tool itself is free. Settings and cookies stay in your own browser; no subscription.',
         },
         apiKey: {
           q: 'Do I need to provide a key or sign in somewhere?',
@@ -192,7 +199,7 @@ export default {
         },
         sources: {
           q: 'Can I use sources other than 1688?',
-          a: '1688 is supported today. Other platforms are planned, but not promised.',
+          a: 'Both 1688 and noon.com are supported today. Other platforms are planned, but not promised.',
         },
         data: {
           q: 'Where is my data stored?',
@@ -200,7 +207,7 @@ export default {
         },
         translation: {
           q: 'How good is the translation? Should I proofread?',
-          a: "Translation is automatic (Chinese to English and Arabic). For high-value or brand items, do a quick spot-check before publishing — auto-translation isn't guaranteed to be native-level.",
+          a: "Translation is automatic (Chinese to English and Arabic). For high-value or brand items, do a quick spot-check before publishing; auto-translation isn't guaranteed to be native-level.",
         },
         failure: {
           q: 'What happens if a listing fails?',
@@ -212,7 +219,7 @@ export default {
       eyebrow: 'Support',
       sectionTitle: 'Stuck? Reach the developer directly.',
       sectionSubtitle:
-        'No forum digging. If install, capture or publishing gets stuck — or you have a feature idea — get in touch.',
+        'No forum digging. If install, capture or publishing gets stuck, or you have a feature idea, get in touch.',
       viewQr: 'View WeChat QR code',
       channels: {
         wechat: {
@@ -221,7 +228,7 @@ export default {
         },
         docs: {
           title: 'Check the docs first',
-          body: 'Install failures, updates, common questions — the docs site covers most of it: kanocifer.chat/docs',
+          body: 'Install failures, updates, common questions: the docs site covers most of it at kanocifer.chat/docs',
         },
         github: {
           title: 'GitHub Issue',
@@ -231,12 +238,12 @@ export default {
     },
     finalCta: {
       title: 'Hand listing back to a workflow',
-      body: 'Same 1688 pages, same Noon stores — what changed is that the copy-paste part is gone.',
+      body: 'You keep browsing 1688 and running your Noon stores as before. What goes away is the copy-paste part.',
       button: 'Download Extension',
       hint: 'Load the downloaded zip via Chrome extensions page in developer mode',
     },
     footer: {
-      tagline: 'Nomu — quietly move 1688 goods onto Noon',
+      tagline: 'Nomu: an easy-to-use Chrome extension for Noon',
       links: {
         privacy: 'Privacy',
         changelog: 'Changelog',

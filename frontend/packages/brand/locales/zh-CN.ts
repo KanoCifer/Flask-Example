@@ -1,21 +1,20 @@
 export default {
   noonTool: {
     meta: {
-      title: 'Nomu — 把 1688 的商品发到 Noon',
+      title: 'Nomu：一款易用的 Chrome 扩展',
       description:
-        'Nomu 是一款 Chrome 浏览器扩展，帮你从 1688 采集商品，自动整理标题、价格和图片，翻译成英文和阿拉伯语，再逐件发布到 Noon 阿联酋和沙特站。店铺设置全部保存在本地；翻译和图片处理在扩展自带的服务里完成，不记录任何账号数据。',
+        'Nomu 是一款 Chrome 浏览器扩展，帮你从 1688/noon.com 采集商品，自动整理标题、价格和图片，翻译成英文和阿拉伯语，再逐件发布到 Noon 阿联酋和沙特站。店铺设置全部保存在本地；翻译和图片处理在扩展自带的服务里完成，不记录任何账号数据。',
       keywords: ['Nomu', '1688', 'Noon 上架', 'Noon UAE', 'Noon Saudi', '浏览器扩展'],
     },
     hero: {
       eyebrow: 'Nomu · Chrome 浏览器扩展',
-      headline: '把 1688 的商品，',
-      headlineTail: '发到 Noon',
+      headline: '一款易用的',
+      headlineTail: 'Noon Chrome 插件',
       subheadline:
         '还是熟悉的 1688 页面，还是你自己的 Noon 店铺。Nomu 把采集、翻译、图片处理和逐件发布收进同一条流水线：从源页到已上架，一条黄色确认走完。',
       ctaPrimary: '下载插件',
       ctaPrimaryHint: '下载 nomu-*.zip，直接拖入 Chrome 扩展管理页即可安装',
       ctaSecondary: '看看它做什么',
-      ctaTertiary: '查看文档',
       localeZh: '中文',
       localeEn: 'EN',
       screenshotAlt: 'Nomu 主界面截图',
@@ -26,16 +25,16 @@ export default {
     },
     features: {
       eyebrow: '功能',
-      sectionTitle: '采集一次，剩下的交给流程。',
-      sectionSubtitle: '每一步都替你想好了默认值：翻译自动出、图片自动合规、类目自动推荐。你只需要在黄色高亮处点头。',
+      sectionTitle: '采集商品，剩下的交给插件。',
+      sectionSubtitle: '每一步都替你想好了默认值：翻译自动出、图片自动合规、AI 类目推荐。你只需要在黄色高亮处点头。',
       items: {
         pipeline: {
-          title: '一键把 1688 商品发到 Noon',
-          imageAlt: '一键采集到发布全流程的截图',
+          title: '把 1688 商品发到 Noon',
+          imageAlt: '采集到发布全流程的截图',
           body: '采集源页、加入待发布列表、提交上架、激活并登记质保，一气呵成。',
         },
         multiAccount: {
-          title: '多店铺集中管理',
+          title: '店铺集中管理',
           imageAlt: '侧栏多店铺列表与切换的截图',
           body: '在同一个面板里管理多家 Noon 店铺，切换店铺时自动填好上架设置。',
         },
@@ -52,7 +51,7 @@ export default {
         serial: {
           title: '逐件发布，出错即停',
           imageAlt: '逐件独立发布的商品截图',
-          body: '每件商品独立发布；第一件失败就停止整个批次，不会出现一半上架、一半漏掉的情况。',
+          body: '每件商品独立发布。第一件失败就停止整个批次，不会出现一半上架、一半漏掉的情况。',
         },
         ai: {
           title: '自动推荐 Noon 类目',
@@ -72,7 +71,7 @@ export default {
         },
         confirm: {
           title: '逐条确认，黄色高亮',
-          body: '右侧抽屉里逐条核对商品，可调整价格、币种和商品属性；一条黄色确认到底，每一步都清楚。',
+          body: '右侧抽屉里逐条核对商品，价格、币种、翻译和类目都能在发布前调整。',
         },
         publish: {
           title: '逐件发布到 Noon',
@@ -86,8 +85,7 @@ export default {
     privacy: {
       eyebrow: '隐私',
       sectionTitle: '替你干活的工具，不该让你盲目信任。',
-      sectionSubtitle:
-        '扩展能接触你的店铺配置和每一次提交，它最不该是个黑盒。你不必只听我们保证「什么都没做」：数据去向分三栏，一目了然。',
+      sectionSubtitle: '扩展能接触你的店铺配置和每一次提交，它最不该是个黑盒，你的数据由你掌握。',
       colLocal: '留在本地',
       colEgress: '只发给 Noon',
       colNever: '永远不会看到',
@@ -96,11 +94,7 @@ export default {
         '你的店铺记录与当前使用的店铺',
         '你的商品批次草稿',
       ],
-      egress: [
-        '你提交给 Noon 的商品信息（标题、描述、属性、价格、库存）',
-        '你提交给 Noon 的商品图片（已处理为 660×900）',
-        '你提交给 Noon 的质保与激活请求',
-      ],
+      egress: ['商品信息（标题、描述、属性、价格、库存）', '商品图片（已处理为 660×900）', '质保与激活请求'],
       never: [
         '你的 Noon 账号密码',
         '任何密钥或登录授权',
@@ -113,16 +107,20 @@ export default {
       sectionSubtitle: '三项核心权限；用到的网站列在下面',
       top: {
         tabs: {
-          name: '标签页',
+          name: 'Tabs',
           reason: '找到你已打开的 Noon 页面并切换过去。',
         },
         storage: {
-          name: '本地存储',
+          name: 'Storage',
           reason: '把你的店铺记录、设置与批次草稿保存在浏览器里。',
         },
         sidePanel: {
-          name: '侧边栏',
+          name: 'Side Panel',
           reason: '在 Chrome 侧边栏里显示 Nomu 的店铺管理面板。',
+        },
+        cookies: {
+          name: 'Cookies',
+          reason: '读取并使用你的 Cookie 来与 Noon 通信',
         },
       },
       fullTitle: '展开完整权限列表',
@@ -140,6 +138,10 @@ export default {
           sidePanel: {
             name: '侧边栏',
             reason: '显示侧边栏店铺管理面板。',
+          },
+          cookies: {
+            name: 'Cookies',
+            reason: '读取并使用你的 Cookie 来与 Noon 通信',
           },
         },
         hosts: {
@@ -191,7 +193,7 @@ export default {
         },
         sources: {
           q: '除了 1688 还支持其它源吗？',
-          a: '目前支持 1688。其它平台在计划中，但尚未承诺上线。',
+          a: '目前支持 1688 和 noon.com。其它平台在计划中，但尚未承诺上线。',
         },
         data: {
           q: '我的数据存放在哪里？',
@@ -209,8 +211,8 @@ export default {
     },
     support: {
       eyebrow: '支持',
-      sectionTitle: '遇到问题？直接找开发者。',
-      sectionSubtitle: '不用论坛里翻帖子。安装、采集、发布任何一步卡住了，或者想提功能建议，都可以直接联系。',
+      sectionTitle: '遇到问题？',
+      sectionSubtitle: '安装、采集、发布任何一步遇到了问题了，或者想提功能建议，都可以直接联系。',
       viewQr: '查看微信二维码',
       channels: {
         wechat: {
@@ -219,7 +221,7 @@ export default {
         },
         docs: {
           title: '先查文档',
-          body: '安装失败、更新方法、常见疑问，文档站大多有答案：kanocifer.chat/docs',
+          body: '安装失败、更新方法、常见问题，文档站大多有答案：kanocifer.chat/docs',
         },
         github: {
           title: 'GitHub Issue',
@@ -229,20 +231,18 @@ export default {
     },
     finalCta: {
       title: '把上架这件事，交还给流程',
-      body: '还是原来的 1688 页面，还是你自己的 Noon 店铺，改变的只是：复制粘贴的部分没有了。',
+      body: '1688 页面照开，Noon 店铺照用，只是复制粘贴的部分没有了。',
       button: '下载插件',
       hint: '下载 zip 后在 Chrome 扩展页以开发者模式加载',
     },
     footer: {
-      tagline: 'Nomu — 把 1688 的商品，安静地搬到 Noon',
+      tagline： 'Nomu：一款易用的 Noon 平台插件',
       links: {
         privacy: '隐私',
         changelog: '更新日志',
         support: '获取支持',
         docs: '文档',
       },
-      license: 'MIT License',
-      placeholder: '（待补）',
     },
   },
 } as const;

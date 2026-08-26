@@ -4,6 +4,7 @@ import * as LucideIcons from '@lucide/vue';
 import { icons } from '../icons';
 
 const { t } = useI18n();
+const year = new Date().getFullYear();
 
 // 与 Hero 同源：public/nomu-*.zip 构建产物，文件名带版本号
 const modules = import.meta.glob('/public/nomu-*.zip', {
@@ -17,14 +18,6 @@ const downloadHref = Object.values(modules)[0] ?? '#';
 <template>
   <section aria-labelledby="final-cta-heading" class="text-center">
     <div class="mx-auto max-w-2xl space-y-4 py-10">
-      <img
-        src="/logo/logo.png"
-        alt="Nomu"
-        width="56"
-        height="56"
-        class="mx-auto rounded-2xl shadow-sm"
-      />
-
       <h2
         id="final-cta-heading"
         class="text-ink text-2xl font-semibold md:text-4xl md:leading-tight"
@@ -47,8 +40,7 @@ const downloadHref = Object.values(modules)[0] ?? '#';
         </a>
       </div>
       <p class="text-muted pt-1 text-xs">
-        {{ t('noonTool.footer.license') }} ·
-        {{ t('noonTool.footer.placeholder') }}
+        {{ t('noonTool.footer.license') }} · © {{ year }}
       </p>
     </div>
   </section>

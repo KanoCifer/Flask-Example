@@ -49,3 +49,5 @@ __screenshots__/
 *.timestamp-*-*.mjs
 
 .vite-ssg-temp/
+
+public/*.zip

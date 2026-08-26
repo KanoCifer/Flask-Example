@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_TOOL_FILE_PATH\"; case \"$f\" in *\"/frontend/apps/vue-app/src/\"*|*\"/frontend/apps/vue-app/src\"*) (cd \"$CLAUDE_PROJECT_DIR/frontend/apps/vue-app\" && pnpm exec prettier --write --log-level=error \"$f\" 2>&1 | tail -5) ;; *\"/frontend/apps/react-app/src/\"*|*\"/frontend/apps/react-app/src\"*) (cd \"$CLAUDE_PROJECT_DIR/frontend/apps/react-app\" && pnpm exec prettier --write --log-level=error \"$f\" 2>&1 | tail -5) ;; *\"/frontend/packages/\"*\"/src/\"*|*\"/frontend/packages/\"*\"/src\"*) (cd \"$CLAUDE_PROJECT_DIR/frontend\" && pnpm exec prettier --write --log-level=error \"$f\" 2>&1 | tail -5) ;; esac"
+          },
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_TOOL_FILE_PATH\"; case \"$f\" in *\"/frontend/apps/vue-app/src/\"*|*\"/frontend/apps/vue-app/src\"*) (cd \"$CLAUDE_PROJECT_DIR/frontend/apps/vue-app\" && pnpm exec oxlint \"$f\" 2>&1 | tail -10) ;; *\"/frontend/apps/react-app/src/\"*|*\"/frontend/apps/react-app/src\"*) (cd \"$CLAUDE_PROJECT_DIR/frontend/apps/react-app\" && pnpm exec oxlint \"$f\" 2>&1 | tail -10) ;; esac"
+          },
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_TOOL_FILE_PATH\"; case \"$f\" in *.py) (cd \"$CLAUDE_PROJECT_DIR/backend\" && uv run --with ruff ruff format --quiet \"$f\" 2>&1; uv run --with ruff ruff check --no-fix \"$f\" 2>&1 | tail -10) ;; *.go) gofmt -w \"$f\" 2>&1; go vet \"$f\" 2>&1 | head -10 ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
