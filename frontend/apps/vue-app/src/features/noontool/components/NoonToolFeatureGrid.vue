@@ -28,10 +28,6 @@ const featureImages: Record<FeatureKey, string> = {
   serial: '/noontool-screens/06-feature-serial.png',
   ai: '/noontool-screens/07-feature-ai.png',
 };
-
-const featureVideos: Partial<Record<FeatureKey, string>> = {
-  multiAccount: '/noontool-screens/03-feature-multiAccount.mov',
-};
 </script>
 
 <template>
@@ -67,7 +63,11 @@ const featureVideos: Partial<Record<FeatureKey, string>> = {
           <span
             class="text-accent bg-accent/10 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
           >
-            <component :is="(LucideIcons as any)[icons[key]]" :size="14" :stroke-width="1.75" />
+            <component
+              :is="(LucideIcons as any)[icons[key]]"
+              :size="14"
+              :stroke-width="1.75"
+            />
           </span>
           <h3 class="text-ink text-base font-semibold">
             {{ t(`noonTool.features.items.${key}.title`) }}
@@ -82,7 +82,6 @@ const featureVideos: Partial<Record<FeatureKey, string>> = {
         <NoonToolScreenshot
           class="mt-auto"
           :src="featureImages[key]"
-          :video-src="featureVideos[key]"
           :alt="t('noonTool.features.items.' + key + '.imageAlt')"
           aspect="3/2"
         />
