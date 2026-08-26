@@ -29,6 +29,13 @@ const downloadHref = Object.values(modules)[0] ?? '#';
       :transition="{ duration: 0.4, ease: 'easeOut' }"
       class="space-y-5 pt-16 md:max-w-3xl md:pt-20"
     >
+      <div class="flex items-center gap-2">
+        <img src="/icon/512.png" alt="Nomu" class="h-7 w-7 rounded-md" />
+        <span class="text-ink text-base font-semibold tracking-tight"
+          >Nomu</span
+        >
+      </div>
+
       <p class="text-muted text-xs font-medium tracking-wider uppercase">
         {{ t('noonTool.hero.eyebrow') }}
       </p>

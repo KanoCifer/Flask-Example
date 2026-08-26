@@ -250,7 +250,7 @@ export default {
         support: 'Support',
         docs: 'Docs',
       },
-      license: 'MIT License',
+      license: 'AGPL-3.0 License',
       placeholder: '(TBD)',
     },
   },

@@ -243,6 +243,7 @@ export default {
         support: '获取支持',
         docs: '文档',
       },
+      license: 'AGPL-3.0 许可证',
     },
   },
 } as const;

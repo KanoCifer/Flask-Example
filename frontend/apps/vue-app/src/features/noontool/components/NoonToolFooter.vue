@@ -14,7 +14,10 @@ const DOCS_URL = 'https://kanocifer.chat/docs/';
 <template>
   <footer class="border-border/40 text-muted border-t pt-6 text-xs">
     <div class="flex flex-col items-center justify-between gap-3 md:flex-row">
-      <p>{{ t('noonTool.footer.tagline') }}</p>
+      <div class="flex items-center gap-2">
+        <img src="/icon/512.png" alt="Nomu" class="h-4 w-4 rounded-sm" />
+        <span>{{ t('noonTool.footer.tagline') }}</span>
+      </div>
       <nav class="flex gap-4">
         <a
           :href="DOCS_URL + 'privacy/'"
