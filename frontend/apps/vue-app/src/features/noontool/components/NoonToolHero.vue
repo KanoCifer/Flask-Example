@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { motion } from 'motion-v';
+import * as LucideIcons from '@lucide/vue';
+import { icons } from '../icons';
 import NoonToolLocaleSwitch from './NoonToolLocaleSwitch.vue';
 import NoonToolScreenshot from './NoonToolScreenshot.vue';
 
@@ -47,8 +49,9 @@ const downloadHref = Object.values(modules)[0] ?? '#';
         <a
           :href="downloadHref"
           download
-          class="bg-accent text-contrast focus-visible:ring-ring inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
+          class="bg-accent text-contrast focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
         >
+          <component :is="(LucideIcons as any)[icons.cta]" :size="16" />
           {{ t('noonTool.hero.ctaPrimary') }}
         </a>
         <a

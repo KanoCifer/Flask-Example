@@ -10,6 +10,7 @@ import NoonToolAudience from './components/NoonToolAudience.vue';
 import NoonToolPrivacy from './components/NoonToolPrivacy.vue';
 import NoonToolPermissions from './components/NoonToolPermissions.vue';
 import NoonToolFaq from './components/NoonToolFaq.vue';
+import NoonToolSupport from './components/NoonToolSupport.vue';
 import NoonToolFinalCta from './components/NoonToolFinalCta.vue';
 import NoonToolFooter from './components/NoonToolFooter.vue';
 
@@ -44,6 +45,7 @@ useHead({
       <NoonToolAudience />
       <NoonToolPermissions />
       <NoonToolFaq />
+      <NoonToolSupport id="support" />
       <NoonToolFinalCta />
       <NoonToolFooter />
     </div>

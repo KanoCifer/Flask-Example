@@ -8,6 +8,10 @@ export const icons = {
   privacy: 'ShieldCheck',
   faq: 'CircleHelp',
   cta: 'Download',
+  support: 'LifeBuoy',
+  wechat: 'MessageCircle',
+  docs: 'BookOpen',
+  github: 'Code',
   footerLink: 'ArrowUpRight',
 } as const;
 

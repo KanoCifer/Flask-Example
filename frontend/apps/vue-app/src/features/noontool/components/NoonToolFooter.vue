@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import * as LucideIcons from '@lucide/vue';
+import { icons } from '../icons';
 
 const { t } = useI18n();
 
@@ -16,17 +18,30 @@ const DOCS_URL = 'https://kanocifer.chat/docs/';
       <nav class="flex gap-4">
         <a
           :href="DOCS_URL + 'privacy/'"
-          class="hover:text-ink transition-colors"
+          class="hover:text-ink inline-flex items-center gap-1 transition-colors"
         >
+          <component :is="(LucideIcons as any)[icons.privacy]" :size="12" />
           {{ t('noonTool.footer.links.privacy') }}
         </a>
         <a
           :href="DOCS_URL + 'guide/changelog'"
-          class="hover:text-ink transition-colors"
+          class="hover:text-ink inline-flex items-center gap-1 transition-colors"
         >
+          <component :is="(LucideIcons as any)[icons.faq]" :size="12" />
           {{ t('noonTool.footer.links.changelog') }}
         </a>
-        <a :href="DOCS_URL" class="hover:text-ink transition-colors">
+        <a
+          :href="DOCS_URL + 'guide/support'"
+          class="hover:text-ink inline-flex items-center gap-1 transition-colors"
+        >
+          <component :is="(LucideIcons as any)[icons.support]" :size="12" />
+          {{ t('noonTool.footer.links.support') }}
+        </a>
+        <a
+          :href="DOCS_URL"
+          class="hover:text-ink inline-flex items-center gap-1 transition-colors"
+        >
+          <component :is="(LucideIcons as any)[icons.docs]" :size="12" />
           {{ t('noonTool.footer.links.docs') }}
         </a>
       </nav>

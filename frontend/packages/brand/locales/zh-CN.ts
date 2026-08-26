@@ -12,8 +12,8 @@ export default {
       headlineTail: '发到 Noon',
       subheadline:
         '还是熟悉的 1688 页面，还是你自己的 Noon 店铺。Nomu 把采集、翻译、图片处理和逐件发布收进同一条流水线：从源页到已上架，一条黄色确认走完。',
-      ctaPrimary: '添加到 Chrome',
-      ctaPrimaryHint: '下载 nomu-*.zip，解压后在 Chrome 扩展页加载',
+      ctaPrimary: '下载插件',
+      ctaPrimaryHint: '下载 nomu-*.zip，直接拖入 Chrome 扩展管理页即可安装',
       ctaSecondary: '看看它做什么',
       localeZh: '中文',
       localeEn: 'EN',
@@ -206,10 +206,30 @@ export default {
         },
       },
     },
+    support: {
+      eyebrow: '支持',
+      sectionTitle: '遇到问题？直接找开发者。',
+      sectionSubtitle: '不用论坛里翻帖子。安装、采集、发布任何一步卡住了，或者想提功能建议，都可以直接联系。',
+      viewQr: '查看微信二维码',
+      channels: {
+        wechat: {
+          title: '微信（推荐）',
+          body: '扫码添加好友，备注「Nomu」。日常使用问题、功能建议都在这里聊。',
+        },
+        docs: {
+          title: '先查文档',
+          body: '安装失败、更新方法、常见疑问，文档站大多有答案：kanocifer.chat/docs',
+        },
+        github: {
+          title: 'GitHub Issue',
+          body: '习惯用 GitHub 的话，也可以到仓库提 issue，附上版本号和现象即可。',
+        },
+      },
+    },
     finalCta: {
       title: '把上架这件事，交还给流程',
       body: '还是原来的 1688 页面，还是你自己的 Noon 店铺，改变的只是：复制粘贴的部分没有了。',
-      button: '现在就装上 Nomu',
+      button: '下载插件',
       hint: '下载 zip 后在 Chrome 扩展页以开发者模式加载',
     },
     footer: {
@@ -217,6 +237,7 @@ export default {
       links: {
         privacy: '隐私',
         changelog: '更新日志',
+        support: '获取支持',
         docs: '文档',
       },
       license: 'MIT License',

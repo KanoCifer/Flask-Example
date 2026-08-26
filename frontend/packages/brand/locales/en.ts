@@ -12,8 +12,8 @@ export default {
       headlineTail: 'onto Noon shelves',
       subheadline:
         'Same 1688 pages you already browse, same Noon stores you already run. Nomu folds capture, translation, image prep and per-item publishing into one pipeline — source page to listed product, one warm yellow confirm at a time.',
-      ctaPrimary: 'Add to Chrome',
-      ctaPrimaryHint: 'Download the zip, then load it as an unpacked extension in Chrome',
+      ctaPrimary: 'Download Extension',
+      ctaPrimaryHint: 'Download nomu-*.zip, then drag it onto the Chrome extensions page to install',
       ctaSecondary: 'See what it does',
       localeZh: '中文',
       localeEn: 'EN',
@@ -207,10 +207,31 @@ export default {
         },
       },
     },
+    support: {
+      eyebrow: 'Support',
+      sectionTitle: 'Stuck? Reach the developer directly.',
+      sectionSubtitle:
+        'No forum digging. If install, capture or publishing gets stuck — or you have a feature idea — get in touch.',
+      viewQr: 'View WeChat QR code',
+      channels: {
+        wechat: {
+          title: 'WeChat (recommended)',
+          body: 'Scan the QR code to add me, mention "Nomu". Day-to-day questions and feature requests live here.',
+        },
+        docs: {
+          title: 'Check the docs first',
+          body: 'Install failures, updates, common questions — the docs site covers most of it: kanocifer.chat/docs',
+        },
+        github: {
+          title: 'GitHub Issue',
+          body: 'Prefer GitHub? Open an issue on the repo with your version number and what happened.',
+        },
+      },
+    },
     finalCta: {
       title: 'Hand listing back to a workflow',
       body: 'Same 1688 pages, same Noon stores — what changed is that the copy-paste part is gone.',
-      button: 'Install Nomu now',
+      button: 'Download Extension',
       hint: 'Load the downloaded zip via Chrome extensions page in developer mode',
     },
     footer: {
@@ -218,6 +239,7 @@ export default {
       links: {
         privacy: 'Privacy',
         changelog: 'Changelog',
+        support: 'Support',
         docs: 'Docs',
       },
       license: 'MIT License',
