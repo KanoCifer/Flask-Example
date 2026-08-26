@@ -2,7 +2,6 @@
 import { useI18n } from 'vue-i18n';
 import { motion } from 'motion-v';
 import * as LucideIcons from '@lucide/vue';
-import { Button as UiButton } from '@/components';
 import { icons } from '../icons';
 import NoonToolLocaleSwitch from './NoonToolLocaleSwitch.vue';
 import NoonToolScreenshot from './NoonToolScreenshot.vue';
@@ -90,35 +89,29 @@ const pipelineSteps = [
         </ol>
 
         <div class="flex flex-wrap items-center gap-3 pt-2">
-          <UiButton
-            as="a"
-            variant="default"
+          <a
             :href="downloadHref"
             download
-            class="gap-2 px-5 py-2.5"
+            class="bg-accent text-contrast focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
           >
             <component :is="(LucideIcons as any)[icons.cta]" :size="16" />
             {{ t('noonTool.hero.ctaPrimary') }}
-          </UiButton>
-          <UiButton
-            as="a"
-            variant="outline"
+          </a>
+          <a
             href="#features"
-            class="px-5 py-2.5"
+            class="border-border bg-card text-ink focus-visible:ring-ring motion-safe:hover:bg-surface inline-flex items-center justify-center rounded-xl border px-5 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
           >
             {{ t('noonTool.hero.ctaSecondary') }}
-          </UiButton>
-          <UiButton
-            as="a"
-            variant="ghost"
+          </a>
+          <a
             href="https://kanocifer.chat/docs/"
             target="_blank"
             rel="noopener"
-            class="gap-1.5 px-2 py-2.5"
+            class="text-muted focus-visible:ring-ring motion-safe:hover:text-ink inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <component :is="(LucideIcons as any)[icons.docs]" :size="14" />
             {{ t('noonTool.hero.ctaDocs') }}
-          </UiButton>
+          </a>
         </div>
       </motion.div>
 

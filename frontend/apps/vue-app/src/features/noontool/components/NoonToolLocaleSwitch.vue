@@ -93,7 +93,7 @@ function pick(code: string) {
     :aria-label="
       t('noonTool.hero.localeZh') + ' / ' + t('noonTool.hero.localeEn')
     "
-    class="border-border/60 bg-card/70 relative inline-flex items-center gap-1 rounded-full border p-1 shadow-sm backdrop-blur"
+    class="border-border/60 bg-card/70 relative inline-flex items-center gap-1 rounded-full border p-1"
   >
     <div ref="trackRef" class="relative inline-flex items-center gap-1">
       <button
@@ -113,7 +113,7 @@ function pick(code: string) {
 
       <motion.span
         aria-hidden="true"
-        class="bg-accent absolute top-0 left-0 z-0 h-full rounded-full shadow-sm"
+        class="bg-accent absolute top-0 left-0 z-0 h-full rounded-full"
         :animate="{
           x: indicator.x,
           width: indicator.width,
