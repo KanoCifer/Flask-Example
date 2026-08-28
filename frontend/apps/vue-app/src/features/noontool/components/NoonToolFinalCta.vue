@@ -5,13 +5,9 @@ import { icons } from '../icons';
 
 const { t } = useI18n();
 
-// 与 Hero 同源：public/nomu-*.zip 由扩展仓库构建产物拷入，文件名带版本号
-const modules = import.meta.glob('/public/nomu-*.zip', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>;
-const downloadHref = Object.values(modules)[0] ?? '#';
+// 与 Hero 同源：Chrome Web Store 安装链接
+const installHref =
+  'https://chromewebstore.google.com/detail/nomu/idfojgkppleknejhenmggcnnnmdglaik';
 </script>
 
 <template>
@@ -36,8 +32,9 @@ const downloadHref = Object.values(modules)[0] ?? '#';
       </p>
       <div class="flex justify-center pt-2">
         <a
-          :href="downloadHref"
-          download
+          :href="installHref"
+          target="_blank"
+          rel="noopener"
           class="bg-accent text-contrast focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-medium shadow-sm transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]"
         >
           <component :is="(LucideIcons as any)[icons.cta]" :size="16" />

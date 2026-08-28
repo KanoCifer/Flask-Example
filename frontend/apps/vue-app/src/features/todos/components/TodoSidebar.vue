@@ -1,79 +1,92 @@
 <template>
-  <aside
+  <!-- shadcn 同款双胞胎结构：
+       1. 外层 gap 占位 div —— 撑开 main 左侧间距，width 走 transition。
+       2. fixed 容器 —— 浮在 gap 上方，width 同步过渡。
+       main 加 flex-1 min-w-0 后，gap 宽度变化只重算 flex track，
+       main 内容区宽度恒定 → Kanban / virtualized list 零 reflow。 -->
+  <div
     :class="[
-      'sidebar-collapse-transition bg-secondary/70 top-20 hidden shrink-0 space-y-1 self-start rounded-tr-3xl px-4 py-6 lg:sticky lg:block lg:h-[calc(100vh-5rem)]',
+      'sidebar-collapse-transition relative hidden shrink-0 self-start lg:block lg:h-[calc(100vh-5rem)]',
       collapsed ? 'lg:w-14' : 'lg:w-60',
     ]"
   >
-    <div
-      :class="[
-        'flex',
-        collapsed
-          ? 'justify-center pb-2'
-          : 'items-center justify-between px-3 pb-2',
-      ]"
+    <!-- fixed sidebar 内容，浮在 gap 上 -->
+    <aside
+      class="bg-secondary fixed top-20 left-0 z-10 hidden space-y-1 rounded-tr-3xl px-4 py-6 transition-[width] duration-200 ease-linear lg:block lg:h-[calc(100vh-5rem)]"
+      :class="collapsed ? 'lg:w-14' : 'lg:w-60'"
     >
-      <span
-        v-if="!collapsed"
-        class="text-muted font-serif text-xs tracking-widest"
-        >工作台</span
-      >
-      <button
-        type="button"
-        :title="collapsed ? '展开工作台' : '收起工作台'"
-        :aria-label="collapsed ? '展开工作台' : '收起工作台'"
-        :aria-expanded="!collapsed"
-        aria-controls="todo-sidebar-nav"
-        class="text-muted hover:bg-accent/10 hover:text-ink focus-visible:ring-ring rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-        @click="collapsed = !collapsed"
-      >
-        <ChevronLeft v-if="!collapsed" class="h-4 w-4" aria-hidden="true" />
-        <ChevronRight v-else class="h-4 w-4" aria-hidden="true" />
-      </button>
-    </div>
-    <nav
-      id="todo-sidebar-nav"
-      role="tablist"
-      aria-label="工作台视角"
-      class="relative"
-    >
-      <!-- 滑动指示器 -->
-      <span
+      <div
         :class="[
-          'tab-indicator bg-accent/10 absolute top-0 left-0 z-0 w-full rounded-lg shadow-[inset_0_1px_0_0_oklch(from_var(--page)_l_c_h_/_0.5),inset_0_-1px_1px_oklch(0_0_0_/_0.04)]',
-          collapsed ? 'h-8' : 'h-9',
+          'flex',
+          collapsed
+            ? 'justify-center pb-2'
+            : 'items-center justify-between px-3 pb-2',
         ]"
-        :style="{ transform: `translateY(${indicatorY}px)` }"
-      />
-      <button
-        v-for="(tab, index) in tabs"
-        :key="tab.id"
-        role="tab"
-        :aria-selected="activeTab === tab.id"
-        :title="collapsed ? tab.label : undefined"
-        class="focus-visible:ring-ring relative z-10 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-[color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.96]"
-        :class="[
-          activeTab === tab.id ? 'text-ink' : 'text-muted hover:text-ink',
-          collapsed ? 'justify-center' : '',
-        ]"
-        @click="activeTab = tab.id"
       >
-        <component :is="tab.icon" class="h-4 w-4 shrink-0" />
-        <span v-if="!collapsed" class="flex-1 text-left">{{ tab.label }}</span>
         <span
           v-if="!collapsed"
-          :class="[
-            'inline-block min-w-[1.25rem] rounded-full px-1.5 text-center text-[10px] font-medium tabular-nums transition-[background-color,color] duration-150',
-            index === activeTabIndex
-              ? 'bg-accent/15 text-ink'
-              : 'bg-surface/10 text-muted',
-          ]"
+          class="text-muted font-serif text-xs tracking-widest"
+          >工作台</span
         >
-          {{ tab.count }}
-        </span>
-      </button>
-    </nav>
-  </aside>
+        <button
+          type="button"
+          :title="collapsed ? '展开工作台' : '收起工作台'"
+          :aria-label="collapsed ? '展开工作台' : '收起工作台'"
+          :aria-expanded="!collapsed"
+          aria-controls="todo-sidebar-nav"
+          class="text-muted hover:bg-accent/10 hover:text-ink focus-visible:ring-ring rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          @click="collapsed = !collapsed"
+        >
+          <ChevronLeft v-if="!collapsed" class="h-4 w-4" aria-hidden="true" />
+          <ChevronRight v-else class="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+      <nav
+        id="todo-sidebar-nav"
+        role="tablist"
+        aria-label="工作台视角"
+        class="relative"
+      >
+        <!-- 滑动指示器 -->
+        <span
+          :class="[
+            'tab-indicator bg-accent/10 absolute top-0 left-0 z-0 w-full rounded-lg shadow-[inset_0_1px_0_0_oklch(from_var(--page)_l_c_h_/_0.5),inset_0_-1px_1px_oklch(0_0_0_/_0.04)]',
+            collapsed ? 'h-8' : 'h-9',
+          ]"
+          :style="{ transform: `translateY(${indicatorY}px)` }"
+        />
+        <button
+          v-for="(tab, index) in tabs"
+          :key="tab.id"
+          role="tab"
+          :aria-selected="activeTab === tab.id"
+          :title="collapsed ? tab.label : undefined"
+          class="focus-visible:ring-ring relative z-10 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-[color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.96]"
+          :class="[
+            activeTab === tab.id ? 'text-ink' : 'text-muted hover:text-ink',
+            collapsed ? 'justify-center' : '',
+          ]"
+          @click="activeTab = tab.id"
+        >
+          <component :is="tab.icon" class="h-4 w-4 shrink-0" />
+          <span v-if="!collapsed" class="flex-1 text-left">{{
+            tab.label
+          }}</span>
+          <span
+            v-if="!collapsed"
+            :class="[
+              'inline-block min-w-[1.25rem] rounded-full px-1.5 text-center text-[10px] font-medium tabular-nums transition-[background-color,color] duration-150',
+              index === activeTabIndex
+                ? 'bg-accent/15 text-ink'
+                : 'bg-surface/10 text-muted',
+            ]"
+          >
+            {{ tab.count }}
+          </span>
+        </button>
+      </nav>
+    </aside>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -146,14 +159,11 @@ const tabs = computed(() => [
   transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* 折叠态缩放过渡：走 transform，避免触发父 grid `auto_1fr` 重排；
- * 真实宽度仍由 lg:w-14 / lg:w-60 类同步切换，但动画只补一层视觉插值，
- * 主线程不再做 layout/paint，只做合成层 transform，60fps。 */
+/* shadcn 思路：width 过渡只跑在外层占位壳上（内容区用 absolute 脱离文档流）。
+ * 内层 <aside> 不参与 layout —— 它的 width 变化不会触发主区或兄弟节点 reflow。
+ * 单帧开销 ≈ grid track 重算 + aside 自身 paint。 */
 .sidebar-collapse-transition {
-  /* ponytail: 用 transform 替代 width 动画，绕开 grid layout；
-   * 升级路径：若未来 grid 改为 flex-basis 容器，可改回 width。 */
-  transform-origin: left center;
-  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: width 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

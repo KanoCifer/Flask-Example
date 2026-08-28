@@ -4,11 +4,13 @@
     <TodoHeader @create="openCreate" @mcp-token="mcpTokenOpen = true" />
 
     <!-- ── main content ── -->
-    <div class="grid flex-1 grid-cols-[auto_1fr]">
+    <!-- shadcn 同款：sidebar 用「gap 占位 + fixed 容器」双胞胎结构，
+         width transition 只发生在空 gap 上 → main flex-1 永远不变形。 -->
+    <div class="flex flex-1">
       <TodoSidebar v-model="activeTab" v-model:collapsed="sidebarCollapsed" />
 
       <main
-        class="min-w-0 overflow-y-auto px-5 py-5 contain-[layout_paint_scroll_style] sm:px-8"
+        class="min-w-0 flex-1 overflow-y-auto px-5 py-5 contain-[layout_paint_scroll_style] sm:px-8"
       >
         <!-- mobile tab strip (in flow, below the page title row) -->
         <TodoMobileTabs v-model="activeTab" />
